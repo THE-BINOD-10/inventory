@@ -2242,7 +2242,6 @@ def print_purchase_order_form(request, user=''):
     name = open_po.supplier.name
     order_id = order.order_id
     gstin_no = open_po.supplier.tin_number
-    # import pdb; pdb.set_trace()
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))

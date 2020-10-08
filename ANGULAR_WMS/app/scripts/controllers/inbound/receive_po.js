@@ -904,7 +904,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.confirm_grn_api = function() {
-      var that = vm;
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -933,7 +932,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem.push({'name':'order_type', 'value': vm.order_type});
       }
       $.each(elem, function(i, val) {
-        form_data.append(val.name, val.value);
+        val.name == 'grn_date' && val.value == vm.current_month ? form_data.append(val.name, '') : form_data.append(val.name, val.value);
       });
       var url = "confirm_grn/"
       if(vm.po_qc) {

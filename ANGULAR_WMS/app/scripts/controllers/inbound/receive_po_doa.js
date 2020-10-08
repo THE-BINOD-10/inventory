@@ -846,7 +846,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem.push({"name":"warehouse_id", "value":vm.model_data.warehouse_id});
       }
       $.each(elem, function(i, val) {
-        form_data.append(val.name, val.value);
+        val.name == 'grn_date' && val.value == vm.current_month ? form_data.append(val.name, '') : form_data.append(val.name, val.value);
       });
       var url = "confirm_grn/"
       if(vm.po_qc) {

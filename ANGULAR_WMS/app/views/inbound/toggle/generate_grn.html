@@ -176,9 +176,10 @@
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
-                <label for="grn_date" class="bg-red control-label" style="padding-left: 10px; padding-right: 10px;">BOOKING MONTH</label>
-                <select name="grn_date" class="form-control" ng-model="showCase.model_data.grn_date" style="border-color: #ff0000 !important;">
-                  <option value="">{{showCase.current_month}}</option>
+                <label for="grn_date" class="bg-red control-label" style="padding-left: 10px; padding-right: 10px;">BOOKING MONTH *</label>
+                <select name="grn_date" class="form-control" ng-model="showCase.model_data.grn_date" style="border-color: #ff0000 !important;" required>
+                  <option value="">Please Select Booking Month</option>
+                  <option value="{{showCase.current_month}}" ng-selected="showCase.current_month==showCase.model_data.grn_date">{{showCase.current_month}}</option>
                   <option ng-repeat="item in showCase.last_two_months" value="{{item}}" ng-selected="item==showCase.model_data.grn_date">{{item}}</option>
                 </select>
                 <!-- <input name="grn_date" ui-jq="datepicker" ng-model="showCase.model_data.grn_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true"> -->

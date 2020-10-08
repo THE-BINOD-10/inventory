@@ -9762,6 +9762,10 @@ def confirm_add_po(request, sales_data='', user=''):
         company_logo=""
         if profile.company.logo:
             company_logo = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
+            try:
+                log.info("Email PDF " + str(company_logo))
+            except Exception as e:
+                pass
         if profile.company:
             company_details['company_address'] = ''
             if profile.company.address:

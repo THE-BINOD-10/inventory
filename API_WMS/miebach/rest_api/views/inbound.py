@@ -16014,9 +16014,10 @@ def gather_uom_master_for_sku(user, sku_code):
     return dataDict
 
 
-def get_prs_with_sku_supplier_mapping(sku_code, supplier_id):
+def get_prs_with_sku_supplier_mapping(user, sku_code, supplier_id):
     prs_to_be_resubmitted = []
-    prIds = PendingLineItems.objects.filter(sku__sku_code=sku_code,
+    all_usr = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username]).values_list('id', flat=True))
+    prIds = PendingLineItems.objects.filter(sku__sku_code=sku_code, sku__user__in=all_usr,
                     pending_pr__final_status='pending').values_list('id', 'pending_pr_id')
     for lineItemId, pr_id in prIds:
         temp_data = TempJson.objects.filter(model_id=lineItemId,

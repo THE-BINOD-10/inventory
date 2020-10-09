@@ -875,6 +875,7 @@ METRO_PO_REPORT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
 
@@ -897,6 +898,7 @@ METROPOLIS_PO_REPORT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
 
@@ -13969,19 +13971,15 @@ def get_metro_po_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PO'}
-    lis = ['pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__requested_user__first_name',
-           'pending_po__pending_prs__creation_date',
-           'pending_po__po_number', 'pending_po__creation_date', 'pending_po__po_number', 'pending_po__po_number',
+    lis = ['pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__creation_date', 'pending_po__wh_user__first_name',
+           'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__wh_user__first_name',
            'pending_po__product_category',
-           'pending_po__sku_category', 'pending_po__supplier__id', 'pending_po__supplier__name', 'total_qty',
-           'pending_po__final_status', 'pending_po__po_number',
-           'total_amt', 'total_amt', 'total_amt', 'creation_date', 'pending_po__requested_user__username',
-           'pending_po__po_number', 'pending_po__po_number',
-           'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
-           'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
-           'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
-           'pending_po__requested_user__username', 'pending_po__updation_date', 'pending_po__updation_date',
-           'pending_po__po_number', 'pending_po__delivery_date', 'pending_po__po_number', 'pending_po__po_number']
+           'pending_po__sku_category', 'total_qty', 'total_amt', 'pending_po__pending_prs__requested_user__first_name',
+           'pending_po__final_status', 'pending_po__updation_date',
+           'pending_po__full_po_number', 'total_qty', 'pending_po__pending_prs__creation_date', 'total_amt', 'total_amt',
+           'total_amt', 'pending_po__po_number', 'pending_po__po_number', 'pending_po__updation_date',
+           'pending_po__delivery_date',
+           'pending_po__supplier__id', 'pending_po__supplier__name']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     results = ''
@@ -14002,6 +14000,8 @@ def get_metro_po_report_data(search_params, user, sub_user):
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
+    if 'pr_number' in search_params:
+        search_parameters['pending_po__pending_prs__full_pr_number'] = search_params['pr_number']
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
     if 'po_status' in search_params:
@@ -14703,10 +14703,19 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-    lis = ['order_id', 'creation_date', 'order_id', 'order_id', 'order_id', 'open_po__sku__sku_category', 'order_id',
-           'order_id', 'order_id', 'status', 'po_date', 'po_number', 'open_po__order_quantity', 'creation_date',
-           'open_po__price', 'open_po__price', 'open_po__price', 'po_number', 'order_id','updation_date',
-           'delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__name']
+    lis = ['open_po__pendingpos__pending_prs__full_pr_number', 'open_po__pendingpos__pending_prs__creation_date',
+            'open_po__pendingpos__wh_user__first_name', 'open_po__pendingpos__pending_prs__requested_user__first_name',
+            'open_po__pendingpos__pending_prs__wh_user__first_name', 'open_po__pendingpos__product_category',
+            'open_po__sku__sku_category', 'open_po__order_quantity', 'open_po__order_quantity',
+            'open_po__pendingpos__requested_user__first_name', 'open_po__pendingpos__status',
+            'open_po__pendingpos__updation_date', 'open_po__pendingpos__full_po_number',
+            'open_po__order_quantity', 'creation_date', 'open_po__order_quantity', 'open_po__order_quantity',
+            'open_po__order_quantity', 'open_po__pendingpos__full_po_number', 'updation_date', 'updation_date',
+            'open_po__pendingpos__delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__supplier__name'
+          ]
+           #'order_id', 'status', 'po_date', 'po_number', 'open_po__order_quantity', 'creation_date',
+           #'open_po__price', 'open_po__price', 'open_po__price', 'po_number', 'order_id','updation_date',
+           #'delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__name']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -14714,7 +14723,6 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -14729,13 +14737,15 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['po_number'] = po_number
+    if 'pr_number' in search_params:
+        search_parameters['open_po__pendingpos__pending_prs__full_pr_number'] = search_params['pr_number']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['po_number', 'creation_date','expected_date']
 
-    model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct()
+    model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
                                         #annotate(total_qty=Sum('open_po__order_quantity'),
                                     #total_temp_amt=Sum(F('open_po__order_quantity') * F('open_po__price')),
                                     #annotate(total_tax_amount=Sum((F('open_po__order_quantity') * F('open_po__price')/100)*(F('open_po__cgst_tax')+F('open_po__sgst_tax')+F('open_po__igst_tax'))),

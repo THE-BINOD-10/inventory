@@ -1912,7 +1912,7 @@ def update_sku_supplier_values(request, user=''):
                 if not value:
                     value = 0
                 if key == 'price' and value != actual_price:
-                    prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(skus_code, sp_id_sku)
+                    prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(user, skus_code, sp_id_sku)
                     for pr in prs_to_be_resubmitted:
                         pr_ids_map[pr] = {skus_code:value}
                     resubmit_prs(urlPath, pr_ids_map)

@@ -3288,7 +3288,7 @@ def supplier_sku_upload(request, user=''):
                             if cell_data != supplier_sku_instance.price:
                                 sku_code = supplier_sku_instance.sku.sku_code
                                 sp_id_sku = supplier_sku_instance.supplier.supplier_id
-                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(sku_code, sp_id_sku)
+                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(user, sku_code, sp_id_sku)
                                 for pr in prs_to_be_resubmitted:
                                     pr_ids_map.setdefault(pr, {}).update({sku_code:cell_data})
                             supplier_sku_instance.price = cell_data

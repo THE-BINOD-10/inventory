@@ -13488,7 +13488,7 @@ def get_pr_report_data(search_params, user, sub_user):
             approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
             approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         total_quantity, total_amount, total_tax_amount = 0, 0, 0
-        total_quantity, total_amount, total_tax_amount = get_pr_amount_and_quantity(full_pr_number)
+        total_quantity, total_amount, total_tax_amount = get_pr_amount_and_quantity(full_pr_number, result['pending_pr__sub_pr_number'])
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),
@@ -14161,6 +14161,9 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
+    if 'pr_number' in search_params:
+        pr_number = search_params['pr_number']
+        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
     if 'sku_category' in search_params:
@@ -14744,7 +14747,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     else:
         results = model_data
     for result in results:
-        pr_plant, pr_department, pr_number, pr_date, pr_user = '', '', '', '', ''
+        pr_plant, pr_department, pr_number, pr_date, pr_user, po_date, supplier_id, supplier_name, po_update_date= '', '', '', '', '', '', '', '', ''
         product_category, category, final_status= '', '', ''
         pr_quantity = ''
         user_id= ''
@@ -15096,11 +15099,11 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_pr_amount_and_quantity(pr_number):
+def get_pr_amount_and_quantity(pr_number, sub_pr_number):
     pr_number = pr_number
     total_amount, total_quantity, total_tax_amount = 0, 0, 0
     if pr_number:
-        pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number)
+        pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, pending_pr__sub_pr_number=sub_pr_number)
         if pr_data.exists():
             for row in pr_data:
                 tem_price = 0

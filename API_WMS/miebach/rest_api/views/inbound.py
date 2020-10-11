@@ -7381,7 +7381,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                                         new_exp_date=DP.parse(exp_date)
                                         old_exp_date=DP.parse(row_line["exp_date"])
                                         if new_exp_date<old_exp_date:
-                                            exp_date=temp_exp_date
+                                            exp_date=temp_exp_date.isoformat()
                                         else:
                                             exp_date=row_line["exp_date"]
                                     else:
@@ -9882,12 +9882,12 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     pr_number = pr_number_list[0]
                 pr_id = pr_obj.id
                 pr_prefix = pr_obj.prefix
-                pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
-                pr_date = pr_created_date.strftime('%d-%m-%Y')
-                dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-                if pr_number_list:
-                    pr_number = pr_number_list[0]
-                    full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
+                #pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
+                #pr_date = pr_created_date.strftime('%d-%m-%Y')
+                #dateInPR = str(pr_date).split(' ')[0].replace('-', '')
+                #if pr_number_list:
+                #    pr_number = pr_number_list[0]
+                #    full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
                 full_pr_number= pr_obj.full_pr_number
                 prApprQs = prQs[0].pending_poApprovals
                 validated_users = list(prApprQs.filter().values_list('validated_by', flat=True).order_by('level'))

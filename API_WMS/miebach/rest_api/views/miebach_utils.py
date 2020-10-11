@@ -13988,6 +13988,9 @@ def get_metro_po_report_data(search_params, user, sub_user):
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
+    if 'pr_number' in search_params:
+        pr_number = search_params['pr_number']
+        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
     if 'po_status' in search_params:
@@ -14161,6 +14164,9 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
+    if 'pr_number' in search_params:
+        pr_number = search_params['pr_number']
+        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
     if 'sku_category' in search_params:
@@ -14734,7 +14740,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     else:
         results = model_data
     for result in results:
-        pr_plant, pr_department, pr_number, pr_date, pr_user = '', '', '', '', ''
+        pr_plant, pr_department, pr_number, pr_date, pr_user, po_date, supplier_id, supplier_name, po_update_date= '', '', '', '', '', '', '', '', ''
         product_category, category, final_status= '', '', ''
         pr_quantity = ''
         user_id= ''

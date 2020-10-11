@@ -13681,7 +13681,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 final_updated_time = approver_1_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                final_status = approver_1_detail_data.get('pending_pr__final_status')
             else:
                 approver1_status = 'No'
                 last_updated_by = approver_1_detail_data.get('validated_by')
@@ -13690,7 +13689,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 final_updated_time = approver_1_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                final_status = approver_1_detail_data.get('pending_pr__final_status')
         approver_2_detail_data = PurchaseApprovals.objects.filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
             approval_type="default").exclude(status='').values('level',
@@ -13707,7 +13705,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 final_updated_time = approver_2_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                final_status = approver_2_detail_data.get('pending_pr__final_status')
                 if approver_1_details == '':
                     approver1_status = 'Yes'
                     approver_1_details = approver_2_detail_data.get('validated_by')
@@ -13720,7 +13717,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 final_updated_time = approver_2_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                final_status = approver_2_detail_data.get('pending_pr__final_status')
                 if approver_1_details == '':
                     approver1_status = 'No'
                     approver_1_details = approver_2_detail_data.get('validated_by')
@@ -13740,7 +13736,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 last_updated_by = approver_3_detail_data.get('validated_by')
                 last_remarks = approver_3_detail_data.get('remarks', '')
                 final_updated_time = approver_3_detail_data.get('updation_date')
-                final_status = approver_3_detail_data.get('pending_pr__final_status')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 if approver_1_details == '':
@@ -13757,7 +13752,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 approver_3_details = approver_3_detail_data.get('validated_by')
                 last_remarks = approver_3_detail_data.get('remarks', '')
                 final_updated_time = approver_3_detail_data.get('updation_date')
-                final_status = approver_3_detail_data.get('pending_pr__final_status')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 if approver3_status == "No":
@@ -13786,7 +13780,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 last_updated_by = approver_4_detail_data.get('validated_by')
                 last_remarks = approver_4_detail_data.get('remarks', '')
                 final_updated_time = approver_4_detail_data.get('updation_date')
-                final_status = approver_4_detail_data.get('pending_pr__final_status')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 if approver_1_details == '':
@@ -13807,7 +13800,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 approver_4_details = approver_4_detail_data.get('validated_by')
                 last_remarks = approver_4_detail_data.get('remarks', '')
                 final_updated_time = approver_4_detail_data.get('updation_date')
-                final_status = approver_4_detail_data.get('pending_pr__final_status')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 if approver4_status == "No":
@@ -13842,7 +13834,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 approver_5_details = approver_5_detail_data.get('validated_by')
                 last_updated_by = approver_5_detail_data.get('validated_by')
                 last_remarks = approver_5_detail_data.get('remarks', '')
-                final_status = approver_5_detail_data.get('pending_pr__final_status')
                 final_updated_time = approver_5_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -13870,7 +13861,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 approver_5_details = approver_5_detail_data.get('validated_by')
                 last_updated_by = approver_5_detail_data.get('validated_by')
                 last_remarks = approver_5_detail_data.get('remarks', '')
-                final_status = approver_5_detail_data.get('pending_pr__final_status')
                 final_updated_time = approver_5_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -13909,6 +13899,12 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             if supplierQs.exists():
                 pr_supplier_name = supplierQs[0].name
                 pr_supplier_gst = supplierQs[0].tin_number
+        else:
+            pr_supplier_data = PendingPO.objects.filter(pending_prs__full_pr_number = result['pending_pr__full_pr_number'], pending_prs__sub_pr_number=result['pending_pr__sub_pr_number'])
+            if pr_supplier_data.exists():
+                pr_supplier_id = pr_supplier_data[0].supplier.supplier_id
+                pr_supplier_name = pr_supplier_data[0].supplier.name
+                pr_supplier_gst = pr_supplier_data[0].supplier.tin_number
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),

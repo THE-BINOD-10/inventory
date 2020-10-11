@@ -209,9 +209,13 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
+                    # level=result['pending_pr__pending_level']
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                    pr_user=pr_user, level=result['pending_pr__pending_level'], product_category=product_category)
-                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                                    pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
+                    if prApprQs.exists():
+                        last_updated_by = prApprQs[0].validated_by
+                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                        last_updated_remarks = prApprQs[0].remarks
         if result['pending_pr__sub_pr_number']:
             full_pr_number = "%s/%s" % (result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         else:
@@ -355,9 +359,11 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                         last_updated_remarks = prApprQs[0].remarks
                 else:
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                    pr_user=pr_user, level=result['pending_pr__pending_level'], product_category=product_category)
+                                    pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
                     if prApprQs.exists():
+                        last_updated_by = prApprQs[0].validated_by
                         last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                        last_updated_remarks = prApprQs[0].remarks
         if result['pending_pr__sub_pr_number']:
             full_pr_number = "%s/%s" % (result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         else:
@@ -3500,9 +3506,9 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
 @reversion.create_revision(atomic=False, using='reversion')
 def approve_pr(request, user=''):
     reversion.set_user(request.user)
-    log.info("Approve PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
     urlPath = request.META.get('HTTP_ORIGIN')
     myDict = dict(request.POST.iterlists())
+    log.info("Approve PR data for user %s and request params are %s" % (user.username, str(myDict)))
     status = 'Approved Failed'
     full_pr_number = request.POST.get('pr_number', '')
     purchase_id = request.POST.get('purchase_id', '')
@@ -4654,9 +4660,9 @@ def add_pr(request, user=''):
     try:
         reversion.set_user(request.user)
         check_prefix = ''
-        log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         central_po_data = ''
         myDict = dict(request.POST.iterlists())
+        log.info("Raise PR data for user %s and request params are %s" % (user.username, str(myDict)))
         plant_name = request.POST.get('plant', '')
         department_type = request.POST.get('department_type', '')
         if plant_name and department_type:

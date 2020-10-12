@@ -357,7 +357,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     status_dict = eval(status)
     filter_params = {}
     users = [user.id]
-    users = check_and_get_plants_depts(request, users)
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     isprava_permission = get_misc_value('order_exceed_stock', user.id)
     delivery_challana = get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
@@ -406,7 +409,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
     total_reserved_quantity = master_data.aggregate(total_res=Sum(F('reserved_quantity')/F('stock__batch_detail__pcf')))['total_res']
     total_picked_quantity = master_data.aggregate(total_pick=Sum(F('picked_quantity')/F('stock__batch_detail__pcf')))['total_pick']
-    master_data = master_data.values('picklist_number').distinct()
+    master_data = master_data.values('picklist_number', 'stock__sku__user').distinct()
     if order_term:
         master_data = [key for key, _ in groupby(master_data)]
 
@@ -432,7 +435,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         source_wh = ''
         order_type = 'Sales Order'
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
-        picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
+        pick_filter_dict = {'picklist_number': data['picklist_number']}
+        if data['stock__sku__user']:
+            pick_filter_dict['stock__sku__user'] = data['stock__sku__user']
+        picklist_obj = all_picks.filter(**pick_filter_dict)
         reserved_quantity_sum_value = picklist_obj.aggregate(total_res=Sum(F('reserved_quantity')/F('stock__batch_detail__pcf')))['total_res']
         if not reserved_quantity_sum_value:
             reserved_quantity_sum_value = 0
@@ -3740,11 +3746,12 @@ def mr_generate_picklist(request, user=''):
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
                                         location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
+        company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                        'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
-                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
+                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', company_user.id)}
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
                 'receipt_date')

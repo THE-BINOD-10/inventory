@@ -2678,7 +2678,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
            'location__zone__zone', 'location__zone__zone', 'location__location',
            'pallet_detail__pallet_code',
-           'quantity', 'receipt_type']
+           'quantity', 'receipt_type', 'creation_date']
     sub_zone_perm = get_permission(user, 'add_subzonemapping')
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
@@ -2780,7 +2780,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
                                 ('dept_type', dept_type),
-                                ('Pallet', pallet_code), ('Receipt Type', data.receipt_type)))
+                                ('Pallet', pallet_code), ('Receipt Type', data.receipt_type),
+                                ('Creation Date', get_local_date(user, data.creation_date))))
         if pallet_switch != 'true' and row_data.get('Pallet'):
             del row_data['Pallet']
         if not sub_zone_perm and row_data.get('Sub Zone'):

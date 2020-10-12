@@ -16159,16 +16159,21 @@ def grn_upload_preview(request, user=''):
 def get_material_request_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     lis = ['order_id', 'order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only', 'tsum']
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     if user.id == 1:
         stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR').\
-                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username', 'st_po__open_st__warehouse__id').\
+                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
+                                        'st_po__open_st__warehouse__id', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
                                         date_only=Cast('creation_date', DateField()))
     else:
         stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR').\
-                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username', 'st_po__open_st__warehouse__id').\
+                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
+                                        'st_po__open_st__warehouse__id', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
                                         date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]

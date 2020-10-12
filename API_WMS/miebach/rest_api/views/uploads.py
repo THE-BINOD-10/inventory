@@ -11285,9 +11285,9 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         if order_mapping.has_key('warehouse_name') :
             cell_data = get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)
             if not cell_data:
-                index_status.setdefault(count, set()).add('Invalid warehouse')
+                index_status.setdefault(count, set()).add('Invalid Department')
             elif cell_data not in dept_mapping_res.keys():
-                index_status.setdefault(count, set()).add('Invalid warehouse')
+                index_status.setdefault(count, set()).add('Invalid Department')
             else:
                 try:
                     user_obj = dept_users.get(userprofile__stockone_code=dept_mapping_res[cell_data])
@@ -11376,72 +11376,13 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         creation_date = final_data['date']
         creation_date = creation_date - datetime.timedelta(hours=1)
         order_id = final_data['order_id']
-        # for key, value in order_mapping.iteritems():
-        #     if key == 'source_warehouse':
-        #         source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
-        #         try:
-        #             user = User.objects.get(username=source_warehouse)
-        #         except Exception as e:
-        #             print e
-        #     if key == 'st_type':
-        #         st_type = str(get_cell_data(row_idx, value, reader, file_type))
-        #     if key == 'warehouse_name':
-        #         try:
-        #             warehouse = str(int(get_cell_data(row_idx, value, reader, file_type)))
-        #         except:
-        #             warehouse = str(get_cell_data(row_idx, value, reader, file_type))
-        #     elif key == 'wms_code':
-        #         try:
-        #             wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
-        #         except:
-        #             wms_code = str(get_cell_data(row_idx, value, reader, file_type))
-        #     elif key == 'quantity':
-        #          quantity = float(get_cell_data(row_idx, value, reader, file_type))
-        #     elif key == 'price':
-        #         try:
-        #             price = float(get_cell_data(row_idx, value, reader, file_type))
-        #         except:
-        #             price = 0
-        #     elif key == 'mrp':
-        #         try:
-        #             mrp = float(get_cell_data(row_idx, value, reader, file_type))
-        #         except:
-        #             mrp = 0
-        #     elif key == 'cgst_tax':
-        #         try:
-        #             cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
-        #         except:
-        #             cgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
-        #         if cgst_tax == '':
-        #             cgst_tax = 0
-        #     elif key == 'sgst_tax':
-        #         try:
-        #             sgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
-        #         except:
-        #             sgst_tax = str(get_cell_data(row_idx, value, reader, file_type))
-        #         if sgst_tax == '':
-        #             sgst_tax = 0
-        #     elif key == 'igst_tax':
-        #         try:
-        #             igst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
-        #         except:
-        #             igst_tax = str(get_cell_data(row_idx, value, reader, file_type))
-        #         if igst_tax == '':
-        #             igst_tax = 0
-        #     elif key == 'cess_tax':
-        #         try:
-        #             cess_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
-        #         except:
-        #             cess_tax = str(get_cell_data(row_idx, value, reader, file_type))
-        #         if cess_tax == '':
-        #             cess_tax = 0
         warehouse = User.objects.get(username=warehouse)
         cond = (user.username, warehouse.id, source_seller, dest_seller, order_id)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type,
                                order_id, creation_date, batch_no])
     all_data = insert_st_gst(all_data, warehouse)
-    status = confirm_stock_transfer_gst(all_data, user.username)
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ='MR')
 
     if status.status_code == 200:
         return 'Success'

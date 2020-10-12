@@ -8851,7 +8851,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         if batch_no:
             val_dict['batch_detail__batch_no'] = batch_no
         pc_loc_filter = OrderedDict()
-        pc_loc_filter['picklist__order__user'] = user.id
+        pc_loc_filter['picklist__stock__sku__user'] = user.id
         #if is_seller_order or add_mrp_filter:
         pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
         pc_loc_filter['status'] = 1
@@ -11529,7 +11529,6 @@ def insert_st_gst(all_data, user):
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
         for val_idx, val in enumerate(value):
-            print val_idx
             if val[7]:
                 open_st = OpenST.objects.get(id=val[6])
                 open_st.warehouse_id = User.objects.get(username=key[0]).id
@@ -11570,6 +11569,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
         incremental_prefix = 'so_prefix'
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
+        warehouse = User.objects.get(username=key[0])
         creation_date = None
         batch_no = ''
         po_id, prefix, full_po_number, check_prefix, inc_status = \

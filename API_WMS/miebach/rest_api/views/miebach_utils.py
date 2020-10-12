@@ -10788,7 +10788,8 @@ def get_material_request_report_data(request, search_params, user, sub_user):
 
 
 def get_stock_transfer_report_data(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants_depts,\
+    get_related_users_filters
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10809,6 +10810,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         stop_index = None
     search_parameters = {}
     order_data = lis[col_num]
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
@@ -10822,13 +10830,10 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
-    users = [user.id]
-    users = check_and_get_plants(request, users)
-    user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
-    search_parameters['st_type'] = 'ST_INTRA'
+    #search_parameters['st_type'] = 'ST_INTRA'
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()

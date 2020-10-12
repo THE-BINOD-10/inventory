@@ -8958,6 +8958,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                             # if seller_order:
                             #    create_seller_summary_details(seller_order, new_picklist)
                     if stock_quantity <= 0:
+                        if 'st_po' in dir(order) :
+                            stock_status.append(str(member.sku_code))
                         continue
 
                 elif allow_partial_picklist:

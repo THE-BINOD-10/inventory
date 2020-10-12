@@ -65,42 +65,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
                     } else {
                       vm.extra_width = {};
                     }
-                    angular.copy(data.data, vm.model_data);
-                    vm.model_data.plant_name = data.data.plant_name;
-                    vm.model_data.warehouse_name = data.data.warehouse_name;
-                    vm.model_data.warehouse = data.data.warehouse;
+                    angular.copy(data.data.data, vm.model_data);
+                    vm.model_data.action_buttons = false;
+                    if(aData['Status'] == 'Rejected'){
+                      vm.model_data.action_buttons = true;
+                    }
                     $state.go('app.outbound.CreateManualTest.confirmation');
                   }
                 });
             });
         });
         return nRow;
-    } 
-
-    function change_data(data, warehouse_id) {
-      //var dat = {};
-      //dat['po_number'] = data.po_number;
-      //dat['order_id'] = data.order_id;
-      //dat['data'] = []
-      //for (var i = 0; i < data.data.length; i++) {
-      //  var temp = data.data[i];
-      //  var qt = (vm.permissions.use_imei)?0:temp[3];
-      //  dat.data.push({'wms_code': temp[0], 'pallet_number': temp[6], 'original_quantity': temp[2],
-      //            'id': temp[5], 'orig_loc_id': temp[4], 'sub_data': [{'loc': temp[1], 'quantity': qt}],
-      //            'unit': temp[7], 'orig_data': ''})
-      //
-      //}
-      angular.copy(data, vm.model_data);
-      vm.model_data.warehouse_id = warehouse_id;
-      vm.model_data["sku_total_quantities"] = data.sku_total_quantities;
-      //if(vm.permissions.use_imei) {
-      //  angular.forEach(vm.model_data.data, function(data){
-      //    data.sub_data[0].quantity = 0;
-      //  })
-      //}
-      console.log(data);
-      angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
-      vm.count_sku_quantity();
     }
 
     vm.model_data = {}
@@ -110,66 +85,168 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       $state.go('app.outbound.CreateManualTest');
     }
 
-    vm.submit = function() {
-      var elem = angular.element($('form'));
-      vm.model_data.data.forEach(function(item){
-           item.wrong_sku = false;
-       });
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      vm.service.apiCall('putaway_data/', 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data == "Updated Successfully") {
-            vm.close();
-            reloadData();
-          } else {
-            $state.go('app.inbound.PutAwayConfirmation.confirmation');
-            vm.model_data.data.forEach(function(item){
-              if (data.data.wrong_skus.indexOf(item.wms_code) != -1) {
-                    item.wrong_sku = true;
-              }
-             });
-            pop_msg(data.data.status);
-          }
-        }
-      }); 
+  vm.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
     }
+
+  vm.add_new_row = function(){
+      var temp_row = {};
+      angular.copy(rows_data, temp_row);
+      vm.model_data.data.push(temp_row);
+  }
+
+  vm.remove_test_row = function(index){
+      var temp_row = {};
+      angular.copy(rows_data, temp_row);
+      vm.model_data.data.splice(index,1);
+  }
+
+  vm.update_data = update_data;
+  function update_data(index, data, last) {
+    console.log(data);
+    if (last) {
+      data.sub_data.push({wms_code: "", order_quantity: "", price: "", capacity:0, uom: ""});
+    } else {
+      data.sub_data.splice(index,1);
+    }
+  }
 
     function pop_msg(msg) {
       vm.message = "";
       vm.message = msg;
      }
 
-  vm.isLast = isLast;
-  function isLast(check) {
-
-    var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
-    return cssClass
+  vm.get_sku_details = function(data, selected) {
+    if(!vm.model_data.warehouse){
+      data.wms_code = '';
+      if(vm.wh_type == 'Store'){
+        colFilters.showNoty("Please select Store first");
+      }
+      else {
+        colFilters.showNoty("Please select Department first");
+      }
+      return
+    }
+    data.wms_code = selected.wms_code;
+    data.description = selected.sku_desc;
+    data.uom = selected.measurement_unit;
+    if(!vm.batch_mandatory){
+      vm.update_availabe_stock(data);
+    }
   }
 
-  vm.update_data = update_data;
-  function update_data(index, data, last) {
-    console.log(data);
-    var remain = vm.model_data.sku_total_quantities[data.wms_code] - vm.remain_quantity[data.wms_code]
-    if (last) {
-      if(!(vm.model_data.sku_total_quantities[data.wms_code] <= vm.remain_quantity[data.wms_code])){
-        var total = 0;
-        for(var i=0; i < data.sub_data.length; i++) {
-          total = total + parseInt(data.sub_data[i].quantity);
-        }
-        if(total < data.original_quantity) {
-          var clone = {};
-          angular.copy(data.sub_data[index], clone);
-          var temp = data.original_quantity - total;
-          clone.quantity = (remain < temp)?remain:temp;
-          //clone.quantity = data.original_quantity - total;
-          data.sub_data.push(clone);
-        }
+  function check_exist(sku_data, index) {
+
+    var d = $q.defer();
+    for(var i = 0; i < vm.model_data.data.length; i++) {
+
+      if(vm.model_data.data[i].$$hashKey != sku_data.$$hashKey && vm.model_data.data[i].test_code == sku_data.product_code) {
+
+        d.resolve(false);
+        vm.model_data.data.splice(index, 1);
+        alert("It is already exist in index");
+        break;
+      } else if( i+1 == vm.model_data.data.length) {
+        d.resolve(true);
       }
-    } else {
-      data.sub_data.splice(index,1);
     }
-    vm.count_sku_quantity();
+    return d.promise;
+  }
+
+  vm.get_product_data = function(item, sku_data, index) {
+    if(!vm.model_data.warehouse){
+      colFilters.showNoty("Please select Department First");
+      sku_data.test_code = '';
+      return
+    }
+    console.log(vm.model_data);
+    check_exist(sku_data, index).then(function(data){
+      if(data) {
+        var elem = $.param({'sku_code': item});
+        vm.service.apiCall('get_material_codes/','POST', {'sku_code': item}).then(function(data){
+          if(data.message) {
+            if(data.data != "No Data Found") {
+              sku_data.sub_data = [];
+              sku_data.test_desc = data.data.product.description;
+              sku_data.test_code = data.data.product.sku_code;
+              sku_data.test_quantity = 1;
+              angular.forEach(data.data.materials, function(material){
+                var temp_sub = {};
+                temp_sub.wms_code = material.material_code;
+                temp_sub.sku_quantity = material.material_quantity;
+                temp_sub.description = material.material_desc;
+                temp_sub.uom = material.measurement_type;
+                sku_data.sub_data.push(temp_sub);
+              });
+
+              //vm.change_quantity(sku_data);
+            } else {
+              sku_data.data = [{"material_code": "", "material_quantity": '', "id": ''}];
+            }
+          }
+        });
+      }
+    });
+  }
+
+  vm.bt_disable = false;
+  vm.insert_test_data = function(data) {
+    var elem = angular.element($('form#confirm_manual_test'));
+    elem = $(elem).serializeArray();
+      vm.bt_disable = true;
+      vm.service.apiCall('create_manual_test/', 'POST', elem).then(function(data){
+        if(data.message) {
+          if("Confirmed Successfully" == data.data) {
+            angular.copy(empty_data, vm.model_data);
+            vm.close()
+          }
+          colFilters.showNoty(data.data);
+          vm.bt_disable = false;
+          reloadData();
+        }
+      })
+  }
+
+  vm.get_sku_data = function(record, item, index) {
+    var found = false;
+    angular.forEach(vm.model_data.data[index].sub_data, function(sku_data){
+      if(item.wms_code==sku_data.wms_code){
+        found = true;
+      }
+    });
+    if(!found){
+      record.wms_code = item.wms_code;
+      record.description = item.sku_desc;
+      record.sku_quantity = 1;
+      record.uom = item.cuom;
+    }
+    else{
+      colFilters.showNoty("SKU Code already in List");
+      record.wms_code = "";
+    }
+  }
+
+  vm.reject_adjustment = reject_adjustment;
+    function reject_adjustment(data) {
+      if(data.$valid) {
+        var elem = angular.element($('form#confirm_manual_test'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        vm.service.apiCall('reject_inventory_adjustment/', 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if (data.data == "Updated Successfully") {
+              angular.extend(vm.model_data, vm.empty_data);
+              reloadData();
+              vm.close();
+            } else {
+              pop_msg(data.data);
+            }
+          }
+        });
+      }
   }
 
 }

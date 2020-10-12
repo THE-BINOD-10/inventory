@@ -17343,9 +17343,13 @@ def create_manual_test_approval(request, user=''):
             return HttpResponse("Invalid Test Code %s" % test_code)
         else:
             data_dict['test_id'] = test_obj[0].id
+        if not request_data['wms_code'][i]:
+            continue
         data_dict['test_code'] = test_code
         data_dict['uom'] = request_data['uom'][i]
         data_dict['wms_code'] = request_data['wms_code'][i]
+        data_dict['description'] = request_data['description'][i]
+        data_dict['test_desc'] = request_data['test_desc'][i]
         try:
             data_dict['sku_quantity'] = float(request_data['sku_quantity'][i])
         except:
@@ -17426,7 +17430,7 @@ def create_manual_test(request, user=''):
                 # TempJson.objects.create(model_id=consumption.id, model_json=json.dumps(value),
                 #                         model_name='manual_test_sku_data')
                 for val in value:
-                    sku = val['sku']
+                    sku = SKUMaster.objects.get(id=val['sku_id'])
                     quantity = val['needed_quantity']
                     sku_stocks = StockDetail.objects.using('default').select_for_update().\
                         exclude(location__zone__zone='DAMAGED_ZONE').\
@@ -17444,6 +17448,8 @@ def create_manual_test(request, user=''):
             import traceback
             log.debug(traceback.format_exc())
             return HttpResponse("Creation Failed")
+    data_id = request.POST['data_id']
+    MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -17497,10 +17503,9 @@ def get_manual_test_approval_pending(request, user=''):
     for key, value in json_data.items():
         sub_data = []
         for val in value:
-            sub_data.append({'wms_code': val['wms_code'], 'order_quantity': 1, 'uom': val['uom']})
-        data_dict['data'].append({'test_code': value[0]['test_code'], 'test_desc': value[0]['test_code'],
-                                  'sub_data': sub_data})
-    #rows_data = {test_code: "", test_desc: "",
-    #sub_data: [{wms_code: "", order_quantity: "", price: "", capacity:0, uom: ""}]}
-    #var empty_data = {data: [rows_data], warehouse: ""};
-    return HttpResponse(json.dumps({'data': json_data}))
+            sub_data.append({'wms_code': val['wms_code'], 'order_quantity': 1, 'uom': val['uom'],
+                             'sku_quantity': float(val['sku_quantity']),
+                             'description': val['description']})
+        data_dict['data'].append({'test_code': value[0]['test_code'], 'test_desc': value[0]['test_desc'],
+                                  'sub_data': sub_data, 'remarks': value[0]['remarks']})
+    return HttpResponse(json.dumps({'data': data_dict}))

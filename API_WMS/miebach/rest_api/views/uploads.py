@@ -10769,6 +10769,10 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         index_status.setdefault(row_idx, set()).add('Proper department type should be mentioned')
                     else:
                         data_dict[key] = cell_data
+                    if data_dict.get('plant', '') and data_dict.get('department_type', ''):
+                        related_dept = list(UserGroups.objects.filter(admin_user__first_name=data_dict['plant']).values_list('user__first_name', flat=True))
+                        if cell_data not in related_dept:
+                            index_status.setdefault(row_idx, set()).add('Invalid Department w.r.t Plant')
                 else:
                     index_status.setdefault(row_idx, set()).add('Department type should be mentioned.')
 

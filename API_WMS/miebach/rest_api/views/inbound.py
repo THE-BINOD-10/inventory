@@ -3565,12 +3565,10 @@ def approve_pr(request, user=''):
         totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
     else:
         totalAmt = pendingPRObj.pending_polineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
-
     is_purchase_approver = find_purchase_approver_permission(request.user)
     pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
     if levelToBeValidatedFor != pending_level and not is_purchase_approver:
-        validatedPR = PurchaseApprovals.objects.filter(purchase_number=pr_number, pr_user=user.id,
-                            level=levelToBeValidatedFor)
+        validatedPR = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=full_pr_number, level=levelToBeValidatedFor)
         if validatedPR.exists():
             validation_status = validatedPR[0].status
             status = "This PO has been already %s. Further action cannot be made." %validation_status
@@ -4080,7 +4078,7 @@ def convert_pr_to_po(request, user=''):
             for rec in prIdSkusMap:
                 temp_dat = all_stats.get(id=rec)
                 if 'pr_converted_to_po' == temp_dat.final_status or (len(prIdSkusMap[rec]) != all_stats.filter(id=rec, pending_prlineItems__sku__sku_code__in=prIdSkusMap[rec]).count()):
-                    return HttpResponse("PR Already Converted to PR, Please Refresh & Check !")
+                    return HttpResponse("PR Already Converted to PO, Please Refresh & Check !")
         for supplier, all_skus in supplierSKUMapping.items():
             sku_code = all_skus[0]
             pr_ids = supplierPrIdsMap.get(supplier)

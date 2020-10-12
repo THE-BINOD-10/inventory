@@ -13488,7 +13488,7 @@ def get_pr_report_data(search_params, user, sub_user):
             approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
             approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         total_quantity, total_amount, total_tax_amount = 0, 0, 0
-        total_quantity, total_amount, total_tax_amount = get_pr_amount_and_quantity(full_pr_number, result['pending_pr__sub_pr_number'])
+        total_quantity, total_amount, total_tax_amount = get_pr_amount_and_quantity(result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),
@@ -14027,8 +14027,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
                    'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id']
-
-    pending_data = PendingLineItems.objects.exclude(pending_po__final_status="approved").filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
     if order_term:
         pending_data = pending_data.order_by(order_data)

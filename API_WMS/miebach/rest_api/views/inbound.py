@@ -16202,3 +16202,59 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
         count = count + 1
+
+@csrf_exempt
+def get_pending_material_request_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['reference_id', 'reference_id', 'reference_id', 'tsum', 'date_only']
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    stock_transfer_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='mr_doa').\
+                                        values('requested_user__username', 'reference_id', 'wh_user__username').\
+                                        distinct().annotate(date_only=Cast('creation_date', DateField()))
+    order_data = 'date_only'
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
+        master_data = stock_transfer_objs.filter(Q(requested_user__in=user_ids) | Q(wh_user__in=user_ids) |
+                                                   Q(reference_id__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = stock_transfer_objs.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['reference_id']
+        source_name = User.objects.get(username=data['requested_user__username'])
+        warehouse = User.objects.get(username=data['wh_user__username'])
+        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
+                                    'Source Name': source_name.username,
+                                    'Material Request ID': data['reference_id'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'DT_RowAttr': {'id': data['reference_id']}})
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_mr_request(request, user=''):
+    try:
+        cnf_data = json.loads(request.POST.get('selected_orders', ''))
+    except Exception as e:
+        cnf_data = []
+    if len(cnf_data) > 0:
+        for data in cnf_data:
+            try:
+                all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='mr_doa', reference_id=data['order_id'], wh_user__username=data['dest_dept'])
+                if all_pending_orders.exists():
+                    for entry in all_pending_orders:
+                        filter_data= json.loads(entry.json_data)
+                        stock = StockDetail.objects.get(id=filter_data['data'])
+                        po =PurchaseOrder.objects.get(id=filter_data['po'])
+                        destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
+                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'])
+                        MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
+            except Exception as e:
+                return HttpResponse('fail')
+    return HttpResponse('success')

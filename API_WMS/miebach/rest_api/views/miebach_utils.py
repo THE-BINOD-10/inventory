@@ -10836,7 +10836,8 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
-    #search_parameters['st_type'] = 'ST_INTRA'
+    if request.POST.get('special_key', ''):
+        search_parameters['st_type'] = request.POST.get('special_key')
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()

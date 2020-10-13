@@ -255,6 +255,7 @@ urlpatterns = [
     url(r'^check_sku_category_data/$', check_sku_category_data),
     url(r'^validate_product_wms/$', validate_product_wms),
     url(r'^grn_upload_preview/$', grn_upload_preview),
+    url(r'^confirm_mr_request/$', confirm_mr_request),
 
 
     # Production

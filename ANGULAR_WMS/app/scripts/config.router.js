@@ -956,7 +956,11 @@ var app = angular.module('urbanApp')
           deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
                 'scripts/controllers/inbound/material_request.js'
-              ])
+              ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/pending_material_request.js'
+                ])
+              })
           }]
         },
         data: {
@@ -2934,7 +2938,19 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Stock Transfer Report',
+            title: 'Intra Stock Transfer Orders',
+          }
+        })
+        .state('app.reports.SaleTransferReport', {
+          url: '/SaleTransferReport',
+          templateUrl: 'views/reports/sale_transfer_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/inter_sale_orders.js');
+              }]
+          },
+          data: {
+            title: 'Inter Sale Transfer Orders',
           }
         })
         .state('app.reports.StockReconciliationReport', {

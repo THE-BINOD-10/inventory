@@ -357,7 +357,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     status_dict = eval(status)
     filter_params = {}
     users = [user.id]
-    users = check_and_get_plants_depts(request, users)
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     isprava_permission = get_misc_value('order_exceed_stock', user.id)
     delivery_challana = get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
@@ -406,7 +409,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
     total_reserved_quantity = master_data.aggregate(total_res=Sum(F('reserved_quantity')/F('stock__batch_detail__pcf')))['total_res']
     total_picked_quantity = master_data.aggregate(total_pick=Sum(F('picked_quantity')/F('stock__batch_detail__pcf')))['total_pick']
-    master_data = master_data.values('picklist_number').distinct()
+    master_data = master_data.values('picklist_number', 'stock__sku__user').distinct()
     if order_term:
         master_data = [key for key, _ in groupby(master_data)]
 
@@ -432,7 +435,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         source_wh = ''
         order_type = 'Sales Order'
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
-        picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
+        pick_filter_dict = {'picklist_number': data['picklist_number']}
+        if data['stock__sku__user']:
+            pick_filter_dict['stock__sku__user'] = data['stock__sku__user']
+        picklist_obj = all_picks.filter(**pick_filter_dict)
         reserved_quantity_sum_value = picklist_obj.aggregate(total_res=Sum(F('reserved_quantity')/F('stock__batch_detail__pcf')))['total_res']
         if not reserved_quantity_sum_value:
             reserved_quantity_sum_value = 0
@@ -3740,11 +3746,12 @@ def mr_generate_picklist(request, user=''):
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
                                         location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
+        company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                        'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
-                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
+                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', company_user.id)}
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
                 'receipt_date')
@@ -17319,6 +17326,57 @@ def get_auth_signature(request, user, inv_date):
             auth_signature = url+master_docs_obj[0].uploaded_file.url
     return auth_signature
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def create_manual_test_approval(request, user=''):
+    user = User.objects.get(username=request.POST['warehouse'])
+    main_user = get_company_admin_user(user)
+    request_data = dict(request.POST.iterlists())
+    group_data = {}
+    for i in range(0, len(request_data['test_code'])):
+        data_dict = {}
+        test_code = request_data['test_code'][i]
+        test_obj = TestMaster.objects.filter(test_code=test_code, user=main_user.id)
+        data_dict['remarks'] = request_data.get('remarks', '')[i]
+        if not test_obj.exists():
+            return HttpResponse("Invalid Test Code %s" % test_code)
+        else:
+            data_dict['test_id'] = test_obj[0].id
+        if not request_data['wms_code'][i]:
+            continue
+        data_dict['test_code'] = test_code
+        data_dict['uom'] = request_data['uom'][i]
+        data_dict['wms_code'] = request_data['wms_code'][i]
+        data_dict['description'] = request_data['description'][i]
+        data_dict['test_desc'] = request_data['test_desc'][i]
+        try:
+            data_dict['sku_quantity'] = float(request_data['sku_quantity'][i])
+        except:
+            return HttpResponse("Invalid Quantity")
+        sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['wms_code'])
+        if not sku:
+            return HttpResponse("Invalid SKU Code %s" % data_dict['wms_code'])
+        else:
+            data_dict['sku_id'] = sku[0].id
+            uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, 'consumption',
+                                             uom=request_data['uom'][i])
+            pcf = uom_dict['sku_conversion']
+            if data_dict.get('sku_quantity', 0):
+                sku_stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE'). \
+                    filter(sku_id=sku[0].id, quantity__gt=0).order_by('batch_detail__expiry_date')
+                total_qty = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
+                total_qty = total_qty if total_qty else 0
+                data_dict['needed_quantity'] = data_dict['sku_quantity'] * pcf
+                if total_qty < data_dict['needed_quantity']:
+                    return HttpResponse("Insufficient Stock for SKU Code %s" % data_dict['wms_code'])
+        group_data.setdefault(data_dict['test_code'], [])
+        group_data[test_code].append(data_dict)
+
+    MastersDOA.objects.create(requested_user=request.user, wh_user=user, model_id=0,
+                              model_name='ManualTestData', json_data=json.dumps(group_data))
+
+    return HttpResponse("Confirmed Successfully")
 
 @csrf_exempt
 @login_required
@@ -17336,7 +17394,7 @@ def create_manual_test(request, user=''):
         if not test_obj.exists():
             return HttpResponse("Invalid Test Code %s" % test_code)
         else:
-            data_dict['test'] = test_obj[0]
+            data_dict['test_id'] = test_obj[0].id
         data_dict['test_code'] = test_code
         data_dict['wms_code'] = request_data['wms_code'][i]
         try:
@@ -17347,7 +17405,7 @@ def create_manual_test(request, user=''):
         if not sku:
             return HttpResponse("Invalid SKU Code %s" % data_dict['wms_code'])
         else:
-            data_dict['sku'] = sku[0]
+            data_dict['sku_id'] = sku[0].id
             uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, 'consumption',
                                              uom=request_data['uom'][i])
             pcf = uom_dict['sku_conversion']
@@ -17365,11 +17423,14 @@ def create_manual_test(request, user=''):
     for key, value in group_data.items():
         try:
             with transaction.atomic('default'):
-                consumption_dict = {'user_id': user.id, 'test_id': value[0]['test'].id, 'total_test': 1,
-                                    'consumption_type': 'manual', 'remarks': value[0]['remarks']}
+                consumption_dict = {'user_id': user.id, 'test_id': value[0]['test_id'], 'total_test': 1,
+                                    'consumption_type': 'manual', 'remarks': value[0]['remarks'],
+                                    'status': 1}
                 consumption = Consumption.objects.create(**consumption_dict)
+                # TempJson.objects.create(model_id=consumption.id, model_json=json.dumps(value),
+                #                         model_name='manual_test_sku_data')
                 for val in value:
-                    sku = val['sku']
+                    sku = SKUMaster.objects.get(id=val['sku_id'])
                     quantity = val['needed_quantity']
                     sku_stocks = StockDetail.objects.using('default').select_for_update().\
                         exclude(location__zone__zone='DAMAGED_ZONE').\
@@ -17383,6 +17444,68 @@ def create_manual_test(request, user=''):
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data, inc_type='dec')
         except Exception as e:
-            log.info(e)
+            log_message(log, request, user, "Manual Test Creation Failed", request_data)
+            import traceback
+            log.debug(traceback.format_exc())
             return HttpResponse("Creation Failed")
+    data_id = request.POST['data_id']
+    MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
     return HttpResponse("Confirmed Successfully")
+
+
+@csrf_exempt
+def view_manual_test_entries(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis = ['creation_date', 'user', 'user', 'test__test_code', 'quantity', 'remarks']
+    users = [user.id]
+    users = check_and_get_plants_depts(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    masters_doa = MastersDOA.objects.filter(wh_user_id__in=user_ids, model_name='ManualTestData',
+                                            doa_status__in=['pending', 'rejected'])
+    if order_term:
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        master_data = masters_doa.order_by(order_data)
+    if search_term:
+        master_data = masters_doa.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
+                                               Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                               Q(sku__sku_code__icontains=search_term) |
+                                               Q(st_seller__seller_id__icontains=search_term) |
+                                               Q(st_seller__name__icontains=search_term)).order_by(order_data)
+    temp_data['recordsTotal'] = masters_doa.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+    for data in masters_doa[start_index:stop_index]:
+        dept = data.wh_user
+        store = get_admin(dept)
+        json_data = json.loads(data.json_data)
+        total_qty = len(json_data.keys())
+        data_dict = {'Created Date': get_local_date(user, data.creation_date),
+                     'Requested User': data.requested_user.first_name,
+                    'Store': store.first_name,
+                     'Department': dept.first_name, 'Test Quantity': total_qty,
+                     'Status': data.doa_status.capitalize(),
+                    'DT_RowAttr': {'data-id': data.id}, 'id': count}
+        temp_data['aaData'].append(data_dict)
+        count = count + 1
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_manual_test_approval_pending(request, user=''):
+    masters_doa = MastersDOA.objects.filter(id=request.GET['id'])
+    doa = masters_doa[0]
+    json_data = json.loads(doa.json_data)
+    dept = doa.wh_user
+    store = get_admin(dept)
+    data_dict = {'data': [], 'data_id': doa.id, 'plant_name': store.first_name,
+                                    'warehouse_name': dept.first_name, 'warehouse': dept.username}
+    for key, value in json_data.items():
+        sub_data = []
+        for val in value:
+            sub_data.append({'wms_code': val['wms_code'], 'order_quantity': 1, 'uom': val['uom'],
+                             'sku_quantity': float(val['sku_quantity']),
+                             'description': val['description']})
+        data_dict['data'].append({'test_code': value[0]['test_code'], 'test_desc': value[0]['test_desc'],
+                                  'sub_data': sub_data, 'remarks': value[0]['remarks']})
+    return HttpResponse(json.dumps({'data': data_dict}))

@@ -489,7 +489,8 @@ urlpatterns = [
     url(r'^get_discrepancy_report/$', get_discrepancy_report),
     url(r'^print_descrepancy_note/$', print_descrepancy_note),
     url(r'^create_manual_test/$', create_manual_test),
-
+    url(r'^create_manual_test_approval/$', create_manual_test_approval),
+    url(r'^get_manual_test_approval_pending/$', get_manual_test_approval_pending),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -702,6 +703,8 @@ urlpatterns += [
     url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
     url(r'^material_request_order_form/$',material_request_order_form),
     url(r'^material_request_order_upload/$',material_request_order_upload),
+    url(r'^material_request_form/$', material_request_form),
+    url(r'^material_request_upload/$', material_request_upload),
     url(r'^skupack_master_download/$', skupack_master_download),
     url(r'^skupack_master_upload/$', skupack_master_upload),
     url(r'^block_stock_download/$', block_stock_download),

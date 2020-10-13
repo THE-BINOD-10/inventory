@@ -8,8 +8,11 @@
   </div>
   <div class="layout-body" style="overflow: visible">
     <tabset class="box-tab">
-      <tab heading="Manual Test">
+      <tab heading="Create Manual Test" ng-show="show_tab('add_consumptiondata')">
         <div ng-include="'views/outbound/create_manual_test.html'"></div>
+      </tab>
+      <tab heading="View Manual Tests" ng-show="show_tab('view_manual_test_approval')">
+        <div ng-include="'views/outbound/view_manual_test.html'"></div>
       </tab>
     </tabset>
   </div>

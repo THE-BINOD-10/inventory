@@ -348,6 +348,14 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-stock-transfer-file",
                    value: ""
                  },{
+                   title: "Create Material Request Form Download/ Upload",
+                   download: "Material Request Download Form",
+                   upload: "Material Request Upload Form",
+                   durl: "material_request_form/",
+                   uurl: "material_request_upload/",
+                   dparam: "download-material-request-file",
+                   value: ""
+                 },{
                    title: "SKUPack Master Form Download/ Upload",
                    download: "SKUPack Master Download Form",
                    upload: "SKUPack Master Upload Form",

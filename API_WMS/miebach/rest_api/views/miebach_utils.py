@@ -2570,6 +2570,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Approve Service Master DOA", "approve_service_master_doa"),
                        ("Approve Otheritems Master DOA", "approve_otheritems_master_doa"),
                        ("Approve Inventory Adjustment", "approve_inventory_adjustment"),
+                       ("Approve Manual Test", "approve_manual_test"),
+                       ("View Manual Test Approval", "view_manual_test_approval"),
                        )),
 
     # Production
@@ -3253,6 +3255,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
     ('IGST', 'igst'), ('Total Price', 'total_price'),
     ('Location', 'location')
 ))
+
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
     ('Source Warehouse', 'source_warehouse'), ('Destination Warehouse', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
@@ -3261,6 +3264,13 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
 ))
 MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
     ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')
+))
+MATERIAL_REQUEST_MAPPING = OrderedDict((('Material Request ID', 'order_id'),
+    ('Source Plant Code', 'plant_code'), ('Department', 'warehouse_name'),
+    ('Source Warehouse Seller ID', 'source_seller_id'),
+    ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
+    ('Quantity', 'quantity'), ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
+    ('Type(MR/ST_INTRA/ST_INTER)', 'st_type')
 ))
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
     ('Main SR Number', 'original_order_id'),
@@ -10782,7 +10792,8 @@ def get_material_request_report_data(request, search_params, user, sub_user):
 
 
 def get_stock_transfer_report_data(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants_depts,\
+    get_related_users_filters
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10803,6 +10814,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         stop_index = None
     search_parameters = {}
     order_data = lis[col_num]
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
@@ -10816,9 +10834,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
-    users = [user.id]
-    users = check_and_get_plants(request, users)
-    user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids

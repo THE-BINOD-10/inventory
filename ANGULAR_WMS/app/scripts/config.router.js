@@ -2076,14 +2076,19 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/create_manual_test.js'
+                    'scripts/controllers/outbound/create_manual_test.js',
+                    'scripts/controllers/outbound/view_manual_test.js'
                   ])
               }]
           },
           data: {
-            title: 'Create Manual Test',
+            title: 'Manual Test',
           }
         })
+        .state('app.outbound.CreateManualTest.confirmation', {
+            url: '/Confirmation',
+            templateUrl: 'views/outbound/toggle/confirm_manual_test.html'
+          })
         .state('app.outbound.CustomerInvoices', {
           url: '/CustomerInvoices',
           templateUrl: 'views/outbound/customer_invoices.html',

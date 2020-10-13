@@ -6740,10 +6740,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 put_zone = put_zone[0]
 
             put_zone = put_zone.zone
-        if seller_received_list:
-            remarks = seller_received_list[0].get('remarks', '')
-            put_zone = update_remarks_put_zone(remarks, user, put_zone,
-                                               seller_summary_id=seller_received_list[0].get('id', ''))
+        # if seller_received_list:
+        #     remarks = seller_received_list[0].get('remarks', '')
+        #     put_zone = update_remarks_put_zone(remarks, user, put_zone,
+        #                                        seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data, 'receipt_number': seller_receipt_id}
         if 'batch_ref' in myDict.keys():

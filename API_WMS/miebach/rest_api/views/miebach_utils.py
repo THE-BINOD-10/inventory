@@ -3267,7 +3267,8 @@ MATERIAL_REQUEST_MAPPING = OrderedDict((('Material Request ID', 'order_id'),
     ('Source Plant Code', 'plant_code'), ('Department', 'warehouse_name'),
     ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
-    ('Quantity', 'quantity'), ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no')
+    ('Quantity', 'quantity'), ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
+    ('Type(MR/ST_INTRA/ST_INTER)', 'st_type')
 ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((

@@ -11262,6 +11262,14 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             break
         count += 1
         dept_users = User.objects.none()
+        st_type = ''
+        if order_mapping.has_key('st_type'):
+            st_type = get_cell_data(row_idx, order_mapping['st_type'], reader, file_type)
+            if not st_type:
+                index_status.setdefault(count, set()).add('Type is Mandatory')
+            elif st_type not in ['MR', 'ST_INTRA', 'ST_INTER']:
+                index_status.setdefault(count, set()).add('Invalid Type')
+        data_dict['st_type'] = st_type
         if order_mapping.has_key('plant_code'):
             plant_code = get_cell_data(row_idx, order_mapping['plant_code'], reader, file_type)
             if isinstance(plant_code, (int, float)):
@@ -11269,7 +11277,10 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             try:
                 user = User.objects.get(userprofile__stockone_code=plant_code)
                 data_dict['source'] = user
-                dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username])
+                if st_type == 'MR':
+                    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username])
+                else:
+                    dept_users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
             except Exception as e:
                 index_status.setdefault(count, set()).add('Invalid Source Plant Code')
         else:
@@ -11283,14 +11294,22 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                     cell_data = str(int(cell_data))
                 data_dict['order_id'] = cell_data
         if order_mapping.has_key('warehouse_name') :
-            cell_data = get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)
-            if not cell_data:
-                index_status.setdefault(count, set()).add('Invalid Department')
-            elif cell_data not in dept_mapping_res.keys():
-                index_status.setdefault(count, set()).add('Invalid Department')
+            warehouse_name = get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)
+            if isinstance(warehouse_name, (int, float)):
+                warehouse_name = str(int(warehouse_name))
+            if st_type == 'MR':
+                if not warehouse_name:
+                    index_status.setdefault(count, set()).add('Invalid Department')
+                elif warehouse_name not in dept_mapping_res.keys():
+                    index_status.setdefault(count, set()).add('Invalid Department')
+                else:
+                    warehouse_name = dept_mapping_res[warehouse_name]
             else:
+                if not warehouse_name:
+                    index_status.setdefault(count, set()).add('Invalid Destination Plant')
+            if warehouse_name:
                 try:
-                    user_obj = dept_users.get(userprofile__stockone_code=dept_mapping_res[cell_data])
+                    user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
                     data_dict['warehouse'] = user_obj
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
@@ -11367,7 +11386,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         print 'Saving : %s' % str(ind)
         price, cgst_tax, sgst_tax, igst_tax, cess_tax = [0]*5
         mrp =0
-        st_type = 'MR'
+        st_type = final_data['st_type']
         user = final_data['source']
         warehouse = final_data['warehouse'].username
         wms_code = final_data['sku'].wms_code

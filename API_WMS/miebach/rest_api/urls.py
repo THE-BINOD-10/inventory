@@ -700,6 +700,8 @@ urlpatterns += [
     url(r'^central_order_upload/$', central_order_upload),
     url(r'^stock_transfer_order_form/$',stock_transfer_order_form),
     url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
+    url(r'^material_request_order_form/$',material_request_order_form),
+    url(r'^material_request_order_upload/$',material_request_order_upload),
     url(r'^skupack_master_download/$', skupack_master_download),
     url(r'^skupack_master_upload/$', skupack_master_upload),
     url(r'^block_stock_download/$', block_stock_download),

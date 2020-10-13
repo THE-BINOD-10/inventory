@@ -331,6 +331,15 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_intermediateorders"
                  },
                  {
+                   title: "Material Request Order Form Download/ Upload",
+                   download: "Material Request Order Download Form",
+                   upload: "Material Request Order Upload Form",
+                   durl: "material_request_order_form/",
+                   uurl: "material_request_order_upload/",
+                   dparam: "download-material-request-file",
+                   value: ""
+                 },
+                 {
                    title: "Create Stock Transfer Order Form Download/ Upload",
                    download: "Stock Transfer Order Download Form",
                    upload: "Stock Transfer Order Upload Form",

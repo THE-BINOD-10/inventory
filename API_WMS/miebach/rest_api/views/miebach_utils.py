@@ -3259,7 +3259,9 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
     ('Quantity', 'quantity'), ('Price', 'price'), ('MRP', 'mrp'), ('Cgst(%)', 'cgst_tax'),
     ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'), ('Type (MR/ST)', 'st_type')
 ))
-
+MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
+    ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')
+))
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
     ('Main SR Number', 'original_order_id'),
     ('Customer Name', 'customer_name'), ('Address', 'address'),

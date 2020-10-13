@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('PendingMaterialRequestCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'SweetAlert', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
+  .controller('PendingMaterialRequestCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service',  '$q', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, SweetAlert, colFilters, Service, Data, $modal, $log) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, Data, $modal, $log) {
 var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
@@ -37,36 +37,45 @@ var vm = this;
             }
         })
        .withPaginationType('full_numbers')
-       .withOption('initComplete', function( settings ) {
-          //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-        });
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('source_label').withTitle('Source Plant'),
-        DTColumnBuilder.newColumn('warehouse_label').withTitle('Destination Department'),
-        DTColumnBuilder.newColumn('Material Request ID').withTitle('Material Request ID'),
-        // DTColumnBuilder.newColumn('Order Quantity').withTitle('Order Quantity'),
-        DTColumnBuilder.newColumn('Creation Date').withTitle('Confirmation Date&Time'),
-    ];
-    var row_click_bind = 'td';
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-      .renderWith(function(data, type, full, meta) {
-      if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-        vm.selected = {};
-      }
-      vm.selected[meta.row] = vm.selectAll;
-      return vm.service.frontHtml + meta.row + vm.service.endHtml;
-    }))
-    row_click_bind = 'td:not(td:first)';
+       .withOption('rowCallback', rowCallback);
+       vm.dtColumns = [
+          DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+              .renderWith(function(data, type, full, meta) {
+                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                    vm.selected = {};
+                  }
+                  vm.selected[meta.row] = vm.selectAll;
+                  return vm.service.frontHtml + meta.row + vm.service.endHtml;
+              }).notSortable(),
+          DTColumnBuilder.newColumn('source_label').withTitle('Source Plant'),
+          DTColumnBuilder.newColumn('warehouse_label').withTitle('Destination Department'),
+          DTColumnBuilder.newColumn('Material Request ID').withTitle('Material Request ID'),
+          // DTColumnBuilder.newColumn('Order Quantity').withTitle('Order Quantity'),
+          DTColumnBuilder.newColumn('Creation Date').withTitle('Confirmation Date&Time'),
+        ];
     vm.dtInstance = {};
     vm.reloadData = reloadData;
 
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+
+    vm.ord_status = '';
+
+    $('td:not(td:first)', nRow).unbind('click');
+    $('td:not(td:first)', nRow).bind('click', function() {
+        $scope.$apply(function() {
+          // var data = {order_id: aData['Stock Transfer ID'], warehouse_id: aData['warehouse_id']};
+          // $state.go('app.outbound.ViewOrders.StockTransferAltView');
+          // vm.get_order_data(data);
+       })
+     })
+   }
     vm.excel = excel;
     function excel() {
       angular.copy(vm.dtColumns,colFilters.headers);
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
-    
+
     function reloadData () {
         vm.dtInstance.reloadData();
     };
@@ -101,6 +110,7 @@ var vm = this;
       }
       if (valid) {
         vm.service.apiCall('confirm_mr_request/', 'POST', {'selected_orders': JSON.stringify(selected_rows)}).then(function(resp) {
+          vm.bt_disable = false;
           if(resp.data == "success") {
             vm.service.showNoty("Success")
             vm.dtInstance.reloadData();
@@ -108,7 +118,7 @@ var vm = this;
             vm.service.showNoty("Failed !!")
             vm.dtInstance.reloadData();
           }
-          vm.bt_disable = false;
+          vm.bt_disable = true;
         })
       }
       else {

@@ -7256,6 +7256,19 @@ def stock_transfer_order_form(request, user=''):
     wb, ws = get_work_sheet('stock_transfer_order_form', headers)
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def material_request_order_form(request, user=''):
+    error_file = request.GET['download-material-request-file']
+    if error_file:
+        return error_file_download(error_file)
+    headers = copy.deepcopy(MATERIAL_REQUEST_ORDER_MAPPING.keys())
+    wb, ws = get_work_sheet('material_request_order_form', headers)
+    return xls_to_response(wb, '%s.material_request_order_form.xls' % str(user.username))
+
+
 def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create=False,
                               order_fields_objs=None):
     if not order_fields_objs:
@@ -7770,6 +7783,183 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
             log.debug(traceback.format_exc())
             log.info('OneAssist Central Order Upload failed. error statement is %s'%str(e))
     return 'success'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def material_request_order_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        upload_status = material_request_order_xls_upload(request, reader, user, no_of_rows, fname,
+            file_type=file_type, no_of_cols=no_of_cols)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Material Request Order Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Material Request Order Upload Failed")
+    if not upload_status == 'success':
+        return HttpResponse(upload_status)
+    return HttpResponse('Success')
+
+def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("Material request order upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+    st_mapping = copy.deepcopy(MATERIAL_REQUEST_ORDER_MAPPING)
+    st_res = dict(zip(st_mapping.values(), st_mapping.keys()))
+
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        plants_list = []
+        department_type_list = {}
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('first_name', flat=True)
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('first_name', flat=True)
+            if staff_obj.department_type.filter():
+                department_type_names = staff_obj.department_type.filter().values_list('name', flat=True)
+                for department_type_name in department_type_names:
+                    department_type_list.update({department_type_name: department_type_mapping.get(department_type_name, '')})
+            else:
+                department_type_list = department_type_mapping
+
+    order_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 st_mapping)
+    if set(st_mapping.keys()).\
+            issubset(order_mapping.keys()):
+        return "Headers not matching"
+    count = 0
+    exclude_rows = []
+    sku_masters_dict = {}
+    order_id_order_type = {}
+    order_data = {}
+    log.info("Validation Started %s" % datetime.datetime.now())
+    log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    source_seller = ''
+    dest_seller = ''
+    for row_idx in range(1, no_of_rows):
+        print 'Validation : %s' % str(row_idx)
+        user_obj = ''
+        if not order_mapping:
+            break
+        count += 1
+        if order_mapping.has_key('source_warehouse'):
+            source_warehouse = str(get_cell_data(row_idx, order_mapping['source_warehouse'], reader, file_type))
+            if source_warehouse and source_warehouse in plants_list:
+                try:
+                    user = User.objects.get(Q(username=source_warehouse) | Q(first_name=source_warehouse))
+                except Exception as e:
+                    index_status.setdefault(count, set()).add('Invalid Source warehouse')
+            else:
+                index_status.setdefault(count, set()).add('Invalid Source warehouse')
+        else:
+            continue
+        if order_mapping.has_key('warehouse_name'):
+            try:
+                warehouse_name = str(get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type))
+            except:
+                warehouse_name = str(int(get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)))
+            if not warehouse_name:
+                index_status.setdefault(count, set()).add('Invalid Department')
+            elif warehouse_name in department_type_list.values():
+                related_dept = list(UserGroups.objects.filter(admin_user__username=user.username).values_list('user__first_name', flat=True))
+                print related_dept
+                if warehouse_name not in related_dept:
+                    index_status.setdefault(row_idx, set()).add('Invalid Department w.r.t Plant')
+            else:
+                index_status.setdefault(count, set()).add('Invalid Department')
+        if order_mapping.has_key('wms_code'):
+            try:
+                wms_code = str(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type))
+            except:
+                wms_code = str(int(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type)))
+            sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
+            if not sku_master:
+                index_status.setdefault(count, set()).add('Invalid SKU Code')
+        number_fields = {'quantity': 'Quantity'}
+        for key, value in number_fields.iteritems():
+            if order_mapping.has_key(key):
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(count, set()).add('Invalid %s' % number_fields[key])
+                    if key == 'quantity':
+                        if isinstance(cell_data, float):
+                            get_decimal_data(cell_data, index_status, row_idx, user)
+                elif key == 'quantity':
+                    index_status.setdefault(count, set()).add('Quantity is mandatory')
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    order_amount = 0
+    interm_order_id = ''
+    all_data = {}
+    for row_idx in range(1, no_of_rows):
+        mrp =0
+        st_type = 'MR'
+        for key, value in order_mapping.iteritems():
+            if key == 'source_warehouse':
+                source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    user = User.objects.get(Q(username=source_warehouse) | Q(first_name=source_warehouse))
+                except Exception as e:
+                    print e
+            if key == 'warehouse_name':
+                try:
+                    warehouse = str(get_cell_data(row_idx, value, reader, file_type))
+                    warehouse = UserGroups.objects.get(admin_user__username=user.username, user__first_name=warehouse).user
+                except:
+                    warehouse = str(int(get_cell_data(row_idx, value, reader, file_type)))
+            elif key == 'wms_code':
+                try:
+                    wms_code = str(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
+            elif key == 'quantity':
+                 quantity = float(get_cell_data(row_idx, value, reader, file_type))
+            price = 0
+            mrp = 0
+            cgst_tax = 0
+            sgst_tax = 0
+            igst_tax = 0
+            cess_tax = 0
+        cond = (user.username, warehouse.id, source_seller, dest_seller)
+        all_data.setdefault(cond, [])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type])
+    log.info("%s Material Request Processing Started %s" % (str(request.user.username), str(all_data)))
+    all_data = insert_st_gst(all_data, warehouse)
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type)
+    if status.status_code == 200 and status.content != 'Prefix not defined':
+        return 'Success'
+    else:
+        return status.content
+
 
 @csrf_exempt
 @login_required

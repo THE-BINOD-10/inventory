@@ -112,9 +112,11 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params['sku__user__in'] = user_ids
     search_params1['product_code__user__in'] = user_ids
 
-    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_ids).values_list(
-        'stock__sku__wms_code'). \
-                             distinct().annotate(reserved=Sum('reserved')))
+    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_ids).
+                             annotate(sku_code_user=Concat('stock__sku__wms_code', Value('<<>>'),
+                                                                    'stock__sku__user', output_field=CharField())).\
+                            values_list('sku_code_user').\
+                             distinct().annotate(reserved=Sum(F('reserved')/F('stock__batch_detail__pcf'))))
     raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=user_ids). \
                         values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
                         annotate(rm_reserved=Sum('reserved')))
@@ -238,8 +240,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                     total = data[5]
 
         sku = sku_master.get(user=data[4], sku_code=data[0])
-        if data[0] in picklist_reserved.keys():
-            reserved += float(picklist_reserved[data[0]])
+        sku_grp_key = '%s<<>>%s' % (str(data[0]), str(data[4]))
+        if sku_grp_key in picklist_reserved.keys():
+            reserved += float(picklist_reserved[sku_grp_key])
         if data[0] in raw_reserved.keys():
             reserved += float(raw_reserved[data[0]])
         quantity = total - reserved
@@ -2663,7 +2666,10 @@ def inventory_adj_reasons(request, user=''):
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters):
     users = [user.id]
-    users = check_and_get_plants_depts(request, users)
+    if request.user.is_staff and request.user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+    else:
+        users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
@@ -2672,7 +2678,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
            'location__zone__zone', 'location__zone__zone', 'location__location',
            'pallet_detail__pallet_code',
-           'quantity', 'receipt_type']
+           'quantity', 'receipt_type', 'creation_date']
     sub_zone_perm = get_permission(user, 'add_subzonemapping')
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
@@ -2774,7 +2780,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
                                 ('dept_type', dept_type),
-                                ('Pallet', pallet_code), ('Receipt Type', data.receipt_type)))
+                                ('Pallet', pallet_code), ('Receipt Type', data.receipt_type),
+                                ('Creation Date', get_local_date(user, data.creation_date))))
         if pallet_switch != 'true' and row_data.get('Pallet'):
             del row_data['Pallet']
         if not sub_zone_perm and row_data.get('Sub Zone'):

@@ -148,7 +148,7 @@ function CreateManualTest($scope, $http, $q, $state, Session, colFilters, Servic
       vm.bt_disable = true;
       var elem = angular.element($('form'));
       elem = $(elem).serializeArray();
-      vm.service.apiCall('create_manual_test/', 'POST', elem).then(function(data){
+      vm.service.apiCall('create_manual_test_approval/', 'POST', elem).then(function(data){
         if(data.message) {
           if("Confirmed Successfully" == data.data) {
             angular.copy(empty_data, vm.model_data);

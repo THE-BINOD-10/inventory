@@ -108,7 +108,6 @@ class Command(BaseCommand):
                 all_pick_ids = all_picklists.values_list('id', flat=True)
                 all_pick_locations = PicklistLocation.objects.filter(picklist__picklist_number=picklist_number, status=1,
                                                                      picklist_id__in=all_pick_ids)
-                # import pdb; pdb.set_trace()
                 for picklist_dict in final_data_list:
                     picklist = picklist_dict['picklist']
                     if picklist.storder_set.filter():
@@ -382,7 +381,6 @@ class Command(BaseCommand):
                             return HttpResponse(invoice_data)
                         return HttpResponse(json.dumps({'data': invoice_data, 'message': '', 'status': 'invoice'}))
             except Exception as e:
-                import pdb; pdb.set_trace()
                 import traceback
                 log.debug(traceback.format_exc())
                 log.info('Picklist Confirmation failed for %s and params are %s and error statement is %s' % (
@@ -447,7 +445,7 @@ class Command(BaseCommand):
                     final_data_list.append({'picklist': picklist, 'picklist_batch': picklist_batch,
                                 'count': dat['picked_quantity'], 'picklist_order_id': dat['order_id'],
                                 'value': [dat], 'key': picklist.id})
-                # print final_data_list
+                print final_data_list
                 datas = picklist_confirmations(user, final_data_list, picklist_number, all_picklists, picks_all)
                 print datas
         self.stdout.write("Updation Completed")

@@ -557,6 +557,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
             order_quantity = parseInt(order_quantity)
             if(!row_data.fields.supplier_id_name && validation_type !='rejected' && order_quantity) {
+              keepGoing = false;
               Service.showNoty('Supplier Should be provided by Purchase');
               return;
             }

@@ -6060,8 +6060,10 @@ def create_bayarea_stock(sku_code, zone, quantity, user):
 def get_seller_receipt_id(purchase_order):
     receipt_number = 1
     summary = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=purchase_order.open_po.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
-                                        order_by('-creation_date')
+                                             purchase_order__order_id = purchase_order.order_id,
+                                             purchase_order__prefix= purchase_order.prefix,
+                                             purchase_order__po_number=purchase_order.po_number).\
+                                        order_by('-id')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
     return receipt_number

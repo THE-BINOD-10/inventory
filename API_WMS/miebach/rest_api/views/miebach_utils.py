@@ -10747,8 +10747,8 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                     batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                     expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
-                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                        "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime(
+                        "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
 
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
@@ -10775,9 +10775,8 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
             if batch_data.exists():
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
-                manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                    "%d %b, %Y")
+                expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                  ('Source Plant', "%s %s" % (user.first_name, user.last_name)), ('Destination Department', destination),

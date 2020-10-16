@@ -161,7 +161,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.pin = data.data.wh_details.pincode;
 
         angular.forEach(vm.items_dict, function(item){
-
           item['default_status'] = true;
         });
 
@@ -263,7 +262,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
         }
       }
-      if(vm.generate_data.length > 0) {
+      if(vm.generate_data.length > 0 && vm.generate_data.length == 1) {
         var data = {};
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
@@ -292,6 +291,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         });
         vm.generate_data = [];
+      } else {
+        vm.service.showNoty("Please Select Single Order ! ");
+        reloadData();
       }
     }
 
@@ -412,6 +414,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     } else {
       data.sub_data.splice(index,1);
     }
+  }
+
+  vm.get_sku_details = function(record, item, index) {
+    record.manufactured_date = item.manufactured_date
+    record.mrp = item.mrp
+    record.expiry_date = item.expiry_date
   }
 
   vm.cal_quantity = cal_quantity;

@@ -623,7 +623,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
-    vm.checkSearchValue = function(val,url, event, extra, msg) {
+    vm.checkSearchValue = function(val,url, event, extra, msg, warehouse_id='') {
       var type = "";
       if (val.search(":") > -1) {
 
@@ -633,11 +633,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         type = extra;
       }
       var data = val
+      var params = {q: val, type: type}
+      if (warehouse_id) {
+        params['warehouse_id'] = warehouse_id
+      }
       return $http.get(Session.url+url, {
-        params: {
-          q: val,
-          type: type
-        }
+        params: params
       }).then(function(response){
         var results = response.data;
         if ($(event.target).val() == val) {

@@ -15322,7 +15322,7 @@ def get_stock_transfer_order_details(request, user=''):
         pincode = ''
         if warehouse.userprofile.pin_code:
             pincode = warehouse.userprofile.pin_code
-        wh_details = {'name': warehouse.username, 'city': warehouse.userprofile.city,
+        wh_details = {'name': "%s %s"%(warehouse.first_name, warehouse.last_name), 'city': warehouse.userprofile.city,
                       'pincode': pincode, 'address': warehouse.userprofile.address,
                       'state': warehouse.userprofile.state}
 

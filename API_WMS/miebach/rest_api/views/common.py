@@ -3631,13 +3631,20 @@ def search_sku_categorys(request, user=''):
 @login_required
 @get_admin_user
 def search_batches(request, user=''):
+    if request.GET.get('warehouse_id', ''):
+        try:
+            user = User.objects.get(id=request.GET.get('warehouse_id'))
+        except Exception as e:
+            user = User.objects.get(username=request.GET.get('warehouse_id'))
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
     row_data = json.loads(request.GET.get('type'))
     search_params = {'sku__user': user.id}
     if row_data.get('wms_code', ''):
         search_params['sku__sku_code'] =  row_data['wms_code']
-
+        search_params['batch_detail__batch_no__icontains'] = data_id
+        search_params['quantity__gt'] = 0
+        search_params['status'] = 1
     if row_data['location']:
         location_master = LocationMaster.objects.filter(zone__user=user.id, location=row_data['location'])
         if not location_master:
@@ -3656,27 +3663,33 @@ def search_batches(request, user=''):
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
-    batchno =[]
     total_data =[]
-    if stock_data:
+    if stock_data.exists():
         for stock in stock_data:
+            batchno, manufactured_date, expiry_date = '', '', ''
             try:
-                manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
                 batchno =  stock.batch_detail.batch_no
             except:
-                manufactured_date = ''
                 batchno  = ''
+            try:
+                manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
+            except:
+                manufactured_date = ''
+            try:
+                expiry_date = datetime.datetime.strftime(stock.batch_detail.expiry_date, "%d/%m/%Y")
+            except:
+                expiry_date = ''
             try:
                 expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
                 if stock.batch_detail.batch_no and expiry_batches_picklist == 'true':
                     present_date = datetime.datetime.now().date()
                     if stock.batch_detail.expiry_date and stock.batch_detail.expiry_date >= present_date:
-                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date })
                 else:
                     if batchno:
-                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date})
             except:
-                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date})
     return HttpResponse(json.dumps(total_data))
 
 

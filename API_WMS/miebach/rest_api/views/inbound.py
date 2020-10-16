@@ -205,9 +205,10 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                     pr_user=pr_user, status='approved').order_by('-creation_date')
-                    last_updated_by = prApprQs[0].validated_by
-                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                    last_updated_remarks = prApprQs[0].remarks
+                    if prApprQs.exists():
+                        last_updated_by = prApprQs[0].validated_by
+                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                        last_updated_remarks = prApprQs[0].remarks
                 else:
                     # level=result['pending_pr__pending_level']
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
@@ -14569,7 +14570,7 @@ def get_grn_level_data(request, user=''):
         po_number = request.GET['po_number']
         po_order_prefix = request.GET['prefix']
         temp = po_number.split('_')[-1]
-        temp1 = temp.split('/')
+        temp1 = temp.rsplit('/', 1)
         receipt_no = ''
         if len(temp1) > 1:
             po_order_id = temp1[0]
@@ -16213,6 +16214,7 @@ def grn_upload_preview(request, user=''):
         except Exception as e:
             log.info('Upload File is failed for user %s and params are %s and error statement is %s' % (
                 str(request.user.username), str(request.POST.dict()), str(e)))
+            return HttpResponse('File Upload Failed !!')
         if response == 'Uploaded Successfully':
             master_docs = MasterDocs.objects.filter(master_id=po_number, master_type='PO_TEMP', user_id=user.id)
             if master_docs.exists():

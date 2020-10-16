@@ -654,6 +654,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.unmap_grn_file = function(remove_id) {
       vm.service.apiCall('grn_upload_preview/', 'POST',{'data_id': remove_id}).then(function(data){
         if (data.data == 'Success') {
+          $("#file-upload").val('');
           vm.model_data.uploaded_file_dict = {}
           vm.existing_file_name = ''
           vm.upload_enable = false;   
@@ -662,13 +663,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     }
     vm.resultant_data_format = function(response){
-      // setTimeout(function(){
         vm.model_data.uploaded_file_dict = {}
         vm.model_data['uploaded_file_dict'] = JSON.parse(response);
         vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url)
         vm.existing_file_name = vm.model_data.uploaded_file_dict.file_name
         vm.upload_enable = true;
-      // }, 3000);
     }
 
     vm.temp_upload_file_name = "";
@@ -683,18 +682,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var formData = new FormData();
       var el = $("#file-upload");
       var files = pdf_file;
-      if(files.length == 0){
+      if(files.length == 0) {
         return false;
       }
       formData.append('pdf_file', files);
       formData.append('id', id);
       formData.append('warehouse_id', vm.warehouse_id);
       vm.service.apiCall('grn_upload_preview/', 'POST', formData, true, true).then(function(response){
-        if(Object.keys(JSON.parse(response.data)).includes('file_name')) {
+        if (response.data.includes('file_name')) {
           vm.resultant_data_format(response.data);
         } else {
-          Service.showNoty(response, 'warning');
+          $("#file-upload").val('');
+          vm.model_data.uploaded_file_dict = {}
+          vm.existing_file_name = ''
           vm.upload_enable = false;
+          Service.showNoty('Invalid File Name, Please Change File Name !', 'warning');
         }
       })
     }

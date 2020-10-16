@@ -16214,6 +16214,7 @@ def grn_upload_preview(request, user=''):
         except Exception as e:
             log.info('Upload File is failed for user %s and params are %s and error statement is %s' % (
                 str(request.user.username), str(request.POST.dict()), str(e)))
+            return HttpResponse('File Upload Failed !!')
         if response == 'Uploaded Successfully':
             master_docs = MasterDocs.objects.filter(master_id=po_number, master_type='PO_TEMP', user_id=user.id)
             if master_docs.exists():

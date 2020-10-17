@@ -3288,7 +3288,7 @@ def supplier_sku_upload(request, user=''):
                             if cell_data != supplier_sku_instance.price:
                                 sku_code = supplier_sku_instance.sku.sku_code
                                 sp_id_sku = supplier_sku_instance.supplier.supplier_id
-                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(sku_code, sp_id_sku)
+                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(user, sku_code, sp_id_sku)
                                 for pr in prs_to_be_resubmitted:
                                     pr_ids_map.setdefault(pr, {}).update({sku_code:cell_data})
                             supplier_sku_instance.price = cell_data
@@ -10987,6 +10987,10 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         index_status.setdefault(row_idx, set()).add('Proper department type should be mentioned')
                     else:
                         data_dict[key] = cell_data
+                    if data_dict.get('plant', '') and data_dict.get('department_type', ''):
+                        related_dept = list(UserGroups.objects.filter(admin_user__first_name=data_dict['plant']).values_list('user__first_name', flat=True))
+                        if cell_data not in related_dept:
+                            index_status.setdefault(row_idx, set()).add('Invalid Department w.r.t Plant')
                 else:
                     index_status.setdefault(row_idx, set()).add('Department type should be mentioned.')
 

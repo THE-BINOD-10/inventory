@@ -39,7 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.passed_serial_number = {};
     vm.firebase_temp_po = ''
     vm.quantity_focused = false;
-
+    vm.months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -226,6 +226,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
+                    var date_cnf = new Date();
+                    vm.current_month = vm.months[date_cnf.getMonth()];
+                    vm.last_two_months = []
+                    if (vm.current_month == 'January'){
+                      vm.last_two_months = ['December', 'November']
+                    } else if (vm.current_month == 'February') {
+                      vm.last_two_months = ['January', 'December']
+                    } else {
+                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                    }
                     vm.model_data.warehouse_id = aData['warehouse_id'];
                     vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
@@ -643,6 +654,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.unmap_grn_file = function(remove_id) {
       vm.service.apiCall('grn_upload_preview/', 'POST',{'data_id': remove_id}).then(function(data){
         if (data.data == 'Success') {
+          $("#file-upload").val('');
           vm.model_data.uploaded_file_dict = {}
           vm.existing_file_name = ''
           vm.upload_enable = false;   
@@ -651,13 +663,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     }
     vm.resultant_data_format = function(response){
-      // setTimeout(function(){
         vm.model_data.uploaded_file_dict = {}
         vm.model_data['uploaded_file_dict'] = JSON.parse(response);
         vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url)
         vm.existing_file_name = vm.model_data.uploaded_file_dict.file_name
         vm.upload_enable = true;
-      // }, 3000);
     }
 
     vm.temp_upload_file_name = "";
@@ -672,18 +682,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var formData = new FormData();
       var el = $("#file-upload");
       var files = pdf_file;
-      if(files.length == 0){
+      if(files.length == 0) {
         return false;
       }
       formData.append('pdf_file', files);
       formData.append('id', id);
       formData.append('warehouse_id', vm.warehouse_id);
       vm.service.apiCall('grn_upload_preview/', 'POST', formData, true, true).then(function(response){
-        if(Object.keys(JSON.parse(response.data)).includes('file_name')) {
+        if (response.data.includes('file_name')) {
           vm.resultant_data_format(response.data);
         } else {
-          Service.showNoty(response, 'warning');
+          $("#file-upload").val('');
+          vm.model_data.uploaded_file_dict = {}
+          vm.existing_file_name = ''
           vm.upload_enable = false;
+          Service.showNoty('Invalid File Name, Please Change File Name !', 'warning');
         }
       })
     }
@@ -808,9 +821,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           inv_match_qty += parseFloat(record[0].value);
         }
         if (index+1 == vm.model_data.data.length) {
+          var date_cnf = vm.model_data.grn_date ? vm.model_data.grn_date : new Date();
+          var grn_msg = !vm.model_data.grn_date ? 'This GRN is being booked for the month of ' + ' : ' + vm.months[date_cnf.getMonth()] : 'This GRN is being booked for the month of ' + ' : ' + date_cnf;
           if (parseInt(vm.model_data.invoice_value) == vm.model_data.round_off_total) {
-            vm.total_grn_quantity = inv_match_qty;
-            vm.confirm_grn_api()
+            vm.service.alert_msg(grn_msg).then(function(msg) {
+              if (msg == "true") {
+                vm.total_grn_quantity = inv_match_qty;
+                vm.confirm_grn_api()
+              }
+            })
           } else {
             var temp_str = "Invoice "
             // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
@@ -820,15 +839,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               temp_str = temp_str + " - Value"
             }
             if (temp_str.includes('Value')) {
-              vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+              vm.service.alert_msg(temp_str + " Mismatch", grn_msg).then(function(msg) {
                 if (msg == "true") {
                   vm.total_grn_quantity = inv_match_qty;
                   vm.confirm_grn_api()
                 }
               })
             } else {
-              vm.total_grn_quantity = inv_match_qty;
-              vm.confirm_grn_api()
+              vm.service.alert_msg(grn_msg).then(function(msg) {
+                if (msg == "true") {
+                  vm.total_grn_quantity = inv_match_qty;
+                  vm.confirm_grn_api()
+                }
+              })
             }
           }
         }
@@ -869,7 +892,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else if (vm.permissions.receive_po_inv_value_qty_check  && !vm.model_data.dc_level_grn) {
           vm.absOfInvQty();
         } else {
-          vm.confirm_grn_api();
+          var date_cnf = vm.model_data.grn_date ? vm.model_data.grn_date : new Date();
+          var grn_msg = !vm.model_data.grn_date ? 'This GRN is being booked for the month of ' + ' : ' + vm.months[date_cnf.getMonth()] : 'This GRN is being booked for the month of ' + ' : ' + date_cnf;
+          vm.service.alert_msg(grn_msg).then(function(msg) {
+            if (msg == "true") {
+              vm.confirm_grn_api()
+            }
+          })
         }
       } else {
         colFilters.showNoty("Fill Required * Fields");
@@ -877,7 +906,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.confirm_grn_api = function() {
-      var that = vm;
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -906,7 +934,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem.push({'name':'order_type', 'value': vm.order_type});
       }
       $.each(elem, function(i, val) {
-        form_data.append(val.name, val.value);
+        val.name == 'grn_date' && val.value == vm.current_month ? form_data.append(val.name, '') : form_data.append(val.name, val.value);
       });
       var url = "confirm_grn/"
       if(vm.po_qc) {

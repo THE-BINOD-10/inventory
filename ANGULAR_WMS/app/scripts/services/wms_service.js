@@ -561,16 +561,16 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         return Number(value) >= 0;
       }, 'Enter a positive number.');
 
-    vm.alert_msg = function (title) {
+    vm.alert_msg = function (title, txt='') {
       var d = $q.defer();
       $timeout(function() {
       SweetAlert.swal({
         title: title,
-        text: 'Do you Want to Continue',
+        text: txt ? txt : 'Do you want to Continue',
         type: 'warning',
         showCancelButton: true,
         confirmButtonColor: COLORS.danger,
-        confirmButtonText: 'continue',
+        confirmButtonText: 'Continue',
         closeOnConfirm: true,
       },
       function (status) {

@@ -12922,7 +12922,7 @@ def sync_supplier_async(id, user_id):
     data_dict.pop('user')
     payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
     net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
-    master_objs = sync_supplier_master({}, user, data_dict, filter_dict)
+    master_objs = sync_supplier_master({}, user, data_dict, filter_dict, force=True)
     createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
     print("Sync Completed For %s" % supplier.supplier_id)
 

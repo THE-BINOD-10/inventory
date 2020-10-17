@@ -10476,6 +10476,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
         if batch_dict:
             batch_obj = BatchDetail.objects.create(**batch_dict)
             del stock_dict['batch_dict']
+            stock_dict['batch_detail_id'] = batch_obj.id
             stock = StockDetail.objects.create(**stock_dict)
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)

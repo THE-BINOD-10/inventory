@@ -10990,14 +10990,15 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                         if isinstance(cell_data, (int,float)):
                             cell_data = str(int(cell_data))
                         stocks = stocks.filter(batch_detail__batch_no=cell_data)
-                        if not stocks.exists():
-                            index_status.setdefault(row_idx, set()).add('Invalid Batch Number')
+                        #if not stocks.exists():
+                        #    index_status.setdefault(row_idx, set()).add('Invalid Batch Number')
                     else:
                         empty_batch = stocks.filter(batch_detail__batch_no='').order_by('batch_detail__expiry_date')
                         batch_stock = stocks.exclude(batch_detail__batch_no='').order_by('batch_detail__expiry_date')
                         stocks = empty_batch | batch_stock
                     data_dict['stocks'] = stocks
                     data_dict[key] = cell_data
+                    data_dict['last_date'] = last_date
             else:
                 data_dict[key] = cell_data
         data_list.append(data_dict)
@@ -11006,27 +11007,48 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
     for data_dict in data_list:
         batch_id = ''
         stocks = data_dict['stocks']
+        sku_cond = (data_dict['user'].id, data_dict['sku'].sku_code)
+        all_data.setdefault(sku_cond, {'stocks': StockDetail.objects.none(), 'data': {}})
         cond = (data_dict['user'].id, data_dict['sku'].sku_code, data_dict['batch_number'])
-        all_data.setdefault(cond, {'stocks': StockDetail.objects.none(), 'sku': data_dict['sku'], 'location': {},
+        all_data[sku_cond]['data'].setdefault(cond, {'stocks': StockDetail.objects.none(), 'sku': data_dict['sku'], 'location': {},
                                     'conversion_factor': data_dict['conversion_factor'],
                                     'batch_id': batch_id, 'adjustment_date': data_dict['adjustment_date'],
                                     'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict['purchase_uom'],
-                                    'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': []})
-        all_data[cond]['base_uom_qty'] += data_dict['base_uom_qty']
-        all_data[cond]['purchase_uom_qty'] += data_dict['purchase_uom_qty']
-        all_data[cond]['stocks'] = all_data[cond]['stocks'] | stocks
-        all_data[cond]['location'].setdefault(data_dict['location'].location, 0)
-        all_data[cond]['location'][data_dict['location'].location] += data_dict['base_uom_qty']
-        all_data[cond]['indexes'].append(data_dict['row_index'])
-    for group_key, valid_data in all_data.items():
-        putaway_pending_dict = {'purchase_order__open_po__sku_id': valid_data['sku'].id, 'quantity__gt': 0, 'status': 1}
-        if last_date:
-            putaway_pending_dict['creation_date__lte'] = last_date
-        putaway_pending_qty = POLocation.objects.filter(**putaway_pending_dict).aggregate(Sum('quantity'))['quantity__sum']
-        putaway_pending_qty = putaway_pending_qty*valid_data['conversion_factor'] if putaway_pending_qty else 0
-        if valid_data['base_uom_qty'] < putaway_pending_qty:
-            for row_idx in valid_data['indexes']:
-                index_status.setdefault(row_idx, set()).add('Base Uom Quantity is less than putaway pending quantity')
+                                    'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': [],
+                                   'last_date': data_dict['last_date'], 'batch_number': data_dict['batch_number']})
+        all_data[sku_cond]['data'][cond]['base_uom_qty'] += data_dict['base_uom_qty']
+        all_data[sku_cond]['data'][cond]['purchase_uom_qty'] += data_dict['purchase_uom_qty']
+        all_data[sku_cond]['data'][cond]['stocks'] = all_data[sku_cond]['data'][cond]['stocks'] | stocks
+        all_data[sku_cond]['stocks'] = all_data[sku_cond]['stocks'] | stocks
+        all_data[sku_cond]['data'][cond]['location'].setdefault(data_dict['location'].location, 0)
+        all_data[sku_cond]['data'][cond]['location'][data_dict['location'].location] += data_dict['base_uom_qty']
+        all_data[sku_cond]['data'][cond]['indexes'].append(data_dict['row_index'])
+    for sku_group_key, sku_valid_data in all_data.items():
+        for group_key, valid_data in sku_valid_data['data'].items():
+            putaway_pending_dict = {'purchase_order__open_po__sku_id': valid_data['sku'].id, 'quantity__gt': 0, 'status': 1}
+            if valid_data.get('last_date', ''):
+                putaway_pending_dict['creation_date__lte'] = valid_data['last_date']
+            putaway_pending_qty = POLocation.objects.filter(**putaway_pending_dict).aggregate(Sum('quantity'))['quantity__sum']
+            putaway_pending_qty = putaway_pending_qty*valid_data['conversion_factor'] if putaway_pending_qty else 0
+            if valid_data['base_uom_qty'] < putaway_pending_qty:
+                for row_idx in valid_data['indexes']:
+                    index_status.setdefault(row_idx, set()).add('Base Uom Quantity is less than putaway pending quantity')
+        remaining_stocks = StockDetail.objects.filter(sku__user=sku_group_key[0], sku__sku_code=sku_group_key[1],
+                                                      quantity__gt=0, creation_date__lte=valid_data['last_date']).\
+            exclude(id__in=all_data[sku_group_key]['stocks'])
+        if remaining_stocks.exists():
+            remaining_stock = remaining_stocks[0]
+            closing_adj = remaining_stocks.aggregate(Sum('quantity'))['quantity__sum']
+            new_cond = (sku_group_key[0], sku_group_key[1], '')
+            all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data['purchase_uom'], 'base_uom_qty': 0, 'purchase_uom_qty': 0,
+                                                 'adjustment_date': valid_data['adjustment_date'],
+                                                 'stocks': remaining_stocks, 'sku': valid_data['sku'],
+                                                 'user': valid_data['user'],
+                                                 'location': {}, 'location_obj': None,
+                                                'conversion_factor': valid_data['conversion_factor'],
+                                                'closing_adj': closing_adj,
+                                                 }
+
 
     if not index_status:
         return 'Success', all_data
@@ -11064,113 +11086,121 @@ def closing_adjustment_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     try:
-        for group_key, final_data in data_list.items():
-            user = final_data['user']
-            sku = final_data['sku']
-            base_quantity = final_data['base_uom_qty']
-            location = final_data['location'].keys()[0]
-            first_date = final_data['adjustment_date'].replace(day=1)
-            first_date = get_utc_start_date(first_date)
-            last_date = first_date + relativedelta(months=1)
-            sku_stocks = final_data['stocks']
-            batch_no = final_data.get('batch_number', '')
-            if sku_stocks.values_list('location_id').distinct().count() > 1:
-                temp_location_id = sku_stocks[0].location_id
-                sku_stocks.update(location_id=temp_location_id)
-            #sku_stocks = sku_stocks.filter()
-            stock_dict = {}
-            if not sku_stocks:
-                stock_dict = {'sku_id': final_data['sku'].id, 'location_id': final_data['location_obj'].id,
-                            'quantity': final_data['base_uom_qty'], 'receipt_date': final_data['adjustment_date'].date(),
-                            'receipt_number': get_stock_receipt_number(user)}
-                if 'batch_id' in final_data.get('batch_id', ''):
-                    batch_dict = copy.deepcopy(BatchDetail.objects.filter(id=final_data['batch_id']).values()[0])
-                    del batch_dict['id']
-                    del batch_dict['creation_date']
-                    del batch_dict['updation_date']
-                else:
-                    batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': final_data['purchase_uom'],
-                                    'pcf': final_data['conversion_factor'], 'batch_no': batch_no}
-                stock_dict['batch_dict'] = batch_dict
-            if final_data['adjustment_date'].month == 8 and final_data['adjustment_date'].year == 2020:
-                open_stock_filter = {'sku_id': sku.id, 'receipt_number': 9999999}
-                if sku_stocks.filter(batch_detail__isnull=False):
-                    open_stock_filter['batch_detail_id__in'] = sku_stocks.values_list('batch_detail_id', flat=True)
-                opening_stock = StockDetail.objects.filter(**open_stock_filter)
-                opening_stock = sum(list(opening_stock.values_list('quantity', flat=True)))
-            else:
-                last_month = last_date-relativedelta(months=1)
-                prev_month_dict = {'sku_id': sku.id, 'creation_date__month': last_month.month,
-                                    'creation_date__year': last_month.year}
-                if batch_no:
-                    prev_month_dict['batch_no'] = batch_no
-                prev_month_data = AdjustmentData.objects.filter(**prev_month_dict)
-                opening_stock = prev_month_data[0].base_quantity if prev_month_data else 0
-            stats_filter_dict = {'sku_id': sku.id, 'creation_date__range': [first_date, last_date]}
-            if batch_no:
-                stats_filter_dict['batch_no'] = batch_no
-            stats = dict(SKUDetailStats.objects.filter(sku_id=sku.id, creation_date__range=[first_date, last_date]).\
-                                            values_list('transact_type').distinct().annotate(Sum('quantity')))
-            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1, 'creation_date__lte': last_date}
-            if batch_no:
-                pp_dict['id__in'] = BatchDetail.objects.filter(batch_no=batch_no, transact_type='po_loc').\
-                                                        values_list('transact_id', flat=True)
-            putaway_pending_qty = POLocation.objects.filter(**pp_dict).\
-                                            aggregate(Sum('quantity'))['quantity__sum']
-            putaway_pending_qty = putaway_pending_qty if putaway_pending_qty else 0
-            putaway_pending_qty = putaway_pending_qty * final_data['conversion_factor']
-            receipt_qty = stats.get('PO', 0) + stats.get('po', 0) + stats.get('st_po', 0)
-            picklist_qty = stats.get('picklist', 0) + stats.get('st_picklist', 0)
-            adjusted_qty = stats.get('inventory-adjustment', 0)
-            return_qty = stats.get('return', 0)
-            cancelled_qty = stats.get('cancelled_location', 0)
-            rm_picklist_qty = stats.get('rm_picklist', 0)
-            jo_qty = stats.get('jo', 0)
-            rtv_qty = stats.get('rtv', 0)
-            cancel_grn_qty = stats.get('cancel_grn', 0)
-            consumption_qty = stats.get('consumption', 0)
-            closing_qty = (opening_stock + receipt_qty + adjusted_qty + cancelled_qty + jo_qty + return_qty) - \
-                            (picklist_qty + rm_picklist_qty + rtv_qty + cancel_grn_qty + consumption_qty)
-            rem_base_quantity = base_quantity - putaway_pending_qty
-            closing_adj = closing_qty - rem_base_quantity
-            last_change_date = last_date - datetime.timedelta(hours=1)
-            adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
-                        'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
-            with transaction.atomic('default'):
-                adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
-                if adj_created:
-                    AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
-                if not closing_adj:continue
-                consumption_data = ConsumptionData.objects.create(
-                    sku_id=sku.id,
-                    quantity=closing_adj,
-                )
-                ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
-                if closing_adj > 0:
-                    update_stock_detail(sku_stocks, closing_adj, user,
-                                        consumption_data.id, transact_type='consumption',
-                                        mapping_obj=consumption_data, inc_type='dec',
-                                        transact_date=last_change_date)
-                else:
-                    update_stock_detail(sku_stocks, abs(closing_adj), user,
-                                        consumption_data.id, transact_type='consumption',
-                                        mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict,
-                                        transact_date=last_change_date)
-                sku_stocks = sku_stocks.filter()
-                if sku_stocks:
-                    source_loc = sku_stocks[0].location.location
-                    total_stock = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
-                    for location_name, move_loc_qty in final_data['location'].items():
-                        if source_loc.lower() == location_name.lower():
-                            continue
-                        if total_stock >= move_loc_qty:
-                            move_qty = move_loc_qty
-                            receipt_number = get_stock_receipt_number(user)
-                            move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user, receipt_type='closing stock',
-                            receipt_number=receipt_number)
+        with transaction.atomic('default'):
+            for sku_group_key, sku_final_data in data_list.items():
+                for group_key, final_data in sku_final_data['data'].items():
+                    user = final_data['user']
+                    sku = final_data['sku']
+                    base_quantity = final_data['base_uom_qty']
+                    location = ''
+                    if final_data['location']:
+                        location = final_data['location'].keys()[0]
+                    first_date = final_data['adjustment_date'].replace(day=1)
+                    first_date = get_utc_start_date(first_date)
+                    last_date = first_date + relativedelta(months=1)
+                    sku_stocks = final_data['stocks']
+                    batch_no = final_data.get('batch_number', '')
+                    if sku_stocks.values_list('location_id').distinct().count() > 1:
+                        temp_location_id = sku_stocks[0].location_id
+                        sku_stocks.update(location_id=temp_location_id)
+                    #sku_stocks = sku_stocks.filter()
+                    stock_dict = {}
+                    if not sku_stocks:
+                        stock_dict = {'sku_id': final_data['sku'].id,
+                                    'quantity': final_data['base_uom_qty'], 'receipt_date': final_data['adjustment_date'].date(),
+                                    'receipt_number': get_stock_receipt_number(user)}
+                        if final_data['location_obj']:
+                            stock_dict['location_id'] = final_data['location_obj'].id
+                        if 'batch_id' in final_data.get('batch_id', ''):
+                            batch_dict = copy.deepcopy(BatchDetail.objects.filter(id=final_data['batch_id']).values()[0])
+                            del batch_dict['id']
+                            del batch_dict['creation_date']
+                            del batch_dict['updation_date']
+                        else:
+                            batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': final_data['purchase_uom'],
+                                            'pcf': final_data['conversion_factor'], 'batch_no': batch_no}
+                        stock_dict['batch_dict'] = batch_dict
+                    if final_data['adjustment_date'].month == 8 and final_data['adjustment_date'].year == 2020:
+                        open_stock_filter = {'sku_id': sku.id, 'receipt_number': 9999999}
+                        if sku_stocks.filter(batch_detail__isnull=False):
+                            open_stock_filter['batch_detail_id__in'] = sku_stocks.values_list('batch_detail_id', flat=True)
+                        opening_stock = StockDetail.objects.filter(**open_stock_filter)
+                        opening_stock = sum(list(opening_stock.values_list('quantity', flat=True)))
+                    else:
+                        last_month = last_date-relativedelta(months=1)
+                        prev_month_dict = {'sku_id': sku.id, 'creation_date__month': last_month.month,
+                                            'creation_date__year': last_month.year}
+                        if batch_no:
+                            prev_month_dict['batch_no'] = batch_no
+                        prev_month_data = AdjustmentData.objects.filter(**prev_month_dict)
+                        opening_stock = prev_month_data[0].base_quantity if prev_month_data else 0
+                    stats_filter_dict = {'sku_id': sku.id, 'creation_date__range': [first_date, last_date]}
+                    if batch_no:
+                        stats_filter_dict['stock_detail__batch_detail__batch_no'] = batch_no
+                    stats = dict(SKUDetailStats.objects.filter(**stats_filter_dict).\
+                                                    values_list('transact_type').distinct().annotate(Sum('quantity')))
+                    pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1, 'creation_date__lte': last_date}
+                    if batch_no:
+                        pp_dict['id__in'] = BatchDetail.objects.filter(batch_no=batch_no, transact_type='po_loc').\
+                                                                values_list('transact_id', flat=True)
+                    putaway_pending_qty = POLocation.objects.filter(**pp_dict).\
+                                                    aggregate(Sum('quantity'))['quantity__sum']
+                    putaway_pending_qty = putaway_pending_qty if putaway_pending_qty else 0
+                    putaway_pending_qty = putaway_pending_qty * final_data['conversion_factor']
+                    receipt_qty = stats.get('PO', 0) + stats.get('po', 0) + stats.get('st_po', 0)
+                    picklist_qty = stats.get('picklist', 0) + stats.get('st_picklist', 0)
+                    adjusted_qty = stats.get('inventory-adjustment', 0)
+                    return_qty = stats.get('return', 0)
+                    cancelled_qty = stats.get('cancelled_location', 0)
+                    rm_picklist_qty = stats.get('rm_picklist', 0)
+                    jo_qty = stats.get('jo', 0)
+                    rtv_qty = stats.get('rtv', 0)
+                    cancel_grn_qty = stats.get('cancel_grn', 0)
+                    consumption_qty = stats.get('consumption', 0)
+                    closing_qty = (opening_stock + receipt_qty + adjusted_qty + cancelled_qty + jo_qty + return_qty) - \
+                                    (picklist_qty + rm_picklist_qty + rtv_qty + cancel_grn_qty + consumption_qty)
+                    rem_base_quantity = base_quantity - putaway_pending_qty
+                    closing_adj = closing_qty - rem_base_quantity
+                    if base_quantity == 0:
+                        closing_adj = final_data['closing_adj']
+                    last_change_date = last_date - datetime.timedelta(hours=1)
+                    adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
+                                'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
+                    adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
+                    if adj_created:
+                        AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
+                    if not closing_adj:continue
+                    consumption_data = ConsumptionData.objects.create(
+                        sku_id=sku.id,
+                        quantity=closing_adj,
+                    )
+                    ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
+                    if closing_adj > 0:
+                        update_stock_detail(sku_stocks, closing_adj, user,
+                                            consumption_data.id, transact_type='consumption',
+                                            mapping_obj=consumption_data, inc_type='dec',
+                                            transact_date=last_change_date)
+                    else:
+                        update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                            consumption_data.id, transact_type='consumption',
+                                            mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict,
+                                            transact_date=last_change_date)
+                    sku_stocks = sku_stocks.filter()
+                    if sku_stocks:
+                        source_loc = sku_stocks[0].location.location
+                        total_stock = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
+                        for location_name, move_loc_qty in final_data['location'].items():
+                            if source_loc.lower() == location_name.lower():
+                                continue
+                            if total_stock >= move_loc_qty:
+                                move_qty = move_loc_qty
+                                receipt_number = get_stock_receipt_number(user)
+                                move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user, receipt_type='closing stock',
+                                receipt_number=receipt_number)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Closing Adjustment Upload failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
     return HttpResponse("Success")

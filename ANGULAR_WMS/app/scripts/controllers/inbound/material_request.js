@@ -173,13 +173,33 @@ vm.changeUnitPrice = function(data){
           }
         })
       } else {
+        vm.bt_disable = false;
         colFilters.showNoty("Please Fill Quantity ! ");  
       }
     } else {
+      vm.bt_disable = false;
       colFilters.showNoty("Fill Required Fields");
     }
   }
 
+  vm.update_data_order = function(index, data, last) {
+    console.log(data);
+    if (last) {
+      var total = 0;
+      for(var i=0; i < data.sub_data.length; i++) {
+        total = total + parseInt(data.sub_data[i].picked_quantity);
+      }
+      if(total < data.reserved_quantity) {
+        var clone = {};
+        angular.copy(data.sub_data[index], clone);
+        clone.picked_quantity = data.reserved_quantity - total;
+        data.sub_data.push(clone);
+      }
+    } else {
+      data.sub_data.splice(index,1);
+    }
+  }
+  
   vm.update_availabe_stock = function(sku_data) {
      var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.plant}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){

@@ -236,16 +236,16 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active">
+        <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.inbound.MaterialRequest">
             <span>Material Request</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!-- <li ui-sref-active="active">
           <a ui-sref="app.inbound.TransferOrder">
             <span>Raise Transfer Orders</span>
           </a>
-        </li>
+        </li> -->
         <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePr">
             <span>Purchase Request</span>
@@ -764,12 +764,12 @@
             <span>Enquiry Status Report</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.reports.MaterialRequestReport">
             <span>Material Request</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!-- <li ui-sref-active="active">
           <a ui-sref="app.reports.StockTransferReport">
             <span>Intra Stock Transfer Orders</span>
           </a>
@@ -778,7 +778,7 @@
           <a ui-sref="app.reports.SaleTransferReport">
             <span>Inter Sale Transfer Orders</span>
           </a>
-        </li>
+        </li> -->
         <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
           <a ui-sref="app.reports.StockReconciliationReport">
             <span>Stock Reconciliation</span>

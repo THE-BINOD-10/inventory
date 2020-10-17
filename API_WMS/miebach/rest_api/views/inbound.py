@@ -16157,7 +16157,7 @@ def grn_upload_preview(request, user=''):
 
 @csrf_exempt
 def get_material_request_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
-    lis = ['order_id', 'order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only', 'tsum']
+    lis = ['order_id', 'date_only', 'st_po__open_st__warehouse__username', 'order_id', 'date_only', 'tsum']
     users = [user.id]
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)

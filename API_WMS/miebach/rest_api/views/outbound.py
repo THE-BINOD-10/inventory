@@ -3451,6 +3451,7 @@ def check_imei(request, user=''):
 
 @get_admin_user
 def print_picklist_excel(request, user=''):
+    user = User.objects.get(id=request.GET['warehouse_id'])
     if user.userprofile.industry_type == 'FMCG':
         headers = copy.deepcopy(PICKLIST_EXCEL_FMCG)
     else:
@@ -3474,6 +3475,7 @@ def print_picklist_excel(request, user=''):
 @get_admin_user
 def print_picklist(request, user=''):
     temp = []
+    user = User.objects.get(id=request.GET['warehouse_id'])
     title = 'Picklist ID'
     data_id = request.GET['data_id']
     display_order_id = request.GET.get('display_order_id', 'false')
@@ -3744,7 +3746,7 @@ def mr_generate_picklist(request, user=''):
                                                                                         'DAMAGED_ZONE'])
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
+                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1)
 
         company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),

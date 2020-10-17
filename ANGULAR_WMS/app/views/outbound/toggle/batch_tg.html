@@ -65,6 +65,7 @@
                   <th> Title </th>
                   <th> Zone </th>
                   <th> Location </th>
+                  <th> conversion </th>
                   <th> Batch No </th>
                   <th> Manufactured Date </th>
                   <th> Expiry Date </th>
@@ -93,11 +94,11 @@
                   <td><input name="title_{{data.id}}" ng-model="data.title" class="form-control" type="text" readonly></td>
                   <td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
-
+                  <td><input ng-model="data.conversion_value" class="form-control" type="text" readonly></td>
                   <td>
                     <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" ng-init="record.batchno=data.batchno"
                         typeahead="address.batchno for address in showCase.service.getSearchValues(record.batchno, 'search_batches',record, '', '', showCase.model_data.current_user)"
-                        ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record.batchno,'search_batches', $event, record, 'batchno',showCase.model_data.current_user)"
+                        ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record.batchno,'search_batches', $event, record, 'batchno',showCase.model_data.current_user);showCase.get_sku_details(data, $item, $index)"
                         typeahead-on-select="showCase.get_sku_details(data, $item, $index)"
                         required>
                     <!-- <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" typeahead="address.batchno for address in showCase.service.getSearchValues($viewValue, 'search_batches',record)" ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" required> -->
@@ -114,10 +115,16 @@
                  </td>
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="data.pallet_number" class="form-control" type="text" readonly></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.permissions.scan_picklist_option != 'scan_sku_location' && showCase.permissions.scan_picklist_option != 'scan_sku' && showCase.permissions.scan_picklist_option != 'scan_none'" ng-class="service.get_decimal_perm()"></td>
+                  <td><input class="form-control" type="text"
+                    name="picked_quantity_{{data.id}}"
+                    ng-model="record.picked_quantity"
+                    ng-change="showCase.count_sku_quantity();showCase.cal_quantity(record, data)"
+                    ng-readonly="showCase.permissions.scan_picklist_option != 'scan_sku_location' && showCase.permissions.scan_picklist_option != 'scan_sku' && showCase.permissions.scan_picklist_option != 'scan_none'"
+                    ng-class="service.get_decimal_perm()">
+                  </td>
                   <td ng-if="showCase.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="showCase.serial_scan($event,record.scan, data, record)"></textarea></td>
 
-                  <td style="width: 20px;padding-left: 10px;"><i ng-click="showCase.update_data_order($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
+                  <td style="width: 20px;padding-left: 10px;"><i ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
                 </tr>
               </tbody>
             </table>

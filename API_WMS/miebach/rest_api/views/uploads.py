@@ -7902,6 +7902,13 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                     if key == 'quantity':
                         if isinstance(cell_data, float):
                             get_decimal_data(cell_data, index_status, row_idx, user)
+                        if user and wms_code:
+                            search_params = {'sku__user': user.id}
+                            search_params['sku__sku_code'] = wms_code
+                            stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+                            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, wms_code, search_params, '')
+                            if (avail_qty+st_avail_qty) < float(cell_data):
+                                index_status.setdefault(count, set()).add('Quantity Exceeding available quantity')
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
 

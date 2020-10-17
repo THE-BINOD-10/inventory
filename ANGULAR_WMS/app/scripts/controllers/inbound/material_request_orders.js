@@ -245,18 +245,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = close;
     function close() {
+      vm.bt_disable = true;
       $state.go('app.outbound.ViewOrders');
     }
 
     vm.back_button = function() {
       vm.reloadData();
+      vm.bt_disable = true;
       $state.go('app.outbound.ViewOrders')
     }
 
     vm.model_data = {};
-    vm.generate_data = [];
     vm.generate_picklist = generate_picklist;
     function generate_picklist() {
+      vm.generate_data = [];
+      vm.bt_disable = true;
       for(var key in vm.selected) {
         if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
@@ -284,14 +287,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   }
             $state.go('app.outbound.ViewOrders.Picklist');
             reloadData();
+            vm.bt_disable = false;
             pop_msg(data.data.stock_status);
           } else {
+            vm.bt_disable = false;
             vm.service.showNoty("Multi User Stock Transfer Generted !!");
             reloadData();
           }
         });
         vm.generate_data = [];
       } else {
+        vm.bt_disable = false;
         vm.service.showNoty("Please Select Single Order ! ");
         reloadData();
       }
@@ -416,15 +422,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   }
 
-  vm.get_sku_details = function(record, item, index) {
-    record.manufactured_date = item.manufactured_date
-    record.mrp = item.mrp
-    record.expiry_date = item.expiry_date
+  vm.get_sku_details = function(record, item, index, data) {
+    if (typeof(item) == "undefined") {
+      record.manufactured_date = ''
+      record.expiry_date = ''
+      record.batchno = ''
+    } else {
+      record.conversion_value = item.pcf
+      record.manufactured_date = item.manufactured_date
+      record.expiry_date = item.expiry_date
+      record.mrp = item.mrp
+    }
   }
 
   vm.cal_quantity = cal_quantity;
   function cal_quantity(record, data, check) {
-    console.log(record);
     var total = 0;
     for(var i=0; i < data.sub_data.length; i++) {
         total = total + parseInt(data.sub_data[i].picked_quantity);

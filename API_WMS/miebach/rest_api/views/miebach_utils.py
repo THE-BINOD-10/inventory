@@ -1440,9 +1440,9 @@ MATERIAL_REQUEST_REPORT_DICT = {
         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
         # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'Order ID', 'Source Plant', 'Destination Department', 'SKU Code',
+    'dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Source Plant', 'Destination Department', 'SKU Code',
                    'SKU Description', 'Order Quantity', 'Pick Quantity', 'HSN Code', 'Status'],
-    'mk_dt_headers': ['Date', 'Order ID', 'Invoice Number', 'Source Plant', 'Destination Department', 'SKU Code',
+    'mk_dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Plant', 'Destination Department', 'SKU Code',
                       'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
                       'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
                       'Total Invoice Amount', 'HSN Code', 'Status',
@@ -10653,11 +10653,30 @@ def print_sku_wise_data(search_params, user, sub_user):
     return temp_data
 
 
+def get_mr_status(user, data_id, total_qty, all_data):
+    status = ''
+    temp_total = 0
+    for invoice_no in all_data:
+        qty_conversion = 1
+        invoice_quantity = invoice_no.quantity
+        batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                                                    stock_transfer=data_id).values(
+                    'picklist__stock__batch_detail__batch_no',
+                    'picklist__stock__batch_detail__manufactured_date',
+                    'picklist__stock__batch_detail__expiry_date', 'picklist__stock__batch_detail__pcf')
+        if batch_data.exists():
+            qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
+        temp_total = temp_total + round(float(invoice_quantity) / float(qty_conversion), 2)
+    if float(total_qty) > temp_total:
+        status = "Partially Received"
+    return status
+
+
 def get_material_request_report_data(request, search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
-    lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
+    lis = ['creation_date', 'order_id', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
            'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
            'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
            'st_po__open_st__sgst_tax',
@@ -10749,12 +10768,14 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                         "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                     manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
-
+                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
+                if temp_stat:
+                    status = temp_stat
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                      ('Source Plant', user.first_name), ('Destination Department', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                     ('Order Quantity', quantity),
+                     ('Order Quantity', quantity), ('Pick Sequence', invoice_no.pick_number),
                      ('Pick Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
@@ -10769,6 +10790,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
             batch_number = ''
             expiry_date = ''
             manufactured_date = ''
+            pick_seq = ''
             batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
@@ -10781,7 +10803,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                  ('Source Plant', "%s %s" % (user.first_name, user.last_name)), ('Destination Department', destination),
                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                 ('Order Quantity', quantity),
+                 ('Order Quantity', quantity), ('Pick Sequence', pick_seq),
                  ('Pick Quantity', invoice_quantity),
                  ('HSN Code', data.sku.hsn_code), ('Status', status),
                  ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),

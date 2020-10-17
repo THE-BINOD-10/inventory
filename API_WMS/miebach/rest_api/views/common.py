@@ -3666,7 +3666,8 @@ def search_batches(request, user=''):
     total_data =[]
     if stock_data.exists():
         for stock in stock_data:
-            batchno, manufactured_date, expiry_date = '', '', ''
+            batchno, manufactured_date, expiry_date, pcf = '', '', '', ''
+            pcf = stock.batch_detail.pcf
             try:
                 batchno =  stock.batch_detail.batch_no
             except:
@@ -3684,12 +3685,12 @@ def search_batches(request, user=''):
                 if stock.batch_detail.batch_no and expiry_batches_picklist == 'true':
                     present_date = datetime.datetime.now().date()
                     if stock.batch_detail.expiry_date and stock.batch_detail.expiry_date >= present_date:
-                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date })
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date, 'pcf': pcf })
                 else:
                     if batchno:
-                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date})
+                        total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date, 'pcf': pcf})
             except:
-                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date})
+                total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date, 'expiry_date': expiry_date, 'pcf': pcf})
     return HttpResponse(json.dumps(total_data))
 
 
@@ -8805,7 +8806,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     combo_allocate_stock = False
     if switch_vals.get('combo_allocate_stock', '') == 'true':
         combo_allocate_stock = True
-
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
         temp_order_quantity = 0
@@ -8903,7 +8903,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 stock_based_combo = float(min(member_check_quantity, (stock_quantity//combo.quantity) * combo.quantity))/combo.quantity
                 combo_stock_check_dict[combo.member_sku] = {'order_qty': stock_based_combo,
                                                             'combo_qty': combo.quantity}
-
         if allow_partial_picklist and combo_stock_check_dict:
             combo_suggested = min(map(lambda d: d['order_qty'], combo_stock_check_dict.values()))
             if not combo_suggested:
@@ -12677,6 +12676,8 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                                     receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
         if receipt_type == 'stock transfer':
             transact_type = 'st_po'
+        elif receipt_type == 'material request':
+            transact_type = 'MR'
         else:
             transact_type = 'PO'
         save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, transact_type, location_quantity, stock_dict)

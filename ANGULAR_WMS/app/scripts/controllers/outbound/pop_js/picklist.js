@@ -449,7 +449,7 @@ function view_orders() {
 
   vm.print_excel = print_excel;
   function print_excel(id)  {
-    vm.service.apiCall('print_picklist_excel/','GET',{data_id: id, 'display_order_id' : vm.display_order_id}).then(function(data){
+    vm.service.apiCall('print_picklist_excel/','GET',{data_id: id, 'display_order_id' : vm.display_order_id, 'warehouse_id': vm.model_data.warehouse_id}).then(function(data){
       if(data.message) {
         window.location = Session.host+data.data.slice(3);
       }
@@ -458,7 +458,7 @@ function view_orders() {
 
   vm.print_pdf = print_pdf;
   function print_pdf(id) {
-    vm.service.apiCall('print_picklist/','GET',{data_id: id, 'display_order_id' : vm.display_order_id}).then(function(data){
+    vm.service.apiCall('print_picklist/','GET',{data_id: id, 'display_order_id' : vm.display_order_id, 'warehouse_id': vm.model_data.warehouse_id}).then(function(data){
       if(data.message) {
         var picklist_number = $($.parseHTML(data.data)).find("input").val()
         if (picklist_number) {
@@ -904,9 +904,7 @@ function pull_confirmation() {
 
   vm.remain_quantity = {}
   vm.count_sku_quantity = function() {
-
     angular.forEach(vm.remain_quantity, function(value, key) {
-
       vm.remain_quantity[key] = 0;
     })
     angular.forEach(vm.model_data.data, function(record){

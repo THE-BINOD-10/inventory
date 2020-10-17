@@ -643,14 +643,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         var results = response.data;
         if ($(event.target).val() == val) {
           if (results.length > 0) {
-            if (results[0] == data) {
-              $(event.target).val(val);
-            } else if(results[0].search(val) > -1) {
-              $(event.target).val(val);
-            } else {
+            if(!results[0].batchno.toLocaleLowerCase().includes(val.toLocaleLowerCase())) {
               $(event.target).val("");
               $(event.target).focus();
               vm.pop_msg("Enter Correct value "+msg);
+            } else {
+              $(event.target).val(val);
             }
           } else {
             $(event.target).val("");

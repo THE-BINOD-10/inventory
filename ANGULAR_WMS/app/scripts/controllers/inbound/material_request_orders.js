@@ -283,6 +283,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
                                                          batchno: vm.model_data.data[i].batchno,
+                                                         expiry_date: vm.model_data.data[i].expiry_date,
+                                                         manufactured_date: vm.model_data.data[i].manufactured_date,
                                                          picked_quantity: value});
                   }
             $state.go('app.outbound.ViewOrders.Picklist');
@@ -424,14 +426,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.get_sku_details = function(record, item, index, data) {
     if (typeof(item) == "undefined") {
-      record.manufactured_date = ''
-      record.expiry_date = ''
-      record.batchno = ''
+      record.sub_data[index].manufactured_date = ''
+      record.sub_data[index].expiry_date = ''
+      record.sub_data[index].batchno = ''
     } else {
-      record.conversion_value = item.pcf
-      record.manufactured_date = item.manufactured_date
-      record.expiry_date = item.expiry_date
-      record.mrp = item.mrp
+      record.sub_data[index].conversion_value = item.pcf
+      record.sub_data[index].manufactured_date = item.manufactured_date
+      record.sub_data[index].expiry_date = item.expiry_date
+      record.sub_data[index].mrp = item.mrp
     }
   }
 

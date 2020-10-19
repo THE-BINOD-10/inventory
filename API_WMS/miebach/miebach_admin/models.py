@@ -978,7 +978,6 @@ class StockDetail(models.Model):
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
 
-
 class ASNStockDetail(models.Model):
     id = BigAutoField(primary_key=True)
     asn_po_num = models.CharField(max_length=32, default='')
@@ -1035,6 +1034,19 @@ class PicklistLocation(models.Model):
         index_together = (('picklist', 'stock', 'reserved'), ('picklist', 'status'),
                           ('picklist', 'reserved'), ('picklist', 'stock', 'status'),
                           ('picklist', 'reserved', 'stock', 'status'))
+
+
+class PickSequenceMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    pick_loc = models.ForeignKey(PicklistLocation, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    pick_number = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PICK_SEQUENCE_MAPPING'
+        index_together = (('pick_loc', 'pick_number'))
 
 
 class OrderLabels(models.Model):

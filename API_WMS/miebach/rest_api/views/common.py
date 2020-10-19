@@ -3057,13 +3057,23 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
         return_status = 'Failed'
     return return_status, stock_stats_objs
 
+def po_location_sequence_mapping(pick_loc, pick_sequence, qty):
+    create_pick_seq = {
+        'pick_loc': pick_loc,
+        'pick_number': pick_sequence,
+        'quantity': qty
+    }
+    pick_sequence = PickSequenceMapping(**create_pick_seq)
+    pick_sequence.save()
 
-def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0):
+def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0, pick_sequence=''):
     for pic_loc in pick_loc:
         if float(pic_loc.reserved) >= update_picked:
             pic_loc.reserved = truncate_float(float(pic_loc.reserved) - update_picked, decimal_limit)
             if update_quantity:
                 pic_loc.quantity = truncate_float(float(pic_loc.quantity) - update_picked, decimal_limit)
+            if pick_sequence:
+                po_location_sequence_mapping(pic_loc, pick_sequence, update_picked)
             update_picked = 0
         elif float(pic_loc.reserved) < update_picked:
             update_picked = truncate_float(update_picked - pic_loc.reserved, decimal_limit)

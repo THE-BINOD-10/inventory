@@ -48,6 +48,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
                                                          capacity: vm.model_data.data[i].picked_quantity,
                                                          passed_serial_number: [],
                                                          failed_serial_number:[],
+                                                         manufactured_date: vm.model_data.data[i].manufactured_date,
+                                                         expiry_date: vm.model_data.data[i].expiry_date,
                                                          labels: [], last_pallet_code:vm.model_data.data[i].pallet_code,
                                                          last_location: vm.model_data.data[i].location});
          }
@@ -649,7 +651,9 @@ function pull_confirmation() {
           clone.picked_quantity = 0;
           clone.scan = "";
           clone.pallet_code = "";
-          clone.location = "";
+          clone.manufactured_date = "";
+          clone.expiry_date = "";
+          // clone.location = "";
           if (vm.permissions.scan_picklist_option == 'scan_label') {
             clone.labels = [];
             clone.picked_quantity = 0;
@@ -669,9 +673,9 @@ function pull_confirmation() {
   }
 
   vm.get_sku_details = function(record, item, index) {
-    record.manufactured_date = item.manufactured_date
-    record.mrp = item.mrp
-    record.expiry_date = item.expiry_date
+    record.sub_data[index].manufactured_date = item.manufactured_date
+    record.sub_data[index].expiry_date = item.expiry_date
+    record.sub_data[index].mrp = item.mrp
   }
 
   vm.cal_quantity = cal_quantity;
@@ -1044,6 +1048,7 @@ function pull_confirmation() {
   vm.update_picklist = function(pick_id) {
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {
+        debugger
         vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);

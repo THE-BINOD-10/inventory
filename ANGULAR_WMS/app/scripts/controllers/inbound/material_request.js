@@ -213,47 +213,48 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.get_sku_data = function(record, item, index) {
-    angular.copy(empty_data.data[0], record);
-    if (vm.model_data.plant && vm.model_data.department_type) {
-      record.sku_id = item.wms_code;
-      record["description"] = item.sku_desc;
-      record.conversion = item.conversion;
-      record.temp_conversion = item.conversion;
-      record.base_uom = item.base_uom;
-      record.measurement_unit = item.measurement_unit;
-      vm.get_customer_sku_prices(item.wms_code, vm.model_data.plant).then(function(data){
-        if(data.length > 0) {
-          data = data[0]
-          record.mrp = data.mrp;
-          // record["price"] = data.mrp;
-            if(!(record.order_quantity)) {
-              record.order_quantity = 1
-            }
-            if(!(record.price)) {
-              record.price = data.cost_price;
-            }
-            if(vm.igst_enable){
-              if(data.igst_tax){
-              record.igst = data.igst_tax;
-              }else{
-              record.igst = data.sgst_tax+data.cgst_tax;
+    if (typeof(item) != "undefined") {
+      angular.copy(empty_data.data[0], record);
+      if (vm.model_data.plant && vm.model_data.department_type) {
+        record.sku_id = item.wms_code;
+        record["description"] = item.sku_desc;
+        record.conversion = item.conversion;
+        record.temp_conversion = item.conversion;
+        record.base_uom = item.base_uom;
+        record.measurement_unit = item.measurement_unit;
+        vm.get_customer_sku_prices(item.wms_code, vm.model_data.plant).then(function(data){
+          if(data.length > 0) {
+            data = data[0]
+            record.mrp = data.mrp;
+              if(!(record.order_quantity)) {
+                record.order_quantity = 1
               }
-            }else {
-             if(data.igst_tax){
-              record.sgst_tax = data.igst_tax / 2;
-              record.cgst_tax = data.igst_tax / 2 ;
-              }else{
-              record.sgst_tax = data.sgst_tax;
-              record.cgst_tax = data.cgst_tax;
+              if(!(record.price)) {
+                record.price = data.cost_price;
               }
-            }
-          record.invoice_amount = Number(record.price)*Number(record.quantity);
-          vm.update_availabe_stock(record)
-          console.log(record);
-        }
-      })
-    } else {
-      colFilters.showNoty("Please select Plant and Department");
+              if(vm.igst_enable){
+                if(data.igst_tax){
+                record.igst = data.igst_tax;
+                }else{
+                record.igst = data.sgst_tax+data.cgst_tax;
+                }
+              }else {
+               if(data.igst_tax){
+                record.sgst_tax = data.igst_tax / 2;
+                record.cgst_tax = data.igst_tax / 2 ;
+                }else{
+                record.sgst_tax = data.sgst_tax;
+                record.cgst_tax = data.cgst_tax;
+                }
+              }
+            record.invoice_amount = Number(record.price)*Number(record.quantity);
+            vm.update_availabe_stock(record)
+            console.log(record);
+          }
+        })
+      } else {
+        colFilters.showNoty("Please select Plant and Department");
+      }
     }
   }
   vm.verifyTax = function() {

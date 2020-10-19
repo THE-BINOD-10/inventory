@@ -2130,6 +2130,11 @@ def picklist_confirmation(request, user=''):
                                                                   seller_pick_number, val=val,
                                                                   p_quantity=picking_count)
                             continue
+                    if not seller_pick_number:
+                        if picklist.storder_set.filter():
+                            seller_pick_number  =  get_stocktransfer_picknumber(user, picklist)
+                        else:
+                            seller_pick_number = get_seller_pick_id(picklist, user)
                     if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                         picking_count = float(val['picked_quantity'])
                     else:
@@ -2230,13 +2235,25 @@ def picklist_confirmation(request, user=''):
                             setattr(stock.location, 'filled_capacity', location_fill_capacity)
                             stock.location.save()
                         if picklist.storder_set.filter():
-                            transact_type = 'st_picklist'
+                            try:
+                                if picklist.storder_set.filter()[0].stock_transfer.st_type == 'MR':
+                                    transact_type = 'mr_picklist'
+                                else:
+                                    transact_type = 'st_picklist'
+                            except Exception as e:
+                                transact_type = 'st_picklist'
                         else:
                             transact_type = 'picklist'
                         # SKU Stats
                         save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
-                        pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
-                                                             stock__location_id=stock.location_id, status=1)
+                        search_po_locations = {
+                            'picklist_id': picklist.id,
+                            'stock__location_id': stock.location_id,
+                            'status': 1
+                        }
+                        if stock.batch_detail:
+                            search_po_locations['stock__batch_detail__batch_no'] = stock.batch_detail.batch_no
+                        pick_loc = all_pick_locations.filter(**search_po_locations)
                         # update_picked = picking_count1
                         st_order = picklist.storder_set.filter()
                         if st_order:
@@ -2250,7 +2267,7 @@ def picklist_confirmation(request, user=''):
                                 order_typ = request.POST.get('order_typ', '')
                             update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ = order_typ)
                         if pick_loc:
-                            update_picklist_locations(pick_loc, picklist, update_picked)
+                            update_picklist_locations(pick_loc, picklist, update_picked, pick_sequence=seller_pick_number)
                         else:
                             data = PicklistLocation(picklist_id=picklist.id, stock=stock, quantity=update_picked,
                                                     reserved=0, status=0,
@@ -2259,6 +2276,7 @@ def picklist_confirmation(request, user=''):
                             data.save()
                             exist_pics = all_pick_locations.exclude(id=data.id).filter(picklist_id=picklist.id,
                                                                                        status=1, reserved__gt=0)
+                            po_location_sequence_mapping(data, seller_pick_number, update_picked)
                             update_picklist_locations(exist_pics, picklist, update_picked, 'true')
                         if stock.location.zone.zone == 'BAY_AREA':
                             reduce_putaway_stock(stock, update_picked, user.id)
@@ -2270,11 +2288,6 @@ def picklist_confirmation(request, user=''):
                         mod_locations.append(stock.location.location)
                         picking_count1 += update_picked
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
-                    if not seller_pick_number:
-                        if picklist.storder_set.filter():
-                            seller_pick_number  =  get_stocktransfer_picknumber(user, picklist)
-                        else:
-                            seller_pick_number = get_seller_pick_id(picklist, user)
                     if picklist.reserved_quantity == 0:
                         # Auto Shipment check and Mapping the serial Number
                         if picklist.order and picklist.order.order_type == 'Transit':
@@ -16953,24 +16966,33 @@ def generate_mr_dc(request , user = ''):
                 invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
                 invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
                 for invoice_no in data.stocktransfersummary_set.filter(pick_number = order['pick_number']):
+                    batch_pcf = 1
                     batch_number = ''
                     expiry_date = ''
                     manufactured_date = ''
-                    batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                                                        stock_transfer=data.id).values(
-                        'picklist__stock__batch_detail__batch_no',
-                        'picklist__stock__batch_detail__manufactured_date',
-                        'picklist__stock__batch_detail__expiry_date')
+                    # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id, picklist__picklistlocation__quantity__gt=0,
+                    #                                     stock_transfer=data.id).values(
+                    #     'picklist__picklistlocation__stock__batch_detail__batch_no',
+                    #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
+                    #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
+                    batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
+                    batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                        'pick_loc__stock__batch_detail__batch_no',
+                        'pick_loc__stock__batch_detail__manufactured_date',
+                        'pick_loc__stock__batch_detail__expiry_date',
+                        'pick_loc__stock__batch_detail__pcf'
+                        )
                     if batch_data.exists():
-                        batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                        expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                            "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
-                        manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                            "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                        batch_pcf = batch_data[0]['pick_loc__stock__batch_detail__pcf']
+                        batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
+                        expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
+                            "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
+                        manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
+                            "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
                     try:
-                        invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
+                        invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
                     except Exception as e:
-                        pass
+                        invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
                     total_qty += float(invoice_no.quantity)
                     temp_dict = {}
                     temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code

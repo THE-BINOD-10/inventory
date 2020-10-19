@@ -10758,18 +10758,25 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 batch_number = ''
                 expiry_date = ''
                 manufactured_date = ''
-                batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                                                    stock_transfer=data.id).values(
-                    'picklist__stock__batch_detail__batch_no',
-                    'picklist__stock__batch_detail__manufactured_date',
-                    'picklist__stock__batch_detail__expiry_date', 'picklist__stock__batch_detail__pcf')
+                batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
+                batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                    'pick_loc__stock__batch_detail__batch_no',
+                    'pick_loc__stock__batch_detail__manufactured_date',
+                    'pick_loc__stock__batch_detail__expiry_date',
+                    'pick_loc__stock__batch_detail__pcf'
+                )
+                # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                #                                     stock_transfer=data.id).values(
+                #     'picklist__picklistlocation__stock__batch_detail__batch_no',
+                #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
+                #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
                 if batch_data.exists():
-                    qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
-                    batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                    expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                        "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
-                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime(
-                        "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
+                    qty_conversion = batch_data[0]['pick_loc__stock__batch_detail__pcf']
+                    batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
+                    expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
+                        "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
+                    manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
+                        "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
                 temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
                 if temp_stat:
                     status = temp_stat

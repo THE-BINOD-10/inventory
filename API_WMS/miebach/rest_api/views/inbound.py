@@ -6965,7 +6965,7 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
                            'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
                            'display_approval_button', 'invoice_value', 'overall_discount', 'invoice_quantity',"product_category" ,"order_type",
                            "grn_total_amount","total_order_qty","total_receivable_qty","supplier_id_name","total_received_qty","grn_quantity",
-                           "warehouse_id"
+                           "warehouse_id", "grn_date"
                            ]
             for i in range(0, len(data_dict['id'])):
                 po_data = {}
@@ -6991,7 +6991,10 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
                     if key in zero_index_keys:
                         po_data[key] = data_dict[key][0]
                     else:
-                        po_data[key] = data_dict[key][i]
+                        try:
+                            po_data[key] = data_dict[key][i]
+                        except Exception as e:
+                            pass
                 # po = PurchaseOrder.objects.filter(id=data_dict['id'][i])
                 po = PurchaseOrder.objects.get(id=data_dict['id'][i])
                 po_data.update({"po_number": po.po_number,

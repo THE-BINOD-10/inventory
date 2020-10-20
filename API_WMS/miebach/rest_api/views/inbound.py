@@ -4687,7 +4687,7 @@ def add_pr(request, user=''):
         check_prefix = ''
         central_po_data = ''
         myDict = dict(request.POST.iterlists())
-        log.info("Raise PR data for user %s and request params are %s" % (user.username, str(myDict)))
+        log.info("Raise PR data for request user %s and user %s and request params are %s click time %s" % (request.user.username, user.username, str(myDict), datetime.datetime.now()))
         plant_name = request.POST.get('plant', '')
         department_type = request.POST.get('department_type', '')
         if plant_name and department_type:

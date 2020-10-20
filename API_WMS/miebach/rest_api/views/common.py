@@ -12516,12 +12516,14 @@ def sync_supplier_async(id, user_id):
     createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
     print("Sync Completed For %s" % supplier.supplier_id)
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[]):
     supplier_sync = get_misc_value('supplier_sync', user.id)
     if (supplier_sync == 'true' or force) and not current_user :
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
+    if userids_list:
+        user_ids= userids_list
     master_objs = {}
     admin_supplier = None
     company_admin = get_company_admin_user(user)

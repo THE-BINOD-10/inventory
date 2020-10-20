@@ -55,6 +55,7 @@ log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
 log_sellable = init_logger('logs/auto_sellable_suggestions.log')
+email_redirect_history = init_logger('logs/email_redirect_history.log')
 
 # Create your views here.
 
@@ -1188,6 +1189,10 @@ def pr_request(request):
                                                 ('approval_status', approval_status),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
+    try:
+        email_redirect_history.info("Email Click user %s click Time is %s with generated data %s" % (request.user.username, datetime.datetime.now(), str(temp_data)))
+    except Exception as e:
+        pass
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 

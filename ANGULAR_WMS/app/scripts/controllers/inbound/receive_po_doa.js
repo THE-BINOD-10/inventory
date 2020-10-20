@@ -214,6 +214,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.calc_total_amt(event, vm.model_data, 0, par_ind);
                   }
                   if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+                    vm.upload_enable = true;
+                    vm.existing_file_name = vm.model_data.uploaded_file_dict.file_name
                     vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
                   }
                   vm.model_data.other_charges = [];

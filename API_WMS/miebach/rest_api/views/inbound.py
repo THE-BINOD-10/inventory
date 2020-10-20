@@ -3319,18 +3319,30 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
     return prObj, mailsList
 
 
-def updatePRApproval(pr_number, user, level, validated_by, validation_type,
+def updatePRApproval(pendingPRObj, user, level, validated_by, validation_type,
                     remarks, purchase_type='PO', approval_type='',
                     product_category='Kits&Consumables'):
-    apprQs = PurchaseApprovals.objects.filter(purchase_number=pr_number,
-                                            pr_user=user,
-                                            level=level,
-                                            validated_by__icontains=validated_by,
-                                            purchase_type=purchase_type).exclude(status='resubmitted')
+    if purchase_type == 'PO':
+        apprQs = PurchaseApprovals.objects.filter(pending_po_id=pendingPRObj.id,
+                                                pr_user=user,
+                                                level=level,
+                                                validated_by__icontains=validated_by,
+                                                purchase_type=purchase_type).exclude(status='resubmitted')
+    else:
+        apprQs = PurchaseApprovals.objects.filter(pending_pr_id=pendingPRObj.id,
+                                                pr_user=user,
+                                                level=level,
+                                                validated_by__icontains=validated_by,
+                                                purchase_type=purchase_type).exclude(status='resubmitted')
     if apprQs:
-        apprQs.update(status=validation_type)
-        apprQs.update(remarks=remarks)
-        apprQs.update(validated_by=validated_by)
+        for apprQ in apprQs:
+            apprQ.status = validation_type
+            apprQ.remarks = remarks
+            apprQ.validated_by = validated_by
+            apprQ.save()
+        #apprQs.update(status=validation_type)
+        #apprQs.update(remarks=remarks)
+        #apprQs.update(validated_by=validated_by)
         #Update status in Mails Model
         mailObj = PurchaseApprovalMails.objects.filter(pr_approval_id=apprQs[0].id, level=level,
                     email__icontains=validated_by, status='')
@@ -3772,7 +3784,7 @@ def approve_pr(request, user=''):
                         return HttpResponse("Staff not found")
                     PRQs.update(final_status=validation_type)
                     # PRQs.update(remarks=remarks)
-                    updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
+                    updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
                                      remarks, purchase_type=purchase_type)
                     # sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
                     #                      '%s_approval_at_last_level' % mailSubTypePrefix,
@@ -3791,7 +3803,7 @@ def approve_pr(request, user=''):
             else:
                 PRQs.update(final_status=validation_type)
                 # PRQs.update(remarks=remarks)
-                updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
+                updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
                                  remarks, purchase_type=purchase_type)
                 sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
                                      '%s_approval_at_last_level' % mailSubTypePrefix,
@@ -3805,7 +3817,7 @@ def approve_pr(request, user=''):
             if validation_type == 'rejected':
                 PRQs.update(final_status=validation_type)
                 # PRQs.update(remarks=remarks)
-                updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
+                updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
                                     remarks, purchase_type=purchase_type)
                 sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix,
                                 requestedUserEmail, poFor=poFor, central_po_data=central_po_data,
@@ -3817,7 +3829,7 @@ def approve_pr(request, user=''):
                     return HttpResponse("Staff not found")
                 PRQs.update(pending_level=nextLevel)
                 # PRQs.update(remarks=remarks)
-                updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
+                updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
                                     remarks, purchase_type=purchase_type)
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)

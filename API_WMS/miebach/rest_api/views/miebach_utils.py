@@ -194,7 +194,7 @@ PR_REPORT_PR_STATUS = ['Pending', 'Approved', 'Rejected', 'Pr_Converted_To_Po', 
 
 PR_REPORT_PRIORITY_STATUS = ['normal', 'urgent']
 
-PO_REPORT_PO_STATUS = ['Pending', 'Approved', 'Rejected']
+PO_REPORT_PO_STATUS = ['saved', 'Pending', 'Approved', 'Rejected']
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 

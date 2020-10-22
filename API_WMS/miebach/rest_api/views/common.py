@@ -1127,8 +1127,12 @@ def pr_request(request):
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']],
                                     result['total_amt'], purchase_type=purchase_type)
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']],
-                        pr_user=user, level=result[fieldsMap['pending_level']])
+        if send_path == 'app.inbound.RaisePr':
+            prApprQs = PurchaseApprovals.objects.filter(pending_pr_id=result[fieldsMap['purchase_id']],
+                        pr_user=user, level=result[fieldsMap['pending_level']]).order_by('-id')
+        else:
+            prApprQs = PurchaseApprovals.objects.filter(pending_po_id=result[fieldsMap['purchase_id']],
+                        pr_user=user, level=result[fieldsMap['pending_level']]).order_by('-id')
         if not prApprQs.exists():
             continue
 

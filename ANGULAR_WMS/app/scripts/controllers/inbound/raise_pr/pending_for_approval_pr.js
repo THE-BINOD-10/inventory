@@ -157,7 +157,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
       vm.form = 'pending_for_approval';
-      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id']};
+      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], current_approval: aData['To Be Approved By']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];

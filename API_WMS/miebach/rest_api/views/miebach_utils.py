@@ -15188,9 +15188,17 @@ def get_pr_plant_and_department(po_number):
 def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_wo_request, get_related_users_filters
     temp_data = copy.deepcopy(AJAX_DATA)
-    search_parameters = {}
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {'sku__user__in': user_ids}
     lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
             'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
@@ -15233,7 +15241,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     else:
         results = model_data
     count = 0
-    for result in results:
+    for result in results.iterator():
         test_code, mfg_date, exp_date = [''] * 3
         first_name = User.objects.get(id=result['sku__user']).first_name
         if result['consumption__test__test_code']:

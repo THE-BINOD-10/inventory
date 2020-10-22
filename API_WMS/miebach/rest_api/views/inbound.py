@@ -1794,8 +1794,8 @@ def generated_actual_pr_data(request, user=''):
         else:
             prApprQs = PurchaseApprovals.objects.filter(pending_pr_id=pr_number, level=record[0].pending_level).order_by('-id')
             if prApprQs.exists():
-                if current_approval not in prApprQs[0].validated_by:
-                    return HttpResponse("PR Already Approved !")
+                if current_approval not in prApprQs[0].validated_by and prApprQs[0].status == '':
+                    return HttpResponse('%s - pending with %s' %('PR Already Approved', prApprQs[0].validated_by))
     #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     dept_user = record[0].wh_user
     department_code = dept_user.userprofile.stockone_code

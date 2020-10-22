@@ -7340,6 +7340,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             department= ""
             dc_number=""
             dc_date=""
+            vendorbill_url=""
             bill_no= data_dict.get("bill_no",'')
             bill_date= data_dict.get("bill_date",'')
             invoice_quantity=grn_params.POST.get('invoice_quantity', 0.0)

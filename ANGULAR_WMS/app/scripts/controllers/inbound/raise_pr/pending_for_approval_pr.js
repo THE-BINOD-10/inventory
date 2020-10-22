@@ -159,7 +159,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.form = 'pending_for_approval';
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], current_approval: aData['To Be Approved By']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
-        if (data.message) {
+        if (data.message && typeof(data.data) == 'object') {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
           var empty_data = { //"supplier_id":vm.supplier_id,
@@ -216,11 +216,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
           vm.model_data.validated_users = data.data.validated_users;
           angular.forEach(vm.model_data.data, function(data){
-//            if (!data.fields.cess_tax) {
-//              if (data.fields.temp_cess_tax){
-//                data.fields.cess_tax = data.fields.temp_cess_tax;
-//              }
-//            }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
@@ -315,8 +310,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');
           }
+        } else {
+          Service.showNoty(data.data);
+          vm.service.refresh(vm.dtInstance);
         }
-    });
+      });
     }
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];

@@ -1785,9 +1785,18 @@ def generated_pr_data(request, user=''):
 def generated_actual_pr_data(request, user=''):
     pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
+    current_approval = request.POST.get('current_approval', '')
     requestedUserId = User.objects.get(username=requested_user).id
-    #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     record = PendingPR.objects.filter(requested_user__username=requested_user, id=pr_number)
+    if current_approval:
+        if record[0].final_status in ['pr_converted_to_po', 'approved']:
+            return HttpResponse("PR Already Approved !")
+        else:
+            prApprQs = PurchaseApprovals.objects.filter(pending_pr_id=pr_number, level=record[0].pending_level).order_by('-id')
+            if prApprQs.exists():
+                if current_approval not in prApprQs[0].validated_by:
+                    return HttpResponse("PR Already Approved !")
+    #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     dept_user = record[0].wh_user
     department_code = dept_user.userprofile.stockone_code
     department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)

@@ -628,7 +628,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 vm.close();
                 vm.service.refresh(vm.dtInstance);
               } else {
-                vm.service.showNoty(data.data);
+                vm.close();
+                vm.service.showNoty(data.data, 'warning');
               }
             }
           })

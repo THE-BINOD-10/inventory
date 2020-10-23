@@ -3552,10 +3552,14 @@ def approve_pr(request, user=''):
     central_data_id = request.POST.get('data_id', '')
     requestedUserId = User.objects.get(username=requested_userName).id
     #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
+    input_product_category = myDict.get('product_category', '')
+    if input_product_category:
+        input_product_category = input_product_category[0]
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     company_id = get_company_id(user)
     filtersMap = {}#{'wh_user': pr_user}
+    is_purchase_approver = find_purchase_approver_permission(request.user)
     try:
         if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
@@ -3582,14 +3586,29 @@ def approve_pr(request, user=''):
         #     return HttpResponse(status)
         # else:
         # pr_number = int(pr_number)
-
         PRQs = model_name.objects.filter(**filtersMap)
         if not PRQs:
             status = 'NO Purchase Request Object found'
             return HttpResponse(status)
-
         pendingPRObj = PRQs[0]
         pr_number = getattr(pendingPRObj, purchase_number)
+        if is_purchase_approver and validation_type != 'rejected' and is_actual_pr:
+            supplier_check_user = get_admin(pendingPRObj.wh_user)
+            if 'supplier_id' not in myDict.keys():
+                return HttpResponse("Failed ! Supplier Inputs are Missing, Please Refresh the page and try again ! ")
+            if 'price' not in myDict.keys():
+                return HttpResponse("Failed ! Price Inputs are Missing, Please Refresh the page and try again ! ")
+            if 'wms_code' in myDict.keys():
+                for i in range(0, len(myDict['wms_code'])):
+                    if myDict['order_quantity'][i] != '' and float(myDict['order_quantity'][i]) != 0:
+                        if not float(myDict['price'][i]) > 0:
+                            if input_product_category == 'Kits&Consumables':
+                                prices_list = list(SKUSupplier.objects.filter(sku__sku_code=myDict['wms_code'][i], sku__user=supplier_check_user.id).values_list('price', flat=True))
+                                if len(prices_list) > 0:
+                                    if float(myDict['price'][i]) not in prices_list:
+                                        return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
+                            else:
+                                return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
         if pendingPRObj.final_status in ['cancelled', 'rejected']:
             status = "This PO has been already %s. Further action cannot be made."%(pendingPRObj.final_status)
             return HttpResponse(status)
@@ -3597,7 +3616,6 @@ def approve_pr(request, user=''):
             totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
         else:
             totalAmt = pendingPRObj.pending_polineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
-        is_purchase_approver = find_purchase_approver_permission(request.user)
         pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
         if levelToBeValidatedFor != pending_level and not is_purchase_approver:
             validatedPR = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=full_pr_number, level=levelToBeValidatedFor)
@@ -3849,6 +3867,7 @@ def approve_pr(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info("Approve Pr Failed for" + str(e))
+        return HttpResponse('Approve PR Failed! please Try Again')
     status = 'Approved Successfully'
     return HttpResponse(status)
 

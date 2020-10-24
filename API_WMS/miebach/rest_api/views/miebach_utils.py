@@ -5428,7 +5428,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         if data.get('receipt_number', ''):
             discrepancy_filter['receipt_number'] = data['receipt_number']
             received_qty = \
-            po_result.filter(sellerposummary__receipt_number=data['receipt_number']).aggregate(
+            po_result.filter(sellerposummary__receipt_number=data['receipt_number'], sellerposummary__grn_number=data['grn_number']).aggregate(
                 Sum(rec_quan1))[rec_quan1 + '__sum']
             if not received_qty:
                 received_qty = 0

@@ -2391,7 +2391,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
                        dest_seller_id='', source_updated=False, mrp_dict=None, dest_updated=False,
-                       receipt_type='', receipt_number=1):
+                       receipt_type='', receipt_number=1, transact_date=''):
     batch_obj = ''
     dest_batch = ''
     if not source_updated:
@@ -2451,6 +2451,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_stocks = StockDetail(**dict_values)
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+            if transact_date:
+                dest_stocks.creation_date=transact_date
+                dest_stocks.save()
         else:
             dest_stocks = dest_stocks[0]
             dest_stocks.quantity += float(quantity)
@@ -2462,7 +2465,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight='', receipt_number='', price ='', receipt_type='', reason=''):
+                        weight='', receipt_number='', price ='', receipt_type='', reason='', transact_date=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     try:
         sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -2563,7 +2566,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
         dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
 
         dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
-                           dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number)
+                           dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number, transact_date=transact_date)
         move_inventory_dict = {'sku_id': sku_id, 'source_location_id': source[0].id,'reason':reason,
                                'dest_location_id': dest[0].id, 'quantity': move_quantity, }
         if seller_id:

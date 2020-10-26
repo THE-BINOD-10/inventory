@@ -11204,9 +11204,13 @@ def closing_adjustment_upload(request, user=''):
                     closing_qty = (opening_stock + receipt_qty + adjusted_qty + cancelled_qty + jo_qty + return_qty) - \
                                     (picklist_qty + rm_picklist_qty + rtv_qty + cancel_grn_qty + consumption_qty)
                     rem_base_quantity = base_quantity - putaway_pending_qty
+                    total_qty = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
+                    total_qty = total_qty if total_qty else 0
                     closing_adj = closing_qty - rem_base_quantity
                     if base_quantity == 0 and final_data.get('use_closing_adj', ''):
                         closing_adj = final_data['closing_adj']
+                    elif not putaway_pending_qty and closing_qty != total_qty:
+                        closing_adj = total_qty - rem_base_quantity
                     last_change_date = last_date - datetime.timedelta(hours=1)
                     adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
                                 'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
@@ -11244,7 +11248,7 @@ def closing_adjustment_upload(request, user=''):
                                 move_qty = move_loc_qty
                                 receipt_number = get_stock_receipt_number(user)
                                 move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user, receipt_type='closing stock',
-                                receipt_number=receipt_number)
+                                receipt_number=receipt_number, transact_date=last_change_date, batch_no=batch_no)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

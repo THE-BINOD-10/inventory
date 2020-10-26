@@ -531,7 +531,18 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-closing-adjustment-file",
                    value: "",
                    show: Session.user_profile.warehouse_level==0,
+                 }, {
+                   title: "Closing Stock Download/ Upload",
+                   download: "Download Closing Stock Form",
+                   upload: "Upload Closing Stock Form",
+                   durl: "closing_stock_form/",
+                   uurl: "closing_stock_upload/",
+                   dparam: "download-closing-stock-file",
+                   value: "",
+                   show: true,
+                   perm: "change_consumptiondata",
                  }
+
                 ]
 
   $scope.download = function(data) {

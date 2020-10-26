@@ -55,6 +55,7 @@ log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
 log_sellable = init_logger('logs/auto_sellable_suggestions.log')
+email_redirect_history = init_logger('logs/email_redirect_history.log')
 
 # Create your views here.
 
@@ -1188,6 +1189,10 @@ def pr_request(request):
                                                 ('approval_status', approval_status),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
+    try:
+        email_redirect_history.info("Email Click user %s click Time is %s with generated data %s" % (request.user.username, datetime.datetime.now(), str(temp_data)))
+    except Exception as e:
+        pass
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 
@@ -12518,12 +12523,14 @@ def sync_supplier_async(id, user_id):
     createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
     print("Sync Completed For %s" % supplier.supplier_id)
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[]):
     supplier_sync = get_misc_value('supplier_sync', user.id)
     if (supplier_sync == 'true' or force) and not current_user :
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
+    if userids_list:
+        user_ids= userids_list
     master_objs = {}
     admin_supplier = None
     company_admin = get_company_admin_user(user)

@@ -2577,7 +2577,8 @@ PERMISSION_DICT = OrderedDict((
     ("SHIPMENT_LABEL", ("Shipment Info", "add_shipmentinfo")),
 
     # Others
-    ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
+    ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"),
+                      ('Upload Closing Stock', 'change_consumptiondata'),)),
 
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
@@ -2601,6 +2602,7 @@ PERMISSION_DICT = OrderedDict((
                  ('add_targetmaster', 'add_targetmaster'),
                  ('add_enquirymaster', 'add_enquirymaster'),
                  ('add_clusterskumapping', 'add_clusterskumapping'),
+                 ('Upload Adjusted Consumption', 'change_consumptiondata'),
                  )),
     ("REPORTS", (('SKU List Report', 'view_skumaster'), ('Location Wise Filter Report', 'view_locationmaster'),
                  ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
@@ -3391,6 +3393,11 @@ CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjus
                                           ('Purchase UOM', 'purchase_uom'), ('Conversion Factor', 'conversion_factor'),
                                           ('Batch Number', 'batch_number'), ('MRP', 'mrp'), ('Reason', 'reason'),
                                           ('Unit Price', 'unit_price')
+                                          ))
+
+CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), ('Plant Code', 'plant_code'),
+                                          ('Department', 'department'), ('SKU Code', 'sku_code'),
+                                          ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
 
 def fn_timer(function):

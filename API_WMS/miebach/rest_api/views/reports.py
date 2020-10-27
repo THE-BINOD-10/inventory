@@ -1217,6 +1217,7 @@ def print_po_reports(request, user=''):
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
     po_pre = request.GET.get('prefix', '')
+    grn_num = request.GET.get('grn_number', '')
     utgst_tax , cess_tax , apmc_tax,measurement_unit = 0, 0, 0,''
     data_dict = ''
     bill_no = ''
@@ -1237,7 +1238,7 @@ def print_po_reports(request, user=''):
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre, **filter_params)
         if receipt_no:
-            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no, sellerposummary__grn_number=grn_num)
     elif po_summary_id:
         results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0
@@ -2754,11 +2755,12 @@ def download_invoice_file(request, user=''):
     st_grn = request.GET.get('st_grn', '')
     po_pre = request.GET.get('prefix', '')
     po_number = request.GET.get('po_number', '')
+    grn_num = request.GET.get('grn_number', '')
     warehouse_id = request.GET.get('warehouse_id', '')
     if po_id:
         results = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__user=user.id)
         if receipt_no:
-            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no, sellerposummary__grn_number=grn_num)
             if results:
                 purchase_order = results[0]
                 order_id = purchase_order.order_id

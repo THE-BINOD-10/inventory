@@ -15075,7 +15075,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         if po_quantity:
             po_received_qty = result['received_quantity']
             po_receivable_qty = float(result['open_po__order_quantity']) - float(result['received_quantity'])
-            po_receivable_amt = po_receivable_amt * result['open_po__price']
+            po_receivable_amt = po_receivable_qty * result['open_po__price']
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),

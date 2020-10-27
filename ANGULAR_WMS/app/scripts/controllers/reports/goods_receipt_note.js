@@ -80,7 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.file_url = "";
         vm.consolated_file_url = "";
         vm.FileDownload(aData);
-        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id, {withCredential: true}).success(function(data, status, headers, config) {
+        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id+'&grn_number='+aData['GRN Number'], {withCredential: true}).success(function(data, status, headers, config) {
             var html = $(data);
             vm.print_page = $(html).clone();
             //html = $(html).find(".modal-body > .form-group");
@@ -145,6 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         'prefix':aData.prefix,
         'warehouse_id':aData.warehouse_id,
         'po_id':aData.DT_RowAttr["data-id"],
+        'grn_number': aData['GRN Number'],
         'po_number': aData['PO Number']
       }
       vm.service.apiCall('download_invoice_file/', 'GET', data_dict).then(function(data) {

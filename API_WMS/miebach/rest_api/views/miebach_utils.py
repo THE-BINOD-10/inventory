@@ -959,7 +959,7 @@ METROPOLIS_PO_DETAIL_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
-                   'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','Material Code',
+                   'Final Approver date','PO Number', 'PO Quantity', 'PO Received Qty', 'PO Receivable Qty', 'PO Received Amt', 'PO Receivable Amt', 'PO Raised Date','Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
                    'SKU Group', 'SKU Class', 'UOM', 'HSN Code', 'PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
@@ -14945,7 +14945,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                    'open_po__sku__sku_group', 'open_po__sku__style_name', 'open_po__sku__sku_brand','open_po__measurement_unit',
                    'open_po__supplier__supplier_id', 'open_po__supplier__name', 'open_po__delivery_date','po_date',
                    'open_po__sku__sub_category', 'updation_date', 'creation_date', 'open_po__order_quantity',
-                   'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price', 'id']
+                   'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price', 'received_quantity', 'id']
 
     model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
     if order_term:
@@ -14993,6 +14993,16 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             po_date = get_local_date(user, po_date)
         #po_amount_details = po_upload_amount_and_quantity_sku_wise(po_number, sku_code)
         po_quantity = result['open_po__order_quantity']
+        if not result['open_po__cgst_tax']:
+            result['open_po__cgst_tax'] = 0
+        if not result['open_po__sgst_tax']:
+            result['open_po__sgst_tax'] = 0
+        if not result['open_po__igst_tax']:
+            result['open_po__igst_tax'] = 0
+        if not result['open_po__price']:
+            result['open_po__price'] = 0
+        if not result['open_po__order_quantity']:
+            result['open_po__order_quantity'] = 0
         po_tmp_tax = result['open_po__cgst_tax'] + result['open_po__sgst_tax'] + result['open_po__igst_tax']
         po_amt = result['open_po__order_quantity'] * result['open_po__price']
         po_tax_amount = (po_amt/100) * po_tmp_tax
@@ -15041,19 +15051,31 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             pr_quantity, pr_tax_amount, pr_amount = total_pr_quantity, total_pr_tax_amount, total_pr_amount
             if pr_data['delivery_date']:
                 delivery_date = pr_data['delivery_date'].strftime("%d-%b-%y")
-
+        po_received_qty, po_receivable_qty, po_received_amt, po_receivable_amt= [0]*4
         po_number = result['po_number']
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, purchase_order_id=result['id'])
+        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, purchase_order_id=result['id'], status=0, purchase_order__open_po__sku__sku_code=result['open_po__sku__sku_code']).values('grn_number', 'price', 'quantity')
         grn_numbers, updated_user_name= [], ''
         if grn_data.exists():
             for g_data in grn_data:
-                grn_numbers.append(g_data.grn_number)
+                po_received_amt += g_data['price'] * g_data['quantity']
+                grn_numbers.append(g_data['grn_number'])
             grn_numbers = list(set(grn_numbers))
+        if not po_quantity:
+            po_received_amt = 0
         # updated_user_name = result['pending_po__requested_user__email']
         last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = po_number)
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
-
+        if not result['open_po__order_quantity']:
+            result['open_po__order_quantity'] = 0
+        if not result['received_quantity']:
+            result['received_quantity'] = 0
+        if not result['open_po__price']:
+            result['open_po__price'] = 0
+        if po_quantity:
+            po_received_qty = result['received_quantity']
+            po_receivable_qty = float(result['open_po__order_quantity']) - float(result['received_quantity'])
+            po_receivable_amt = po_receivable_qty * result['open_po__price']
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),
@@ -15066,6 +15088,10 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             # ('PR Approved Date', release_date),
             ('PO Number', po_number),
             ('PO Quantity', po_quantity),
+            ('PO Received Qty', po_received_qty),
+            ('PO Receivable Qty', po_receivable_qty),
+            ('PO Received Amt', po_received_amt),
+            ('PO Receivable Amt', po_receivable_amt),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
             ('Total Amount', pr_amount),

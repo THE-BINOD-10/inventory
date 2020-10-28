@@ -15231,7 +15231,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity']
-    model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
+    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).\
                         annotate(Sum('stock_mapping__quantity'))
 
     if order_term:

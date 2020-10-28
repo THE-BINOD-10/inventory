@@ -2116,6 +2116,7 @@ def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measur
 def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_prefix = request.GET.get('prefix', '')
+    po_num= request.GET.get('po_number', '')
     total_qty = 0
     total = 0
     remarks = ''
@@ -2128,7 +2129,7 @@ def print_purchase_order_form(request, user=''):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num)
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]

@@ -11269,7 +11269,8 @@ def closing_adjustment_upload(request, user=''):
                                 move_qty = move_loc_qty
                                 receipt_number = get_stock_receipt_number(user)
                                 move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user, receipt_type='closing stock',
-                                receipt_number=receipt_number, transact_date=last_change_date, batch_no=batch_no)
+                                receipt_number=receipt_number, transact_date=last_change_date, batch_no=batch_no,
+                                sku_stocks=sku_stocks)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

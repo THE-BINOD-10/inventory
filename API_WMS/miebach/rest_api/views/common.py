@@ -12687,7 +12687,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if receipt_type == 'stock transfer':
             transact_type = 'st_po'
         elif receipt_type == 'material request':
-            transact_type = 'MR'
+            transact_type = 'mr_po'
         else:
             transact_type = 'PO'
         save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, transact_type, location_quantity, stock_dict)

@@ -2569,6 +2569,8 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
         stock_dict['location_id'] = dest[0].id
         stock_dict['quantity__gt'] = 0
         dest_stocks = StockDetail.objects.filter(**stock_dict).distinct()
+        if transact_date:
+            dest_stocks = StockDetail.objects.none()
 
         dest_batch = update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                            dest_seller_id=seller_id, receipt_type=receipt_type, receipt_number=receipt_number, transact_date=transact_date)

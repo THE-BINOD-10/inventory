@@ -10925,6 +10925,17 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Adjustment Date')
                 data_dict[key] = reqDate
+            elif key == 'expiry_date':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                        expiry_date = datetime.datetime(year, month, day, hour, minute, second)
+                    elif '-' in cell_data:
+                        expiry_date = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                    else:
+                        expiry_date = None
+                        index_status.setdefault(row_idx, set()).add('Wrong format for Expiry Date')
+                    data_dict[key] = expiry_date
             elif key == 'warehouse':
                 if cell_data:
                     data_dict[key] = cell_data
@@ -11019,7 +11030,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                                         'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict['purchase_uom'],
                                         'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': [],
                                        'last_date': data_dict['last_date'], 'batch_number': data_dict['batch_number'],
-                                        'unit_price': data_dict.get('unit_price', 0)})
+                                        'unit_price': data_dict.get('unit_price', 0), 'expiry_date': data_dict.get('expiry_date', '')})
             all_data[sku_cond]['data'][cond]['base_uom_qty'] += data_dict['base_uom_qty']
             all_data[sku_cond]['data'][cond]['purchase_uom_qty'] += data_dict['purchase_uom_qty']
             all_data[sku_cond]['data'][cond]['stocks'] = all_data[sku_cond]['data'][cond]['stocks'] | stocks
@@ -11143,6 +11154,7 @@ def closing_adjustment_upload(request, user=''):
                     sku_stocks = final_data['stocks']
                     batch_no = final_data.get('batch_number', '')
                     unit_price = final_data.get('unit_price', '')
+                    expiry_date = final_data.get('expiry_date', '')
                     if sku_stocks.values_list('location_id').distinct().count() > 1:
                         temp_location_id = sku_stocks[0].location_id
                         sku_stocks.update(location_id=temp_location_id)
@@ -11162,7 +11174,8 @@ def closing_adjustment_upload(request, user=''):
                         else:
                             uom_dict = get_uom_with_sku_code(user, final_data['sku'].sku_code, uom_type='purchase')
                             batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': final_data['purchase_uom'],
-                                            'pcf': uom_dict['sku_conversion'], 'batch_no': batch_no}
+                                            'pcf': uom_dict['sku_conversion'], 'batch_no': batch_no,
+                                            'buy_price': sku.average_price}
                         stock_dict['batch_dict'] = batch_dict
                     if final_data['adjustment_date'].month == 8 and final_data['adjustment_date'].year == 2020:
                         open_stock_filter = {'sku_id': sku.id, 'receipt_number': 9999999}
@@ -11221,6 +11234,7 @@ def closing_adjustment_upload(request, user=''):
                     consumption_data = ConsumptionData.objects.create(
                         sku_id=sku.id,
                         quantity=closing_adj,
+                        price=sku.average_price,
                     )
                     ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
                     if closing_adj > 0:
@@ -11236,14 +11250,21 @@ def closing_adjustment_upload(request, user=''):
                     sku_stocks = sku_stocks.filter()
                     if sku_stocks:
                         source_loc = sku_stocks[0].location.location
-                        if unit_price:
-                            sku_stocks.update(unit_price=unit_price)
+                        #if unit_price:
+                        #    sku_stocks.update(unit_price=unit_price)
+                        #    batch_ids = sku_stocks.values_list('batch_detail_id', flat=True)
+                        #    BatchDetail.objects.filter(id__in=list(batch_ids)).update(buy_price=unit_price, tax_percent=0)
+                        if expiry_date:
                             batch_ids = sku_stocks.values_list('batch_detail_id', flat=True)
-                            BatchDetail.objects.filter(id__in=list(batch_ids)).update(buy_price=unit_price, tax_percent=0)
+                            BatchDetail.objects.filter(id__in=list(batch_ids)).update(expiry_date=expiry_date)
                         total_stock = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
                         for location_name, move_loc_qty in final_data['location'].items():
                             if source_loc.lower() == location_name.lower():
                                 continue
+                            if total_stock == move_loc_qty:
+                                loc = LocationMaster.objects.filter(zone__user=user.id, location=location_name)[0]
+                                sku_stocks.update(location_id=loc.id)
+                                break
                             if total_stock >= move_loc_qty:
                                 move_qty = move_loc_qty
                                 receipt_number = get_stock_receipt_number(user)
@@ -11477,7 +11498,7 @@ def closing_stock_upload(request, user=''):
                                   'receipt_number': get_stock_receipt_number(user),
                                   'location_id': location.id}
                     batch_dict = {'pquantity': pquantity, 'puom': puom,
-                                  'pcf': pcf}
+                                  'pcf': pcf, 'buy_price': unit_price}
                     stock_dict['batch_dict'] = batch_dict
                 adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id,
                                                                                batch_no='',
@@ -11488,6 +11509,7 @@ def closing_stock_upload(request, user=''):
                 consumption_data = ConsumptionData.objects.create(
                     sku_id=sku.id,
                     quantity=closing_adj,
+                    price=unit_price
                 )
                 ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
                 if closing_adj > 0:

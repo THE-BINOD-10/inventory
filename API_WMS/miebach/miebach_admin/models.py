@@ -130,6 +130,7 @@ class SKUMaster(models.Model):
     substitutes = models.ManyToManyField("self", blank=True)
     batch_based = models.IntegerField(default=0)
     gl_code = models.PositiveIntegerField(default=0)
+    average_price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -4092,12 +4093,14 @@ class ConsumptionData(models.Model):
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
     quantity = models.FloatField(default=0)
+    price = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION_DATA'
+        index_together = (('sku', 'creation_date'))
 
 class AdjustmentData(models.Model):
     id = BigAutoField(primary_key=True)

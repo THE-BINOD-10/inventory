@@ -3391,7 +3391,7 @@ CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjus
                                           ('Base UOM Quantity', 'base_uom_qty'), ('Base Uom', 'base_uom'),
                                           ('Purchase UOM Quantity', 'purchase_uom_qty'),
                                           ('Purchase UOM', 'purchase_uom'), ('Conversion Factor', 'conversion_factor'),
-                                          ('Batch Number', 'batch_number'), ('MRP', 'mrp'), ('Reason', 'reason'),
+                                          ('Batch Number', 'batch_number'), ('Expiry Date(YYYY-MM-DD)', 'expiry_date'), ('Reason', 'reason'),
                                           ('Unit Price', 'unit_price')
                                           ))
 

@@ -15053,11 +15053,11 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                 delivery_date = pr_data['delivery_date'].strftime("%d-%b-%y")
         po_received_qty, po_receivable_qty, po_received_amt, po_receivable_amt= [0]*4
         po_number = result['po_number']
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, purchase_order_id=result['id'], status=0, purchase_order__open_po__sku__sku_code=result['open_po__sku__sku_code']).values('grn_number', 'price', 'quantity')
+        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, purchase_order_id=result['id'], status=0, purchase_order__open_po__sku__sku_code=result['open_po__sku__sku_code']).values('grn_number', 'price', 'quantity', 'cess_tax')
         grn_numbers, updated_user_name= [], ''
         if grn_data.exists():
             for g_data in grn_data:
-                po_received_amt += g_data['price'] * g_data['quantity']
+                po_received_amt += (g_data['price'] * g_data['quantity']) + ((g_data['price'] * g_data['quantity']) *((g_data['cess_tax']+result['open_po__sgst_tax']+result['open_po__cgst_tax']+result['open_po__igst_tax'])/100))
                 grn_numbers.append(g_data['grn_number'])
             grn_numbers = list(set(grn_numbers))
         if not po_quantity:
@@ -15075,7 +15075,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         if po_quantity:
             po_received_qty = result['received_quantity']
             po_receivable_qty = float(result['open_po__order_quantity']) - float(result['received_quantity'])
-            po_receivable_amt = po_receivable_qty * result['open_po__price']
+            po_receivable_amt = (po_receivable_qty * result['open_po__price']) + (po_receivable_qty * result['open_po__price'])*((result['open_po__sgst_tax']+result['open_po__cgst_tax']+result['open_po__igst_tax'])/100)
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),

@@ -1257,7 +1257,7 @@ def print_po_reports(request, user=''):
             quantity = data.received_quantity
             bill_date = data.updation_date
             if receipt_no:
-                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no, grn_number=grn_num)
                 if st_grn:
                     open_data = data.stpurchaseorder_set.filter()[0].open_st
                 else:

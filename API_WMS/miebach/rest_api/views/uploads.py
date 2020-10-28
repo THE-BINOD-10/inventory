@@ -11333,16 +11333,16 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
-                    user_obj = all_users.filter(userprofile__stockone_code=cell_data)
+                    user_obj = all_users.filter(first_name=cell_data)
                     if not user_obj:
-                        index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
+                        index_status.setdefault(row_idx, set()).add('Invalid Plant Name')
                     else:
                         data_dict['user'] = user_obj[0]
                         user = user_obj[0]
                         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                                                warehouse=[user.username])
                 else:
-                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+                    index_status.setdefault(row_idx, set()).add('Plant Name is Mandatory')
             elif key == 'department':
                 if cell_data:
                     if cell_data not in dept_mapping_res.keys():
@@ -11357,14 +11357,15 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         else:
                             index_status.setdefault(row_idx, set()).add('Department not found in Selected Plant')
             elif key == 'sku_code':
-                if cell_data and data_dict['user']:
-                    if isinstance(cell_data, (int, float)):
-                        cell_data = str(int(cell_data))
-                    sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
-                    if not sku_master.exists():
-                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
-                    else:
-                        data_dict['sku'] = sku_master[0]
+                if cell_data:
+                    if data_dict['user']:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        if not sku_master.exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                        else:
+                            data_dict['sku'] = sku_master[0]
                 else:
                     index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
             elif key == 'base_uom_quantity':
@@ -11470,9 +11471,10 @@ def closing_stock_upload(request, user=''):
                 closing_adj = closing_qty - base_quantity
                 last_change_date = last_date
                 uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
-                if sku_stocks.filter(batch_detail__isnull=False):
-                    puom = sku_stocks[0].batch_detail.puom
-                    pcf = sku_stocks[0].batch_detail.pcf
+                temp_batch_stocks = sku_stocks.filter(batch_detail__isnull=False)
+                if temp_batch_stocks:
+                    puom = temp_batch_stocks[0].batch_detail.puom
+                    pcf = temp_batch_stocks[0].batch_detail.pcf
                 else:
                     pcf = uom_dict['sku_conversion']
                     puom = uom_dict['measurement_unit']

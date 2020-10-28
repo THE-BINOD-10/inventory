@@ -5285,7 +5285,7 @@ def get_po_grn_price_and_taxes(data, type=""):
             else:
                 tmp_price = row.purchase_order.open_po.price * row.quantity
             if(row.purchase_order.open_po):
-                tmp_tax = row.purchase_order.open_po.sgst_tax + row.purchase_order.open_po.cgst_tax + row.purchase_order.open_po.igst_tax
+                tmp_tax = row.purchase_order.open_po.sgst_tax + row.purchase_order.open_po.cgst_tax + row.purchase_order.open_po.igst_tax + row.cess_tax + row.apmc_tax
             else:
                 tmp_tax = 0
             total_tax += (tmp_tax * tmp_price)/100

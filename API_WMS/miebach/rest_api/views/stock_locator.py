@@ -291,8 +291,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
-                                                ('Total Purchase Available Qty', round(quantity, 2)),
-                                                ('Total Purchase Reserved Qty', round(reserved, 2)), ('Total Purchase Qty', round(total, 2)),
+                                                ('Available Quantity', round(quantity, 2)),
+                                                ('Reserved Quantity', round(reserved, 2)), ('Total Quantity', round(total, 2)),
                                                 ('Open Order Quantity', open_order_qty),
                                                 ('Purchase UOM', measurement_type),
                                                 ('Total Base UOM Qty', round(total*sku_conversion,2)),
@@ -302,6 +302,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Plant Name', plant_name),
                                                 ('dept_type', dept_type),
                                                 ('Putaway Pending', putaway_pending),
+                                                ('Total Purchase UOM Qty', round(total+putaway_pending, 2))
                                                 ('Intransit Quantity', intransit_qty),
                                                 ('Intransit Value', float('%.2f' % intransit_amt)),
                                                 ('DT_RowId', data[0]))))

@@ -7812,7 +7812,6 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
     index_status = {}
     st_mapping = copy.deepcopy(MATERIAL_REQUEST_ORDER_MAPPING)
     st_res = dict(zip(st_mapping.values(), st_mapping.keys()))
-
     if request.user.userprofile.warehouse_type != 'DEPT':
         company_list = get_companies_list(user, send_parent=True)
         company_list = map(lambda d: d['id'], company_list)
@@ -7961,7 +7960,7 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type])
     log.info("%s Material Request Processing Started %s" % (str(request.user.username), str(all_data)))
     all_data = insert_st_gst(all_data, warehouse)
-    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type)
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ='MR')
     if status.status_code == 200 and status.content != 'Prefix not defined':
         return 'Success'
     else:

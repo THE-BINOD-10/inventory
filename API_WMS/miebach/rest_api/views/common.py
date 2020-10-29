@@ -11599,10 +11599,10 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
         warehouse = User.objects.get(username=key[0])
         creation_date = None
         batch_no = ''
-        po_id, prefix, full_po_number, check_prefix, inc_status = \
-            get_user_prefix_incremental_st(warehouse, incremental_prefix, dest_code=user.userprofile.stockone_code)
-        if inc_status:
-            return HttpResponse("Prefix not defined")
+        # po_id, prefix, full_po_number, check_prefix, inc_status = \
+        #     get_user_prefix_incremental_st(warehouse, incremental_prefix, dest_code=user.userprofile.stockone_code)
+        # if inc_status:
+        #     return HttpResponse("Prefix not defined")
         if len(value[0]) > 11:
             prefix = ''
             full_po_number = value[0][10]

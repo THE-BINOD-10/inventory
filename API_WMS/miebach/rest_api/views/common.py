@@ -11876,24 +11876,24 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
                 if order_typ == 'MR':
-                    mr_doa_obj = {}
-                    mr_doa_obj['destination_warehouse'] = destination_warehouse.id
-                    mr_doa_obj['po'] = po.id
-                    mr_doa_obj['type'] = 'st'
-                    mr_doa_obj['update_picked'] = update_picked
-                    mr_doa_obj['data'] = stock.id
-                    mr_doa_obj['order_typ'] = order_typ
-                    doa_dict = {
-                        'requested_user': user,
-                        'wh_user': destination_warehouse,
-                        'reference_id': stock_transfer.order_id,
-                        'model_name': 'mr_doa',
-                        'json_data': json.dumps(mr_doa_obj),
-                        'doa_status': 'pending'
-                    }
-                    doa_obj = MastersDOA(**doa_dict)
-                    doa_obj.save()
-                    # auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
+                    # mr_doa_obj = {}
+                    # mr_doa_obj['destination_warehouse'] = destination_warehouse.id
+                    # mr_doa_obj['po'] = po.id
+                    # mr_doa_obj['type'] = 'st'
+                    # mr_doa_obj['update_picked'] = update_picked
+                    # mr_doa_obj['data'] = stock.id
+                    # mr_doa_obj['order_typ'] = order_typ
+                    # doa_dict = {
+                    #     'requested_user': user,
+                    #     'wh_user': destination_warehouse,
+                    #     'reference_id': stock_transfer.order_id,
+                    #     'model_name': 'mr_doa',
+                    #     'json_data': json.dumps(mr_doa_obj),
+                    #     'doa_status': 'pending'
+                    # }
+                    # doa_obj = MastersDOA(**doa_dict)
+                    # doa_obj.save()
+                    auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
                 elif inbound_automate == 'true' and order_typ == 'ST_INTRA':
                     auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
                 if po.status == 'stock-transfer':

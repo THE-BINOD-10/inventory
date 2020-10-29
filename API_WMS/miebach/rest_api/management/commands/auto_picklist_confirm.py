@@ -153,6 +153,11 @@ class Command(BaseCommand):
                                                                           seller_pick_number, val=val,
                                                                           p_quantity=picking_count)
                                     continue
+                            if not seller_pick_number:
+                                if picklist.storder_set.filter():
+                                    seller_pick_number  =  get_stocktransfer_picknumber(user, picklist)
+                                else:
+                                    seller_pick_number = get_seller_pick_id(picklist, user)
                             if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                                 picking_count = float(val['picked_quantity'])
                             else:
@@ -253,13 +258,25 @@ class Command(BaseCommand):
                                     setattr(stock.location, 'filled_capacity', location_fill_capacity)
                                     stock.location.save()
                                 if picklist.storder_set.filter():
-                                    transact_type = 'st_picklist'
+                                    try:
+                                        if picklist.storder_set.filter()[0].stock_transfer.st_type == 'MR':
+                                            transact_type = 'mr_picklist'
+                                        else:
+                                            transact_type = 'st_picklist'
+                                    except Exception as e:
+                                        transact_type = 'st_picklist'
                                 else:
                                     transact_type = 'picklist'
                                 # SKU Stats
                                 save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
-                                pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
-                                                                     stock__location_id=stock.location_id, status=1)
+                                search_po_locations = {
+                                    'picklist_id': picklist.id,
+                                    'stock__location_id': stock.location_id,
+                                    'status': 1
+                                }
+                                if stock.batch_detail:
+                                    search_po_locations['stock__batch_detail__batch_no'] = stock.batch_detail.batch_no
+                                pick_loc = all_pick_locations.filter(**search_po_locations)
                                 # update_picked = picking_count1
                                 st_order = picklist.storder_set.filter()
                                 if st_order:
@@ -273,7 +290,7 @@ class Command(BaseCommand):
                                         order_typ = request.POST.get('order_typ', '')
                                     update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ = order_typ)
                                 if pick_loc:
-                                    update_picklist_locations(pick_loc, picklist, update_picked)
+                                    update_picklist_locations(pick_loc, picklist, update_picked, pick_sequence=seller_pick_number)
                                 else:
                                     data = PicklistLocation(picklist_id=picklist.id, stock=stock, quantity=update_picked,
                                                             reserved=0, status=0,
@@ -282,6 +299,7 @@ class Command(BaseCommand):
                                     data.save()
                                     exist_pics = all_pick_locations.exclude(id=data.id).filter(picklist_id=picklist.id,
                                                                                                status=1, reserved__gt=0)
+                                    po_location_sequence_mapping(data, seller_pick_number, update_picked)
                                     update_picklist_locations(exist_pics, picklist, update_picked, 'true')
                                 if stock.location.zone.zone == 'BAY_AREA':
                                     reduce_putaway_stock(stock, update_picked, user.id)
@@ -293,11 +311,6 @@ class Command(BaseCommand):
                                 mod_locations.append(stock.location.location)
                                 picking_count1 += update_picked
                             picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
-                            if not seller_pick_number:
-                                if picklist.storder_set.filter():
-                                    seller_pick_number  =  get_stocktransfer_picknumber(user, picklist)
-                                else:
-                                    seller_pick_number = get_seller_pick_id(picklist, user)
                             if picklist.reserved_quantity == 0:
                                 # Auto Shipment check and Mapping the serial Number
                                 if picklist.order and picklist.order.order_type == 'Transit':

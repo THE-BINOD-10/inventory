@@ -35,9 +35,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   self.stock_summary = {
                          stock_2d: false,
                          view: 'StockSummary',
-                         tb_headers: {'StockSummary': ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
-                                                       'Reserved Quantity', 'Total Quantity', 'Open Order Quantity',
-                                                       'Putaway Pending', 'Unit of Measurement', 'Stock Value', 'Intransit Quantity', 'Intransit Value'],
+                         tb_headers: {'StockSummary': ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Total Purchase Available Qty',
+                                                       'Total Purchase Reserved Qty', 'Total Purchase Qty', 'Open Order Quantity',
+                                                      'Purchase UOM', 'Total Base UOM Qty', 'Base UOM', 'Putaway Pending', 'Stock Value', 'Intransit Quantity', 'Intransit Value'],
                                       'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
                          size_type: 'DEFAULT'
                        }

@@ -285,7 +285,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             plant_name = admin_user.first_name
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
-
+        sku_conversion, measurement_unit, base_uom = get_uom_data(user, sku, 'Purchase')
+        if sku_conversion == 0:
+            sku_conversion = 1
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
@@ -293,8 +295,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Total Purchase Reserved Qty', round(reserved, 2)), ('Total Purchase Qty', round(total, 2)),
                                                 ('Open Order Quantity', open_order_qty),
                                                 ('Purchase UOM', measurement_type),
-                                                ('Total Base UOM Qty', ''),
-                                                ('Base UOM', ''),
+                                                ('Total Base UOM Qty', round(total*sku_conversion,2)),
+                                                ('Base UOM', base_uom),
                                                 ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),

@@ -265,7 +265,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
         }
       }
-      if(vm.generate_data.length > 0 && vm.generate_data.length == 1) {
+      // if(vm.generate_data.length > 0 && vm.generate_data.length == 1) {
         var data = {};
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
@@ -298,11 +298,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         });
         vm.generate_data = [];
-      } else {
-        vm.bt_disable = false;
-        vm.service.showNoty("Please Select Single Order ! ");
-        reloadData();
-      }
+      // } else {
+      //   vm.bt_disable = false;
+      //   vm.service.showNoty("Please Select Single Order ! ");
+      //   reloadData();
+      // }
     }
 
   vm.increament = function (record) {

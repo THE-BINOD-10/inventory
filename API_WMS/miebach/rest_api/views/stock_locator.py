@@ -302,7 +302,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Plant Name', plant_name),
                                                 ('dept_type', dept_type),
                                                 ('Putaway Pending', putaway_pending),
-                                                ('Total Purchase UOM Qty', round(total+putaway_pending, 2))
+                                                ('Total Purchase UOM Qty', round(total+putaway_pending, 2)),
                                                 ('Intransit Quantity', intransit_qty),
                                                 ('Intransit Value', float('%.2f' % intransit_amt)),
                                                 ('DT_RowId', data[0]))))

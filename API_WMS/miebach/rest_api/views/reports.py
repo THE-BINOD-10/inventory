@@ -1238,6 +1238,7 @@ def print_po_reports(request, user=''):
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
     po_pre = request.GET.get('prefix', '')
+    grn_num = request.GET.get('grn_number', '')
     utgst_tax , cess_tax , apmc_tax,measurement_unit = 0, 0, 0,''
     data_dict = ''
     bill_no = ''
@@ -1258,7 +1259,7 @@ def print_po_reports(request, user=''):
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre, **filter_params)
         if receipt_no:
-            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no, sellerposummary__grn_number=grn_num)
     elif po_summary_id:
         results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0
@@ -1277,7 +1278,7 @@ def print_po_reports(request, user=''):
             quantity = data.received_quantity
             bill_date = data.updation_date
             if receipt_no:
-                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no, grn_number=grn_num)
                 if st_grn:
                     open_data = data.stpurchaseorder_set.filter()[0].open_st
                 else:
@@ -2144,6 +2145,7 @@ def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measur
 def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_prefix = request.GET.get('prefix', '')
+    po_num= request.GET.get('po_number', '')
     total_qty = 0
     total = 0
     remarks = ''
@@ -2156,7 +2158,7 @@ def print_purchase_order_form(request, user=''):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num)
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
@@ -2783,11 +2785,12 @@ def download_invoice_file(request, user=''):
     st_grn = request.GET.get('st_grn', '')
     po_pre = request.GET.get('prefix', '')
     po_number = request.GET.get('po_number', '')
+    grn_num = request.GET.get('grn_number', '')
     warehouse_id = request.GET.get('warehouse_id', '')
     if po_id:
         results = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__user=user.id)
         if receipt_no:
-            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no, sellerposummary__grn_number=grn_num)
             if results:
                 purchase_order = results[0]
                 order_id = purchase_order.order_id

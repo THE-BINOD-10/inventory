@@ -4,6 +4,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
 from email import encoders, Encoders
+from utils import init_logger
+log = init_logger('logs/send_mails.log')
 
 
 def send_mail(send_to, subject, body, extra_mail=''):
@@ -33,7 +35,10 @@ def send_mail(send_to, subject, body, extra_mail=''):
 
         server.sendmail(fromaddr, send_to, text)
         server.quit()
-    except:
+    except Exception as e:
+        import traceback
+        log.info("Error message for mail subject %s " % str(e))
+        log.info(traceback.format_exc())
         return
 
 
@@ -92,5 +97,8 @@ def send_mail_attachment(send_to, subject, text, files=[], compressed=False, mil
         text = msg.as_string()
         server.sendmail(fromaddr, send_to, text)
         server.quit()
-    except:
+    except Exception as e:
+        import traceback
+        log.info("Error message for mail subject %s " % str(e))
+        log.info(traceback.format_exc())
         return

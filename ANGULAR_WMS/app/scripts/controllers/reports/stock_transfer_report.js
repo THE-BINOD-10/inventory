@@ -34,6 +34,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 	  } else {
 	  vm.reports[name] = data.data.data;
 	  angular.copy(data.data.data, vm.report_data);
+      vm.report_data['special_key'] = 'ST_INTRA';
       vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
         vm.empty_data = datam.empty_data;
         angular.copy(vm.empty_data, vm.model_data);

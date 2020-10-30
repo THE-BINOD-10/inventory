@@ -949,6 +949,48 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/masters/toggles/machine_update.html'
           })
       // Inbound routes
+      .state('app.inbound.MaterialRequest', {
+        url: '/MaterialRequest',
+        templateUrl: 'views/inbound/main_material_request.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/inbound/material_request.js'
+              ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/pending_material_request.js'
+                ])
+              })
+          }]
+        },
+        data: {
+          title: 'Material Request',
+        }
+      })
+      .state('app.inbound.TransferOrder', {
+        url: '/TransferOrder',
+        permission: 'multi_warehouse',
+        // permission: 'add_openst',
+        templateUrl: 'views/inbound/main_transfer_order.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/inbound/raise_po/raise_stock_transfer.js'
+              ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/raise_inter_st.js'
+                ])
+              })
+          }]
+        },
+        data: {
+          title: 'Transfer Order',
+        }
+      })
+      .state('app.inbound.TransferOrder.StockTransfer', {
+        url: '/StockTransfer',
+        templateUrl: 'views/inbound/toggle/raise_stock.html'
+      })
       .state('app.inbound', {
           template: '<div ui-view></div>',
           abstract: true,
@@ -1784,9 +1826,11 @@ var app = angular.module('urbanApp')
                        'scripts/controllers/outbound/view_orders/central_orders.js',
                        'scripts/controllers/outbound/view_orders/create_central_orders.js',
               ]).then( function() {
-                return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
-                  ])
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/stock_transfer/intra_st.js');
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/stock_transfer/inter_st.js');
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/inbound/material_request_orders.js');
               }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               }).then(function () {
@@ -2016,7 +2060,8 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/create_orders/create_stock_orders.js'
+                    'scripts/controllers/outbound/stock_transfer/intra_st.js',
+                    'scripts/controllers/outbound/stock_transfer/inter_st.js',
                   ])
               }]
           },
@@ -2024,6 +2069,26 @@ var app = angular.module('urbanApp')
             title: 'Create Stock Transfer',
           }
         })
+        .state('app.outbound.CreateManualTest', {
+          url: '/CreateManualTest',
+          permission: 'add_consumptiondata',
+          templateUrl: 'views/outbound/create_manual_test_main.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_manual_test.js',
+                    'scripts/controllers/outbound/view_manual_test.js'
+                  ])
+              }]
+          },
+          data: {
+            title: 'Manual Test',
+          }
+        })
+        .state('app.outbound.CreateManualTest.confirmation', {
+            url: '/Confirmation',
+            templateUrl: 'views/outbound/toggle/confirm_manual_test.html'
+          })
         .state('app.outbound.CustomerInvoices', {
           url: '/CustomerInvoices',
           templateUrl: 'views/outbound/customer_invoices.html',
@@ -2064,7 +2129,15 @@ var app = angular.module('urbanApp')
                        'scripts/controllers/outbound/customer_invoices_main.js'
                         ]).then( function() {
                   return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/material_request_challan.js',
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
                     'scripts/controllers/outbound/stock_transfer_invoice.js',
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/inter_stock_sale_invoice.js',
                   ])
                 }).then( function() {
             return $ocLazyLoad.load([
@@ -2844,6 +2917,18 @@ var app = angular.module('urbanApp')
             title: 'Enquiry Status Report',
           }
         })
+        .state('app.reports.MaterialRequestReport', {
+          url: '/MaterialRequestReport',
+          templateUrl: 'views/reports/material_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/material_report.js');
+              }]
+          },
+          data: {
+            title: 'Material Request Report',
+          }
+        })
         .state('app.reports.StockTransferReport', {
           url: '/StockTransferReport',
           templateUrl: 'views/reports/stock_transfer_report.html',
@@ -2853,7 +2938,19 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Stock Transfer Report',
+            title: 'Intra Stock Transfer Orders',
+          }
+        })
+        .state('app.reports.SaleTransferReport', {
+          url: '/SaleTransferReport',
+          templateUrl: 'views/reports/sale_transfer_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/inter_sale_orders.js');
+              }]
+          },
+          data: {
+            title: 'Inter Sale Transfer Orders',
           }
         })
         .state('app.reports.StockReconciliationReport', {

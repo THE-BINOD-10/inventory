@@ -331,12 +331,31 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_intermediateorders"
                  },
                  {
+                   title: "Material Request Order Form Download/ Upload",
+                   download: "Material Request Order Download Form",
+                   upload: "Material Request Order Upload Form",
+                   durl: "material_request_order_form/",
+                   uurl: "material_request_order_upload/",
+                   dparam: "download-material-request-file",
+                   value: "",
+                   show: true,
+                   perm: "add_pendingpr"
+                 },
+                 {
                    title: "Create Stock Transfer Order Form Download/ Upload",
                    download: "Stock Transfer Order Download Form",
                    upload: "Stock Transfer Order Upload Form",
                    durl: "stock_transfer_order_form/",
                    uurl: "stock_transfer_order_upload/",
                    dparam: "download-stock-transfer-file",
+                   value: ""
+                 },{
+                   title: "Create Material Request Form Download/ Upload",
+                   download: "Material Request Download Form",
+                   upload: "Material Request Upload Form",
+                   durl: "material_request_form/",
+                   uurl: "material_request_upload/",
+                   dparam: "download-material-request-file",
                    value: ""
                  },{
                    title: "SKUPack Master Form Download/ Upload",
@@ -531,7 +550,18 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-closing-adjustment-file",
                    value: "",
                    show: Session.user_profile.warehouse_level==0,
+                 }, {
+                   title: "Closing Stock Download/ Upload",
+                   download: "Download Closing Stock Form",
+                   upload: "Upload Closing Stock Form",
+                   durl: "closing_stock_form/",
+                   uurl: "closing_stock_upload/",
+                   dparam: "download-closing-stock-file",
+                   value: "",
+                   show: true,
+                   perm: "change_consumptiondata",
                  }
+
                 ]
 
   $scope.download = function(data) {

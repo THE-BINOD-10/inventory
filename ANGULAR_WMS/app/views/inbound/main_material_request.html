@@ -1,0 +1,32 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body" ng-init="PendingMaterialRequestCtrl=false;">
+    <tabset class="box-tab">
+      <tab heading="Raise Material Request" ng-click="PendingMaterialRequestCtrl=false">
+        <div class="panel" ng-controller="MaterialStockOrders as showCase">
+          <div ng-include="'views/inbound/material_request.html'"></div>
+        </div>
+      </tab>
+      <tab heading="Pending Material Request" ng-click="PendingMaterialRequestCtrl=true">
+        <div class="panel" ng-if="PendingMaterialRequestCtrl" ng-controller="PendingMaterialRequestCtrl as showCase">
+          <div class="panel-header">
+            <div class="row">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div ng-include="'views/common/datatable.html'"></div>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_mr()">Confirm</button>
+          </div>
+        </div>
+      </tab>
+    </tabset>
+  </div>
+</div>

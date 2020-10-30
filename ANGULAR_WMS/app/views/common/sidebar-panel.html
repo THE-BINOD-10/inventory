@@ -1,32 +1,33 @@
 <div class="brand">
 
-  <!-- toggle small sidebar menu -->
-  <a href="javascript:;" class="toggle-sidebar hidden-xs hamburger-icon v3" data-ng-click="app.layout.isSmallSidebar = !app.layout.isSmallSidebar">
-    <img ng-if="user.parent.parent_username != 'gomechanic_admin' && user.parent.parent_username != 'gm_admin'" src="images/stockone_logo.png" height="15" alt="">
-
-  </a>
-  <!-- /toggle small sidebar menu -->
-
   <!-- logo -->
-  <div class="brand-logo">
-    <img ng-if="!user.parent.logo" data-ng-src="images/stockone_logo_text.png" alt="">
-    <img ng-if="user.parent.logo" data-ng-src="{{session.host}}{{user.parent.logo}}" alt="">
-
-    <!--<h5 style="color: #FFF;font-size: 22px;margin: 0px;margin-left: 7px;"><b>Mie</b>one</h5>-->
+  <div class="brand-logo" style="margin-left: 35px;">
+    <!-- <img src="images/stockone_logo_text.png" height="15" alt=""> -->
+    <img ng-if="!user.parent.logo" data-ng-src="images/stockone_logo_text.png" height="12" alt="">
+    <img ng-if="user.parent.logo" data-ng-src="{{session.host}}{{user.parent.logo}}" height="12" alt="">
+    <!-- <img data-ng-src="images/logo.png"> -->
   </div>
   <!-- /logo -->
-  <div style="text-overflow: ellipsis;white-space: nowrap;overflow: hidden;text-transform: uppercase;font-size: 12px;color: #fff;line-height:12;" align="center">{{(session.parent.user_first_name == "")? session.parent.userName:session.parent.user_first_name;}}
-  </div>
+
+  <!-- toggle small sidebar menu -->
+  <a href="javascript:;" class="toggle-sidebar hidden-xs hamburger-icon v3" data-ng-click="app.layout.isSmallSidebar = !app.layout.isSmallSidebar">
+    <img src="images/stockone_logo.png" height="15" alt="">
+    <!-- <span></span>
+    <span></span>
+    <span></span>
+    <span></span> -->
+  </a>
+  <!-- /toggle small sidebar menu -->
 
 </div>
 
 <!-- main navigation -->
-<nav role="navigation" side-navigation style="margin-bottom: 100px;top: 100px;">
+<nav role="navigation" side-navigation>
 
   <ul class="nav">
 
     <!-- dashboard -->
-    <li ui-sref-active="active" ng-show="show_tab('DASHBOARD')">
+    <li ui-sref-active="active" class="pt5" ng-show="show_tab('DASHBOARD')">
       <a ui-sref="app.dashboard">
         <i class="fa fa-dashboard"></i>
         <span>Dashboard</span>
@@ -35,13 +36,13 @@
     <!-- /dashboard -->
 
     <!-- notifications -->
-    <li ui-sref-active="" ng-show="show_tab('NOTIFICATION_LABEL')">
+    <!-- <li ui-sref-active="" ng-show="show_tab('NOTIFICATION_LABEL')">
       <a ui-sref="app.notifications">
         <i class="fa fa-bell"></i>
         <span class="button__badge" ng-if="user.notification_count != 0">{{user.notification_count}}</span>
         <span>Notifications</span>
       </a>
-    </li>
+    </li> -->
     <!-- /dashboard -->
 
 
@@ -235,6 +236,16 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
+        <!-- <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
+          <a ui-sref="app.inbound.MaterialRequest">
+            <span>Material Request</span>
+          </a>
+        </li> -->
+        <!-- <li ui-sref-active="active">
+          <a ui-sref="app.inbound.TransferOrder">
+            <span>Raise Transfer Orders</span>
+          </a>
+        </li> -->
         <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePr">
             <span>Purchase Request</span>
@@ -441,9 +452,15 @@
             <span>Customer Invoices</span>
           </a>
         </li>
-        <li ng-show="show_tab('add_sellerordersummary') && !show_tab('customer_dc')" ui-sref-active="active">
+        <!-- <li ng-show="show_tab('add_sellerordersummary') && !show_tab('customer_dc')" ui-sref-active="active"> -->
+        <li ng-show="!show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoicesMain">
             <span>Customer Invoices</span>
+          </a>
+        </li>
+        <li ng-show="show_tab('add_consumptiondata') || show_tab('view_manual_test_approval')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CreateManualTest">
+            <span>Manual Test</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
@@ -479,15 +496,6 @@
          <span>Orders Sync Issues</span>
       </a>
     </li>  -->
-
-    <!-- ready pages -->
-    <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
-      <a ui-sref="app.uploads">
-        <i class="fa fa-cloud-upload"></i>
-        <span>Uploads</span>
-      </a>
-    </li>
-    <!-- /ready pages -->
 
     <!-- uploaded pages -->
     <li ui-sref-active="active" ng-show="(show_tab('add_orderuploads') && (permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'))">
@@ -756,11 +764,21 @@
             <span>Enquiry Status Report</span>
           </a>
         </li>
-        <li ui-sref-active="active">
-          <a ui-sref="app.reports.StockTransferReport">
-            <span>Stock Transfer</span>
+        <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
+          <a ui-sref="app.reports.MaterialRequestReport">
+            <span>Material Request</span>
           </a>
         </li>
+        <!-- <li ui-sref-active="active">
+          <a ui-sref="app.reports.StockTransferReport">
+            <span>Intra Stock Transfer Orders</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.SaleTransferReport">
+            <span>Inter Sale Transfer Orders</span>
+          </a>
+        </li> -->
         <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
           <a ui-sref="app.reports.StockReconciliationReport">
             <span>Stock Reconciliation</span>
@@ -823,6 +841,14 @@
         </li>
       </ul>
     </li>
+    <!-- ready pages -->
+    <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
+      <a ui-sref="app.uploads">
+        <i class="fa fa-cloud-upload"></i>
+        <span>Uploads</span>
+      </a>
+    </li>
+    <!-- /ready pages -->
     <!-- /extras -->
     <li ng-show="show_tab('pos_switch')" ui-sref-active="active">
       <a href="{{session.pos_host}}#/home?user_id={{user.userId}}&amp;user_name={{user.userName}}" target="_blank">
@@ -858,7 +884,9 @@
     </li>
 
     <!-- ui kit -->
-    <li ui-sref-active="" class="settings" style="position: fixed;bottom: 50px;background: #2d3033;width: 210px !important;" ng-show="show_tab('CONFIGURATIONS') || show_tab('is_staff')">
+
+    <!-- class="settings" style="position: fixed;bottom: 45px;background: #2d3033;margin-left: 14px;" -->
+    <li ui-sref-active="active" ng-show="show_tab('CONFIGURATIONS') || show_tab('is_staff')">
       <a ui-sref="app.configurations">
         <i class="fa fa-cogs"></i>
         <span>Configurations</span>

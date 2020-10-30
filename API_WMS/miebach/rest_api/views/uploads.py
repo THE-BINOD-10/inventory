@@ -10988,8 +10988,8 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             elif key == 'purchase_uom':
                 if cell_data:
                     data_dict[key] = cell_data
-                    if not cell_data.lower() in puom_list:
-                        index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
+                    #if not cell_data.lower() in puom_list:
+                    #    index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
                 else:
                     index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
             elif key == 'batch_number':
@@ -11158,6 +11158,10 @@ def closing_adjustment_upload(request, user=''):
                     if sku_stocks.values_list('location_id').distinct().count() > 1:
                         temp_location_id = sku_stocks[0].location_id
                         sku_stocks.update(location_id=temp_location_id)
+                    uom_dict = get_uom_with_sku_code(user, final_data['sku'].sku_code, uom_type='purchase')
+                    if sku_stocks:
+                        batch_ids = sku_stocks.values_list('batch_detail_id', flat=True)
+                        BatchDetail.objects.filter(id__in=list(batch_ids)).update(pcf=uom_dict['sku_conversion'])
                     #sku_stocks = sku_stocks.filter()
                     stock_dict = {}
                     if not sku_stocks:
@@ -11172,8 +11176,7 @@ def closing_adjustment_upload(request, user=''):
                             del batch_dict['creation_date']
                             del batch_dict['updation_date']
                         else:
-                            uom_dict = get_uom_with_sku_code(user, final_data['sku'].sku_code, uom_type='purchase')
-                            batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': final_data['purchase_uom'],
+                            batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': uom_dict['measurement_unit'],
                                             'pcf': uom_dict['sku_conversion'], 'batch_no': batch_no,
                                             'buy_price': sku.average_price}
                         stock_dict['batch_dict'] = batch_dict

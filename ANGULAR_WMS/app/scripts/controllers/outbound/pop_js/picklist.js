@@ -8,6 +8,13 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.permissions = Session.roles.permissions;
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
+  vm.current_source = items['source'];
+  vm.order_typ = 'SO';
+  if (items['order_typ'] == 'Material Request') {
+    vm.order_typ = 'MR'
+  } else if (items['order_typ'] == 'Stock Transfer') {
+    vm.order_typ = 'ST_INTRA'
+  }
   vm.record_serial_data = [];
   vm.record_serial_dict= {}
   vm.record_qcitems_data = [];
@@ -31,9 +38,9 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
          for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
                     var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
-                    if(Session.user_profile.user_type == "marketplace_user") {
-                      value = vm.model_data.data[i].picked_quantity;
-                    }
+                    // if(Session.user_profile.user_type == "marketplace_user") {
+                    value = vm.model_data.data[i].picked_quantity;
+                    // }
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
@@ -41,6 +48,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
                                                          capacity: vm.model_data.data[i].picked_quantity,
                                                          passed_serial_number: [],
                                                          failed_serial_number:[],
+                                                         manufactured_date: vm.model_data.data[i].manufactured_date,
+                                                         expiry_date: vm.model_data.data[i].expiry_date,
                                                          labels: [], last_pallet_code:vm.model_data.data[i].pallet_code,
                                                          last_location: vm.model_data.data[i].location});
          }
@@ -442,7 +451,7 @@ function view_orders() {
 
   vm.print_excel = print_excel;
   function print_excel(id)  {
-    vm.service.apiCall('print_picklist_excel/','GET',{data_id: id, 'display_order_id' : vm.display_order_id}).then(function(data){
+    vm.service.apiCall('print_picklist_excel/','GET',{data_id: id, 'display_order_id' : vm.display_order_id, 'warehouse_id': vm.model_data.warehouse_id}).then(function(data){
       if(data.message) {
         window.location = Session.host+data.data.slice(3);
       }
@@ -451,7 +460,7 @@ function view_orders() {
 
   vm.print_pdf = print_pdf;
   function print_pdf(id) {
-    vm.service.apiCall('print_picklist/','GET',{data_id: id, 'display_order_id' : vm.display_order_id}).then(function(data){
+    vm.service.apiCall('print_picklist/','GET',{data_id: id, 'display_order_id' : vm.display_order_id, 'warehouse_id': vm.model_data.warehouse_id}).then(function(data){
       if(data.message) {
         var picklist_number = $($.parseHTML(data.data)).find("input").val()
         if (picklist_number) {
@@ -642,7 +651,9 @@ function pull_confirmation() {
           clone.picked_quantity = 0;
           clone.scan = "";
           clone.pallet_code = "";
-          clone.location = "";
+          clone.manufactured_date = "";
+          clone.expiry_date = "";
+          // clone.location = "";
           if (vm.permissions.scan_picklist_option == 'scan_label') {
             clone.labels = [];
             clone.picked_quantity = 0;
@@ -662,9 +673,9 @@ function pull_confirmation() {
   }
 
   vm.get_sku_details = function(record, item, index) {
-    record.manufactured_date = item.manufactured_date
-    record.mrp = item.mrp
-    record.expiry_date = item.expiry_date
+    record.sub_data[index].manufactured_date = item.manufactured_date
+    record.sub_data[index].expiry_date = item.expiry_date
+    record.sub_data[index].mrp = item.mrp
   }
 
   vm.cal_quantity = cal_quantity;
@@ -897,9 +908,7 @@ function pull_confirmation() {
 
   vm.remain_quantity = {}
   vm.count_sku_quantity = function() {
-
     angular.forEach(vm.remain_quantity, function(value, key) {
-
       vm.remain_quantity[key] = 0;
     })
     angular.forEach(vm.model_data.data, function(record){
@@ -962,7 +971,8 @@ function pull_confirmation() {
     },
     function(isConfirm){
       if (isConfirm) {
-        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}, true).then(function(data){
+        var temp_data_cancel = {key: 'process', picklist_id: pick_id, warehouse_id: vm.model_data.warehouse_id}
+        vm.service.apiCall('picklist_delete/','GET',temp_data_cancel, true).then(function(data){
           if (data.message) {
              vm.ok("done");
           }
@@ -982,7 +992,8 @@ function pull_confirmation() {
        },
        function(isConfirm){
          if (isConfirm) {
-           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
+           var temp_data_cancel = {key: 'process', picklist_id: pick_id, warehouse_id: vm.model_data.warehouse_id};
+           vm.service.apiCall('picklist_delete/','GET', temp_data_cancel, true).then(function(data){
                 swal("", data.data, "success");
            });
            vm.ok("done");
@@ -1037,6 +1048,7 @@ function pull_confirmation() {
   vm.update_picklist = function(pick_id) {
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {
+        debugger
         vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);

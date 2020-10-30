@@ -131,10 +131,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       var send = {dtOptions: '', dtColumns: '', empty_data: {}};
 
       angular.forEach(data.filters, function(data){
-
         send.empty_data[data.name] = ""
       });
-
+      if (Object.keys(data).includes('special_key')) {
+        send.empty_data['special_key'] = data['special_key'];
+      }
       var report_name = Object.keys(vm.reports)
       if (report_name.includes('financial_report')){
         send.empty_data.from_date = ''
@@ -622,7 +623,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
-    vm.checkSearchValue = function(val,url, event, extra, msg) {
+    vm.checkSearchValue = function(val,url, event, extra, msg, warehouse_id='') {
       var type = "";
       if (val.search(":") > -1) {
 
@@ -632,23 +633,22 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         type = extra;
       }
       var data = val
+      var params = {q: val, type: type}
+      if (warehouse_id) {
+        params['warehouse_id'] = warehouse_id
+      }
       return $http.get(Session.url+url, {
-        params: {
-          q: val,
-          type: type
-        }
+        params: params
       }).then(function(response){
         var results = response.data;
         if ($(event.target).val() == val) {
           if (results.length > 0) {
-            if (results[0] == data) {
-              $(event.target).val(val);
-            } else if(results[0].search(val) > -1) {
-              $(event.target).val(val);
-            } else {
+            if(!results[0].batchno.toLocaleLowerCase().includes(val.toLocaleLowerCase())) {
               $(event.target).val("");
               $(event.target).focus();
               vm.pop_msg("Enter Correct value "+msg);
+            } else {
+              $(event.target).val(val);
             }
           } else {
             $(event.target).val("");

@@ -1,0 +1,19 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-6 col-sm-12 col-xs-12">
+        <div ng-include="'views/common/title.html'"></div>
+      </div>
+    </div>
+  </div>
+  <div class="layout-body" style="overflow: visible">
+    <tabset class="box-tab">
+      <tab heading="Create Manual Test" ng-show="show_tab('add_consumptiondata')">
+        <div ng-include="'views/outbound/create_manual_test.html'"></div>
+      </tab>
+      <tab heading="View Manual Tests" ng-show="show_tab('view_manual_test_approval')">
+        <div ng-include="'views/outbound/view_manual_test.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>

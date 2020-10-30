@@ -95,7 +95,6 @@
             <div class="col-md-2 col-sm-4 col-xs-6 mb10" ng-if = "showCase.g_data.view == 'CustomerOrderView'">
               <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.send_order_back()" ng-disabled="showCase.bt_disable" ng-if="showCase.pop_buttons && showCase.permissions.central_order_reassigning">Send Order Back</button>
             </div>
-            <!--<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" style="margin-right:10px;" ng-click="showCase.transfer()">Transfer Order</button>-->
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
               <input name="ship_reference" class="pull-right form-control" ng-model="showCase.ship_reference" type="text" placeholder="Enter Shipment Reference">
             </div>
@@ -105,17 +104,8 @@
           </div>
         </div>
       </tab>
-      <!--<tab heading="Other View">
-        <div ng-include="'views/outbound/view_orders/other_view.html'"></div>
-      </tab>
-      <tab heading="Order View">
-        <div ng-include="'views/outbound/view_orders/order_view.html'"></div>
-      </tab>
-      <tab heading="Order Category View">
-        <div ng-include="'views/outbound/view_orders/order_category_view.html'"></div>
-      </tab>-->
-      <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
-        <div class="panel" ng-controller="StockTransferOrders as showCase">
+      <!-- <tab heading="Intra Stock Transfer" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
+        <div class="panel" ng-controller="StockTransferOrdersIntra as showCase">
           <div class="panel-header">
             <div class="row">
               <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
@@ -134,21 +124,23 @@
                   </label>
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6 mb10">
-                <div class="col-md-10 col-sm-10 col-xs-12" style="padding-top: 7px;text-align: right;">
-                  <strong class="ml20">Alternative View</strong>
-                </div>
-                <div class="col-md-2 col-sm-2 col-xs-12">
-                  <label class="switch switch-sm square mt5">
-                    <div>
-                      <input type="checkbox" ng-model="showCase.alt_view" ng-change="showCase.changeDtFields(showCase.alt_view)">
-                      <span>
-                        <i class="handle"></i>
-                      </span>
-                      <input type="hidden" name="alt_view" class="form-control" ng-model="showCase.alt_view" value="{{showCase.alt_view}}">
-                    </div>
-                  </label>
-                </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Inter Transfer Sale">
+        <div class="panel" ng-controller="StockTransferOrdersInter as showCase">
+          <div class="panel-header">
+            <div class="row">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
               </div>
             </div>
           </div>
@@ -157,26 +149,34 @@
             <div ui-view></div>
           </div>
           <div class="panel-footer">
-
-
-      <!-- <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise PO</button>
-      </div> -->
-      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise JO</button>
-      </div>
-
-
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+          </div>
+        </div>
+      </tab> -->
+      <tab heading="Material Request Orders">
+        <div class="panel" ng-controller="MaterialRequestOrders as showCase">
+          <div class="panel-header">
+            <div class="row">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
             <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
           </div>
         </div>
       </tab>
-      <tab heading="Custom Orders">
+      <!-- <tab heading="Custom Orders">
         <div ng-include="'views/outbound/view_orders/custom_orders.html'"></div>
       </tab>
       <tab heading="Central Orders" ng-if="show_tab(permissions.central_order_mgmt == 'true')">
         <div ng-include="'views/outbound/view_orders/central_orders.html'"></div>
-      </tab>
+      </tab> -->
       <!--<tab heading="Create Central Orders" ng-if="show_tab(showCase.permissions.central_order_mgmt == true)">
         <div ng-include="'views/outbound/view_orders/create_central_orders.html'"></div>
       </tab>-->

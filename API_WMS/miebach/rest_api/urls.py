@@ -47,6 +47,7 @@ urlpatterns = [
     url(r'^insert_sku_doa/$', insert_sku_doa),
     url(r'^send_supplier_doa/$', send_supplier_doa),
     url(r'^get_sku_master_doa_record/$', get_sku_master_doa_record),
+    url(r'^get_inventory_adjustment_doa/$', get_inventory_adjustment_doa_record),
     url(r'^get_sku_mapping_doa/$', get_sku_mapping_doa),
     url(r'^change_status_sku_doa/$', change_status_sku_doa),
     url(r'^sku_rejected_sku_doa/$', sku_rejected_sku_doa),
@@ -158,6 +159,8 @@ urlpatterns = [
     url(r'^get_suppllier_sku_mapping_id/$', get_suppllier_sku_mapping_id),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
+    url(r'^insert_inventory_adjust_approval/$', insert_inventory_adjust_approval),
+    url(r'^reject_inventory_adjustment/$', reject_inventory_adjustment),
     url(r'^delete_po/$', delete_po),
     url(r'^search_supplier/$', search_supplier),
     url(r'^search_wh_supplier/$', search_wh_supplier),
@@ -194,6 +197,7 @@ urlpatterns = [
     url(r'^batch_transfer_order/$', batch_transfer_order),
     url(r'^generate_picklist/$', generate_picklist),
     url(r'^st_generate_picklist/$', st_generate_picklist),
+    url(r'^mr_generate_picklist/$', mr_generate_picklist),
     url(r'^confirm_vendor_received/$', confirm_vendor_received),
     url(r'^track_orders/$', track_orders),
     url(r'^cancelled_putaway_data/$', cancelled_putaway_data),
@@ -251,6 +255,7 @@ urlpatterns = [
     url(r'^check_sku_category_data/$', check_sku_category_data),
     url(r'^validate_product_wms/$', validate_product_wms),
     url(r'^grn_upload_preview/$', grn_upload_preview),
+    url(r'^confirm_mr_request/$', confirm_mr_request),
 
 
     # Production
@@ -470,8 +475,9 @@ urlpatterns = [
     url(r'^get_order_extra_options/$', get_order_extra_options),
     url(r'^get_picklist_delivery_challan/$', get_picklist_delivery_challan),
     url(r'^generate_dc/$', generate_dc),
+    url(r'^generate_mr_dc/$', generate_mr_dc),
     url(r'^get_customer_types/$', get_customer_types),
-
+    url(r'^search_batch_data/$', search_batch_data),
 
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
@@ -482,7 +488,9 @@ urlpatterns = [
     url(r'^get_previous_order_data/$', get_previous_order_data),
     url(r'^get_discrepancy_report/$', get_discrepancy_report),
     url(r'^print_descrepancy_note/$', print_descrepancy_note),
-
+    url(r'^create_manual_test/$', create_manual_test),
+    url(r'^create_manual_test_approval/$', create_manual_test_approval),
+    url(r'^get_manual_test_approval_pending/$', get_manual_test_approval_pending),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -582,6 +590,7 @@ urlpatterns = [
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+    url(r'^get_material_request_report/$', get_material_request_report),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
     url(r'^get_margin_report/$', get_margin_report),
@@ -692,6 +701,10 @@ urlpatterns += [
     url(r'^central_order_upload/$', central_order_upload),
     url(r'^stock_transfer_order_form/$',stock_transfer_order_form),
     url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
+    url(r'^material_request_order_form/$',material_request_order_form),
+    url(r'^material_request_order_upload/$',material_request_order_upload),
+    url(r'^material_request_form/$', material_request_form),
+    url(r'^material_request_upload/$', material_request_upload),
     url(r'^skupack_master_download/$', skupack_master_download),
     url(r'^skupack_master_upload/$', skupack_master_upload),
     url(r'^block_stock_download/$', block_stock_download),
@@ -728,7 +741,8 @@ urlpatterns += [
     url(r'^tax_master_upload/$', tax_master_upload),
     url(r'^closing_adjustment_form/$', closing_adjustment_form),
     url(r'^closing_adjustment_upload/$', closing_adjustment_upload),
-
+    url(r'^closing_stock_form/$', closing_stock_form),
+    url(r'^closing_stock_upload/$', closing_stock_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -840,6 +854,7 @@ urlpatterns += [
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
     url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
+    url(r'^stock_transfer_inter_invoice_data/$', stock_transfer_inter_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
     url(r'^update_customer_orders/$', update_customer_orders),
 

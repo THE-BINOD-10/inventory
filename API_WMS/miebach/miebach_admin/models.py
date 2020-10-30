@@ -130,6 +130,7 @@ class SKUMaster(models.Model):
     substitutes = models.ManyToManyField("self", blank=True)
     batch_based = models.IntegerField(default=0)
     gl_code = models.PositiveIntegerField(default=0)
+    average_price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -195,6 +196,8 @@ class MastersDOA(models.Model):
     model_name = models.CharField(max_length=256, default='')
     json_data = models.TextField()
     doa_status = models.CharField(max_length=64, default='pending')
+    validated_by = models.CharField(max_length=128, default='')
+    reference_id = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -206,6 +209,9 @@ class MastersDOA(models.Model):
             ('approve_asset_master_doa', 'Approve Asset Master Doa'),
             ('approve_service_master_doa', 'Approve Service Master Doa'),
             ('approve_otheritems_master_doa', 'Approve Otheritems Master Doa'),
+            ('approve_inventory_adjustment', 'Approve Inventory Adjustment'),
+            ('approve_manual_test', 'Approve Manual Test'),
+            ('view_manual_test_approval', 'View Manual Test Approval'),
         ]
 
 
@@ -928,6 +934,7 @@ class BatchDetail(models.Model):
     manufactured_date = models.DateField(null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
     tax_percent = models.FloatField(default=0)
+    cess_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     receipt_number = models.PositiveIntegerField(default=0)
@@ -970,7 +977,6 @@ class StockDetail(models.Model):
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
-
 
 class ASNStockDetail(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1028,6 +1034,19 @@ class PicklistLocation(models.Model):
         index_together = (('picklist', 'stock', 'reserved'), ('picklist', 'status'),
                           ('picklist', 'reserved'), ('picklist', 'stock', 'status'),
                           ('picklist', 'reserved', 'stock', 'status'))
+
+
+class PickSequenceMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    pick_loc = models.ForeignKey(PicklistLocation, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    pick_number = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PICK_SEQUENCE_MAPPING'
+        index_together = (('pick_loc', 'pick_number'))
 
 
 class OrderLabels(models.Model):
@@ -1137,6 +1156,7 @@ class InventoryAdjustment(models.Model):
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     stock = models.ForeignKey(StockDetail, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1836,10 +1856,11 @@ class STPurchaseOrder(models.Model):
 
 class StockTransfer(models.Model):
     id = BigAutoField(primary_key=True)
-    order_id = models.BigIntegerField()
+    order_id = models.CharField(max_length=32, default='')#models.BigIntegerField()
     st_po = models.ForeignKey(STPurchaseOrder)
     st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='st_seller')
     sku = models.ForeignKey(SKUMaster)
+    st_type = models.CharField(max_length=32, default='ST_INTRA')
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     picked_quantity = models.FloatField(default=0)
@@ -3205,6 +3226,12 @@ class StockStats(models.Model):
     consumed_qty = models.FloatField(default=0)
     rtv_quantity = models.FloatField(default=0)
     cancelled_qty = models.FloatField(default=0)
+    mr_receipt_qty = models.FloatField(default=0)
+    mr_picklist_qty = models.FloatField(default=0)
+    st_receipt_qty = models.FloatField(default=0)
+    st_picklist_qty = models.FloatField(default=0)
+    so_receipt_qty = models.FloatField(default=0)
+    so_picklist_qty = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     closing_stock_value = models.FloatField(default=0)
     grn_cancelled_qty = models.FloatField(default=0)
@@ -4079,6 +4106,8 @@ class Consumption(models.Model):
     qnp = models.FloatField(default=0)
     total = models.FloatField(default=0)
     total_patients = models.FloatField(default=0)
+    consumption_type = models.CharField(max_length=32, default='auto')
+    remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4092,12 +4121,14 @@ class ConsumptionData(models.Model):
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
     quantity = models.FloatField(default=0)
+    price = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION_DATA'
+        index_together = (('sku', 'creation_date'))
 
 class AdjustmentData(models.Model):
     id = BigAutoField(primary_key=True)

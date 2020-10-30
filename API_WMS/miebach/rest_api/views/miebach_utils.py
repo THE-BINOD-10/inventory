@@ -814,7 +814,7 @@ STOCK_LEDGER_REPORT_DICT = {
         {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
+    'dt_headers': ['Date', 'Store', 'Department', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
                    'Size', 'Opening Stock', 'Opening Stock Value', 'Receipt Quantity', 'Produced Quantity',
                    'Dispatch Quantity',
                    'RTV Quantity', 'Cancelled Quantity',
@@ -1434,6 +1434,25 @@ STOCK_TRANSFER_REPORT_DICT = {
     'print_url': 'print_stock_transfer_report',
 }
 
+MATERIAL_REQUEST_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+    ],
+    'dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Source Plant', 'Destination Department', 'SKU Code',
+                   'SKU Description', 'Order Quantity', 'Pick Quantity', 'HSN Code', 'Status'],
+    'mk_dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Plant', 'Destination Department', 'SKU Code',
+                      'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
+                      'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
+                      'Total Invoice Amount', 'HSN Code', 'Status',
+                      'Batch Number', 'Manufactured Date', 'Expiry Date'],
+    'dt_url': 'get_material_request_report', 'excel_name': 'get_material_request_report',
+    'print_url': 'print_stock_transfer_report',
+}
+
 MARGIN_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1731,7 +1750,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
-    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -1767,6 +1786,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'inventory_value_report': INVENTORY_VALUE_REPORT_DICT,
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
                      'stock_transfer_report': STOCK_TRANSFER_REPORT_DICT,
+                     'material_request_report': MATERIAL_REQUEST_REPORT_DICT,
                      'stock_reconsiliation_report': STOCK_RECONCILIATION_REPORT_DICT,
                      'margin_report': MARGIN_REPORT_DICT,
                      'stock_cover_report': STOCK_COVER_REPORT_DICT,
@@ -2529,6 +2549,7 @@ PERMISSION_DICT = OrderedDict((
                        ('Cluster SKU Mapping', 'add_clusterskumapping'),
                        ("Asset Master Edit", "add_assetmaster"), ("Service Master Edit", "add_servicemaster"),
                        ("Otheritems Master Edit", "add_otheritemsmaster"),
+                       ("Test Master Edit", "add_testmaster"),
                        )),
 
     # Inbound
@@ -2550,6 +2571,9 @@ PERMISSION_DICT = OrderedDict((
                        ("Approve Asset Master DOA", "approve_asset_master_doa"),
                        ("Approve Service Master DOA", "approve_service_master_doa"),
                        ("Approve Otheritems Master DOA", "approve_otheritems_master_doa"),
+                       ("Approve Inventory Adjustment", "approve_inventory_adjustment"),
+                       ("Approve Manual Test", "approve_manual_test"),
+                       ("View Manual Test Approval", "view_manual_test_approval"),
                        )),
 
     # Production
@@ -2571,13 +2595,15 @@ PERMISSION_DICT = OrderedDict((
                         ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
                         ("Customer Invoices", "add_sellerordersummary"), ("Manual Orders", "add_manualenquiry"),
                         ("Shipment Info", "add_shipmentinfo"), ("Create Stock Transfer", "add_stocktransfer"),
+                        ('Create Manual Test', 'add_consumptiondata')
                         )),
 
     # Shipment Info
     ("SHIPMENT_LABEL", ("Shipment Info", "add_shipmentinfo")),
 
     # Others
-    ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
+    ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"),
+                      ('Upload Closing Stock', 'change_consumptiondata'),)),
 
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
@@ -2601,6 +2627,7 @@ PERMISSION_DICT = OrderedDict((
                  ('add_targetmaster', 'add_targetmaster'),
                  ('add_enquirymaster', 'add_enquirymaster'),
                  ('add_clusterskumapping', 'add_clusterskumapping'),
+                 ('Upload Adjusted Consumption', 'change_consumptiondata'),
                  )),
     ("REPORTS", (('SKU List Report', 'view_skumaster'), ('Location Wise Filter Report', 'view_locationmaster'),
                  ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
@@ -2626,7 +2653,9 @@ PERMISSION_DICT = OrderedDict((
                             ('Customer Master View', 'view_customermaster'),
                             ('Asset Master View', 'view_assetmaster'),
                             ('Service Master View', 'view_servicemaster'),
-                            ('OtherItems Master View', 'view_otheritemsmaster'),)),
+                            ('OtherItems Master View', 'view_otheritemsmaster'),
+                            ('Test Master View', 'view_testmaster')
+                            )),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
@@ -2968,6 +2997,9 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Qua
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time',
                                   'Invoice Number', 'Total Amount']
 
+STOCK_TRANSFER_INTER_INVOICE_HEADERS = ['Sale Order ID', 'Warehouse Name', 'Picked Quantity', 'Sale Order Date&Time',
+                                  'Invoice Number', 'Total Amount']
+
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                  'Order Date&Time']
 
@@ -3227,13 +3259,23 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
     ('IGST', 'igst'), ('Total Price', 'total_price'),
     ('Location', 'location')
 ))
+
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
-    ('Warehouse Name', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
+    ('Source Warehouse', 'source_warehouse'), ('Destination Warehouse', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
     ('Quantity', 'quantity'), ('Price', 'price'), ('MRP', 'mrp'), ('Cgst(%)', 'cgst_tax'),
-    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'),
+    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'), ('Type (MR/ST)', 'st_type')
 ))
-
+MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
+    ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')
+))
+MATERIAL_REQUEST_MAPPING = OrderedDict((('Material Request ID', 'order_id'),
+    ('Source Plant Code', 'plant_code'), ('Department', 'warehouse_name'),
+    ('Source Warehouse Seller ID', 'source_seller_id'),
+    ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
+    ('Quantity', 'quantity'), ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
+    ('Type(MR/ST_INTRA/ST_INTER)', 'st_type')
+))
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
     ('Main SR Number', 'original_order_id'),
     ('Customer Name', 'customer_name'), ('Address', 'address'),
@@ -3298,7 +3340,8 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
 USER_PREFIXES_MAPPING = OrderedDict((('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
                                      ('PO Prefix', 'po_prefix'), ('GRN prefix', 'grn_prefix'),
-                                     ('Invoice Prefix', 'invoice_prefix')
+                                     ('Invoice Prefix', 'invoice_prefix'), ('Stock Transfer Prefix', 'st_prefix'),
+                                     ('Material Request Prefix', 'mr_prefix')
                                      ))
 
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']
@@ -3389,8 +3432,13 @@ CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjus
                                           ('Base UOM Quantity', 'base_uom_qty'), ('Base Uom', 'base_uom'),
                                           ('Purchase UOM Quantity', 'purchase_uom_qty'),
                                           ('Purchase UOM', 'purchase_uom'), ('Conversion Factor', 'conversion_factor'),
-                                          ('Batch Number', 'batch_number'), ('MRP', 'mrp'), ('Reason', 'reason'),
+                                          ('Batch Number', 'batch_number'), ('Expiry Date(YYYY-MM-DD)', 'expiry_date'), ('Reason', 'reason'),
                                           ('Unit Price', 'unit_price')
+                                          ))
+
+CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), ('Plant Code', 'plant_code'),
+                                          ('Department', 'department'), ('SKU Code', 'sku_code'),
+                                          ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
 
 def fn_timer(function):
@@ -7648,14 +7696,21 @@ def get_rm_picklist_data(search_params, user, sub_user):
 
 
 def get_stock_ledger_data(search_params, user, sub_user):
-    from rest_api.views.common import get_local_date
+    from rest_api.views.common import get_local_date, get_related_users_filters, check_and_get_plants_depts_wo_request,\
+        get_admin
     from django.db.models import F
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    stock_stats = StockStats.objects.filter(sku__user=user.id)
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    stock_stats = StockStats.objects.filter(sku__user__in=user_ids)
     if 'from_date' in search_params:
         status_filter['creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -7715,7 +7770,13 @@ def get_stock_ledger_data(search_params, user, sub_user):
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
         date = get_local_date(user, obj.creation_date, send_date=True).strftime('%d %b %Y')
-        ord_dict = OrderedDict((('Date', date),
+        user_obj = User.objects.get(id=obj.sku.user)
+        dept_name = ''
+        store_name = user_obj.first_name
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            dept_name = user_obj.first_name
+            store_name = get_admin(user_obj).first_name
+        ord_dict = OrderedDict((('Date', date), ('Store', store_name), ('Department', dept_name),
                                 ('SKU Code', obj.sku.sku_code), ('SKU Description', obj.sku.sku_desc),
                                 ('Style Name', obj.sku.style_name),
                                 ('Brand', obj.sku.sku_brand), ('Category', obj.sku.sku_category),
@@ -10601,11 +10662,177 @@ def print_sku_wise_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_stock_transfer_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
+def get_mr_status(user, data_id, total_qty, all_data):
+    status = ''
+    temp_total = 0
+    for invoice_no in all_data:
+        qty_conversion = 1
+        invoice_quantity = invoice_no.quantity
+        batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                                                    stock_transfer=data_id).values(
+                    'picklist__stock__batch_detail__batch_no',
+                    'picklist__stock__batch_detail__manufactured_date',
+                    'picklist__stock__batch_detail__expiry_date', 'picklist__stock__batch_detail__pcf')
+        if batch_data.exists():
+            qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
+        temp_total = temp_total + round(float(invoice_quantity) / float(qty_conversion), 2)
+    if float(total_qty) > temp_total:
+        status = "Partially Received"
+    return status
+
+
+def get_material_request_report_data(request, search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['creation_date', 'order_id', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
+           'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
+           'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
+           'st_po__open_st__sgst_tax',
+           'st_po__open_st__igst_tax', 'st_po__open_st__cgst_tax', 'st_po__open_st__sgst_tax',
+           'st_po__open_st__igst_tax',
+           'st_po__open_st__price', 'status', 'st_po__open_st__igst_tax', 'st_po__open_st__price', 'status']
+
+    status_map = ['Pick List Generated', 'Pending', 'Accepted']
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term != 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    # if 'invoice_number' in search_params:
+    #     search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
+    if 'order_id' in search_params:
+        search_parameters['order_id'] = search_params['order_id']
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
+    search_parameters['sku_id__in'] = sku_master_ids
+    search_parameters['sku__user__in'] = user_ids
+    search_parameters['st_type'] = 'MR'
+    stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
+        order_by(order_data).select_related('sku', 'st_po__open_st__sku')
+    temp_data['recordsTotal'] = stock_transfer_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    time = str(datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+    for data in (stock_transfer_data[start_index:stop_index]):
+        user = data.st_po.open_st.warehouse
+        date = get_local_date(user, data.creation_date)
+        destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        status = status_map[data.status]
+        destination = "%s %s" % (destination.first_name, destination.last_name)
+        cgst = data.st_po.open_st.cgst_tax
+        sgst = data.st_po.open_st.sgst_tax
+        igst = data.st_po.open_st.igst_tax
+        price = data.st_po.open_st.price
+        quantity = data.quantity
+        net_value = quantity * price
+        cgst_value = (net_value * cgst) / 100
+        sgst_value = (net_value * sgst) / 100
+        igst_value = (net_value * igst) / 100
+        order_wo_amount = quantity * price
+        order_tax_amount = cgst_value + sgst_value + igst_value
+        total_order_amount = order_wo_amount + order_tax_amount
+        tax_percentage = cgst + sgst + igst
+
+        manufacturer, searchable, bundle = '', '', ''
+        if data.stocktransfersummary_set.filter():
+            for invoice_no in data.stocktransfersummary_set.filter():
+                qty_conversion = 1
+                invoice_number = invoice_no.full_invoice_number
+                # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
+                #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
+                #     'quantity')
+                # if invoice_data.exists():
+                invoice_quantity = invoice_no.quantity
+                invoice_wo_tax_amount = invoice_quantity * price
+                invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
+                invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
+                batch_number = ''
+                expiry_date = ''
+                manufactured_date = ''
+                batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
+                batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                    'pick_loc__stock__batch_detail__batch_no',
+                    'pick_loc__stock__batch_detail__manufactured_date',
+                    'pick_loc__stock__batch_detail__expiry_date',
+                    'pick_loc__stock__batch_detail__pcf'
+                )
+                # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                #                                     stock_transfer=data.id).values(
+                #     'picklist__picklistlocation__stock__batch_detail__batch_no',
+                #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
+                #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
+                if batch_data.exists():
+                    qty_conversion = batch_data[0]['pick_loc__stock__batch_detail__pcf']
+                    batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
+                    expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
+                        "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
+                    manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
+                        "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
+                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
+                if temp_stat:
+                    status = temp_stat
+                ord_dict = OrderedDict(
+                    (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                     ('Source Plant', user.first_name), ('Destination Department', destination),
+                     ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                     ('Order Quantity', quantity), ('Pick Sequence', invoice_no.pick_number),
+                     ('Pick Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)),
+                     ('HSN Code', data.sku.hsn_code), ('Status', status),
+                     ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                     ('Expiry Date', expiry_date)))
+                temp_data['aaData'].append(ord_dict)
+        else:
+            invoice_number = ''
+            invoice_quantity = ''
+            invoice_wo_tax_amount = ''
+            invoice_tax_amount = ''
+            invoice_total_amount = ''
+            batch_number = ''
+            expiry_date = ''
+            manufactured_date = ''
+            pick_seq = ''
+            batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                                                stock_transfer=data.id).values(
+                'picklist__stock__batch_detail__batch_no',
+                'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
+            if batch_data.exists():
+                batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
+                expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
+            ord_dict = OrderedDict(
+                (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                 ('Source Plant', "%s %s" % (user.first_name, user.last_name)), ('Destination Department', destination),
+                 ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                 ('Order Quantity', quantity), ('Pick Sequence', pick_seq),
+                 ('Pick Quantity', invoice_quantity),
+                 ('HSN Code', data.sku.hsn_code), ('Status', status),
+                 ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                 ('Expiry Date', expiry_date)))
+            temp_data['aaData'].append(ord_dict)
+    return temp_data
+
+
+def get_stock_transfer_report_data(request, search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants_depts,\
+    get_related_users_filters
+    from miebach_admin.models import *
+    temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
            'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
            'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
@@ -10624,6 +10851,13 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
         stop_index = None
     search_parameters = {}
     order_data = lis[col_num]
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
@@ -10637,16 +10871,11 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
         search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
-    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        if 'manufacturer' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
-        if 'searchable' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
-        if 'bundle' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
-
+    sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     search_parameters['sku_id__in'] = sku_master_ids
-    search_parameters['sku__user'] = user.id
+    search_parameters['sku__user__in'] = user_ids
+    if request.POST.get('special_key', ''):
+        search_parameters['st_type'] = request.POST.get('special_key')
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()
@@ -10654,6 +10883,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     time = str(datetime.datetime.now())
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in (stock_transfer_data[start_index:stop_index]):
+        user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]
@@ -15214,9 +15444,17 @@ def get_pr_plant_and_department(po_number):
 def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_wo_request, get_related_users_filters
     temp_data = copy.deepcopy(AJAX_DATA)
-    search_parameters = {}
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {'sku__user__in': user_ids}
     lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
             'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
@@ -15242,8 +15480,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity']
-    model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
-                        annotate(Sum('stock_mapping__quantity'))
+    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
 
     if order_term:
         results = model_data.order_by(order_data)
@@ -15259,7 +15497,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     else:
         results = model_data
     count = 0
-    for result in results:
+    for result in results.iterator():
         test_code, mfg_date, exp_date = [''] * 3
         first_name = User.objects.get(id=result['sku__user']).first_name
         if result['consumption__test__test_code']:
@@ -15276,6 +15514,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('SKU Description', result['sku__sku_desc']),
             ('Location', result['stock_mapping__stock__location__location']),
             ('Quantity', result['quantity']),
+            ('Purchase Uom Quantity', result['pquantity']),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),

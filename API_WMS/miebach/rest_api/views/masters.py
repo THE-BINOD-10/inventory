@@ -5442,7 +5442,11 @@ def insert_supplier_attribute(request, user=''):
 @login_required
 @get_admin_user
 def get_company_list(request, user=''):
-    data = get_companies_list(user, send_parent=True)
+    if request.GET.get('send_parent', '') == 'false':
+        send_parent = False
+    else:
+        send_parent = True
+    data = get_companies_list(user, send_parent=send_parent)
     return HttpResponse(json.dumps({'company_list': data}))
 
 # @csrf_exempt

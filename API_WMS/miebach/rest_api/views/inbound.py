@@ -681,7 +681,7 @@ def get_pending_enquiry(request, user=''):
             master_data = SKUMaster.objects.get(id=sku_id)
             sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-                skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
+                skuPack_quantity, sku_pack_config, zones_data,avg_price = get_pr_related_stock(user, sku_code,
                                                         search_params, includeStoreStock=True)
             ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                                 'capacity': st_avail_qty+avail_qty,
@@ -1354,7 +1354,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
     po_liss = ['po_number', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
     po_lis = ['sellerposummary__creation_date', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
-    st_lis = ['order_id', 'order_id', 'stpurchaseorder__open_st__warehouse__id',
+    st_lis = ['po_number', 'order_id', 'stpurchaseorder__open_st__warehouse__id',
               'stpurchaseorder__open_st__warehouse__username', 'order_id', 'order_id']
     rw_lis = ['order_id', 'order_id', 'rwpurchase__rwo__vendor__id', 'rwpurchase__rwo__vendor__name', 'order_id',
               'order_id']
@@ -1382,10 +1382,10 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
     st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1,
                                             polocation__quantity__gt=0).\
-                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'],order_id__in = po_ids).\
-                                    exclude(order_id__in=po_ids)\
-                                     .values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
+                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).\
+                                     values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
                                      'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
+    resultant_grns = list(chain(resultant_grns, st_dict.values_list('sellerposummary__grn_number',flat = True)))
     results = list(chain(po_dict,rwo_dict,st_dict))
     results = verify_putaway_data(results)
     temp_data['recordsTotal'] = len(results)
@@ -1401,6 +1401,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
             order_type = 'Returnable Work Order'
         elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix']).exists():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix'])[0]
+            grn_time_date = resultant_grns.filter(receipt_number=result['sellerposummary__receipt_number'], grn_number=result['sellerposummary__grn_number']).order_by('-creation_date')[0].creation_date
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
 
@@ -1736,7 +1737,7 @@ def generated_pr_data(request, user=''):
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
+            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'capacity': st_avail_qty+avail_qty,
@@ -1893,7 +1894,7 @@ def generated_actual_pr_data(request, user=''):
             temp_cess_tax = ''
 
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
+            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
         is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
@@ -5049,63 +5050,63 @@ def submit_pending_approval_enquiry(request, user=''):
         return HttpResponse('Enquiry Submission for pending purchase is failed')
     return HttpResponse("Submitted Successfully")
 
-@csrf_exempt
-@login_required
-@get_admin_user
-@reversion.create_revision(atomic=False, using='reversion')
-def insert_inventory_adjust(request, user=''):
-    reversion.set_user(request.user)
-    reversion.set_comment("insert_inv_adj")
-    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count + 1
-    wmscode = request.GET['wms_code']
-    quantity = request.GET['quantity']
-    reason = request.GET['reason']
-    loc = request.GET['location']
-    price = request.GET.get('price', '')
-    pallet_code = request.GET.get('pallet', '')
-    batch_no = request.GET.get('batch_number', '')
-    mrp = request.GET.get('mrp', '')
-    weight = request.GET.get('weight', '')
-    seller_id = request.GET.get('seller_id', '')
-    reduce_stock = request.GET.get('inv_shrinkage', 'false')
-    seller_master_id = ''
-    sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
-    receipt_number = get_stock_receipt_number(user)
-    stock_stats_objs = []
-    if user.username in MILKBASKET_USERS :
-        if not mrp or not weight :
-            return HttpResponse("MRP and Weight are Mandatory")
-        if unique_mrp == 'true' and quantity not in ['0', 0]:
-            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
-            data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
-            status =  validate_mrp_weight(data_dict,user)
-            if status:
-                return HttpResponse(status)
-    if seller_id:
-        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
-        if not seller_master:
-            return HttpResponse("Invalid Seller ID")
-        seller_master_id = seller_master[0].id
-    if reduce_stock == 'true':
-        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
-                                       seller_master_id=seller_master_id, weight=weight)
-    else:
-        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
-                                       receipt_type='inventory-adjustment',price=price)
-        netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
-    if stock_stats_objs:
-        SKUDetailStats.objects.bulk_create(stock_stats_objs)
-    update_filled_capacity([loc], user.id)
-    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
-    check_and_update_stock([wmscode], user)
-    return HttpResponse(status)
+# @csrf_exempt
+# @login_required
+# @get_admin_user
+# @reversion.create_revision(atomic=False, using='reversion')
+# def insert_inventory_adjust(request, user=''):
+#     reversion.set_user(request.user)
+#     reversion.set_comment("insert_inv_adj")
+#     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+#     cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+#     #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+#     if not cycle_count:
+#         cycle_id = 1
+#     else:
+#         cycle_id = cycle_count + 1
+#     wmscode = request.GET['wms_code']
+#     quantity = request.GET['quantity']
+#     reason = request.GET['reason']
+#     loc = request.GET['location']
+#     price = request.GET.get('price', '')
+#     pallet_code = request.GET.get('pallet', '')
+#     batch_no = request.GET.get('batch_number', '')
+#     mrp = request.GET.get('mrp', '')
+#     weight = request.GET.get('weight', '')
+#     seller_id = request.GET.get('seller_id', '')
+#     reduce_stock = request.GET.get('inv_shrinkage', 'false')
+#     seller_master_id = ''
+#     sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
+#     receipt_number = get_stock_receipt_number(user)
+#     stock_stats_objs = []
+#     if user.username in MILKBASKET_USERS :
+#         if not mrp or not weight :
+#             return HttpResponse("MRP and Weight are Mandatory")
+#         if unique_mrp == 'true' and quantity not in ['0', 0]:
+#             location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
+#             data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
+#             status =  validate_mrp_weight(data_dict,user)
+#             if status:
+#                 return HttpResponse(status)
+#     if seller_id:
+#         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+#         if not seller_master:
+#             return HttpResponse("Invalid Seller ID")
+#         seller_master_id = seller_master[0].id
+#     if reduce_stock == 'true':
+#         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
+#                                        seller_master_id=seller_master_id, weight=weight)
+#     else:
+#         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
+#                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+#                                        receipt_type='inventory-adjustment',price=price)
+#         netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
+#     if stock_stats_objs:
+#         SKUDetailStats.objects.bulk_create(stock_stats_objs)
+#     update_filled_capacity([loc], user.id)
+#     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
+#     check_and_update_stock([wmscode], user)
+#     return HttpResponse(status)
 
 def netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
     from datetime import datetime
@@ -6698,6 +6699,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'expiry_date': expiry_date,
                 'manufactured_date': manufactured_date,
                 'tax_percent': tax_percent,
+                'cess_percent': sku_row_cess_percent,
                 'mrp': mrp,
                 'buy_price': buy_price,
                 'weight': weight,
@@ -6822,6 +6824,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
+    update_sku_avg_from_grn(user, grn_number)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey, grn_number
 
 def invoice_datum(request, user, purchase_order, seller_receipt_id):
@@ -7945,9 +7948,9 @@ def create_return_order(data, user, credit_note_number):
 
 def create_default_zones(user, zone, location, sequence, segregation='sellable'):
     try:
-        new_zone, created = ZoneMaster.objects.get_or_create(user=user.id, zone=zone, segregation=segregation,
+        new_zone = ZoneMaster.objects.create(user=user.id, zone=zone, segregation=segregation,
                                                              creation_date=datetime.datetime.now())
-        locations, loc_created = LocationMaster.objects.get_or_create(location=location, max_capacity=100000,
+        locations = LocationMaster.objects.create(location=location, max_capacity=100000,
                                                                       fill_sequence=sequence,
                                                                       pick_sequence=sequence, status=1,
                                                                       zone_id=new_zone.id,
@@ -14179,6 +14182,10 @@ def create_rtv(request, user=''):
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)
+            try:
+                update_sku_avg_from_rtv(user, rtv_number)
+            except Exception as e:
+                log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -16250,3 +16257,108 @@ def grn_upload_preview(request, user=''):
                 uploaded_file_dict = {'file_name': master_docs[0].uploaded_file.name.split('/')[-1], 'id': master_docs[0].id,
                                       'file_url': '/' + master_docs[0].uploaded_file.name}
             return HttpResponse(json.dumps(uploaded_file_dict))
+
+
+@csrf_exempt
+def get_material_request_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis = ['order_id', 'date_only', 'st_po__open_st__warehouse__username', 'order_id', 'date_only', 'tsum']
+    users = [user.id]
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    if user.username == 'mhl_admin':
+        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR').\
+                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
+                                        'st_po__open_st__warehouse__id', 'sku__user').\
+                                        distinct().annotate(tsum=Sum('quantity'),
+                                        date_only=Cast('creation_date', DateField()))
+    else:
+        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR').\
+                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
+                                        'st_po__open_st__warehouse__id', 'sku__user').\
+                                        distinct().annotate(tsum=Sum('quantity'),
+                                        date_only=Cast('creation_date', DateField()))
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
+        master_data = stock_transfer_objs.filter(Q(st_po__open_st__sku__user__in=user_ids) |
+                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                                   Q(creation_date__regex=search_term)).order_by(order_data)
+    else:
+        master_data = stock_transfer_objs.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+
+    for data in master_data[start_index:stop_index]:
+        checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
+        source_name = User.objects.get(id=data['st_po__open_st__warehouse__id'])
+        warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
+        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
+                                    'Stock Transfer ID': data['order_id'], 'warehouse_id': data['st_po__open_st__warehouse__id'],
+                                    'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
+                                    'DT_RowAttr': {'id': data['order_id']}, 'id': count})
+        count = count + 1
+
+@csrf_exempt
+def get_pending_material_request_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['reference_id', 'reference_id', 'reference_id', 'tsum', 'date_only']
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    stock_transfer_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='mr_doa').\
+                                        values('requested_user__username', 'reference_id', 'wh_user__username').\
+                                        distinct().annotate(date_only=Cast('creation_date', DateField()))
+    order_data = 'date_only'
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
+        master_data = stock_transfer_objs.filter(Q(requested_user__in=user_ids) | Q(wh_user__in=user_ids) |
+                                                   Q(reference_id__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = stock_transfer_objs.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['reference_id']
+        source_name = User.objects.get(username=data['requested_user__username'])
+        warehouse = User.objects.get(username=data['wh_user__username'])
+        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
+                                    'Source Name': source_name.username,
+                                    'Material Request ID': data['reference_id'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'DT_RowAttr': {'id': data['reference_id']}})
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_mr_request(request, user=''):
+    try:
+        cnf_data = json.loads(request.POST.get('selected_orders', ''))
+    except Exception as e:
+        cnf_data = []
+    if len(cnf_data) > 0:
+        for data in cnf_data:
+            try:
+                all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='mr_doa', reference_id=data['order_id'], wh_user__username=data['dest_dept'])
+                if all_pending_orders.exists():
+                    for entry in all_pending_orders:
+                        filter_data= json.loads(entry.json_data)
+                        stock = StockDetail.objects.get(id=filter_data['data'])
+                        po =PurchaseOrder.objects.get(id=filter_data['po'])
+                        destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
+                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'])
+                        MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
+            except Exception as e:
+                return HttpResponse('fail')
+    return HttpResponse('success')

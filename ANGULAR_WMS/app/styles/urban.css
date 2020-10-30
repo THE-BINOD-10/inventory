@@ -605,7 +605,7 @@ blockquote p {
   font-weight: 400;
 }
 .sidebar-panel > nav li ul {
-  background: #393c40 !important;
+  background: #393c40f0 !important;
 }
 .sidebar-panel > nav li ul li:hover {
   background: transparent !important;
@@ -755,6 +755,7 @@ blockquote p {
     max-height: 500px;
   }
   .layout-small-menu .sidebar-panel > nav > ul > li > .sub-menu {
+    overflow: auto;
     position: absolute;
     top: 0;
     left: 100%;

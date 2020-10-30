@@ -331,12 +331,31 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_intermediateorders"
                  },
                  {
+                   title: "Material Request Order Form Download/ Upload",
+                   download: "Material Request Order Download Form",
+                   upload: "Material Request Order Upload Form",
+                   durl: "material_request_order_form/",
+                   uurl: "material_request_order_upload/",
+                   dparam: "download-material-request-file",
+                   value: "",
+                   show: true,
+                   perm: "add_pendingpr"
+                 },
+                 {
                    title: "Create Stock Transfer Order Form Download/ Upload",
                    download: "Stock Transfer Order Download Form",
                    upload: "Stock Transfer Order Upload Form",
                    durl: "stock_transfer_order_form/",
                    uurl: "stock_transfer_order_upload/",
                    dparam: "download-stock-transfer-file",
+                   value: ""
+                 },{
+                   title: "Create Material Request Form Download/ Upload",
+                   download: "Material Request Download Form",
+                   upload: "Material Request Upload Form",
+                   durl: "material_request_form/",
+                   uurl: "material_request_upload/",
+                   dparam: "download-material-request-file",
                    value: ""
                  },{
                    title: "SKUPack Master Form Download/ Upload",

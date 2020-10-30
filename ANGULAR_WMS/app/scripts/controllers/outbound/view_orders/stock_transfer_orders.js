@@ -15,6 +15,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.record_serial_data = []
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
+    vm.alt_view = true;
+    //vm.changeDtFields(vm.alt_view);
   
     function getOS() {
       var userAgent = window.navigator.userAgent,
@@ -106,7 +108,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.selected[meta.row] = vm.selectAll;
                     return vm.service.frontHtml + meta.row + vm.service.endHtml;
                 }).notSortable(),
-            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
+            DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse'),
+            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Destination Warehouse'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
             DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
@@ -150,6 +153,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.selected[meta.row] = vm.selectAll;
                     return vm.service.frontHtml + meta.row + vm.service.endHtml;
                 }).notSortable(),
+            DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse'),
             DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
 //            DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
@@ -167,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
-    vm.changeDtFields(false);
+    vm.changeDtFields(true);
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -214,7 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var url = "get_stock_transfer_order_details/";
 
       vm.service.apiCall(url, "GET", params).then(function(data){
-
+        vm.current_page = 'ST_INTRA';
         vm.items_dict = data.data.data_dict;
         vm.order_id = data.data.data_dict[0].order_id;
         vm.customer_name = data.data.wh_details.name;
@@ -242,7 +246,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         $scope.$apply(function() {
 
-          var data = {order_id: aData['Stock Transfer ID']};
+          var data = {order_id: aData['Stock Transfer ID'], warehouse_id: aData['warehouse_id']};
           $state.go('app.outbound.ViewOrders.StockTransferAltView');
 
           vm.get_order_data(data);
@@ -389,9 +393,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(vm.generate_data.length > 0) {
         console.log(vm.generate_data);
         var data = {};
+        //data['warehouse_id'] = vm.generate_data[0]['warehouse_id'];
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
-          data[vm.generate_data[i].DT_RowAttr.id] = vm.generate_data[i]['Stock Transfer ID'];
+          data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i]['warehouse_id'];
         }
         data["enable_damaged_stock"] = vm.enable_damaged_stock;
         var url = 'st_generate_picklist/';
@@ -408,6 +413,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
+                                                         batchno: vm.model_data.data[i].batchno,
                                                          picked_quantity: value});
                   }
             $state.go('app.outbound.ViewOrders.Picklist');

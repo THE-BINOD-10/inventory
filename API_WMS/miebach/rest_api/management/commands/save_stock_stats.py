@@ -74,7 +74,7 @@ class Command(BaseCommand):
                     stock_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
                                       distinct().annotate(in_stock=Sum('quantity')))
                     stock_value_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
-                                      distinct().annotate(stock_value=Sum(F('quantity') * F('unit_price'))))
+                                      distinct().annotate(stock_value=Sum(F('quantity') * F('sku__average_price'))))
                     adjust_objs = dict(all_sku_stats.filter(transact_type='inventory-adjustment').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     return_objs = dict(all_sku_stats.filter(transact_type='return').\
@@ -93,6 +93,18 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     cancel_grn = dict(all_sku_stats.filter(transact_type='cancel-grn').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    mr_picklist = dict(all_sku_stats.filter(transact_type='mr_picklist').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    mr_po = dict(all_sku_stats.filter(transact_type='mr_po').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    st_picklist = dict(all_sku_stats.filter(transact_type='st_picklist').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    st_po = dict(all_sku_stats.filter(transact_type='st_po').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    so_picklist = dict(all_sku_stats.filter(transact_type='so_picklist').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    so_po = dict(all_sku_stats.filter(transact_type='so_po').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
 
                     putaway_quantity = putaway_objs.get(sku.id, 0)
                     uploaded_quantity = stock_uploaded_objs.get(sku.id, 0)
@@ -110,6 +122,12 @@ class Command(BaseCommand):
                     produced_quantity += dest_substitute_quantity
                     consumed += src_substitue_quantity
                     rtv_quantity = rtv_objs.get(sku.id,0)
+                    mr_picklist_qty = mr_picklist.get(sku.id, 0)
+                    mr_receipt_qty = mr_po.get(sku.id, 0)
+                    st_picklist_qty = st_picklist.get(sku.id, 0)
+                    st_receipt_qty = st_po.get(sku.id, 0)
+                    so_picklist_qty = so_picklist.get(sku.id, 0)
+                    so_receipt_qty = so_po.get(sku.id, 0)
                     # stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
                     stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)
                     if stock_stat_objects.exists():
@@ -127,6 +145,8 @@ class Command(BaseCommand):
                                  'dispatch_qty': dispatched, 'return_qty': return_quantity,'rtv_quantity':rtv_quantity,
                                  'adjustment_qty': adjusted, 'closing_stock': stock_quantity,'closing_stock_value': closing_stock_value,
                                   'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed, 'cancelled_qty':cancelled_quantity,
+                                  'mr_receipt_qty': mr_receipt_qty, 'mr_picklist_qty': mr_picklist_qty, 'st_receipt_qty': st_receipt_qty, 'st_picklist_qty': st_picklist_qty,
+                                  'so_receipt_qty': so_receipt_qty, 'so_picklist_qty': so_picklist_qty,
                                   'creation_date': today
                                 }
                     if not stock_stat:
@@ -139,7 +159,7 @@ class Command(BaseCommand):
                 else:
                     if non_transact_process == 'true':
                         stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
-                        current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
+                        current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__average_price')))
                         stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)
                         quantity = current_stock['quantity__sum']
                         closing_stock_value = current_stock['stock_value'] or 0

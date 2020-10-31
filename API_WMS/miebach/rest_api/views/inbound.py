@@ -677,12 +677,16 @@ def get_pending_enquiry(request, user=''):
         lineItems = lineItemQs.values_list(*lineItemVals)
         for rec in lineItems:
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
-            search_params = {'sku__user': user.id}
+            if pendingObjModel == 'pendingPR':
+                store_user = get_admin(pendingObj.wh_user)
+            else:
+                store_user = pendingObj.wh_user
+            search_params = {'sku__user': store_user.id, 'sku__sku_code': sku_code}
             master_data = SKUMaster.objects.get(id=sku_id)
             sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-                skuPack_quantity, sku_pack_config, zones_data,avg_price = get_pr_related_stock(user, sku_code,
-                                                        search_params, includeStoreStock=True)
+                skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(store_user, sku_code,
+                                                        search_params, includeStoreStock=False)
             ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                                 'capacity': st_avail_qty+avail_qty,
                                                 'intransit_quantity': intransitQty,
@@ -1733,12 +1737,12 @@ def generated_pr_data(request, user=''):
                 temp_cess_tax = updatedJson['temp_cess_tax']
             else:
                 temp_cess_tax = ''
-        search_params = {'sku__user': user.id}
+        search_params = {'sku__user': record[0].wh_user.id, 'sku__sku_code': sku_code}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code,
-                                                    search_params, includeStoreStock=True)
+            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(record[0].wh_user, sku_code,
+                                                    search_params, includeStoreStock=False)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'capacity': st_avail_qty+avail_qty,
                                             'intransit_quantity': intransitQty,
@@ -1786,9 +1790,18 @@ def generated_pr_data(request, user=''):
 def generated_actual_pr_data(request, user=''):
     pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
+    current_approval = request.POST.get('current_approval', '')
     requestedUserId = User.objects.get(username=requested_user).id
-    #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     record = PendingPR.objects.filter(requested_user__username=requested_user, id=pr_number)
+    if current_approval:
+        if record[0].final_status in ['pr_converted_to_po', 'approved']:
+            return HttpResponse("PR Already Approved !")
+        else:
+            prApprQs = PurchaseApprovals.objects.filter(pending_pr_id=pr_number, level=record[0].pending_level).order_by('-id')
+            if prApprQs.exists():
+                if current_approval not in prApprQs[0].validated_by and prApprQs[0].status == '':
+                    return HttpResponse('%s - pending with %s' %('PR Already Approved', prApprQs[0].validated_by))
+    #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     dept_user = record[0].wh_user
     department_code = dept_user.userprofile.stockone_code
     department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
@@ -1865,7 +1878,7 @@ def generated_actual_pr_data(request, user=''):
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
             service_edate = service_edate.strftime('%d-%m-%Y')
-        search_params = {'sku__user': user.id}
+        search_params = {'sku__user': user.id, 'sku_code': sku_code}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
@@ -1893,9 +1906,11 @@ def generated_actual_pr_data(request, user=''):
         else:
             temp_cess_tax = ''
 
+        temp_store = get_admin(record[0].wh_user)
+        search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code,
-                                                    search_params, includeStoreStock=True)
+            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,
+                                                    search_params, includeStoreStock=False)
         is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
@@ -3544,10 +3559,14 @@ def approve_pr(request, user=''):
     central_data_id = request.POST.get('data_id', '')
     requestedUserId = User.objects.get(username=requested_userName).id
     #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
+    input_product_category = myDict.get('product_category', '')
+    if input_product_category:
+        input_product_category = input_product_category[0]
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     company_id = get_company_id(user)
     filtersMap = {}#{'wh_user': pr_user}
+    is_purchase_approver = find_purchase_approver_permission(request.user)
     try:
         if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
@@ -3574,14 +3593,29 @@ def approve_pr(request, user=''):
         #     return HttpResponse(status)
         # else:
         # pr_number = int(pr_number)
-
         PRQs = model_name.objects.filter(**filtersMap)
         if not PRQs:
             status = 'NO Purchase Request Object found'
             return HttpResponse(status)
-
         pendingPRObj = PRQs[0]
         pr_number = getattr(pendingPRObj, purchase_number)
+        if is_purchase_approver and validation_type != 'rejected' and is_actual_pr:
+            supplier_check_user = get_admin(pendingPRObj.wh_user)
+            if 'supplier_id' not in myDict.keys():
+                return HttpResponse("Failed ! Supplier Inputs are Missing, Please Refresh the page and try again ! ")
+            if 'price' not in myDict.keys():
+                return HttpResponse("Failed ! Price Inputs are Missing, Please Refresh the page and try again ! ")
+            if 'wms_code' in myDict.keys():
+                for i in range(0, len(myDict['wms_code'])):
+                    if myDict['order_quantity'][i] != '' and float(myDict['order_quantity'][i]) != 0:
+                        if not float(myDict['price'][i]) > 0:
+                            if input_product_category == 'Kits&Consumables':
+                                prices_list = list(SKUSupplier.objects.filter(sku__sku_code=myDict['wms_code'][i], sku__user=supplier_check_user.id).values_list('price', flat=True))
+                                if len(prices_list) > 0:
+                                    if float(myDict['price'][i]) not in prices_list:
+                                        return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
+                            else:
+                                return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
         if pendingPRObj.final_status in ['cancelled', 'rejected']:
             status = "This PO has been already %s. Further action cannot be made."%(pendingPRObj.final_status)
             return HttpResponse(status)
@@ -3589,7 +3623,6 @@ def approve_pr(request, user=''):
             totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
         else:
             totalAmt = pendingPRObj.pending_polineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
-        is_purchase_approver = find_purchase_approver_permission(request.user)
         pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
         if levelToBeValidatedFor != pending_level and not is_purchase_approver:
             validatedPR = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=full_pr_number, level=levelToBeValidatedFor)
@@ -3841,6 +3874,7 @@ def approve_pr(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info("Approve Pr Failed for" + str(e))
+        return HttpResponse('Approve PR Failed! please Try Again')
     status = 'Approved Successfully'
     return HttpResponse(status)
 
@@ -7334,6 +7368,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             department= ""
             dc_number=""
             dc_date=""
+            vendorbill_url=""
             bill_no= data_dict.get("bill_no",'')
             bill_date= data_dict.get("bill_date",'')
             invoice_quantity=grn_params.POST.get('invoice_quantity', 0.0)

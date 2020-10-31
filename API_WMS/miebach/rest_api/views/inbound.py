@@ -685,7 +685,7 @@ def get_pending_enquiry(request, user=''):
             master_data = SKUMaster.objects.get(id=sku_id)
             sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-                skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(store_user, sku_code,
+                skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(store_user, sku_code,
                                                         search_params, includeStoreStock=False)
             ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                                 'capacity': st_avail_qty+avail_qty,
@@ -1741,7 +1741,7 @@ def generated_pr_data(request, user=''):
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(record[0].wh_user, sku_code,
+            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(record[0].wh_user, sku_code,
                                                     search_params, includeStoreStock=False)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'capacity': st_avail_qty+avail_qty,
@@ -1909,7 +1909,7 @@ def generated_actual_pr_data(request, user=''):
         temp_store = get_admin(record[0].wh_user)
         search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(temp_store, sku_code,
+            skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,
                                                     search_params, includeStoreStock=False)
         is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)

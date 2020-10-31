@@ -22,7 +22,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
               type: 'POST',
               data: {'datatable': vm.g_data.view, 'size_name': vm.g_data.size_type, 'search0':'', 'search1':'', 'search2':'', 'search3':'',
                      'search4': '', 'search5': '', 'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '',
-                     'search11': '', 'search12': '', 'search13': '', 'search14': '', 'search15': '', 'search16': ''},
+                     'search11': '', 'search12': '', 'search13': '', 'search14': '', 'search15': '', 'search16': '',
+                     'search17': '', 'search18': '', 'search19': ''},
               xhrFields: {
                 withCredentials: true
               },

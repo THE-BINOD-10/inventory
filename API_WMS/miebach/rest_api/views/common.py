@@ -6738,7 +6738,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight = ['']*5
         buy_price = 0
-        uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+        uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
@@ -13726,7 +13726,7 @@ def get_kerala_cess_tax(tax, supplier):
 def update_sku_avg_main(sku_amt, user, main_user):
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
-        uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
                                     aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']

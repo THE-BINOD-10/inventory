@@ -1717,26 +1717,26 @@ def generated_pr_data(request, user=''):
             updatedLineItem = TempJson.objects.filter(model_id__in=tmp_json_id, model_name="PendingLineItemMiscDetails")
             if updatedLineItem.exists():
                 updatedJson = eval(updatedLineItem[0].model_json)
-            if updatedJson.has_key('description_edited'):
-                sku_desc_edited = updatedJson['description_edited']
-            else:
-                sku_desc_edited = ''
-            if updatedJson.has_key('service_start_date'):
-                service_stdate = updatedJson['service_start_date']
-            if updatedJson.has_key('service_end_date'):
-                service_edate = updatedJson['service_end_date']
-            if updatedJson.has_key('temp_price'):
-                temp_price = updatedJson['temp_price']
-            else:
-                temp_price = ''
-            if updatedJson.has_key('temp_tax'):
-                temp_tax = updatedJson['temp_tax']
-            else:
-                temp_tax = ''
-            if updatedJson.has_key('temp_cess_tax'):
-                temp_cess_tax = updatedJson['temp_cess_tax']
-            else:
-                temp_cess_tax = ''
+                if updatedJson.has_key('description_edited'):
+                    sku_desc_edited = updatedJson['description_edited']
+                else:
+                    sku_desc_edited = ''
+                if updatedJson.has_key('service_start_date'):
+                    service_stdate = updatedJson['service_start_date']
+                if updatedJson.has_key('service_end_date'):
+                    service_edate = updatedJson['service_end_date']
+                if updatedJson.has_key('temp_price'):
+                    temp_price = updatedJson['temp_price']
+                else:
+                    temp_price = ''
+                if updatedJson.has_key('temp_tax'):
+                    temp_tax = updatedJson['temp_tax']
+                else:
+                    temp_tax = ''
+                if updatedJson.has_key('temp_cess_tax'):
+                    temp_cess_tax = updatedJson['temp_cess_tax']
+                else:
+                    temp_cess_tax = ''
         search_params = {'sku__user': record[0].wh_user.id, 'sku__sku_code': sku_code}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
@@ -6834,7 +6834,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         else:
             is_putaway = 'true'
         if product_category in ['Services', 'Assets', 'OtherItems']:
-            auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id)
+            try:
+                auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Check Generating GRN failed for params " + str(e))
             if int(purchase_data['order_quantity']) == int(data.received_quantity):
                 data.status = 'confirmed-putaway'
             else:

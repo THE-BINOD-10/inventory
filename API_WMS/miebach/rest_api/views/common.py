@@ -12695,8 +12695,13 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
             full_grn_number = seller_po_summary_obj[0].grn_number
         if not grn_price:
             grn_price = purchase_data['price']
-        stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
+        if created_batch:
+            stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
                             'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id, 'batch_detail_id':created_batch.id,
+                            'unit_price': grn_price, 'receipt_type': receipt_type, 'grn_number':full_grn_number}
+        else:
+            stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
+                            'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
                             'unit_price': grn_price, 'receipt_type': receipt_type, 'grn_number':full_grn_number}
         stock_dict = StockDetail.objects.filter(**stock_check_params)
         if stock_dict:
@@ -12705,8 +12710,14 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
             setattr(stock_dict, 'quantity', add_quan)
             stock_dict.save()
         else:
-            stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
+            if created_batch:
+                stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
                                                     status=1, location_id=loc.id, grn_number=full_grn_number, batch_detail_id=created_batch.id,
+                                                    sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
+                                                    receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
+            else:
+                stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
+                                                    status=1, location_id=loc.id, grn_number=full_grn_number,
                                                     sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
                                                     receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
         if receipt_type == 'stock transfer':

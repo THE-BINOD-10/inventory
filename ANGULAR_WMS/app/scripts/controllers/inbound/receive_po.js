@@ -230,10 +230,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.current_month = vm.months[date_cnf.getMonth()];
                     vm.last_two_months = []
                     if (vm.current_month == 'January'){
-                      vm.last_two_months = ['December', 'November']
+                      vm.last_two_months = ['December', 'November', 'October']
                     } else if (vm.current_month == 'February') {
-                      vm.last_two_months = ['January', 'December']
+                      vm.last_two_months = ['January', 'December', 'November']
                     } else {
+                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                       vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                       vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                     }

@@ -5228,6 +5228,7 @@ def get_supplier_data(request, users=''):
     lr_number = ''
     carrier_name = ''
     grn_date = ''
+    tcs = 0
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
         headers.insert(2, 'Pallet Number')
@@ -5426,6 +5427,7 @@ def get_supplier_data(request, users=''):
             invoice_number = temp_json.get('invoice_number', '')
             invoice_date = temp_json.get('invoice_date', '')
             grn_date = temp_json.get('grn_date', '')
+            tcs = temp_json.get('tcs', 0)
             dc_number = temp_json.get('dc_number', '')
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
@@ -5448,7 +5450,7 @@ def get_supplier_data(request, users=''):
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
                                     'supplier_name': supplier_name, 'order_date': order_date, \
-                                    'expected_date': expected_date, 'remarks': remarks, 'grn_date': grn_date,
+                                    'expected_date': expected_date, 'remarks': remarks, 'grn_date': grn_date, 'tcs': tcs,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,'discrepancy_reasons':discrepancy_reasons,
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn, 'carrier_name': carrier_name,
@@ -5483,7 +5485,7 @@ def update_putaway(request, user=''):
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
                            'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
                            'display_approval_button', 'invoice_value', 'overall_discount', 'invoice_quantity',
-                           'warehouse_id', 'product_category', 'grn_date']
+                           'warehouse_id', 'product_category', 'grn_date', 'tcs']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -6301,7 +6303,9 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
             if offer_applicable == 'true':
                 remarks_list.append("offer_applied")
         remarks = ','.join(remarks_list)
-        invoice_value, invoice_quantity, status = 0, 0, 0
+        invoice_value, invoice_quantity, status, tcs = 0, 0, 0, 0
+        if 'tcs' in invoice_datum.keys():
+           tcs =  invoice_datum['tcs']
         if invoice_datum['invoice_value'] > 0 or invoice_datum['invoice_quantity'] > 0:
             invoice_value = invoice_datum['invoice_value']
             invoice_quantity = invoice_datum['invoice_quantity']
@@ -6321,6 +6325,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                cess_tax=cess_tax,
                                                                                apmc_tax=apmc_tax,
                                                                                price=grn_price,
+                                                                               tcs_value=tcs,
                                                                                overall_discount=overall_discount,
                                                                                grn_number=grn_number,
                                                                                invoice_value=invoice_value,
@@ -6512,6 +6517,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', '')
+    tcs = request.POST.get('tcs', 0)
     dc_level_grn = request.POST.get('dc_level_grn', '')
     round_off_checkbox = request.POST.get('round_off', '')
     product_category = request.POST.get('product_category', '')
@@ -6551,7 +6557,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     credit_status = 0
     if (inv_value - total_grn_value) > 20:
         credit_status = 1
-    invoice_datum = {'invoice_value': inv_value, 'invoice_quantity': inv_qty, 'status': credit_status}
+    invoice_datum = {'invoice_value': inv_value, 'invoice_quantity': inv_qty, 'status': credit_status, 'tcs': tcs}
     for i in range(len(myDict['id'])):
         mrp = 0
         temp_dict = {}
@@ -7152,6 +7158,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_address = user.userprofile.address
     seller_receipt_id = 0
     extra_charges_amt = 0
+    tcs_val = 0
     fmcg = False
     po_product_category = request.POST.get('product_category', '')
     if user.userprofile.industry_type == 'FMCG':
@@ -7255,6 +7262,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             grn_po_number = data.po_number
             warehouse_store = User.objects.get(id=warehouse_id).first_name
             if data.sellerposummary_set.filter(grn_number=grn_number).exists():
+                tcs_val=data.sellerposummary_set.filter(grn_number=grn_number)[0].tcs_value
                 seller_po_summary_date = data.sellerposummary_set.filter(grn_number=grn_number)[0].creation_date
                 order_date = get_local_date(request.user, seller_po_summary_date)
             else:
@@ -7311,8 +7319,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax), 'total_gross_value': total_price - tax_value,
                                 'tax_value': tax_value, 'receipt_number':seller_receipt_id, 'grn_po_number': grn_po_number,
-                                'overall_discount':overall_discount, 'other_charges': float(extra_charges_amt),
-                                'net_amount': (float(total_price) + float(extra_charges_amt)) - float(overall_discount),
+                                'overall_discount':overall_discount, 'other_charges': float(extra_charges_amt), 'tcs_val': float(tcs_val),
+                                'net_amount': (float(total_price) + float(extra_charges_amt) + float(tcs_val)) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no, 'product_category': po_product_category,

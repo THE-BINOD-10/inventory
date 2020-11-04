@@ -169,7 +169,7 @@
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6">
-              <div class="form-group" ng-init="showCase.model_data.tcs=0">
+              <div class="form-group" ng-init="showCase.update_tcs(showCase.model_data.tcs)">
                 <label for="tcs" class="control-label"> TCS </label>
                 <input class="form-control" ng-class="service.get_decimal_perm()" ng-model="showCase.model_data.tcs" type="text" name="tcs" ng-change="showCase.update_tcs(showCase.model_data.tcs)">
               </div>

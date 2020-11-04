@@ -7374,6 +7374,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             dc_number=""
             dc_date=""
             vendorbill_url=""
+            tcs_value=0
             bill_no= data_dict.get("bill_no",'')
             bill_date= data_dict.get("bill_date",'')
             invoice_quantity=grn_params.POST.get('invoice_quantity', 0.0)
@@ -7409,6 +7410,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 grn_date_string= s_po_s[0].creation_date.strftime("%d-%m-%Y")
                 grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
                 grn_date= grn_date.isoformat()
+            if s_po_s[0].tcs_value:
+                tcs_value= s_po_s[0].tcs_value
             grn_data = {'po_number': po_number,
                         'department': department,
                         "subsidiary": subsidary,
@@ -7423,7 +7426,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                         "dc_number": dc_number,
                         "dc_date" : dc_date,
                         "vendorbill_url": vendorbill_url,
-                        "product_category": product_category
+                        "product_category": product_category,
+                        "tcs_value": tcs_value
                 }
             check_batch_dict={}
             for idx, data in enumerate(s_po_s):
@@ -10004,6 +10008,10 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             place_of_supply= _purchase_order.open_po.supplier.place_of_supply
         if(_purchase_order.open_po.supplier.address_id):
             address_id= _purchase_order.open_po.supplier.address_id
+        payment_terms_obj= PaymentTerms.objects.filter(supplier__id=_purchase_order.open_po.supplier.id)
+        if payment_terms_obj:
+            if not payment_code:
+                payment_code= payment_terms_obj[0].payment_code
         if due_date:
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')

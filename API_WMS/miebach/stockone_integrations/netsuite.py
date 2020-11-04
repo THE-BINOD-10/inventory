@@ -249,6 +249,8 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"]))
             if(grn_data.get("credit_note_value",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note_value', value=grn_data["credit_note_value"]))
+            if(grn_data.get("tcs_value",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_tcs_amount', value=grn_data["tcs_value"]))
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
@@ -300,6 +302,10 @@ class netsuiteIntegration(object):
                             line_item.update({'rate': unit_price})
                             grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_unit_price_grn', value= unit_price))
                             grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_unit_price_wo_gst',value=data["unit_price"]))
+                        else:
+                            line_item.update({'rate': 0})
+                            grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_unit_price_grn', value= 0))
+                            grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_unit_price_wo_gst',value=0))
                         if data.get("received_quantity", None):
                             line_item.update({'quantity': data["received_quantity"]})
                         if data.get("order_idx", None):

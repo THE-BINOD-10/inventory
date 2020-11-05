@@ -3774,7 +3774,8 @@ def mr_generate_picklist(request, user=''):
         elif user.userprofile.industry_type == 'FMCG':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).\
                                     order_by('batch_detail__expiry_date')
-            stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+            stock_detail2 = sku_stocks.filter(quantity__gt=0, location__zone__zone='TEMP_ZONE').\
+                order_by('batch_detail__expiry_date')
         else:
             stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
                 'location_id__pick_sequence')
@@ -9647,15 +9648,22 @@ def picklist_delete(request, user=""):
                         if seller_orders:
                             seller_orders.update(status=1)
             else:
+                updated_st_ids = []
                 for picklist in  picklist_objs :
                     st_orders = STOrder.objects.filter(picklist = picklist.id)
                     stock_transfer_obj = st_orders[0].stock_transfer
-                    stock_transfer_obj.picked_quantity = Picklist.objects.filter(picklist_number=picklist.picklist_number,\
+                    if stock_transfer_obj.id in updated_st_ids:
+                        continue
+                    uom_dict = get_uom_with_sku_code(user, picklist.stock.sku.wms_code, uom_type='purchase')
+                    pcf = uom_dict['sku_conversion']
+                    st_picked_quantity = Picklist.objects.filter(picklist_number=picklist.picklist_number,\
                                                                stock__sku__user =user.id,\
                                                                stock__sku__wms_code = picklist.stock.sku.wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-
+                    stock_transfer_obj.picked_quantity = st_picked_quantity/pcf
+                    stock_transfer_obj.quantity = stock_transfer_obj.quantity - stock_transfer_obj.picked_quantity
                     stock_transfer_obj.status = 1
                     stock_transfer_obj.save()
+                    updated_st_ids.append(stock_transfer_obj.id)
 
             if order_ids or stock_transfer_order :
                 if not stock_transfer_order :

@@ -1862,6 +1862,7 @@ class StockTransfer(models.Model):
     sku = models.ForeignKey(SKUMaster)
     st_type = models.CharField(max_length=32, default='ST_INTRA')
     invoice_amount = models.FloatField(default=0)
+    original_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     picked_quantity = models.FloatField(default=0)
     shipment_date = models.DateTimeField(auto_now_add=True)
@@ -3968,6 +3969,11 @@ def save_order_original_quantity(sender, instance, created, **kwargs):
         instance.original_quantity = instance.quantity
         instance.save()
 
+@receiver(post_save, sender=StockTransfer)
+def save_st_original_quantity(sender, instance, created, **kwargs):
+    if created:
+        instance.original_quantity = instance.quantity
+        instance.save()
 
 @receiver(post_save, sender=User)
 def save_user_to_reversion(sender, instance, created, **kwargs):

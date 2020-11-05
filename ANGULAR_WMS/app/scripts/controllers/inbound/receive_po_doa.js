@@ -184,10 +184,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.current_month = vm.months[date_cnf.getMonth()];
                   vm.last_two_months = []
                   if (vm.current_month == 'January'){
-                    vm.last_two_months = ['December', 'November']
+                    vm.last_two_months = ['December', 'November', 'October']
                   } else if (vm.current_month == 'February') {
-                    vm.last_two_months = ['January', 'December']
+                    vm.last_two_months = ['January', 'December', 'November']
                   } else {
+                    vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                     vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                     vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                   }
@@ -605,13 +606,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return
         }
       }
-      if($(".grn-form").find('[name="files"]')[0].files.length > 0){
-        var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
-        if(size_check_status){
-          colFilters.showNoty("File Size should be less than 10 MB");
-          return
-        }
-      }
+      // if($(".grn-form").find('[name="files"]')[0].files.length > 0){
+      //   var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
+      //   if(size_check_status){
+      //     colFilters.showNoty("File Size should be less than 10 MB");
+      //     return
+      //   }
+      // }
       var elem = angular.element($("form#grn_doa_form"));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -826,10 +827,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var mrp = parseInt($(elem).find('input[name="mrp"]').val());
       elem = $(elem).serializeArray();
       var form_data = new FormData();
-      var files = $(".grn-form").find('[name="files"]')[0].files;
-      $.each(files, function(i, file) {
-        form_data.append('files-' + i, file);
-      });
+      // var files = $(".grn-form").find('[name="files"]')[0].files;
+      // $.each(files, function(i, file) {
+      //   form_data.append('files-' + i, file);
+      // });
       if (vm.product_type) {
         elem.push({'name':'product_category', 'value': vm.product_type})
       }

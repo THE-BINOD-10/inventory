@@ -11198,8 +11198,8 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                         uom_data = get_sku_uom_list_data(data_dict['sku'], uom_type='purchase')
                         puom_list = map(lambda x:x['uom'].lower(), uom_data)
                         buom_list = map(lambda x: x['base_uom'].lower(), uom_data)
-                        if not cell_data.lower() in buom_list:
-                            index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
+                        #if not cell_data.lower() in buom_list:
+                        #    index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
                 else:
                     index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
             elif key == 'purchase_uom':
@@ -11378,9 +11378,12 @@ def closing_adjustment_upload(request, user=''):
                     uom_dict = get_uom_with_sku_code(user, final_data['sku'].sku_code, uom_type='purchase')
                     if sku_stocks:
                         batch_ids = sku_stocks.values_list('batch_detail_id', flat=True)
-                        BatchDetail.objects.filter(id__in=list(batch_ids)).update(pcf=uom_dict['sku_conversion'],
-                                                                                  buy_price=unit_price, tax_percent=0,
-                                                                                  cess_percent=0)
+                        batch_update_dict = {'pcf': uom_dict['sku_conversion']}
+                        if unit_price != '':
+                            batch_update_dict['buy_price'] = unit_price
+                            batch_update_dict['tax_percent'] = 0
+                            batch_update_dict['cess_percent'] = 0
+                        BatchDetail.objects.filter(id__in=list(batch_ids)).update(**batch_update_dict)
                     #sku_stocks = sku_stocks.filter()
                     stock_dict = {}
                     if not sku_stocks:

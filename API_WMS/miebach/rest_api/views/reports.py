@@ -1069,9 +1069,10 @@ def get_adjust_filter_data(search_params, user, sub_user):
         for data in adjustments:
             #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
             base_quantity = data.adjusted_quantity
-            pcf = 1
-            if data.stock.batch_detail:
-                pcf = data.stock.batch_detail.pcf
+            uom_dict = get_uom_with_sku_code(user, data.cycle.sku.sku_code, uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
+            #if data.stock.batch_detail:
+            #    pcf = data.stock.batch_detail.pcf
             quantity = base_quantity/pcf
             user_obj = User.objects.get(id=data.cycle.sku.user)
             dept_name = ''

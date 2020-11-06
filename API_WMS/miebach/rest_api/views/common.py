@@ -563,7 +563,8 @@ def get_search_params(request, user=''):
                       'search10': 'search_10', 'search11': 'search_11',
                       'search12': 'search_12', 'search13': 'search_13',
                       'search14': 'search_14', 'search15': 'search_15',
-                      'search16': 'search_16',
+                      'search16': 'search_16', 'search17': 'search_17',
+                      'search18': 'search_18', 'search19': 'search_19',
                       'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
@@ -3695,7 +3696,8 @@ def search_batches(request, user=''):
     if stock_data.exists():
         for stock in stock_data:
             batchno, manufactured_date, expiry_date, pcf = '', '', '', ''
-            pcf = stock.batch_detail.pcf
+            uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
             try:
                 batchno =  stock.batch_detail.batch_no
             except:
@@ -6736,7 +6738,8 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight = ['']*5
         buy_price = 0
-        pcf = 1
+        uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -6745,7 +6748,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             buy_price = batch_detail.buy_price
-            pcf = stock.batch_detail.pcf
+            #pcf = stock.batch_detail.pcf
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
@@ -8759,7 +8762,7 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
 
 def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserved=False, seller_master_id=''):
     reserved_quantity = \
-    PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(
+    PicklistLocation.objects.filter(stock_id=stock.id, status=1).aggregate(
         Sum('reserved'))['reserved__sum']
     if not reserved_quantity:
         reserved_quantity = 0
@@ -13734,8 +13737,10 @@ def get_kerala_cess_tax(tax, supplier):
 def update_sku_avg_main(sku_amt, user, main_user):
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
         stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
-                                    aggregate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))['total_qty']
+                                    aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
         stock_value = stock_qty * sku.average_price
@@ -13806,12 +13811,14 @@ def search_batch_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
+    uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
+    pcf = uom_dict['sku_conversion']
     master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
                                              batch_detail__batch_no__icontains=search_key).\
                                     values('batch_detail__batch_no', 'batch_detail__manufactured_date',
                                            'batch_detail__expiry_date',
                                            'sku__sku_code', 'batch_detail__puom').distinct().\
-        annotate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))
+        annotate(total_qty=Sum(F('quantity')/Value(pcf)))
     for dat in master_data[:limit]:
         mfg_date = ''
         if dat['batch_detail__manufactured_date']:

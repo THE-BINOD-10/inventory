@@ -11924,7 +11924,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
-                if user.userprofile.industry_type == 'FMCG':
+                if user.userprofile.industry_type == 'FMCG' and order_typ != 'MR':
                     exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
                                     exclude(model_json__icontains='"is_stock_transfer": "true"')
                     if exist_temp_json_objs.exists():
@@ -12686,7 +12686,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                 'batch_ref': batch_detail.batch_ref,
                 'puom': batch_detail.puom,
                 'pquantity': location_quantity,
-                'pcf': batch_detail.pcf
+                'pcf': conv_value
             }
             created_batch = BatchDetail.objects.create(**batch_dict)
         seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)

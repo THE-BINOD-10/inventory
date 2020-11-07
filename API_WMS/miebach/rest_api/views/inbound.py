@@ -27,6 +27,7 @@ from inbound_descrepancy import *
 from inbound_common_operations import *
 from django.db import transaction
 from stockone_integrations.views import Integrations
+from sendgrid_mail import *
 # from masters import gather_uom_master_for_sku
 
 log = init_logger('logs/inbound.log')
@@ -10132,7 +10133,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
+        #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:
         if report_type == 'Purchase Order':

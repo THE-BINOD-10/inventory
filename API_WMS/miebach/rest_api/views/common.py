@@ -9010,7 +9010,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
 
                 elif allow_partial_picklist:
                     if not temp_order_quantity:
-                        temp_order_quantity = order_quantity - stock_quantity
+                        temp_order_quantity = (float(order_quantity)/uom_dict['sku_conversion']) - (float(stock_quantity)/uom_dict['sku_conversion'])
                     if temp_order_quantity < 0:
                         temp_order_quantity = 0
                     order_quantity = stock_quantity
@@ -11951,7 +11951,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['batch_no'] = batch_detail.batch_no
                         temp_json['buy_price'] = batch_detail.buy_price
                         temp_json['tax_percent'] = batch_detail.tax_percent
-                        temp_json['quantity'] = update_picked/batch_detail.pcf
+                        temp_json['quantity'] = update_picked
                         datum = get_warehouses_list_states(user)
                         compare_user = User.objects.get(id=st_po.open_st.sku.user).username
                         current_user = user.username
@@ -12638,14 +12638,15 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
     NOW = datetime.datetime.now()
     conv_value = ''
     batch_dict = {}
-    if batch_detail:
+    uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
+    conv_value = uom_dict.get('sku_conversion', 1)
+    '''if batch_detail:
         conv_value = batch_detail.pcf
         if not conv_value:
-            uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
-            conv_value = uom_dict.get('sku_conversion', 1)
+            conv_value = uom_dict.get('sku_conversion', 1)'''
     if not conv_value:
         conv_value = 1
-    quantity = quantity
+    quantity = quantity * conv_value
     put_zone = purchase_data['zone']
     if not put_zone:
         put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)
@@ -12754,7 +12755,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ=""):
                                                                        price=purchase_data['price'])
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id, batch_detail=batch_data)
     po_data.received_quantity += quantity
-    if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
+    if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
 

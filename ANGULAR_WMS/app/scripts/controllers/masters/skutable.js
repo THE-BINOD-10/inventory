@@ -426,13 +426,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     {
       if ( data.$valid ){
         if ("Add SKU" == vm.title) {
-          if (vm.user_profile.warehouse_type == 'ADMIN'){
+          if (vm.user_profile.warehouse_type == 'ADMIN' && vm.permissions.approve_sku_master_doa){
             vm.url = "insert_sku/";
           }else{
             vm.url = "insert_sku_doa/"
           }}
       else {
-        if (vm.user_profile.warehouse_type == 'ADMIN'){
+        if (vm.user_profile.warehouse_type == 'ADMIN' && vm.permissions.approve_sku_master_doa){
           vm.url = "update_sku/";
           }
         else{

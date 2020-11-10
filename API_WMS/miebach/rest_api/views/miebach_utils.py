@@ -2453,6 +2453,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
                         'inventory_adjust_report': 'get_adjust_filter_data',
                         'inventory_aging_report': 'get_aging_filter_data',
+                        'get_material_request_report': 'get_material_request_report_data',
                         'stock_summary_report': 'get_stock_summary_data',
                         'daily_production_report': 'get_daily_production_data',
                         'order_summary_report': 'get_order_summary_data',

@@ -9694,6 +9694,8 @@ def confirm_add_po(request, sales_data='', user=''):
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
+            uom_dict = get_uom_with_sku_code(user, purchase_order.sku.sku_code, uom_type='purchase')
+            data['pcf'] = uom_dict.get('sku_conversion', 1)
             order = PurchaseOrder(**data)
             order.save()
             if po_creation_date:

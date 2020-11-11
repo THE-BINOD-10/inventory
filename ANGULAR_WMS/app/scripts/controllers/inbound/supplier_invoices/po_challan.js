@@ -189,7 +189,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.move_to = function (click_type) {
     var supplier_name = '';
+    var Store = '';
     var status = false;
+    var status_store = false;
     var field_name = "";
     var data = [];
     var send_data = {};
@@ -204,6 +206,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           } else if (supplier_name != temp['Supplier Name']) {
             status = true;
           }
+          if(!(Store)) {
+            Store = temp['Store'];
+          } else if (Store != temp['Store']) {
+            status_store = true;
+          }
           field_name = temp['check_field'];
           var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
@@ -213,7 +220,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 grn_no: grn_no,
                 invoice_number: temp['invoice_number'],
                 seller_summary_name: supplier_name, 
-                seller_summary_id: temp['id'], 
+                seller_summary_id: temp['id'],
+                po_number: temp['full_po_number'],
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
                 cancel: 'true',
@@ -226,6 +234,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'],
                 prefix: temp['prefix'],
+                po_number: temp['full_po_number'],
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
                 warehouse_id: temp['warehouse_id']
@@ -239,12 +248,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     if(status) {
       vm.service.showNoty("Please select same "+field_name+"'s");
+    } else if (status_store) {
+      vm.service.showNoty("Please select same Store");
     } else {
-
       if (click_type == 'move_to_inv') {
-
-	vm.move_to_inv_data = data;
-	vm.generate_invoice('generate', 'true', 'true');
+	      vm.move_to_inv_data = data;
+	      vm.generate_invoice('generate', 'true', 'true');
       } else {
         vm.move_to_api(click_type, data);
       }
@@ -261,7 +270,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.move_to_api = function(click_type, data){
     var send = data.join(",");
-    var credit = ((vm.inv_value ? vm.inv_value : 0) > (vm.pdf_data.rounded_invoice_amount + vm.pdf_data.extra_other_charges)) ? true : false
+    var credit = ((vm.inv_value ? vm.inv_value : 0) - (vm.pdf_data.rounded_invoice_amount + vm.pdf_data.extra_other_charges)) > 20 ? true : false
     send = {data: send, inv_number: vm.inv_number, inv_date: vm.inv_date, inv_value: vm.inv_value, inv_quantity: vm.inv_quantity, inv_receipt_date: vm.inv_receipt_date, credit: credit}
     var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
     vm.bt_disable = true;

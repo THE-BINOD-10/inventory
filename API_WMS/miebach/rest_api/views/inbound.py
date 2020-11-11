@@ -12540,7 +12540,7 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     for data in req_data:
         grn_info= {
                     "grn_number": data["grn_no"][0],
-                    "po_number" : seller_summary[0].purchase_order.po_number,
+                    # "po_number" : seller_summary[0].purchase_order.po_number,
                     "dc_number": chn_no,
                     "dc_date" : dc_date
         }
@@ -12590,6 +12590,8 @@ def move_to_invoice(request, user=''):
         for item in req_data:
             cancel_flag = item.get('cancel', '')
             if invoice_number:
+                sell_ids['purchase_order__open_po__sku__user'] = user.id
+                sell_ids['purchase_order__po_number'] = item['po_number']
                 sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
                 sell_ids['receipt_number'] = item['receipt_number']
             else:
@@ -12671,7 +12673,7 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
             invoice_value=""
         grn_info= {
                     "grn_number": seller_po_data.grn_number,
-                    "po_number": seller_po_data.purchase_order.po_number,
+                    # "po_number": seller_po_data.purchase_order.po_number,
                     "invoice_no": invoice_number,
                     "invoice_date": invoice_date,
                     "invoice_value": invoice_value,
@@ -15650,7 +15652,7 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
         if master_docs_obj:
             vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
         grn_data={
-         "po_number": po_num,
+         # "po_number": po_num,
          "credit_number": credit_number,
          "credit_date": credit_date,
          "grn_number": grn_no,

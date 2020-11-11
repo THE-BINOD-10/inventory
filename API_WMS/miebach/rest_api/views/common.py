@@ -10665,6 +10665,9 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
         user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category=product_category,
                                                   sku_category='Default')
     if not user_prefix:
+        user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category='',
+                                                  sku_category='')
+    if not user_prefix:
         inc_status = 'Prefix not defined'
     else:
         user_prefix = user_prefix[0]
@@ -11890,17 +11893,20 @@ def get_warehouses_list_states(user):
     return user_states
 
 
-def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ=''):
+def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ='', grn_number_dict=''):
+    if not grn_number_dict:
+        grn_number_dict = {}
     try:
         st_po = stock_transfer.st_po
         temp_json = copy.deepcopy(PO_TEMP_JSON_DEF)
         if st_po:
             po = st_po.po
             open_st = st_po.open_st
+            grn_number = grn_number_dict.get(po.po_number, {}).get('grn_number', '')
             if po and po.status not in ['confirmed-putaway']:
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
-                if order_typ == 'MR':
+                if order_typ in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ == 'MR':
                     # mr_doa_obj = {}
                     # mr_doa_obj['destination_warehouse'] = destination_warehouse.id
                     # mr_doa_obj['po'] = po.id
@@ -11918,13 +11924,17 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     # }
                     # doa_obj = MastersDOA(**doa_dict)
                     # doa_obj.save()
-                    auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
+                    grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
+                                              order_typ=order_typ, grn_number=grn_number)
+                    grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 elif inbound_automate == 'true' and order_typ == 'ST_INTRA':
-                    auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
+                    grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
+                                              order_typ=order_typ, grn_number=grn_number)
+                    grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
-                if user.userprofile.industry_type == 'FMCG' and order_typ != 'MR':
+                if user.userprofile.industry_type == 'FMCG' and order_typ not in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ != 'MR':
                     exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
                                     exclude(model_json__icontains='"is_stock_transfer": "true"')
                     if exist_temp_json_objs.exists():
@@ -11975,6 +11985,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
         log.debug(traceback.format_exc())
         log.info('Adding stock transfer batch detail data failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(stock_transfer.__dict__), str(e)))
+    return grn_number_dict
 
 
 def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
@@ -12633,7 +12644,8 @@ def get_stocktransfer_picknumber(user , picklist):
     else:
         return 1
 
-def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number, batch_detail=''):
+def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
+                              batch_detail='', order_typ=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12669,23 +12681,31 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
-        if batch_detail and po_location:
+        exist_batch_dict = {}
+        if batch_detail:
+            exist_batch_dict = copy.deepcopy(batch_detail.__dict__)
+        if order_typ == 'ST_INTER':
+            exist_batch_dict['buy_price'] = purchase_data['price']
+            exist_batch_dict['tax_percent'] = float(purchase_data['cgst_tax']) + float(purchase_data['sgst_tax']) + \
+                                              float(purchase_data['igst_tax'])
+            exist_batch_dict['cess_percent'] = float(purchase_data['cess_tax'])
+        if po_location:
             uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
-            total_tax = float(purchase_data['sgst_tax']) + float(purchase_data['cgst_tax']) + float(purchase_data['igst_tax']) + float(purchase_data['cess_tax'])
             batch_dict = {
                 'transact_type': 'po_loc',
                 'transact_id': po_location.id,
                 'receipt_number': receipt_number,
-                'batch_no': batch_detail.batch_no,
-                'expiry_date': batch_detail.expiry_date,
-                'manufactured_date': batch_detail.manufactured_date,
-                'tax_percent': total_tax,
-                'mrp': batch_detail.mrp,
-                'buy_price': batch_detail.buy_price,
-                'weight': batch_detail.weight,
-                'batch_ref': batch_detail.batch_ref,
-                'puom': batch_detail.puom,
-                'pquantity': location_quantity,
+                'batch_no': exist_batch_dict.get('batch_no', ''),
+                'expiry_date': exist_batch_dict.get('expiry_date', None),
+                'manufactured_date': exist_batch_dict.get('manufactured_date', None),
+                'tax_percent': exist_batch_dict.get('tax_percent', 0),
+                'cess_percent': exist_batch_dict.get('cess_percent', 0),
+                'mrp': exist_batch_dict.get('mrp', 0),
+                'buy_price': exist_batch_dict.get('buy_price', 0),
+                'weight': exist_batch_dict.get('weight', ''),
+                'batch_ref': exist_batch_dict.get('batch_ref', ''),
+                'puom': exist_batch_dict.get('puom', ''),
+                'pquantity': location_quantity/conv_value,
                 'pcf': conv_value
             }
             created_batch = BatchDetail.objects.create(**batch_dict)
@@ -12731,7 +12751,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ=""):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number=''):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     batch_data = ''
     if data.batch_detail:
@@ -12747,17 +12767,32 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ=""):
     elif po_type == 'po':
         seller_receipt_id = get_seller_receipt_id(po_data)
         receipt_type = 'purchase order'
+    if not grn_number:
+        purchase_data = get_purchase_order_data(po_data)
+        sku_code = purchase_data['sku_code']
+        dept_code = get_po_pr_dept_code(po_data)
+        grn_prefix = 'mr_grn_prefix'
+        if order_typ == 'ST_INTRA':
+            grn_prefix = 'st_grn_prefix'
+        elif order_typ == 'ST_INTER':
+            grn_prefix = 'so_grn_prefix'
+        grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(warehouse, grn_prefix,
+                                                                                                   sku_code,
+                                                                                                   dept_code=dept_code)
     seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=seller_receipt_id,
                                                                        quantity=quantity,
                                                                        putaway_quantity=quantity,
                                                                        purchase_order_id=po_data.id,
                                                                        creation_date=NOW,
-                                                                       price=purchase_data['price'])
-    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id, batch_detail=batch_data)
+                                                                       price=purchase_data['price'],
+                                                                       grn_number=grn_number)
+    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
+                              batch_detail=batch_data, order_typ=order_typ)
     po_data.received_quantity += quantity
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
+    return grn_number
 
 
 def get_companies_list(user, send_parent=False):

@@ -9761,7 +9761,8 @@ def validate_user_prefixes_form(request, reader, user, no_of_rows, no_of_cols, f
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
     if not set(['warehouse', 'product_category', 'sku_category', 'pr_prefix', 'po_prefix',
-                'grn_prefix', 'invoice_prefix', 'st_prefix', 'mr_prefix']).issubset(excel_mapping.keys()):
+                'grn_prefix', 'invoice_prefix', 'st_prefix', 'mr_prefix',
+                'st_grn_prefix', 'so_grn_prefix', 'mr_grn_prefix']).issubset(excel_mapping.keys()):
         return 'Invalid File'
 
     category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
@@ -9800,7 +9801,8 @@ def validate_user_prefixes_form(request, reader, user, no_of_rows, no_of_cols, f
                         data_dict['sku_category'] = cell_data
                 #else:
                 #    index_status.setdefault(row_idx, set()).add('Category is Mandatory')
-            elif key in ['pr_prefix', 'po_prefix', 'grn_prefix', 'invoice_prefix', 'st_prefix', 'mr_prefix']:
+            elif key in ['pr_prefix', 'po_prefix', 'grn_prefix', 'invoice_prefix', 'st_prefix', 'mr_prefix',
+                         'st_grn_prefix', 'so_grn_prefix', 'mr_grn_prefix']:
                 if cell_data:
                     if isinstance(cell_data, float):
                         cell_data = int(cell_data)
@@ -11920,15 +11922,15 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if isinstance(batch_no, (int, float)):
                 batch_no = str(int(batch_no))
             data_dict['batch_no'] = batch_no
-        number_fields = {'quantity': 'Quantity'}
+        number_fields = {'quantity': 'Quantity', 'price': 'Price', 'cgst_tax': 'CGST Tax',
+                         'sgst_tax': 'SGST Tax', 'igst_tax': 'IGST Tax', 'cess_tax': 'Cess Tax'}
         for key, value in number_fields.iteritems():
             if order_mapping.has_key(key):
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(count, set()).add('Invalid %s' % number_fields[key])
-                    if key == 'quantity':
-                        data_dict[key] = cell_data
+                    data_dict[key] = cell_data
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
         
@@ -11958,6 +11960,10 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         wms_code = final_data['sku'].wms_code
         quantity = final_data['quantity']
         batch_no = final_data.get('batch_no', '')
+        price = final_data.get('price', 0)
+        cgst_tax = final_data.get('cgst_tax', 0)
+        sgst_tax = final_data.get('sgst_tax', 0)
+        igst_tax = final_data.get('igst_tax', 0)
         creation_date = final_data['date']
         creation_date = creation_date + datetime.timedelta(hours=6)
         order_id = final_data['order_id']
@@ -11967,7 +11973,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type,
                                order_id, creation_date, batch_no])
     all_data = insert_st_gst(all_data, warehouse)
-    status = confirm_stock_transfer_gst(all_data, user.username, order_typ='MR')
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type)
 
     if status.status_code == 200:
         return 'Success'

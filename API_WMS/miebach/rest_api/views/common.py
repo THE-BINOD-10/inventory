@@ -12644,7 +12644,8 @@ def get_stocktransfer_picknumber(user , picklist):
     else:
         return 1
 
-def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number, batch_detail=''):
+def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
+                              batch_detail='', order_typ=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12680,23 +12681,31 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
-        if batch_detail and po_location:
+        exist_batch_dict = {}
+        if batch_detail:
+            exist_batch_dict = copy.deepcopy(batch_detail.__dict__)
+        if order_typ == 'ST_INTER':
+            exist_batch_dict['buy_price'] = purchase_data['price']
+            exist_batch_dict['tax_percent'] = float(purchase_data['cgst_tax']) + float(purchase_data['sgst_tax']) + \
+                                              float(purchase_data['igst_tax'])
+            exist_batch_dict['cess_percent'] = float(purchase_data['cess_tax'])
+        if po_location:
             uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
-            total_tax = float(purchase_data['sgst_tax']) + float(purchase_data['cgst_tax']) + float(purchase_data['igst_tax']) + float(purchase_data['cess_tax'])
             batch_dict = {
                 'transact_type': 'po_loc',
                 'transact_id': po_location.id,
                 'receipt_number': receipt_number,
-                'batch_no': batch_detail.batch_no,
-                'expiry_date': batch_detail.expiry_date,
-                'manufactured_date': batch_detail.manufactured_date,
-                'tax_percent': total_tax,
-                'mrp': batch_detail.mrp,
-                'buy_price': batch_detail.buy_price,
-                'weight': batch_detail.weight,
-                'batch_ref': batch_detail.batch_ref,
-                'puom': batch_detail.puom,
-                'pquantity': location_quantity,
+                'batch_no': exist_batch_dict.get('batch_no', ''),
+                'expiry_date': exist_batch_dict.get('expiry_date', None),
+                'manufactured_date': exist_batch_dict.get('manufactured_date', None),
+                'tax_percent': exist_batch_dict.get('tax_percent', 0),
+                'cess_percent': exist_batch_dict.get('cess_percent', 0),
+                'mrp': exist_batch_dict.get('mrp', 0),
+                'buy_price': exist_batch_dict.get('buy_price', 0),
+                'weight': exist_batch_dict.get('weight', ''),
+                'batch_ref': exist_batch_dict.get('batch_ref', ''),
+                'puom': exist_batch_dict.get('puom', ''),
+                'pquantity': location_quantity/conv_value,
                 'pcf': conv_value
             }
             created_batch = BatchDetail.objects.create(**batch_dict)
@@ -12777,7 +12786,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
-    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id, batch_detail=batch_data)
+    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
+                              batch_detail=batch_data, order_typ=order_typ)
     po_data.received_quantity += quantity
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'

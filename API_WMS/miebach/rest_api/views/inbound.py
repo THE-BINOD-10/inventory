@@ -4124,7 +4124,10 @@ def convert_pr_to_po(request, user=''):
         supplyObj = None
         for i in range(0, len(myDict['sku_code'])):
             sku_code = myDict['sku_code'][i]
-            supplier = myDict['supplier'][i]
+            if myDict['supplier'][i]:
+                supplier = myDict['supplier'][i]
+            else:
+                return HttpResponse("Supplier is Mandate for SKU CODE : " + sku_code)
             quantity = myDict['quantity'][i]
             if ', ' in myDict['pr_id'][i]:
                 pr_ids = myDict['pr_id'][i].split(', ')

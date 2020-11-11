@@ -49,8 +49,8 @@
           </div>
           <div class="col-md-3 col-sm-3 col-xs-3" style="padding-top: 15px;font-size: 14px;" align="center">
             <span class="label label-default">Credit Note Generation Status</span>
-            <span class="badge bg-success" ng-if="((showCase.inv_value ? showCase.inv_value : 0) > (showCase.pdf_data.rounded_invoice_amount+showCase.pdf_data.extra_other_charges))">Yes</span>
-            <span class="badge bg-danger" ng-if="((showCase.inv_value ? showCase.inv_value : 0) <= (showCase.pdf_data.rounded_invoice_amount+showCase.pdf_data.extra_other_charges))">No</span>
+            <span class="badge bg-success" ng-if="((showCase.inv_value ? showCase.inv_value : 0) - (showCase.pdf_data.rounded_invoice_amount+showCase.pdf_data.extra_other_charges)) > 20">Yes</span>
+            <span class="badge bg-danger" ng-if="((showCase.inv_value ? showCase.inv_value : 0) - (showCase.pdf_data.rounded_invoice_amount+showCase.pdf_data.extra_other_charges)) <= 20">No</span>
           </div>
 	      </div>
           <div class="row col-md-12">

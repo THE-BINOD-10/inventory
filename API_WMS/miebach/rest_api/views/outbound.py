@@ -2033,6 +2033,7 @@ def picklist_confirmation(request, user=''):
     seller_pick_number = ''
     status = ''
     seller_id = ''
+    grn_number_dict = {}
     for key, value in request.POST.iterlists():
         if key not in ['source', 'order_typ']:
             name, picklist_id = key.rsplit('_', 1)
@@ -2280,7 +2281,10 @@ def picklist_confirmation(request, user=''):
                                 if not order_typ:
                                     order_typ = request.POST.get('order_typ', '')
                                 update_picked_pack_qty = update_picked/float(val['conversion_value'])
-                                update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked_pack_qty, order_typ = order_typ)
+                                grn_number_dict = update_stock_transfer_po_batch(user, stock_transfer, stock,
+                                                                            update_picked_pack_qty,
+                                                               order_typ = order_typ,
+                                                                                 grn_number_dict=grn_number_dict)
                             if pick_loc:
                                 update_picklist_locations(pick_loc, picklist, update_picked, pick_sequence=seller_pick_number)
                             else:
@@ -2340,6 +2344,8 @@ def picklist_confirmation(request, user=''):
                                     {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
                         count = count - picking_count1
                         auto_skus.append(val['wms_code'])
+            for grn_dict in grn_number_dict.values():
+                update_sku_avg_from_grn(grn_dict['warehouse'], grn_dict['grn_number'])
         if auto_skus:
             auto_skus = list(set(auto_skus))
             if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)

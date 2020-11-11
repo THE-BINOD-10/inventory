@@ -3271,10 +3271,12 @@ MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
     ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')
 ))
 MATERIAL_REQUEST_MAPPING = OrderedDict((('Material Request ID', 'order_id'),
-    ('Source Plant Code', 'plant_code'), ('Department', 'warehouse_name'),
+    ('Source Plant Code', 'plant_code'), ('Department/Destination Plant Code', 'warehouse_name'),
     ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
-    ('Quantity', 'quantity'), ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
+    ('Quantity', 'quantity'), ('Price', 'price'), ('Cgst(%)', 'cgst_tax'),
+    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'),
+    ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
     ('Type(MR/ST_INTRA/ST_INTER)', 'st_type')
 ))
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
@@ -3340,9 +3342,12 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
 
 USER_PREFIXES_MAPPING = OrderedDict((('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
-                                     ('PO Prefix', 'po_prefix'), ('GRN prefix', 'grn_prefix'),
+                                     ('PO Prefix', 'po_prefix'), ('PO GRN prefix', 'grn_prefix'),
                                      ('Invoice Prefix', 'invoice_prefix'), ('Stock Transfer Prefix', 'st_prefix'),
-                                     ('Material Request Prefix', 'mr_prefix')
+                                     ('Material Request Prefix', 'mr_prefix'),
+                                     ('Stock Transfer GRN Prefix', 'st_grn_prefix'),
+                                     ('Stock Transfer Sale GRN Prefix', 'so_grn_prefix'),
+                                     ('Material Request GRN Prefix', 'mr_grn_prefix'),
                                      ))
 
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']

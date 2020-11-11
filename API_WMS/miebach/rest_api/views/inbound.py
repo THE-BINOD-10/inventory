@@ -6310,7 +6310,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
             invoice_quantity = invoice_datum['invoice_quantity']
             status = invoice_datum['status']
         if user.userprofile.user_type == 'warehouse_user' or po_type == 'st':
-            seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
+            seller_po_summary = SellerPOSummary.objects.create(receipt_number=receipt_id,
                                                                                invoice_number=invoice_number,
                                                                                quantity=value,
                                                                                putaway_quantity=value,
@@ -6384,7 +6384,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                     sell_po.status = 0
                 sell_po.save()
                 # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
-                seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
+                seller_po_summary = SellerPOSummary.objects.create(seller_po_id=sell_po.id,
                                                                                    receipt_number=receipt_id,
                                                                                    quantity=value,
                                                                                    putaway_quantity=value,

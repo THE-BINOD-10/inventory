@@ -1334,7 +1334,7 @@ def print_po_reports(request, user=''):
                                 cgst_tax = 0
                                 sgst_tax = 0
                             gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
-                    grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
+                    grouping_key = '%s:%s:%s' % (str(open_data.sku.sku_code), str(price), str(seller_summary_obj.batch_detail_id))
                     amount = float(quantity) * float(price)
                     if discount:
                         amount = amount - (amount * float(discount) / 100)

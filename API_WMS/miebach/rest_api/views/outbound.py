@@ -2258,8 +2258,6 @@ def picklist_confirmation(request, user=''):
                                     transact_type = 'st_picklist'
                             else:
                                 transact_type = 'picklist'
-                            # SKU Stats
-                            save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
                             search_po_locations = {
                                 'picklist_id': picklist.id,
                                 'stock__location_id': stock.location_id,
@@ -2272,6 +2270,7 @@ def picklist_confirmation(request, user=''):
                             st_order = picklist.storder_set.filter()
                             if st_order:
                                 stock_transfer = st_order[0].stock_transfer
+                                last_change_date = stock_transfer.creation_date.date()
                                 if stock_transfer.status != 1:
                                     stock_transfer.status = 2
                                 if stock_transfer.st_seller:
@@ -2284,7 +2283,11 @@ def picklist_confirmation(request, user=''):
                                 grn_number_dict = update_stock_transfer_po_batch(user, stock_transfer, stock,
                                                                             update_picked_pack_qty,
                                                                order_typ = order_typ,
-                                                                                 grn_number_dict=grn_number_dict)
+                                                                                 grn_number_dict=grn_number_dict, last_change_date=last_change_date)
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock, transact_date=last_change_date)
+                            else:
+                                # SKU Stats
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
                             if pick_loc:
                                 update_picklist_locations(pick_loc, picklist, update_picked, pick_sequence=seller_pick_number)
                             else:

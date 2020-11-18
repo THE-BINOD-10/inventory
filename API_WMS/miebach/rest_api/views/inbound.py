@@ -6136,8 +6136,9 @@ def get_st_seller_receipt_id(purchase_order):
     receipt_number = 1
     open_st = purchase_order.stpurchaseorder_set.filter()[0].open_st
     summary = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=open_st.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
-                                        order_by('-creation_date')
+                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix,
+                                             purchase_order__po_number=purchase_order.po_number).\
+                                        order_by('-id')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
     return receipt_number

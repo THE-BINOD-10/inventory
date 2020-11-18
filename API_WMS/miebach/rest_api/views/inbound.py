@@ -1718,26 +1718,26 @@ def generated_pr_data(request, user=''):
             updatedLineItem = TempJson.objects.filter(model_id__in=tmp_json_id, model_name="PendingLineItemMiscDetails")
             if updatedLineItem.exists():
                 updatedJson = eval(updatedLineItem[0].model_json)
-            if updatedJson.has_key('description_edited'):
-                sku_desc_edited = updatedJson['description_edited']
-            else:
-                sku_desc_edited = ''
-            if updatedJson.has_key('service_start_date'):
-                service_stdate = updatedJson['service_start_date']
-            if updatedJson.has_key('service_end_date'):
-                service_edate = updatedJson['service_end_date']
-            if updatedJson.has_key('temp_price'):
-                temp_price = updatedJson['temp_price']
-            else:
-                temp_price = ''
-            if updatedJson.has_key('temp_tax'):
-                temp_tax = updatedJson['temp_tax']
-            else:
-                temp_tax = ''
-            if updatedJson.has_key('temp_cess_tax'):
-                temp_cess_tax = updatedJson['temp_cess_tax']
-            else:
-                temp_cess_tax = ''
+                if updatedJson.has_key('description_edited'):
+                    sku_desc_edited = updatedJson['description_edited']
+                else:
+                    sku_desc_edited = ''
+                if updatedJson.has_key('service_start_date'):
+                    service_stdate = updatedJson['service_start_date']
+                if updatedJson.has_key('service_end_date'):
+                    service_edate = updatedJson['service_end_date']
+                if updatedJson.has_key('temp_price'):
+                    temp_price = updatedJson['temp_price']
+                else:
+                    temp_price = ''
+                if updatedJson.has_key('temp_tax'):
+                    temp_tax = updatedJson['temp_tax']
+                else:
+                    temp_tax = ''
+                if updatedJson.has_key('temp_cess_tax'):
+                    temp_cess_tax = updatedJson['temp_cess_tax']
+                else:
+                    temp_cess_tax = ''
         search_params = {'sku__user': record[0].wh_user.id, 'sku__sku_code': sku_code}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
@@ -4125,7 +4125,10 @@ def convert_pr_to_po(request, user=''):
         supplyObj = None
         for i in range(0, len(myDict['sku_code'])):
             sku_code = myDict['sku_code'][i]
-            supplier = myDict['supplier'][i]
+            if myDict['supplier'][i]:
+                supplier = myDict['supplier'][i]
+            else:
+                return HttpResponse("Supplier is Mandate for SKU CODE : " + sku_code)
             quantity = myDict['quantity'][i]
             if ', ' in myDict['pr_id'][i]:
                 pr_ids = myDict['pr_id'][i].split(', ')
@@ -6308,7 +6311,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
             invoice_quantity = invoice_datum['invoice_quantity']
             status = invoice_datum['status']
         if user.userprofile.user_type == 'warehouse_user' or po_type == 'st':
-            seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
+            seller_po_summary = SellerPOSummary.objects.create(receipt_number=receipt_id,
                                                                                invoice_number=invoice_number,
                                                                                quantity=value,
                                                                                putaway_quantity=value,
@@ -6382,7 +6385,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                     sell_po.status = 0
                 sell_po.save()
                 # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
-                seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
+                seller_po_summary = SellerPOSummary.objects.create(seller_po_id=sell_po.id,
                                                                                    receipt_number=receipt_id,
                                                                                    quantity=value,
                                                                                    putaway_quantity=value,
@@ -12547,7 +12550,7 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     for data in req_data:
         grn_info= {
                     "grn_number": data["grn_no"][0],
-                    "po_number" : seller_summary[0].purchase_order.po_number,
+                    # "po_number" : seller_summary[0].purchase_order.po_number,
                     "dc_number": chn_no,
                     "dc_date" : dc_date
         }
@@ -12597,6 +12600,8 @@ def move_to_invoice(request, user=''):
         for item in req_data:
             cancel_flag = item.get('cancel', '')
             if invoice_number:
+                sell_ids['purchase_order__open_po__sku__user'] = user.id
+                sell_ids['purchase_order__po_number'] = item['po_number']
                 sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
                 sell_ids['receipt_number'] = item['receipt_number']
             else:
@@ -12678,7 +12683,7 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
             invoice_value=""
         grn_info= {
                     "grn_number": seller_po_data.grn_number,
-                    "po_number": seller_po_data.purchase_order.po_number,
+                    # "po_number": seller_po_data.purchase_order.po_number,
                     "invoice_no": invoice_number,
                     "invoice_date": invoice_date,
                     "invoice_value": invoice_value,
@@ -15657,7 +15662,7 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
         if master_docs_obj:
             vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
         grn_data={
-         "po_number": po_num,
+         # "po_number": po_num,
          "credit_number": credit_number,
          "credit_date": credit_date,
          "grn_number": grn_no,

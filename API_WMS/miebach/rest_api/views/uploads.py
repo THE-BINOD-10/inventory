@@ -11979,3 +11979,177 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         return 'Success'
     else:
         return 'Failed'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def consumption_form(request, user=''):
+    excel_file = request.GET['download-consumption-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(CONSUMPTION_FILE_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Consumption', excel_headers)
+    return xls_to_response(wb, '%s.consumption_form.xls' % str(user.username))
+
+@csrf_exempt
+def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(CONSUMPTION_FILE_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    all_users = get_related_users_filters(user.id)
+    all_data = OrderedDict()
+    user_skus = {}
+    all_stocks = StockDetail.objects.none()
+    for row_idx in range(1, no_of_rows):
+        print 'Validating %s' % str(row_idx)
+        data_dict = {'user': None, 'row_index': row_idx}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'closing_date':
+                if isinstance(cell_data, float):
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    reqDate = datetime.datetime(year, month, day, hour, minute, second)
+                elif '-' in cell_data:
+                    reqDate = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                else:
+                    reqDate = None
+                    index_status.setdefault(row_idx, set()).add('Wrong format for Date')
+                data_dict[key] = reqDate
+            elif key == 'warehouse':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    user_obj = all_users.filter(username=cell_data)
+                    if not user_obj:
+                        index_status.setdefault(row_idx, set()).add('Invalid Warehouse')
+                    else:
+                        data_dict['user'] = user_obj[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Warehouse is Mandatory')
+            elif key == 'sku_code':
+                if cell_data and data_dict['user']:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key in ['purchase_uom_quantity', 'amount']:
+                if cell_data:
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                elif key in ['purchase_uom_quantity']:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+        if not index_status:
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
+                location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
+            stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            stock_quantity = stock_quantity if stock_quantity else 0
+            uom_dict = get_uom_with_sku_code(data_dict['user'], data_dict['sku'].sku_code,
+                                             uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
+            pcf = pcf if pcf else 1
+            stock_pquantity = stock_quantity/pcf
+            if stock_pquantity < data_dict['purchase_uom_quantity']:
+                index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
+            data_dict['stocks'] = stocks
+            data_dict['uom_dict'] = uom_dict
+            all_stocks = all_stocks | stocks
+        data_list.append(data_dict)
+    print index_status
+    if not index_status:
+        return 'Success', data_list, all_stocks
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list, all_stocks
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list, all_stocks
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def consumption_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list, all_stocks = validate_consumption_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        with transaction.atomic('default'):
+            loop_counter = 1
+            all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
+                select_for_update()
+            for final_data in data_list:
+                print 'Updating: %s' % str(loop_counter)
+                loop_counter += 1
+                last_date = get_utc_start_date(final_data['closing_date'])
+                last_change_date = last_date
+                user = final_data['user']
+                sku = final_data['sku']
+                amount = final_data.get('amount', 0)
+                quantity = final_data['purchase_uom_quantity']
+                uom_dict = final_data['uom_dict']
+                sku_stocks = all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
+                closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
+                closing_qty = closing_qty if closing_qty else 0
+                unit_price = float(amount)/quantity
+                pcf = uom_dict['sku_conversion']
+                if not pcf:
+                    pcf = 1
+                base_quantity = quantity * pcf
+                closing_qty_after_adj = closing_qty - base_quantity
+                closing_adj = base_quantity
+                puom = uom_dict['measurement_unit']
+                pquantity_after_adj = float(closing_qty_after_adj)/pcf
+                adj_dict = {'base_quantity': closing_qty_after_adj, 'puom': puom,
+                            'pquantity': pquantity_after_adj,
+                            'pcf': pcf, 'creation_date': last_change_date}
+                adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id,
+                                                                               batch_no='',
+                                                                               defaults=adj_dict)
+                if adj_created:
+                    AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
+                if not closing_adj: continue
+                consumption_data = ConsumptionData.objects.create(
+                    sku_id=sku.id,
+                    quantity=closing_adj,
+                    price=unit_price
+                )
+                ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
+                update_stock_detail(sku_stocks, closing_adj, user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='dec',
+                                    transact_date=last_change_date)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Consumption Upload failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")

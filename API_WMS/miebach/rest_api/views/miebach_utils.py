@@ -3447,6 +3447,11 @@ CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), 
                                           ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
 
+CONSUMPTION_FILE_MAPPING = OrderedDict(( ('Date(YYYY-MM-DD)', 'closing_date'), ('Warehouse', 'warehouse'),
+                                         ('SKU Code', 'sku_code'), ('Purchase UOM Quantity', 'purchase_uom_quantity'),
+                                         ('Amount', 'amount')
+                                       ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

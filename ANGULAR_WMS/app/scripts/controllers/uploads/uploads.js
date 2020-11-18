@@ -564,6 +564,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "change_consumptiondata",
+                 }, {
+                   title: "Consumption Download/ Upload",
+                   download: "Download Consumption Form",
+                   upload: "Upload Consumption Form",
+                   durl: "consumption_form/",
+                   uurl: "consumption_upload/",
+                   dparam: "download-consumption-file",
+                   value: "",
+                   show: true,
+                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                  }
 
                 ]

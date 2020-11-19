@@ -100,6 +100,7 @@
                         typeahead-on-select="showCase.get_sku_details(data, $item, $index)"
                         required>
                     <!-- <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" typeahead="address.batchno for address in showCase.service.getSearchValues($viewValue, 'search_batches',record)" ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" required> -->
+                    <input type="hidden" name="orig_batchno_{{data.id}}" value={{record.orig_batchno}}>
                  </td>
                  <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
                  <td>

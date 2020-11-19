@@ -114,8 +114,6 @@ vm.changeUnitPrice = function(data){
         vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
           if(data.message) {
             if("Confirmed Successfully" == data.data) {
-              vm.close();
-              vm.reloadData();
               angular.copy(empty_data, vm.model_data);
             }
             colFilters.showNoty(data.data);

@@ -1069,9 +1069,10 @@ def get_adjust_filter_data(search_params, user, sub_user):
         for data in adjustments:
             #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
             base_quantity = data.adjusted_quantity
-            pcf = 1
-            if data.stock.batch_detail:
-                pcf = data.stock.batch_detail.pcf
+            uom_dict = get_uom_with_sku_code(user, data.cycle.sku.sku_code, uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
+            #if data.stock.batch_detail:
+            #    pcf = data.stock.batch_detail.pcf
             quantity = base_quantity/pcf
             user_obj = User.objects.get(id=data.cycle.sku.user)
             dept_name = ''
@@ -1334,7 +1335,7 @@ def print_po_reports(request, user=''):
                                 cgst_tax = 0
                                 sgst_tax = 0
                             gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
-                    grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
+                    grouping_key = '%s:%s:%s' % (str(open_data.sku.sku_code), str(price), str(seller_summary_obj.batch_detail_id))
                     amount = float(quantity) * float(price)
                     if discount:
                         amount = amount - (amount * float(discount) / 100)
@@ -1559,6 +1560,8 @@ def excel_reports(request, user=''):
     if 'excel_name=goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
+        params = [request, search_params, user, request.user]
+    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report']:
         params = [request, search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)

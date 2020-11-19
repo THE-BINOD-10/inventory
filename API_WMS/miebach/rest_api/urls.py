@@ -743,6 +743,8 @@ urlpatterns += [
     url(r'^closing_adjustment_upload/$', closing_adjustment_upload),
     url(r'^closing_stock_form/$', closing_stock_form),
     url(r'^closing_stock_upload/$', closing_stock_upload),
+    url(r'^consumption_form/$', consumption_form),
+    url(r'^consumption_upload/$', consumption_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

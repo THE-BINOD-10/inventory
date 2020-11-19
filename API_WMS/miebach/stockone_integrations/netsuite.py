@@ -250,7 +250,7 @@ class netsuiteIntegration(object):
             if(grn_data.get("credit_note_value",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note_value', value=grn_data["credit_note_value"]))
             if(grn_data.get("tcs_value",None)):
-                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_tcs_amount', value=grn_data["tcs_value"]))
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_tcs_amount_g', value=grn_data["tcs_value"]))
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)

@@ -282,6 +282,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
+                                                         orig_batchno: vm.model_data.data[i].batchno,
                                                          batchno: vm.model_data.data[i].batchno,
                                                          expiry_date: vm.model_data.data[i].expiry_date,
                                                          manufactured_date: vm.model_data.data[i].manufactured_date,

@@ -183,6 +183,7 @@
                         ng-model="record.batchno" ng-blur="pop.service.checkSearchValue($viewValue,'search_batches', $event, record, 'batchno',pop.model_data.warehouse_id)"
                         typeahead-on-select="pop.get_sku_details(data, $item, $index)"
                         required>
+                  <input type="hidden" name="orig_batchno_{{data.id}}" value={{record.orig_batchno}}>
                   </td>
                   <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
             		  <td ng-if="pop.industry_type=='FMCG'">

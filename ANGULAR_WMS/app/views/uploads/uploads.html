@@ -4,7 +4,7 @@
   </div>
   <div class="layout-body">
     <div ng-controller="Uploads">
-      <div class="col-md-4" ng-repeat="upload in uploads" ng-show="show_tab(upload.perm)">
+      <div class="col-md-4" ng-repeat="upload in uploads" ng-show="upload.show" ng-if="check_upload_perms(upload.perm)">
         <div class="panel" style="margin-bottom: 20px;">
           <div class="panel-heading border">
             {{upload.title}}

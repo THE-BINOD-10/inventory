@@ -14132,9 +14132,14 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         else:
             pr_supplier_data = PendingPO.objects.filter(pending_prs__full_pr_number = result['pending_pr__full_pr_number'], pending_prs__sub_pr_number=result['pending_pr__sub_pr_number'])
             if pr_supplier_data.exists():
-                pr_supplier_id = pr_supplier_data[0].supplier.supplier_id
-                pr_supplier_name = pr_supplier_data[0].supplier.name
-                pr_supplier_gst = pr_supplier_data[0].supplier.tin_number
+                try:
+                    pr_supplier_id = pr_supplier_data[0].supplier.supplier_id
+                    pr_supplier_name = pr_supplier_data[0].supplier.name
+                    pr_supplier_gst = pr_supplier_data[0].supplier.tin_number
+                except:
+                    pr_supplier_id = ''
+                    pr_supplier_name = ''
+                    pr_supplier_gst = ''
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),

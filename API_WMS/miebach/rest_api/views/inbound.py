@@ -27,6 +27,7 @@ from inbound_descrepancy import *
 from inbound_common_operations import *
 from django.db import transaction
 from stockone_integrations.views import Integrations
+from sendgrid_mail import *
 # from masters import gather_uom_master_for_sku
 
 log = init_logger('logs/inbound.log')
@@ -6138,8 +6139,9 @@ def get_st_seller_receipt_id(purchase_order):
     receipt_number = 1
     open_st = purchase_order.stpurchaseorder_set.filter()[0].open_st
     summary = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=open_st.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
-                                        order_by('-creation_date')
+                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix,
+                                             purchase_order__po_number=purchase_order.po_number).\
+                                        order_by('-id')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
     return receipt_number
@@ -6730,6 +6732,9 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if 'buy_price' in myDict.keys():
                 buy_price = myDict['buy_price'][i]
             uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase')
+            pcf = data.pcf
+            if not pcf:
+                pcf = uom_dict.get('sku_conversion', 1)
             batch_dict = {
                 'transact_type': 'po_loc',
                 'batch_no': batch_no,
@@ -6743,7 +6748,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'batch_ref': batch_ref,
                 'puom': uom_dict.get('measurement_unit', ''),
                 'pquantity': value,
-                'pcf': uom_dict.get('sku_conversion', 1)
+                'pcf': pcf
             }
 
         seller_received_list = []
@@ -8764,11 +8769,14 @@ def putaway_data(request, user=''):
                                       'unit_price': grn_price, 'receipt_type': order_data['order_type']}
                 if full_grn_number:
                     stock_check_params['grn_number'] = full_grn_number
-                conv_value = 1
+                conv_value = data.purchase_order.pcf
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
-                    conv_value = batch_obj[0].pcf
+                    #conv_value = batch_obj[0].pcf
+                    if conv_value and float(batch_obj[0].pcf) != float(conv_value):
+                        batch_obj[0].pcf = conv_value
+                        batch_obj[0].save()
                     if not conv_value:
                         uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase')
                         conv_value = uom_dict.get('sku_conversion', 1)
@@ -9690,6 +9698,8 @@ def confirm_add_po(request, sales_data='', user=''):
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
+            uom_dict = get_uom_with_sku_code(user, purchase_order.sku.sku_code, uom_type='purchase')
+            data['pcf'] = uom_dict.get('sku_conversion', 1)
             order = PurchaseOrder(**data)
             order.save()
             if po_creation_date:
@@ -10135,7 +10145,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
+        #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:
         if report_type == 'Purchase Order':

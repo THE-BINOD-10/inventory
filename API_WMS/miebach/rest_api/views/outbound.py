@@ -1665,11 +1665,14 @@ def get_picklist_batch(picklist, value, all_picklists):
             picklist_batch = all_picklists.filter(sku_code=value[0]['wms_code'], order__title=title, stock__isnull=True,
                                                   picklist_number=picklist.picklist_number)
     else:
-        picklist_batch = all_picklists.filter(Q(stock__sku__wms_code=value[0]['wms_code']) | Q(order_type="combo",
+        picklist_batch_main = all_picklists.filter(Q(stock__sku__wms_code=value[0]['wms_code']) | Q(order_type="combo",
                                                                                                sku_code=value[0][
                                                                                                    'wms_code']),
                                               stock__location__location=value[0]['orig_loc'],
                                               status__icontains='open')
+        picklist_batch1 = picklist_batch_main.filter(stock__batch_detail__batch_no=value[0]['orig_batchno'])
+        picklist_batch2 = picklist_batch_main.filter(stock__batch_detail__isnull=True)
+        picklist_batch = picklist_batch1 | picklist_batch2
     return picklist_batch
 
 
@@ -2030,6 +2033,7 @@ def picklist_confirmation(request, user=''):
     seller_pick_number = ''
     status = ''
     seller_id = ''
+    grn_number_dict = {}
     for key, value in request.POST.iterlists():
         if key not in ['source', 'order_typ']:
             name, picklist_id = key.rsplit('_', 1)
@@ -2085,246 +2089,266 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-        for picklist_dict in final_data_list:
-            picklist = picklist_dict['picklist']
-            if picklist.storder_set.filter():
-                transact_type = 'st_picklist'
-            else:
-                transact_type = 'picklist'
-            picklist_batch = picklist_dict['picklist_batch']
-            count = picklist_dict['count']
-            picklist_order_id = picklist_dict['picklist_order_id']
-            value = picklist_dict['value']
-            key = picklist_dict['key']
-            for val in value:
-                if not val['picked_quantity']:
-                    continue
+        with transaction.atomic('default'):
+            for picklist_dict in final_data_list:
+                picklist = picklist_dict['picklist']
+                if picklist.storder_set.filter():
+                    transact_type = 'st_picklist'
                 else:
-                    val['picked_quantity'] = float(val['picked_quantity']) * float(val['conversion_value'])
-                    count = float(val['picked_quantity'])
-                if picklist_order_id:
-                    picklist_batch = list(set([picklist]))
-                if not val['location'] == 'NO STOCK':
-                    picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
-                                                                 picklist_batch)
-                for picklist in picklist_batch.iterator():
-                    save_status = ''
-                    if not failed_serial_number.keys() and count == 0:
+                    transact_type = 'picklist'
+                picklist_batch = picklist_dict['picklist_batch']
+                count = picklist_dict['count']
+                picklist_order_id = picklist_dict['picklist_order_id']
+                value = picklist_dict['value']
+                key = picklist_dict['key']
+                for val in value:
+                    if not val['picked_quantity']:
                         continue
-
-                    status = ''
+                    else:
+                        val['picked_quantity'] = float(val['picked_quantity']) * float(val['conversion_value'])
+                        count = float(val['picked_quantity'])
+                    if picklist_order_id:
+                        picklist_batch = list(set([picklist]))
                     if not val['location'] == 'NO STOCK':
-                        pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
-                                                                         picklist)
-                    if status:
-                        continue
-                    if not picklist.stock:
-                        if val['location'] == 'NO STOCK':
-                            if float(picklist.reserved_quantity) > float(val['picked_quantity']):
-                                picking_count = float(val['picked_quantity'])
-                            else:
-                                picking_count = float(picklist.reserved_quantity)
-                            count -= picking_count
-                            seller_pick_number = confirm_no_stock(picklist, request, user, picks_all,
-                                                                  picklists_send_mail, merge_flag, user_profile,
-                                                                  seller_pick_number, val=val,
-                                                                  p_quantity=picking_count)
+                        picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
+                                                                     picklist_batch)
+                    temp_pick_ids = map(lambda x: x.id, picklist_batch)
+                    picklist_batch_objs = Picklist.objects.using('default').filter(id__in=temp_pick_ids).select_for_update()
+                    for picklist in picklist_batch_objs.iterator():
+                        save_status = ''
+                        if not failed_serial_number.keys() and count == 0:
                             continue
-                    if not seller_pick_number:
-                        if picklist.storder_set.filter():
-                            seller_pick_number  =  get_stocktransfer_picknumber(user, picklist)
-                        else:
-                            seller_pick_number = get_seller_pick_id(picklist, user)
-                    if float(picklist.reserved_quantity) > float(val['picked_quantity']):
-                        picking_count = float(val['picked_quantity'])
-                    else:
-                        picking_count = float(picklist.reserved_quantity)
-                    picking_count1 = 0  # picking_count
-                    wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
-                    total_stock = StockDetail.objects.filter(**pic_check_data).distinct()
-                    if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
-                        insert_order_serial(picklist, val)
-                    if 'labels' in val.keys() and val['labels'] and picklist.order:
-                        update_order_labels(picklist, val)
-                    order_id = picklist.order
-                    if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
-                        if val.get('passed_serial_number', ''):
-                            send_imei_qc_details = dict(zip(json.loads(val.get('passed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('passed_serial_number', ''))]))
-                            save_status = "PASS"
-                        try:
-                            dispatch_qc(user, send_imei_qc_details, order_id, save_status)
-                        except Exception as e:
-                            import traceback
-                            picklist_qc_log.debug(traceback.format_exc())
-                            picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
-                    if picklist.order and picklist.order.sku.wms_code in failed_serial_number.keys():
-                        if val.get('failed_serial_number', ''):
-                            send_imei_qc_details = dict(zip(json.loads(val.get('failed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('failed_serial_number', ''))]))
-                            save_status = "FAIL"
-                        try:
-                            dispatch_qc(user, send_imei_qc_details, order_id, save_status)
-                        except Exception as e:
-                            import traceback
-                            picklist_qc_log.debug(traceback.format_exc())
-                            picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
-                    if count == 0:
-                        continue
-                    if  'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]' :
-                        order = picklist.storder_set.filter()
-                        if order:
-                            order = order[0]
-                            insert_st_order_serial(picklist, val, order=order)
-                    if passed_serial_number and picklist.storder_set.filter():
-                        order = picklist.storder_set.filter()
-                        order = order[0]
-                        insert_st_order_serial(picklist, val, order=order,passed_serial_number = passed_serial_number)
-                    reserved_quantity1 = picklist.reserved_quantity
-                    tot_quan = 0
-                    for stock in total_stock:
-                        tot_quan += float(stock.quantity)
-                        # if tot_quan < reserved_quantity1:
-                        # total_stock = create_temp_stock(picklist.stock.sku.sku_code, picklist.stock.location.zone, abs(reserved_quantity1 - tot_quan), list(total_stock), user.id)
 
-                    seller_stock_objs = []
-                    for stock in total_stock:
-                        update_picked = 0
-                        if user.userprofile.user_type == 'marketplace_user':
-                            if picklist.order:
-                                seller_order = picklist.order.sellerorder_set.filter()
-                                seller_id = ''
-                                if seller_order:
-                                    seller_id = seller_order[0].seller_id
-                            elif picklist.storder_set.filter():
-                                stock_transfer = picklist.storder_set.filter()[0].stock_transfer
-                                seller_id = stock_transfer.st_seller_id
-                            stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_id,
-                                                                    quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
-                            if not stock_quantity:
-                                stock_quantity = 0
-                        else:
-                            stock_quantity = stock.quantity
-                        pre_stock = float(stock_quantity)
-                        if picking_count == 0:
-                            break
-                        # new Code
-                        # print picking_count
-                        # conv_value = 1
-                        # if stock.batch_detail:
-                        #     conv_value = stock.batch_detail.pcf
-                        #     if not conv_value:
-                        #         uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
-                        #         conv_value = uom_dict.get('sku_conversion', 1)
-                        # new Code
-                        if picking_count > stock_quantity:
-                            update_picked = float(stock_quantity)
-                            picking_count -= stock_quantity
-                            picklist.reserved_quantity -= stock_quantity
-
-                            stock.quantity = stock.quantity - stock_quantity
-                        else:
-                            update_picked = picking_count
-                            stock.quantity -= picking_count
-                            picklist.reserved_quantity -= picking_count
-                            picking_count = 0
-                        update_picked = truncate_float(update_picked, decimal_limit)
-                        picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
-                        stock.quantity = truncate_float(stock.quantity, decimal_limit)
-                        if float(stock.location.filled_capacity) - update_picked >= 0:
-                            location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
-                            location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
-                            setattr(stock.location, 'filled_capacity', location_fill_capacity)
-                            stock.location.save()
-                        if picklist.storder_set.filter():
-                            try:
-                                if picklist.storder_set.filter()[0].stock_transfer.st_type == 'MR':
-                                    transact_type = 'mr_picklist'
+                        status = ''
+                        if not val['location'] == 'NO STOCK':
+                            pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
+                                                                             picklist)
+                        if status:
+                            continue
+                        if not picklist.stock:
+                            if val['location'] == 'NO STOCK':
+                                if float(picklist.reserved_quantity) > float(val['picked_quantity']):
+                                    picking_count = float(val['picked_quantity'])
                                 else:
-                                    transact_type = 'st_picklist'
-                            except Exception as e:
-                                transact_type = 'st_picklist'
-                        else:
-                            transact_type = 'picklist'
-                        # SKU Stats
-                        save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
-                        search_po_locations = {
-                            'picklist_id': picklist.id,
-                            'stock__location_id': stock.location_id,
-                            'status': 1
-                        }
-                        if stock.batch_detail:
-                            search_po_locations['stock__batch_detail__batch_no'] = stock.batch_detail.batch_no
-                        pick_loc = all_pick_locations.filter(**search_po_locations)
-                        # update_picked = picking_count1
-                        st_order = picklist.storder_set.filter()
-                        if st_order:
-                            stock_transfer = st_order[0].stock_transfer
-                            stock_transfer.status = 2
-                            if stock_transfer.st_seller:
-                                change_seller_stock(stock_transfer.st_seller_id, stock, user, update_picked, 'dec')
-                            stock_transfer.save()
-                            order_typ = stock_transfer.st_type
-                            if not order_typ:
-                                order_typ = request.POST.get('order_typ', '')
-                            update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ = order_typ)
-                        if pick_loc:
-                            update_picklist_locations(pick_loc, picklist, update_picked, pick_sequence=seller_pick_number)
-                        else:
-                            data = PicklistLocation(picklist_id=picklist.id, stock=stock, quantity=update_picked,
-                                                    reserved=0, status=0,
-                                                    creation_date=datetime.datetime.now(),
-                                                    updation_date=datetime.datetime.now())
-                            data.save()
-                            exist_pics = all_pick_locations.exclude(id=data.id).filter(picklist_id=picklist.id,
-                                                                                       status=1, reserved__gt=0)
-                            po_location_sequence_mapping(data, seller_pick_number, update_picked)
-                            update_picklist_locations(exist_pics, picklist, update_picked, 'true')
-                        if stock.location.zone.zone == 'BAY_AREA':
-                            reduce_putaway_stock(stock, update_picked, user.id)
-                        dec_quantity = pre_stock - float(stock.quantity)
-                        if stock.pallet_detail:
-                            update_picklist_pallet(stock, update_picked)
-                        stock.save()
-                        seller_stock_objs.append(stock)
-                        mod_locations.append(stock.location.location)
-                        picking_count1 += update_picked
-                    picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
-                    if picklist.reserved_quantity == 0:
-                        # Auto Shipment check and Mapping the serial Number
-                        if picklist.order and picklist.order.order_type == 'Transit':
-                            serial_order_mapping(picklist, user)
-                        if picklist.status == 'batch_open':
-                            picklist.status = 'batch_picked'
-                        else:
-                            picklist.status = 'picked'
-                        if picklist.order:
-                            check_and_update_order(user.id, picklist.order.original_order_id)
-                        all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
-                    picklist.save()
-                    if user_profile.user_type == 'marketplace_user' and picklist.order:
-                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
-                                                    seller_stock_objs)
-                    else:
-                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
-                    picked_status = ""
-                    if picklist.picked_quantity > 0 and picklist.order:
-                        if merge_flag:
-                            quantity = picklist.picked_quantity
-                        else:
-                            quantity = picking_count1
-                        if picklist.order.order_id in picklists_send_mail.keys():
-                            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
-                                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
-                                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty + float(
-                                    quantity)
+                                    picking_count = float(picklist.reserved_quantity)
+                                count -= picking_count
+                                seller_pick_number = confirm_no_stock(picklist, request, user, picks_all,
+                                                                      picklists_send_mail, merge_flag, user_profile,
+                                                                      seller_pick_number, val=val,
+                                                                      p_quantity=picking_count)
+                                continue
+                        if not seller_pick_number:
+                            if picklist.storder_set.filter():
+                                seller_pick_number  =  get_stocktransfer_picknumber(user, picklist)
                             else:
-                                picklists_send_mail[picklist.order.order_id].update(
-                                    {picklist.order.sku.sku_code: float(quantity)})
-
+                                seller_pick_number = get_seller_pick_id(picklist, user)
+                        if float(picklist.reserved_quantity) > float(val['picked_quantity']):
+                            picking_count = float(val['picked_quantity'])
                         else:
-                            picklists_send_mail.update(
-                                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
-                    count = count - picking_count1
-                    auto_skus.append(val['wms_code'])
+                            picking_count = float(picklist.reserved_quantity)
+                        picking_count1 = 0  # picking_count
+                        wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
+                        if not val.get('batchno', ''):
+                            total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', **pic_check_data).\
+                                                    distinct().select_for_update()
+                            total_stock2 = StockDetail.objects.using('default').filter(**pic_check_data).\
+                                                    exclude(batch_detail__batch_no='').distinct().select_for_update()
+                            total_stock = total_stock1 | total_stock2
+                        else:
+                            total_stock = StockDetail.objects.using('default').filter(**pic_check_data).distinct().select_for_update()
+                        if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
+                            insert_order_serial(picklist, val)
+                        if 'labels' in val.keys() and val['labels'] and picklist.order:
+                            update_order_labels(picklist, val)
+                        order_id = picklist.order
+                        if picklist.order and picklist.order.sku.wms_code in passed_serial_number.keys():
+                            if val.get('passed_serial_number', ''):
+                                send_imei_qc_details = dict(zip(json.loads(val.get('passed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('passed_serial_number', ''))]))
+                                save_status = "PASS"
+                            try:
+                                dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                            except Exception as e:
+                                import traceback
+                                picklist_qc_log.debug(traceback.format_exc())
+                                picklist_qc_log.info("Error in Dispatch QC - On Pass - %s - %s" % (str(user.username),  str(e)))
+                        if picklist.order and picklist.order.sku.wms_code in failed_serial_number.keys():
+                            if val.get('failed_serial_number', ''):
+                                send_imei_qc_details = dict(zip(json.loads(val.get('failed_serial_number', '')), [imei_qc_details[k] for k in json.loads(val.get('failed_serial_number', ''))]))
+                                save_status = "FAIL"
+                            try:
+                                dispatch_qc(user, send_imei_qc_details, order_id, save_status)
+                            except Exception as e:
+                                import traceback
+                                picklist_qc_log.debug(traceback.format_exc())
+                                picklist_qc_log.info("Error in Dispatch QC - On Fail - %s - %s" % (str(user.username), str(e)))
+                        if count == 0:
+                            continue
+                        if  'imei' in val.keys() and val['imei'] and not picklist.order and val['imei'] != '[]' :
+                            order = picklist.storder_set.filter()
+                            if order:
+                                order = order[0]
+                                insert_st_order_serial(picklist, val, order=order)
+                        if passed_serial_number and picklist.storder_set.filter():
+                            order = picklist.storder_set.filter()
+                            order = order[0]
+                            insert_st_order_serial(picklist, val, order=order,passed_serial_number = passed_serial_number)
+                        reserved_quantity1 = picklist.reserved_quantity
+                        tot_quan = 0
+                        for stock in total_stock:
+                            tot_quan += float(stock.quantity)
+                            # if tot_quan < reserved_quantity1:
+                            # total_stock = create_temp_stock(picklist.stock.sku.sku_code, picklist.stock.location.zone, abs(reserved_quantity1 - tot_quan), list(total_stock), user.id)
+
+                        seller_stock_objs = []
+                        for stock in total_stock:
+                            update_picked = 0
+                            if user.userprofile.user_type == 'marketplace_user':
+                                if picklist.order:
+                                    seller_order = picklist.order.sellerorder_set.filter()
+                                    seller_id = ''
+                                    if seller_order:
+                                        seller_id = seller_order[0].seller_id
+                                elif picklist.storder_set.filter():
+                                    stock_transfer = picklist.storder_set.filter()[0].stock_transfer
+                                    seller_id = stock_transfer.st_seller_id
+                                stock_quantity = SellerStock.objects.filter(stock_id=stock.id, seller_id=seller_id,
+                                                                        quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+                                if not stock_quantity:
+                                    stock_quantity = 0
+                            else:
+                                stock_quantity = stock.quantity
+                            pre_stock = float(stock_quantity)
+                            if picking_count == 0:
+                                break
+                            # new Code
+                            # print picking_count
+                            # conv_value = 1
+                            # if stock.batch_detail:
+                            #     conv_value = stock.batch_detail.pcf
+                            #     if not conv_value:
+                            #         uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
+                            #         conv_value = uom_dict.get('sku_conversion', 1)
+                            # new Code
+                            if picking_count > stock_quantity:
+                                update_picked = float(stock_quantity)
+                                picking_count -= stock_quantity
+                                picklist.reserved_quantity -= stock_quantity
+
+                                stock.quantity = stock.quantity - stock_quantity
+                            else:
+                                update_picked = picking_count
+                                stock.quantity -= picking_count
+                                picklist.reserved_quantity -= picking_count
+                                picking_count = 0
+                            update_picked = truncate_float(update_picked, decimal_limit)
+                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
+                            stock.quantity = truncate_float(stock.quantity, decimal_limit)
+                            if float(stock.location.filled_capacity) - update_picked >= 0:
+                                location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
+                                location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
+                                setattr(stock.location, 'filled_capacity', location_fill_capacity)
+                                stock.location.save()
+                            if picklist.storder_set.filter():
+                                try:
+                                    if picklist.storder_set.filter()[0].stock_transfer.st_type == 'MR':
+                                        transact_type = 'mr_picklist'
+                                    else:
+                                        transact_type = 'st_picklist'
+                                except Exception as e:
+                                    transact_type = 'st_picklist'
+                            else:
+                                transact_type = 'picklist'
+                            search_po_locations = {
+                                'picklist_id': picklist.id,
+                                'stock__location_id': stock.location_id,
+                                'status': 1
+                            }
+                            if stock.batch_detail:
+                                search_po_locations['stock__batch_detail__batch_no'] = stock.batch_detail.batch_no
+                            pick_loc = all_pick_locations.filter(**search_po_locations)
+                            # update_picked = picking_count1
+                            st_order = picklist.storder_set.filter()
+                            if st_order:
+                                stock_transfer = st_order[0].stock_transfer
+                                last_change_date = stock_transfer.creation_date.date()
+                                if stock_transfer.status != 1:
+                                    stock_transfer.status = 2
+                                if stock_transfer.st_seller:
+                                    change_seller_stock(stock_transfer.st_seller_id, stock, user, update_picked, 'dec')
+                                stock_transfer.save()
+                                order_typ = stock_transfer.st_type
+                                if not order_typ:
+                                    order_typ = request.POST.get('order_typ', '')
+                                update_picked_pack_qty = update_picked/float(val['conversion_value'])
+                                grn_number_dict = update_stock_transfer_po_batch(user, stock_transfer, stock,
+                                                                            update_picked_pack_qty,
+                                                               order_typ = order_typ,
+                                                                                 grn_number_dict=grn_number_dict, last_change_date=last_change_date)
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock, transact_date=last_change_date)
+                            else:
+                                # SKU Stats
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
+                            if pick_loc:
+                                update_picklist_locations(pick_loc, picklist, update_picked, pick_sequence=seller_pick_number)
+                            else:
+                                data = PicklistLocation(picklist_id=picklist.id, stock=stock, quantity=update_picked,
+                                                        reserved=0, status=0,
+                                                        creation_date=datetime.datetime.now(),
+                                                        updation_date=datetime.datetime.now())
+                                data.save()
+                                exist_pics = all_pick_locations.exclude(id=data.id).filter(picklist_id=picklist.id,
+                                                                                           status=1, reserved__gt=0)
+                                po_location_sequence_mapping(data, seller_pick_number, update_picked)
+                                update_picklist_locations(exist_pics, picklist, update_picked, 'true')
+                            if stock.location.zone.zone == 'BAY_AREA':
+                                reduce_putaway_stock(stock, update_picked, user.id)
+                            dec_quantity = pre_stock - float(stock.quantity)
+                            if stock.pallet_detail:
+                                update_picklist_pallet(stock, update_picked)
+                            stock.save()
+                            seller_stock_objs.append(stock)
+                            mod_locations.append(stock.location.location)
+                            picking_count1 += update_picked
+                        picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
+                        if picklist.reserved_quantity == 0:
+                            # Auto Shipment check and Mapping the serial Number
+                            if picklist.order and picklist.order.order_type == 'Transit':
+                                serial_order_mapping(picklist, user)
+                            if picklist.status == 'batch_open':
+                                picklist.status = 'batch_picked'
+                            else:
+                                picklist.status = 'picked'
+                            if picklist.order:
+                                check_and_update_order(user.id, picklist.order.original_order_id)
+                            all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
+                        picklist.save()
+                        if user_profile.user_type == 'marketplace_user' and picklist.order:
+                            create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
+                                                        seller_stock_objs)
+                        else:
+                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
+                        picked_status = ""
+                        if picklist.picked_quantity > 0 and picklist.order:
+                            if merge_flag:
+                                quantity = picklist.picked_quantity
+                            else:
+                                quantity = picking_count1
+                            if picklist.order.order_id in picklists_send_mail.keys():
+                                if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                                    qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
+                                    picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty + float(
+                                        quantity)
+                                else:
+                                    picklists_send_mail[picklist.order.order_id].update(
+                                        {picklist.order.sku.sku_code: float(quantity)})
+
+                            else:
+                                picklists_send_mail.update(
+                                    {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
+                        count = count - picking_count1
+                        auto_skus.append(val['wms_code'])
+            for grn_dict in grn_number_dict.values():
+                update_sku_avg_from_grn(grn_dict['warehouse'], grn_dict['grn_number'])
         if auto_skus:
             auto_skus = list(set(auto_skus))
             if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(auto_skus, user)
@@ -9651,19 +9675,25 @@ def picklist_delete(request, user=""):
                 updated_st_ids = []
                 for picklist in  picklist_objs :
                     st_orders = STOrder.objects.filter(picklist = picklist.id)
-                    stock_transfer_obj = st_orders[0].stock_transfer
-                    if stock_transfer_obj.id in updated_st_ids:
-                        continue
-                    uom_dict = get_uom_with_sku_code(user, picklist.stock.sku.wms_code, uom_type='purchase')
-                    pcf = uom_dict['sku_conversion']
-                    st_picked_quantity = Picklist.objects.filter(picklist_number=picklist.picklist_number,\
-                                                               stock__sku__user =user.id,\
-                                                               stock__sku__wms_code = picklist.stock.sku.wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-                    stock_transfer_obj.picked_quantity = st_picked_quantity/pcf
-                    stock_transfer_obj.quantity = stock_transfer_obj.quantity - stock_transfer_obj.picked_quantity
-                    stock_transfer_obj.status = 1
-                    stock_transfer_obj.save()
-                    updated_st_ids.append(stock_transfer_obj.id)
+                    for st_order in st_orders:
+                        stock_transfer_obj = st_order.stock_transfer
+                        if stock_transfer_obj.id in updated_st_ids:
+                            continue
+                        uom_dict = get_uom_with_sku_code(user, picklist.stock.sku.wms_code, uom_type='purchase')
+                        pcf = uom_dict['sku_conversion']
+                        st_picklist_objs = Picklist.objects.filter(picklist_number=picklist.picklist_number,\
+                                                                   stock__sku__user =user.id,\
+                                                                   stock__sku__wms_code = picklist.stock.sku.wms_code,
+                                                                   storder__id=st_order.id).\
+                                                                   aggregate(Sum('picked_quantity'),Sum('reserved_quantity'))
+                        st_picked_quantity = st_picklist_objs['picked_quantity__sum']
+                        st_reserved_quantity = st_picklist_objs['reserved_quantity__sum']
+                        stock_transfer_obj.picked_quantity = st_picked_quantity/pcf
+                        if stock_transfer_obj.status == 1:
+                            stock_transfer_obj.quantity = stock_transfer_obj.quantity + float(st_reserved_quantity/pcf)
+                        stock_transfer_obj.status = 1
+                        stock_transfer_obj.save()
+                        updated_st_ids.append(stock_transfer_obj.id)
 
             if order_ids or stock_transfer_order :
                 if not stock_transfer_order :

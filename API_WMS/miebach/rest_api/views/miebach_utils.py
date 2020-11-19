@@ -2453,6 +2453,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
                         'inventory_adjust_report': 'get_adjust_filter_data',
                         'inventory_aging_report': 'get_aging_filter_data',
+                        'get_material_request_report': 'get_material_request_report_data',
                         'stock_summary_report': 'get_stock_summary_data',
                         'daily_production_report': 'get_daily_production_data',
                         'order_summary_report': 'get_order_summary_data',
@@ -3270,10 +3271,12 @@ MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
     ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')
 ))
 MATERIAL_REQUEST_MAPPING = OrderedDict((('Material Request ID', 'order_id'),
-    ('Source Plant Code', 'plant_code'), ('Department', 'warehouse_name'),
+    ('Source Plant Code', 'plant_code'), ('Department/Destination Plant Code', 'warehouse_name'),
     ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
-    ('Quantity', 'quantity'), ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
+    ('Quantity', 'quantity'), ('Price', 'price'), ('Cgst(%)', 'cgst_tax'),
+    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'),
+    ('Date(DD.MM.YYYY)', 'date'), ('Batch No', 'batch_no'),
     ('Type(MR/ST_INTRA/ST_INTER)', 'st_type')
 ))
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
@@ -3339,9 +3342,12 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
 
 USER_PREFIXES_MAPPING = OrderedDict((('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
-                                     ('PO Prefix', 'po_prefix'), ('GRN prefix', 'grn_prefix'),
+                                     ('PO Prefix', 'po_prefix'), ('PO GRN prefix', 'grn_prefix'),
                                      ('Invoice Prefix', 'invoice_prefix'), ('Stock Transfer Prefix', 'st_prefix'),
-                                     ('Material Request Prefix', 'mr_prefix')
+                                     ('Material Request Prefix', 'mr_prefix'),
+                                     ('Stock Transfer GRN Prefix', 'st_grn_prefix'),
+                                     ('Stock Transfer Sale GRN Prefix', 'so_grn_prefix'),
+                                     ('Material Request GRN Prefix', 'mr_grn_prefix'),
                                      ))
 
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']
@@ -3440,6 +3446,11 @@ CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), 
                                           ('Department', 'department'), ('SKU Code', 'sku_code'),
                                           ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
+
+CONSUMPTION_FILE_MAPPING = OrderedDict(( ('Date(YYYY-MM-DD)', 'closing_date'), ('Warehouse', 'warehouse'),
+                                         ('SKU Code', 'sku_code'), ('Purchase UOM Quantity', 'purchase_uom_quantity'),
+                                         ('Amount', 'amount')
+                                       ))
 
 def fn_timer(function):
     @wraps(function)
@@ -10829,8 +10840,9 @@ def get_material_request_report_data(request, search_params, user, sub_user):
 
 
 def get_stock_transfer_report_data(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants_depts,\
-    get_related_users_filters
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
+        get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
+        get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10984,9 +10996,8 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                     'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
                 if batch_data.exists():
                     batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                    expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
-                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                        "%d %b, %Y")
+                    expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if  batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                      ('Source Warehouse', user.username), ('Destination Warehouse', destination),

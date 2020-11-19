@@ -85,6 +85,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withOption('drawCallback', function(settings) {
           vm.service.make_selected(settings, vm.selected);
         })
+        .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {

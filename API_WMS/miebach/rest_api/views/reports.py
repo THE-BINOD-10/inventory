@@ -1558,6 +1558,8 @@ def excel_reports(request, user=''):
         params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
+    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report']:
+        params = [request, search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
     if 'datatable=customerView' in form_data:

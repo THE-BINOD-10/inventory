@@ -5670,13 +5670,8 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
 
 @csrf_exempt
 def get_sku_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku_desc', 'sku_group', 'sku_brand', 'sku_type',
-           'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
-           'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
-           'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
-           'measurement_type', 'sale_through', 'mix_sku', 'color', 'ean_number', 'load_unit_handle',
-           'hsn_code', 'sub_category', 'primary_category', 'shelf_life', 'youtube_url', 'enable_serial_based',
-           'block_options', 'substitutes', 'batch_based', 'creation_date', 'updation_date', 'user']
+    lis = ['requested_user_id'] * 16
+    lis.extend(['doa_status', 'requested_user_id', 'wh_user__first_name'])
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
@@ -5696,11 +5691,11 @@ def get_sku_mapping_doa(start_index, stop_index, temp_data, search_term, order_t
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+        mapping_results = MastersDOA.objects.filter(wh_user__in=users,
                     model_name="SKUMaster",
                     doa_status__in=["pending", "rejected"]).order_by(order_data)
     else:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+        mapping_results = MastersDOA.objects.filter(wh_user__in=users,
                     model_name="SKUMaster",
                     doa_status__in=["pending", "rejected"]).order_by(order_data)
 
@@ -5708,12 +5703,15 @@ def get_sku_mapping_doa(start_index, stop_index, temp_data, search_term, order_t
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for row in mapping_results[start_index: stop_index]:
         result = json.loads(row.json_data)
-        if row.requested_user.is_staff:
-            warehouse = row.requested_user
-
-        else:
-            warehouse = get_admin(row.requested_user)
-
+        warehouse = row.wh_user
+        # if row.requested_user.is_staff:
+        #     warehouse = row.requested_user
+        #
+        # else:
+        #     warehouse = get_admin(row.requested_user)
+        requested_user_name = row.requested_user.first_name
+        if not requested_user_name:
+            requested_user_name = row.requested_user.username
         temp_data['aaData'].append(OrderedDict((('sku_desc', result.get('sku_desc', '')),
                                                 ('sequence', result.get('sequence', '')),
                                                 ('max_norm_quantity', result.get('max_norm_quantity', '')),
@@ -5734,7 +5732,7 @@ def get_sku_mapping_doa(start_index, stop_index, temp_data, search_term, order_t
                                                 ('color', result.get('color', '')), ('zone_id', result.get('zone_id', '')),('block_options', result.get('block_options', '')),
                                                 ('sku_class', result.get('sku_class', '')),('image_url', result.get('image_url', '')),('product_type', result.get('product_type', '')),
                                                 ('online_percentage', result.get('online_percentage', '')),('sku_size', result.get('sku_size', '')),
-                                                ('requested_user', row.requested_user.first_name),
+                                                ('requested_user', requested_user_name),
                                                 ('warehouse', warehouse.username),
                                                 ('status', result.get('status', '')),
                                                 ('doa_status', row.doa_status),
@@ -6199,12 +6197,12 @@ def insert_sku_doa(request, user=''):
                 if k not in respFields:
                     data_dict.pop(k)
         userQs = UserGroups.objects.filter(user=user)
-        parentCompany = userQs[0].company_id
+        parentCompany = get_company_id(user) #userQs[0].company_id
         admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
         admin_user = admin_userQs[0].user
         req_user = request.user
-        if not request.user.is_staff:
-            req_user = user
+        # if not request.user.is_staff:
+        #     req_user = user
         data_dict['request_type'] = "NEW"
         model_name = instanceName.__name__
         doa_dict = {

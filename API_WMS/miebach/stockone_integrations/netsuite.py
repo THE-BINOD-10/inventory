@@ -376,7 +376,8 @@ class netsuiteIntegration(object):
                 purorder.department = ns.RecordRef(internalId=po_data['department'])
 
             if (po_data.get("payment_code", None)):
-                purorder.terms = po_data.get("payment_code")
+                purorder.terms = ns.ListOrRecordRef(internalId=po_data.get("payment_code"))
+                # purorder.terms = po_data.get("payment_code")
             if (po_data.get("address_id", None)):
                 purorder.billAddressList = ns.ListOrRecordRef(internalId=po_data.get("address_id"))
 

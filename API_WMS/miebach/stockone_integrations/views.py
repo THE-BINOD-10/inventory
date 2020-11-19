@@ -356,8 +356,13 @@ class Integrations():
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
                 if action  =='upsert':
-                    po_initialize= self.connectionObject.complete_transaction(records, True, "initialize")
-                    records= self.match_itemlist_data(records, po_initialize, is_multiple)
+                    try:
+                        po_initialize= self.connectionObject.complete_transaction(records, True, "initialize")
+                        records= self.match_itemlist_data(records, po_initialize, is_multiple)
+                    except Exception as e:
+                        import traceback
+                        log_err.debug(traceback.format_exc())
+                        log_err.info('po_initialize GRN data failed for %s and error was %s' % (str(records), str(e)))
                 result = self.connectionObject.complete_transaction(records, is_multiple, action)
             if len(result):
                 for row in result:
@@ -396,12 +401,12 @@ class Integrations():
 
     def getRelatedJson(self, recordType, action='upsert'):
         rows = IntegrationMaster.objects.filter(
-            user=self.userObject,
+            #user=self.userObject,
             integration_type=self.integration_type,
             module_type=recordType,
             action_type=action,
             integration_error__in=["null","","-"]
-        ).exclude(status=True)
+        ).exclude(status=True).order_by('creation_date')
         data = []
         try:
             for row in rows:
@@ -412,7 +417,7 @@ class Integrations():
 
     def writeJsonToFile(self, recordType, data, unique_variable, action='upsert'):
         b = IntegrationMaster(
-                user=self.userObject,
+                #user=self.userObject,
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,
@@ -423,7 +428,7 @@ class Integrations():
 
     def markResults(self, recordType, data, action='upsert'):
         resultArr = IntegrationMaster.objects.filter(
-                user=self.userObject,
+                #user=self.userObject,
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,
@@ -474,7 +479,8 @@ class Integrations():
                                                                 'type': None
                                                         },
                                                         'orderLine': line_item['orderLine'],
-                                                        'itemReceive': False
+                                                        'itemReceive': False,
+                                                        'duplicate_sku_flag':True
                                                 })
                     final_GRN_data.append(row)
                 except Exception as e:

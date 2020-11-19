@@ -1269,6 +1269,7 @@ def print_po_reports(request, user=''):
     total_tax_value = 0
     tax_value = 0
     overall_discount = 0
+    tcs_val = 0
     for data in results:
         receipt_type = ''
         lr_number = ''
@@ -1438,6 +1439,7 @@ def print_po_reports(request, user=''):
         if receipt_no:
             po_reference = '%s/%s' % (po_reference, receipt_no)
         if purchase_order.sellerposummary_set.filter().exists():
+            tcs_val = purchase_order.sellerposummary_set.filter(grn_number=grn_number).order_by('-creation_date')[0].tcs_value
             seller_po_summary_date = purchase_order.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
             order_date = get_local_date(request.user, seller_po_summary_date)
         else:
@@ -1458,6 +1460,7 @@ def print_po_reports(request, user=''):
     # if receipt_type == 'Hosted Warehouse':
     #    title = 'Stock Transfer Note'
     net_amount = total - overall_discount
+    net_amount = net_amount + float(tcs_val)
     if total:
         tax_value = (total * total_tax) / (100 + total_tax)
         tax_value = float("%.2f" % total_tax_value)
@@ -1481,7 +1484,7 @@ def print_po_reports(request, user=''):
                    'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
                    'po_number': grn_number, 'company_address': w_address, 'company_name': user_profile.company.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'file_url':invoice_file_name,
-                   'overall_discount': overall_discount, 'grn_po_number': grn_po_number,
+                   'overall_discount': overall_discount, 'grn_po_number': grn_po_number, 'tcs_val':tcs_val,
                    'st_grn':st_grn, 'warehouse_store': warehouse_store, 'total_gross_value': float("%.2f" % total) - tax_value,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
                    'net_amount': float("%.2f" % net_amount),

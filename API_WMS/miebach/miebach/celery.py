@@ -9,12 +9,24 @@ from kombu import Queue
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'miebach.settings')
 
 app = Celery('miebach',
-             broker='redis://', include=['rest_api.views.customscriptdontpushtogit'])
+            #  broker='redis://', include=['rest_api.views.customscriptdontpushtogit'])
+            broker='redis://', include=[ 'stockone_integrations.automate' ,'rest_api.views.customscriptdontpushtogit'])
              #include=['stockone_integrations.automate', 'rest_api.views.customscriptdontpushtogit'])
 
 
 #app.config_from_object('django.conf:settings', namespace='CELERY')
 #app.conf.timezone = 'Asia/Kolkata'
+
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.conf.timezone = 'Asia/Kolkata'
+app.conf.CELERYBEAT_SCHEDULE = {
+    'integrate_data': {
+            'task': 'stockone_integrations.automate.runStoredAutomatedTasks',
+            'schedule': crontab(minute='*/60'),
+             #'schedule': crontab(minute='*/5'),
+            'args': None
+    },
+}
 app.conf.task_default_queue = 'default'
 app.conf.task_queues = (
     Queue('queueA',    routing_key='tasks.task_1'),

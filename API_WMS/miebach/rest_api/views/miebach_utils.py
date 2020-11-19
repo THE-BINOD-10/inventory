@@ -15174,7 +15174,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                    'open_po__sku__sku_desc', 'open_po__sku__hsn_code', 'open_po__delivery_date', 'updation_date',
                    'open_po__sku__sku_group', 'open_po__sku__style_name', 'open_po__sku__sku_brand','open_po__measurement_unit',
                    'open_po__supplier__supplier_id', 'open_po__supplier__name', 'open_po__delivery_date','po_date',
-                   'open_po__sku__sub_category', 'updation_date', 'creation_date', 'open_po__order_quantity',
+                   'open_po__sku__sub_category', 'updation_date', 'creation_date', 'open_po__order_quantity', 'status', 'reason',
                    'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price', 'received_quantity', 'id']
 
     model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
@@ -15212,7 +15212,15 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         delivery_date = result['open_po__delivery_date']
         po_update_date = result['updation_date']
         po_date = result['po_date']
-        final_status = 'Appproved'
+        final_status = result['status']
+        if result['received_quantity'] == result['open_po__order_quantity']:
+            final_status = 'Received'
+        elif result['status'] == 'location-assigned' and result['reason'] and result['received_quantity'] == 0:
+            final_status = "%s - %s" % ('Cancelled', result['reason'])
+        elif result['status'] == 'location-assigned' and result['reason'] and result['received_quantity'] > 0:
+            final_status = "%s - %s" % ('Partially Cancelled', result['reason'])
+        elif result['received_quantity'] > 0:
+            final_status = 'Partially Received'
         if pr_creation_date:
             pr_date = get_local_date(user, pr_creation_date)
         if delivery_date:
@@ -15272,7 +15280,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             if po_created_date:
                 po_date = get_local_date(user, po_created_date)
             po_updation_date = pr_data['updation_date']
-            final_status = pr_data['final_status']
+            #final_status = pr_data['final_status']
             all_approvals = all_approvals[0:-1]
             if po_updation_date:
                 po_update_date = get_local_date(user, po_updation_date)

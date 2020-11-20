@@ -5323,6 +5323,8 @@ def get_supplier_data(request, users=''):
             request_button = False
             sku_conversion, measurement_unit, base_uom = '', '', ''
             sku_conversion, measurement_unit, base_uom = get_uom_data(user, order_data['sku'], 'Purchase')
+            if order.pcf:
+                sku_conversion = order.pcf
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     if(model_id):

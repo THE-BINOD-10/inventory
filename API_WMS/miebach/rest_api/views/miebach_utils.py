@@ -4647,7 +4647,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                      "purchase_order__open_po__vendor__vendor_id", "purchase_order__open_po__vendor__name",
                      "purchase_order__open_po__vendor__creation_date", "status", "credit_status",
                      "credit__credit_number",
-                     "purchase_order__po_number", "quantity"
+                     "purchase_order__po_number", "quantity", "purchase_order__pcf"
                      ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'purchase_order__open_po__order_quantity'
@@ -4916,8 +4916,10 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             base_uom = uom_dict.get('base_uom')
             sku_conversion = uom_dict.get('sku_conversion')
             purchase_uom = uom_dict.get('measurement_unit')
-            purchase_quantity = data['quantity']
-            base_quantity = purchase_quantity * sku_conversion
+        if data['purchase_order__pcf']:
+            sku_conversion = data['purchase_order__pcf']
+        purchase_quantity = data['quantity']
+        base_quantity = purchase_quantity * sku_conversion
         sku_user = data['purchase_order__open_po__sku__user']
         if sku_user:
             user = User.objects.filter(id=sku_user)[0]

@@ -1654,15 +1654,18 @@ def generated_pr_data(request, user=''):
     pr_delivery_date = ''
     pr_created_date = ''
     central_po_data = ''
+    pr_remarks = ''
     validateFlag = 0
     uploaded_file_dict = {}
-    if len(record):
+    if len(record) > 0:
+        if record[0].remarks:
+            pr_remarks = record[0].remarks
+        else:
+            pr_remarks = record[0].pending_prs.filter()[0].remarks
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
-    # prApprQs = PurchaseApprovals.objects.filter(pr_user=user.id, openpr_number=pr_number)
-
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
     if master_docs.exists():
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
@@ -1782,6 +1785,7 @@ def generated_pr_data(request, user=''):
                                     'sku_category': record[0].sku_category,
                                     'product_category': record[0].product_category,
                                     'store': store, 'department': department,
+                                    'approval_remarks': pr_remarks,
                                     'pa_uploaded_file_dict':pa_uploaded_file_dict}))
 
 
@@ -3928,7 +3932,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_po_number'] = full_pr_number
-
+        if myDict.get('approval_remarks', ''):
+            purchaseMap['remarks'] = myDict.get('approval_remarks', '')
     else:
         model_name = PendingPR
         purchaseMap['pr_number'] = purchase_number
@@ -9571,6 +9576,7 @@ def confirm_add_po(request, sales_data='', user=''):
     po_id = ''
     prQs = ''
     check_prefix = ''
+    po_remarks = ''
     try:
         if is_purchase_request == 'true':
             # pr_number = int(request.POST.get('pr_number'))
@@ -9583,6 +9589,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 po_creation_date = prObj.creation_date
                 po_id = prObj.po_number
                 full_po_number = prObj.full_po_number
+                po_remarks = prObj.remarks
                 prefix = prObj.prefix
                 delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
                 product_category = prObj.product_category
@@ -9917,7 +9924,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                      'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
-                     'terms_condition': terms_condition,'supplier_pan':supplier_pan,
+                     'terms_condition': terms_condition,'supplier_pan':supplier_pan, 'remarks': po_remarks,
                      'company_address': company_address.encode('ascii', 'ignore'), 'company_details': company_details,
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs, request)

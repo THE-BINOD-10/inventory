@@ -11556,21 +11556,21 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
                 data_dict[key] = reqDate
-            elif key == 'plant_name':
+            elif key == 'plant_code':
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
-                    user_obj = all_users.filter(first_name=cell_data)
+                    user_obj = all_users.filter(userprofile__stockone_code=cell_data)
                     if not user_obj:
-                        index_status.setdefault(row_idx, set()).add('Invalid Plant Name')
+                        index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
                     else:
                         data_dict['user'] = user_obj[0]
                         user = user_obj[0]
                         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                                                warehouse=[user.username])
                 else:
-                    index_status.setdefault(row_idx, set()).add('Plant Name is Mandatory')
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
             elif key == 'department':
                 if cell_data:
                     if cell_data not in dept_mapping_res.keys():
@@ -11680,8 +11680,8 @@ def closing_stock_upload(request, user=''):
     try:
         with transaction.atomic('default'):
             loop_counter = 1
-            all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
-                select_for_update()
+            #all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
+            #    select_for_update()
             for group_key, final_data in data_list.items():
                 print 'Updating: %s' % str(loop_counter)
                 loop_counter += 1

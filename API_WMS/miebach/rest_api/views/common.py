@@ -2468,7 +2468,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
             if transact_date:
-                dest_stocks.creation_date=transact_date
+                dest_stocks.creation_date = transact_date
+                dest_stocks.receipt_date = transact_date
                 dest_stocks.save()
         else:
             dest_stocks = dest_stocks[0]
@@ -10836,7 +10837,8 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
             stock_dict['batch_detail_id'] = batch_obj.id
             stock = StockDetail.objects.create(**stock_dict)
             if transact_date:
-                stock.creation_date=transact_date
+                stock.creation_date = transact_date
+                stock.receipt_date = transact_date
                 stock.save()
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)

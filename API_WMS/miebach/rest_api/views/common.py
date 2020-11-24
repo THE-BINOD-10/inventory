@@ -12686,7 +12686,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         exist_batch_dict = {}
         if batch_detail:
             exist_batch_dict = copy.deepcopy(batch_detail.__dict__)
-        if order_typ == 'ST_INTER' or not batch_detail:
+        if order_typ in ['MR', 'ST_INTRA', 'ST_INTER'] or not batch_detail:
             exist_batch_dict['buy_price'] = purchase_data['price']
             exist_batch_dict['tax_percent'] = float(purchase_data['cgst_tax']) + float(purchase_data['sgst_tax']) + \
                                               float(purchase_data['igst_tax'])
@@ -13783,7 +13783,7 @@ def update_sku_avg_main(sku_amt, user, main_user):
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
+        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-11-01').\
                                     aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0

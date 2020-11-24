@@ -11942,7 +11942,15 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         for key, value in number_fields.iteritems():
             if order_mapping.has_key(key):
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-                if cell_data:
+                if key == 'price':
+                    try:
+                        cell_data = sku_master[0].average_price
+                    except Exception as e:
+                        cell_data = 0
+                        index_status.setdefault(count, set()).add('Invalid AVG Price %s' % number_fields[key])
+                        pass
+                    data_dict[key] = cell_data
+                elif cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(count, set()).add('Invalid %s' % number_fields[key])
                     data_dict[key] = cell_data
@@ -11963,7 +11971,6 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         if file_path:
             f_name = file_path
         return f_name
-
     all_data = {}
     for ind, final_data in enumerate(data_list):
         print 'Saving : %s' % str(ind)

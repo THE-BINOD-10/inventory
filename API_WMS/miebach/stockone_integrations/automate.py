@@ -28,9 +28,11 @@ batch = 50
 @app.task
 def runStoredAutomatedTasks():
     users = User.objects.filter()
+    userObj=User.objects.get(id=2)
     for row in ListOfExecution:
-        for userObj in users:
-            executeAutomatedTaskForUser(userObj, row)
+        executeAutomatedTaskForUser(userObj, row)
+        # for userObj in users:
+            # executeAutomatedTaskForUser(userObj, row)
 
 @app.task
 def executeAutomatedTaskForUser(userObj, row):

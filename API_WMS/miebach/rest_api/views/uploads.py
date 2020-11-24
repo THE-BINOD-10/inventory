@@ -11843,7 +11843,10 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if isinstance(plant_code, (int, float)):
                 plant_code = str(int(plant_code))
             try:
-                user = User.objects.get(userprofile__stockone_code=plant_code)
+                if st_type == 'MR':
+                    user = User.objects.get(userprofile__stockone_code=plant_code)
+                else:
+                    user = User.objects.get(username=plant_code)
                 data_dict['source'] = user
                 if st_type == 'MR':
                     dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username])
@@ -11877,7 +11880,10 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                     index_status.setdefault(count, set()).add('Invalid Destination Plant')
             if warehouse_name:
                 try:
-                    user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
+                    if st_type == 'MR':
+                        user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
+                    else:
+                        user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
@@ -11996,6 +12002,8 @@ def consumption_form(request, user=''):
 @csrf_exempt
 def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
+    date_time_str = '01/11/2020'
+    stock_exclude_date = datetime.datetime.strptime(date_time_str, '%d/%m/%Y')
     data_list = []
     inv_mapping = copy.deepcopy(CONSUMPTION_FILE_MAPPING)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
@@ -12051,7 +12059,7 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                 elif key in ['purchase_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
         if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lt=stock_exclude_date).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_quantity = stock_quantity if stock_quantity else 0
@@ -12060,8 +12068,9 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
             pcf = uom_dict['sku_conversion']
             pcf = pcf if pcf else 1
             stock_pquantity = stock_quantity/pcf
-            if stock_pquantity < data_dict['purchase_uom_quantity']:
-                index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
+            if round(stock_pquantity,4) < round(data_dict['purchase_uom_quantity'],4):
+                data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
+                #index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
             data_dict['stocks'] = stocks
             data_dict['uom_dict'] = uom_dict
             all_stocks = all_stocks | stocks
@@ -12139,7 +12148,7 @@ def consumption_upload(request, user=''):
                 consumption_data = ConsumptionData.objects.create(
                     sku_id=sku.id,
                     quantity=closing_adj,
-                    price=unit_price
+                    price=sku.average_price
                 )
                 ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
                 update_stock_detail(sku_stocks, closing_adj, user,

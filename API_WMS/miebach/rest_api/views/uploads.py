@@ -11556,7 +11556,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
                 data_dict[key] = reqDate
-            elif key == 'plant_code':
+            elif key == 'plant_name':
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
@@ -11602,11 +11602,13 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         data_dict[key] = float(cell_data)
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Base UOM Quantity')
-                elif key in ['base_uom_quantity', 'purchase_uom_quantity']:
+                elif key in ['base_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('Base UOM Quantity is Mandatory')
         #data_list.append(data_dict)
         if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0,
+                                                creation_date__lte=data_dict['closing_date']
+                                                ).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             sku_cond = (data_dict['user'].id, data_dict['sku'].sku_code)
             user_skus.setdefault(data_dict['user'].id, [])
@@ -11622,7 +11624,9 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
 
     if not index_status:
         for user_id, skus in user_skus.items():
-            remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0).\
+            remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0,
+                                                              creation_date__lte=data_dict['closing_date']
+                                                              ).\
                 exclude(sku__sku_code__in=skus)
             remaining_sku_list = remaining_sku_stocks.values_list('sku__sku_code', flat=True)
             user_id_obj = User.objects.get(id=user_id)

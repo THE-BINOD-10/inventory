@@ -11555,6 +11555,8 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                 else:
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
+                utc_date = reqDate + datetime.timedelta(1)
+                data_dict['closing_stock_date'] = utc_date
                 data_dict[key] = reqDate
             elif key == 'plant_code':
                 if cell_data:
@@ -11607,7 +11609,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
         #data_list.append(data_dict)
         if not index_status:
             stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0,
-                                                creation_date__lte=data_dict['closing_date']
+                                                creation_date__lt=data_dict['closing_stock_date']
                                                 ).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             sku_cond = (data_dict['user'].id, data_dict['sku'].sku_code)
@@ -11619,15 +11621,18 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                                         'indexes': []})
             all_data[sku_cond]['base_uom_qty'] += data_dict['base_uom_quantity']
             all_data[sku_cond]['stocks'] = all_data[sku_cond]['stocks'] | stocks
-            all_stocks = all_stocks | stocks
+            #all_stocks = all_stocks | stocks
             all_data[sku_cond]['indexes'].append(data_dict['row_index'])
 
     if not index_status:
         for user_id, skus in user_skus.items():
             remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0,
-                                                              creation_date__lte=data_dict['closing_date']
+                                                              creation_date__lt=data_dict['closing_stock_date']
                                                               ).\
-                exclude(sku__sku_code__in=skus)
+                exclude(sku__sku_code__in=skus).exclude(sku_id__in=AssetMaster.objects.all()).\
+                exclude(sku_id__in=ServiceMaster.objects.all()).\
+                exclude(sku_id__in=OtherItemsMaster.objects.all()). \
+                exclude(sku_id__in=TestMaster.objects.all())
             remaining_sku_list = remaining_sku_stocks.values_list('sku__sku_code', flat=True)
             user_id_obj = User.objects.get(id=user_id)
             for remaining_sku in remaining_sku_list:
@@ -11642,7 +11647,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                                     'user': data_dict['user'], 'base_uom_qty': 0,
                                     'indexes': []}
                 all_data[sku_cond]['stocks'] = all_data[sku_cond]['stocks'] | sku_remaining_objs
-                all_stocks = all_stocks | sku_remaining_objs
+                #all_stocks = all_stocks | sku_remaining_objs
     if not index_status:
         return 'Success', all_data, all_stocks
 
@@ -11689,7 +11694,7 @@ def closing_stock_upload(request, user=''):
                 sku = final_data['sku']
                 base_quantity = final_data['base_uom_qty']
                 last_date = get_utc_start_date(final_data['closing_date'])
-                sku_stocks = all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
+                sku_stocks = final_data['stocks']#all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
                 unit_price = sku.average_price
                 if not unit_price:
                     try:

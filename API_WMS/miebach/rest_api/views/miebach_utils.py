@@ -1750,7 +1750,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
-    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -3373,7 +3373,7 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
      ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
      ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
      ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1'),
-     ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics')])
+     ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics'), ('GENET', 'Genetics'), ('LENA', 'LENA'), ('NEHA', 'NEHA')])
 
 STAFF_MASTER_MAPPING = OrderedDict(
     (('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),
@@ -3442,7 +3442,7 @@ CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjus
                                           ('Unit Price', 'unit_price')
                                           ))
 
-CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), ('Plant Code', 'plant_code'),
+CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), ('Plant Name', 'plant_name'),
                                           ('Department', 'department'), ('SKU Code', 'sku_code'),
                                           ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
@@ -4647,7 +4647,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                      "purchase_order__open_po__vendor__vendor_id", "purchase_order__open_po__vendor__name",
                      "purchase_order__open_po__vendor__creation_date", "status", "credit_status",
                      "credit__credit_number",
-                     "purchase_order__po_number", "quantity"
+                     "purchase_order__po_number", "quantity", "purchase_order__pcf"
                      ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'purchase_order__open_po__order_quantity'
@@ -4916,8 +4916,10 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             base_uom = uom_dict.get('base_uom')
             sku_conversion = uom_dict.get('sku_conversion')
             purchase_uom = uom_dict.get('measurement_unit')
-            purchase_quantity = data['quantity']
-            base_quantity = purchase_quantity * sku_conversion
+        if data['purchase_order__pcf']:
+            sku_conversion = data['purchase_order__pcf']
+        purchase_quantity = data['quantity']
+        base_quantity = purchase_quantity * sku_conversion
         sku_user = data['purchase_order__open_po__sku__user']
         if sku_user:
             user = User.objects.filter(id=sku_user)[0]
@@ -15464,7 +15466,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
-                                    check_and_get_plants_wo_request, get_related_users_filters
+                                    check_and_get_plants_wo_request, get_related_users_filters, get_uom_with_sku_code
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -15475,7 +15477,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     search_parameters = {'sku__user__in': user_ids}
     lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
-            'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+            'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
 
     col_num = search_params.get('order_index', 0)
@@ -15498,7 +15500,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity']
+                    'quantity', 'stock_mapping__quantity', 'price']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
 
@@ -15525,6 +15527,11 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             mfg_date = str(result['stock_mapping__stock__batch_detail__manufactured_date'])
         if result['stock_mapping__stock__batch_detail__expiry_date']:
             exp_date = str(result['stock_mapping__stock__batch_detail__expiry_date'])
+        uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        pcf = pcf if pcf else 1
+        pqty = result['stock_mapping__quantity']/pcf
+        stock_value = pqty * result['price']
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
             ('Warehouse', first_name),
@@ -15532,8 +15539,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('SKU Code', result['sku__sku_code']),
             ('SKU Description', result['sku__sku_desc']),
             ('Location', result['stock_mapping__stock__location__location']),
-            ('Quantity', result['quantity']),
-            ('Purchase Uom Quantity', result['pquantity']),
+            ('Quantity', result['stock_mapping__quantity']),
+            ('Purchase Uom Quantity', pqty),
+            ('Stock Value', stock_value),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),

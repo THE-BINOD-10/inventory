@@ -10691,7 +10691,7 @@ def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
 
 
 def get_material_request_report_data(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants, get_related_users_filters, get_uom_with_sku_code
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10726,10 +10726,14 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
-    search_parameters['sku_id__in'] = sku_master_ids
+    #search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
     search_parameters['st_type'] = 'MR'
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
@@ -15478,7 +15482,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity', 'stock_mapping__quantity', 'price']
+                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
 
@@ -15508,6 +15512,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         pcf = pcf if pcf else 1
+        quantity = result['stock_mapping__quantity']
+        if result['quantity'] < 0:
+            quantity = -1 * quantity
         pqty = result['stock_mapping__quantity']/pcf
         stock_value = pqty * result['price']
         ord_dict = OrderedDict((

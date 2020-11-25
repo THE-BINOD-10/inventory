@@ -10748,7 +10748,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
         sgst = data.st_po.open_st.sgst_tax
         igst = data.st_po.open_st.igst_tax
         price = data.st_po.open_st.price
-        quantity = data.quantity
+        quantity = data.original_quantity
         net_value = quantity * price
         cgst_value = (net_value * cgst) / 100
         sgst_value = (net_value * sgst) / 100
@@ -10793,7 +10793,11 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
                     manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
-                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
+                uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+                qty_conversion = uom_dict['sku_conversion']
+                if not qty_conversion:
+                    qty_conversion = 1
+                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter(), conversion=qty_conversion)
                 if temp_stat:
                     status = temp_stat
                 ord_dict = OrderedDict(
@@ -10801,14 +10805,14 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                      ('Source Plant', user.first_name), ('Destination Department', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity), ('Pick Sequence', invoice_no.pick_number),
-                     ('Pick Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)),
+                     ('Pick Quantity', (float(invoice_quantity) / float(qty_conversion))),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                      ('Expiry Date', expiry_date)))
                 temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''
-            invoice_quantity = ''
+            invoice_quantity = 0
             invoice_wo_tax_amount = ''
             invoice_tax_amount = ''
             invoice_total_amount = ''

@@ -11853,7 +11853,8 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                 plant_code = str(int(plant_code))
             try:
                 if st_type == 'MR':
-                    user = User.objects.get(userprofile__stockone_code=plant_code)
+                    # user = User.objects.get(userprofile__stockone_code=plant_code)
+                    user = User.objects.get(username=plant_code)
                 else:
                     user = User.objects.get(username=plant_code)
                 data_dict['source'] = user

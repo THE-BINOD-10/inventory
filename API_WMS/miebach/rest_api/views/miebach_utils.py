@@ -1423,11 +1423,11 @@ STOCK_TRANSFER_REPORT_DICT = {
     ],
     'dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
                    'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
-                   'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
+                   'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                    'Total Invoice Amount', 'HSN Code', 'Status'],
     'mk_dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
                       'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
-                      'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
+                      'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Total Invoice Amount', 'HSN Code', 'Status',
                       'Batch Number', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
@@ -10903,7 +10903,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         sgst = data.st_po.open_st.sgst_tax
         igst = data.st_po.open_st.igst_tax
         price = data.st_po.open_st.price
-        quantity = data.quantity
+        quantity = data.original_quantity
         net_value = quantity * price
         cgst_value = (net_value * cgst) / 100
         sgst_value = (net_value * sgst) / 100
@@ -10950,7 +10950,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 if temp_stat:
                     status = temp_stat
                 invoice_quantity = invoice_no.quantity
-                invoice_wo_tax_amount = round(float(invoice_quantity) / float(qty_conversion), 2) * price
+                invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
                 invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
                 invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
                 ord_dict = OrderedDict(
@@ -10960,15 +10960,15 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                      ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                      ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
                      ('Unit Price', price), ('Tax Percentage', tax_percentage), ('Pick Sequence', invoice_no.pick_number),
-                     ('Invoice Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
+                     ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
                      ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
-                     ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                     ('Batch Number', batch_number), ('Manufactured Date', manufactured_date), ('Base UOM', float(invoice_quantity)),
                      ('Expiry Date', expiry_date)))
                 temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''
-            invoice_quantity = ''
+            invoice_quantity = 0
             invoice_wo_tax_amount = ''
             invoice_tax_amount = ''
             invoice_total_amount = ''
@@ -10993,7 +10993,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                  ('Unit Price', price), ('Tax Percentage', tax_percentage), ('Pick Sequence', pick_seq),
                  ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
                  ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
-                 ('HSN Code', data.sku.hsn_code), ('Status', status),
+                 ('HSN Code', data.sku.hsn_code), ('Status', status),('Base UOM', float(invoice_quantity)),
                  ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                  ('Expiry Date', expiry_date)))
             temp_data['aaData'].append(ord_dict)

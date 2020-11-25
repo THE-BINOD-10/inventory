@@ -11881,10 +11881,10 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if st_type == 'MR':
                 if not warehouse_name:
                     index_status.setdefault(count, set()).add('Invalid Department')
-                elif warehouse_name not in dept_mapping_res.keys():
-                    index_status.setdefault(count, set()).add('Invalid Department')
-                else:
-                    warehouse_name = dept_mapping_res[warehouse_name]
+                #elif warehouse_name not in dept_mapping_res.keys():
+                #    index_status.setdefault(count, set()).add('Invalid Department')
+                #else:
+                #    warehouse_name = dept_mapping_res[warehouse_name]
             else:
                 if not warehouse_name:
                     index_status.setdefault(count, set()).add('Invalid Destination Plant')

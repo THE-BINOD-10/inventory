@@ -13804,9 +13804,11 @@ def update_sku_avg_from_grn(user, grn_number):
     main_user = get_company_admin_user(user)
     if not grn_number:
         return
-    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-                                   grn_number=grn_number)
+    #sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+    #                               Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+    #                               grn_number=grn_number)
+    sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+                                  grn_number=grn_number)
     sku_amt = {}
     for sp in sps:
         price,tax = [0]*2

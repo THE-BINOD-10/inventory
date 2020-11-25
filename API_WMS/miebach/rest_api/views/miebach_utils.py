@@ -10926,10 +10926,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
                 #     'quantity')
                 # if invoice_data.exists():
-                # invoice_quantity = invoice_no.quantity
-                # invoice_wo_tax_amount = invoice_quantity * price
-                # invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
-                # invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
                 batch_number = ''
                 expiry_date = ''
                 manufactured_date = ''
@@ -10961,10 +10957,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                     ('Source Plant', user.username), ('Destination Department', destination),
+                     ('Source Warehouse', user.username), ('Destination Warehouse', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                     ('Order Quantity', quantity), ('Pick Sequence', invoice_no.pick_number),
-                     ('Pick Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)),
+                     ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
+                     ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
+                     ('Unit Price', price), ('Tax Percentage', tax_percentage),
+                     ('Invoice Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
+                     ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                      ('Expiry Date', expiry_date)))
@@ -10978,21 +10977,23 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
             batch_number = ''
             expiry_date = ''
             manufactured_date = ''
-            pick_seq = ''
             batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
                 'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
             if batch_data.exists():
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
-                manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
+                expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if  batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                 ('Source Plant', user.username), ('Destination Department', destination),
+                 ('Source Warehouse', user.username), ('Destination Warehouse', destination),
                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                 ('Order Quantity', quantity), ('Pick Sequence', pick_seq),
-                 ('Pick Quantity', invoice_quantity),
+                 ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
+                 ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
+                 ('Unit Price', price), ('Tax Percentage', tax_percentage),
+                 ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
+                 ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                  ('HSN Code', data.sku.hsn_code), ('Status', status),
                  ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                  ('Expiry Date', expiry_date)))
@@ -15469,7 +15470,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity', 'stock_mapping__quantity', 'stock_mapping__id', 'price']
+                    'quantity', 'stock_mapping__quantity', 'price']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
 
@@ -15499,10 +15500,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         pcf = pcf if pcf else 1
-        quantity = result['stock_mapping__quantity']
-        if result['quantity'] < 0:
-            quantity = -1 * quantity
-        pqty = quantity/pcf
+        pqty = result['stock_mapping__quantity']/pcf
         stock_value = pqty * result['price']
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),

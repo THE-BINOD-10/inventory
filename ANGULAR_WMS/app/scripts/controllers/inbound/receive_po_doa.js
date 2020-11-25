@@ -2709,7 +2709,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data.round_off_total = (Math.round(totals * 100) / 100) - overall_discount;
       vm.update_grn_total('', 'add');
     }
-
+    vm.update_tcs = function(tcs){
+      vm.calc_total_amt(event, vm.model_data, 0, 0);
+    }
     vm.pull_cls = "pull-right";
     vm.margin_cls = {marginRight: '50px'};
 
@@ -2737,13 +2739,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         var temp_roundoff_total = (Math.round(vm.skus_total_amount * 100) / 100) - overall_discount;
         vm.model_data.round_off_total = temp_roundoff_total;
+        var tcs = 0
+        if (vm.model_data.tcs) {
+          tcs = vm.model_data.tcs;
+        }
+        vm.model_data.round_off_total = vm.model_data.round_off_total + parseFloat(tcs);
         if (vm.model_data.other_charges.length > 0) {
           angular.forEach(vm.model_data.other_charges, function(charge) {
-            vm.model_data.round_off_total += parseInt(charge.amount);
+            vm.model_data.round_off_total += parseFloat(charge.amount);
           })
+        vm.model_data.round_off_total = Math.round(vm.model_data.round_off_total * 100)/100;
         }
       } else if (type == 'remove') {
-        vm.model_data.round_off_total -= parseInt(charges.amount);
+        vm.model_data.round_off_total -= parseFloat(charges.amount);
       }
     }
   }

@@ -1421,11 +1421,11 @@ STOCK_TRANSFER_REPORT_DICT = {
         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'Order ID', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
+    'dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
                    'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
                    'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
                    'Total Invoice Amount', 'HSN Code', 'Status'],
-    'mk_dt_headers': ['Date', 'Order ID', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
+    'mk_dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
                       'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
                       'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
                       'Total Invoice Amount', 'HSN Code', 'Status',
@@ -10675,19 +10675,15 @@ def print_sku_wise_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_mr_status(user, data_id, total_qty, all_data):
+def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
     status = ''
     temp_total = 0
     for invoice_no in all_data:
-        qty_conversion = 1
+        if conversion:
+            qty_conversion = conversion
+        else:
+            qty_conversion =1
         invoice_quantity = invoice_no.quantity
-        batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                                                    stock_transfer=data_id).values(
-                    'picklist__stock__batch_detail__batch_no',
-                    'picklist__stock__batch_detail__manufactured_date',
-                    'picklist__stock__batch_detail__expiry_date', 'picklist__stock__batch_detail__pcf')
-        if batch_data.exists():
-            qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
         temp_total = temp_total + round(float(invoice_quantity) / float(qty_conversion), 2)
     if float(total_qty) > temp_total:
         status = "Partially Received"
@@ -10844,7 +10840,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
 def get_stock_transfer_report_data(request, search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
-        get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params
+        get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params, get_uom_with_sku_code
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10886,7 +10882,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
-    search_parameters['sku_id__in'] = sku_master_ids
+    #search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
     if request.POST.get('special_key', ''):
         search_parameters['st_type'] = request.POST.get('special_key')
@@ -10920,7 +10916,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         manufacturer, searchable, bundle = '', '', ''
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
-                qty_conversion = 1
                 invoice_number = invoice_no.full_invoice_number
                 # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
                 #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
@@ -10942,13 +10937,16 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
                 #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
                 if batch_data.exists():
-                    qty_conversion = batch_data[0]['pick_loc__stock__batch_detail__pcf']
                     batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
                     expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
                     manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
-                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
+                uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+                qty_conversion = uom_dict['sku_conversion']
+                if not qty_conversion:
+                    qty_conversion = 1
+                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter(), conversion=qty_conversion)
                 if temp_stat:
                     status = temp_stat
                 invoice_quantity = invoice_no.quantity
@@ -10961,7 +10959,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                      ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
-                     ('Unit Price', price), ('Tax Percentage', tax_percentage),
+                     ('Unit Price', price), ('Tax Percentage', tax_percentage), ('Pick Sequence', invoice_no.pick_number),
                      ('Invoice Quantity', round(float(invoice_quantity) / float(qty_conversion), 2)), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
                      ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
@@ -10977,6 +10975,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
             batch_number = ''
             expiry_date = ''
             manufactured_date = ''
+            pick_seq = ''
             batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
@@ -10991,7 +10990,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
-                 ('Unit Price', price), ('Tax Percentage', tax_percentage),
+                 ('Unit Price', price), ('Tax Percentage', tax_percentage), ('Pick Sequence', pick_seq),
                  ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
                  ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                  ('HSN Code', data.sku.hsn_code), ('Status', status),
@@ -14115,9 +14114,14 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         else:
             pr_supplier_data = PendingPO.objects.filter(pending_prs__full_pr_number = result['pending_pr__full_pr_number'], pending_prs__sub_pr_number=result['pending_pr__sub_pr_number'])
             if pr_supplier_data.exists():
-                pr_supplier_id = pr_supplier_data[0].supplier.supplier_id
-                pr_supplier_name = pr_supplier_data[0].supplier.name
-                pr_supplier_gst = pr_supplier_data[0].supplier.tin_number
+                try:
+                    pr_supplier_id = pr_supplier_data[0].supplier.supplier_id
+                    pr_supplier_name = pr_supplier_data[0].supplier.name
+                    pr_supplier_gst = pr_supplier_data[0].supplier.tin_number
+                except:
+                    pr_supplier_id = ''
+                    pr_supplier_name = ''
+                    pr_supplier_gst = ''
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),

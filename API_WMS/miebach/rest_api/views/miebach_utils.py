@@ -10675,19 +10675,15 @@ def print_sku_wise_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_mr_status(user, data_id, total_qty, all_data):
+def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
     status = ''
     temp_total = 0
     for invoice_no in all_data:
-        qty_conversion = 1
+        if conversion:
+            qty_conversion = conversion
+        else:
+            qty_conversion =1
         invoice_quantity = invoice_no.quantity
-        batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                                                    stock_transfer=data_id).values(
-                    'picklist__stock__batch_detail__batch_no',
-                    'picklist__stock__batch_detail__manufactured_date',
-                    'picklist__stock__batch_detail__expiry_date', 'picklist__stock__batch_detail__pcf')
-        if batch_data.exists():
-            qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
         temp_total = temp_total + round(float(invoice_quantity) / float(qty_conversion), 2)
     if float(total_qty) > temp_total:
         status = "Partially Received"
@@ -10844,7 +10840,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
 def get_stock_transfer_report_data(request, search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
-        get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params
+        get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params, get_uom_with_sku_code
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10886,7 +10882,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
-    search_parameters['sku_id__in'] = sku_master_ids
+    #search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
     if request.POST.get('special_key', ''):
         search_parameters['st_type'] = request.POST.get('special_key')
@@ -10946,13 +10942,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
                     manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
-                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
-                if temp_stat:
-                    status = temp_stat
                 uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
                 qty_conversion = uom_dict['sku_conversion']
                 if not qty_conversion:
                     qty_conversion = 1
+                temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter(), conversion=qty_conversion)
+                if temp_stat:
+                    status = temp_stat
                 invoice_quantity = invoice_no.quantity
                 invoice_wo_tax_amount = round(float(invoice_quantity) / float(qty_conversion), 2) * price
                 invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100

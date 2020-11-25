@@ -15469,7 +15469,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity', 'stock_mapping__quantity', 'price']
+                    'quantity', 'stock_mapping__quantity', 'stock_mapping__id', 'price']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
 
@@ -15499,7 +15499,10 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         pcf = pcf if pcf else 1
-        pqty = result['stock_mapping__quantity']/pcf
+        quantity = result['stock_mapping__quantity']
+        if result['quantity'] < 0:
+            quantity = -1 * quantity
+        pqty = quantity/pcf
         stock_value = pqty * result['price']
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),

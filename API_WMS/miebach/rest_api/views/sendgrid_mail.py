@@ -19,7 +19,7 @@ def send_sendgrid_mail(from_address, send_to, subject, text, files=[]):
     try:
         if isinstance(send_to,list):
             send_to = [i for i in send_to if i]
-        send_to= list(set(send_to))
+        # send_to= list(set(send_to))
         to_list = Personalization()
         to_list.add_to(Email(send_to[0]))
         if len(send_to) > 1:

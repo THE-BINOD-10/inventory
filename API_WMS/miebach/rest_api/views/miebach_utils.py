@@ -10920,7 +10920,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         manufacturer, searchable, bundle = '', '', ''
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
-                qty_conversion = 1
                 invoice_number = invoice_no.full_invoice_number
                 # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
                 #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
@@ -10942,7 +10941,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
                 #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
                 if batch_data.exists():
-                    qty_conversion = batch_data[0]['pick_loc__stock__batch_detail__pcf']
                     batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
                     expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
@@ -10951,6 +10949,10 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter())
                 if temp_stat:
                     status = temp_stat
+                uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+                qty_conversion = uom_dict['sku_conversion']
+                if not qty_conversion:
+                    qty_conversion = 1
                 invoice_quantity = invoice_no.quantity
                 invoice_wo_tax_amount = round(float(invoice_quantity) / float(qty_conversion), 2) * price
                 invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100

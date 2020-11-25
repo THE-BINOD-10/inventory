@@ -12647,7 +12647,7 @@ def get_stocktransfer_picknumber(user , picklist):
         return 1
 
 def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
-                              batch_detail='', order_typ='', last_change_date=''):
+                              batch_detail='', order_typ='', last_change_date='', sps_created_obj=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12711,7 +12711,13 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                 'pcf': conv_value
             }
             created_batch = BatchDetail.objects.create(**batch_dict)
-        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
+        if sps_created_obj:
+            if created_batch:
+                sps_created_obj.batch_detail = created_batch
+                sps_created_obj.save()
+            seller_po_summary_obj = SellerPOSummary.objects.filter(id=sps_created_obj.id)
+        else:
+            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
         full_grn_number = ''
         if seller_po_summary_obj.exists():
             grn_price = seller_po_summary_obj[0].price
@@ -12787,7 +12793,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
         grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(warehouse, grn_prefix,
                                                                                                    sku_code,
                                                                                                    dept_code=dept_code)
-    seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=seller_receipt_id,
+    seller_po_summary = SellerPOSummary.objects.create(receipt_number=seller_receipt_id,
                                                                        quantity=quantity,
                                                                        putaway_quantity=quantity,
                                                                        purchase_order_id=po_data.id,
@@ -12795,7 +12801,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
-                              batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date)
+                              batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary)
     po_data.received_quantity += quantity
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'

@@ -12046,6 +12046,8 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                 else:
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
+                utc_date = reqDate + datetime.timedelta(1)
+                data_dict['closing_stock_date'] = utc_date
                 data_dict[key] = reqDate
             elif key == 'warehouse':
                 if cell_data:
@@ -12076,8 +12078,8 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif key in ['purchase_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
-        if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lt=stock_exclude_date).exclude(
+        if data_dict.get('sku', '') and data_dict.get('closing_stock_date', ''):
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lt=data_dict['closing_stock_date']).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_quantity = stock_quantity if stock_quantity else 0
@@ -12086,12 +12088,14 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
             pcf = uom_dict['sku_conversion']
             pcf = pcf if pcf else 1
             stock_pquantity = stock_quantity/pcf
-            if round(stock_pquantity,4) < round(data_dict['purchase_uom_quantity'],4):
-                data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
-                #index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
+            if stock_pquantity < data_dict['purchase_uom_quantity']:
+                #data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
+                print stock_pquantity
+                import pdb;pdb.set_trace()
+                index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
             data_dict['stocks'] = stocks
             data_dict['uom_dict'] = uom_dict
-            all_stocks = all_stocks | stocks
+            #all_stocks = all_stocks | stocks
         data_list.append(data_dict)
     print index_status
     if not index_status:
@@ -12130,8 +12134,8 @@ def consumption_upload(request, user=''):
     try:
         with transaction.atomic('default'):
             loop_counter = 1
-            all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
-                select_for_update()
+            #all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
+            #    select_for_update()
             for final_data in data_list:
                 print 'Updating: %s' % str(loop_counter)
                 loop_counter += 1
@@ -12142,7 +12146,7 @@ def consumption_upload(request, user=''):
                 amount = final_data.get('amount', 0)
                 quantity = final_data['purchase_uom_quantity']
                 uom_dict = final_data['uom_dict']
-                sku_stocks = all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
+                sku_stocks = final_data['stocks'] #all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
                 closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
                 closing_qty = closing_qty if closing_qty else 0
                 unit_price = float(amount)/quantity

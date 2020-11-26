@@ -11317,7 +11317,6 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             import traceback
             print e
             print traceback.format_exc()
-            #import pdb;pdb.set_trace()
     print index_status
     if not index_status:
         return 'Success', all_data
@@ -11625,6 +11624,16 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
             all_data[sku_cond]['indexes'].append(data_dict['row_index'])
 
     if not index_status:
+        user_skus_copy = copy.deepcopy(user_skus)
+        for user_id in user_skus_copy.keys():
+            temp_usr = User.objects.get(id=user_id)
+            if temp_usr.userprofile.warehouse_type == 'DEPT':
+                temp_usr = get_admin(temp_usr)
+            dept_users_t = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[temp_usr.username])
+            dept_users_t = dept_users_t.exclude(id__in=user_skus.keys())
+            for dept_usr in dept_users_t:
+                if dept_usr.id not in user_skus.keys():
+                    user_skus[dept_usr.id] = []
         for user_id, skus in user_skus.items():
             remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0,
                                                               creation_date__lt=data_dict['closing_stock_date']
@@ -12091,7 +12100,6 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
             if stock_pquantity < data_dict['purchase_uom_quantity']:
                 #data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
                 print stock_pquantity
-                import pdb;pdb.set_trace()
                 index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
             data_dict['stocks'] = stocks
             data_dict['uom_dict'] = uom_dict

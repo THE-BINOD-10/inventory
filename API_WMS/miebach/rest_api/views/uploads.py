@@ -11853,7 +11853,8 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                 plant_code = str(int(plant_code))
             try:
                 if st_type == 'MR':
-                    user = User.objects.get(userprofile__stockone_code=plant_code)
+                    # user = User.objects.get(userprofile__stockone_code=plant_code)
+                    user = User.objects.get(username=plant_code)
                 else:
                     user = User.objects.get(username=plant_code)
                 data_dict['source'] = user
@@ -11880,17 +11881,18 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if st_type == 'MR':
                 if not warehouse_name:
                     index_status.setdefault(count, set()).add('Invalid Department')
-                elif warehouse_name not in dept_mapping_res.keys():
-                    index_status.setdefault(count, set()).add('Invalid Department')
-                else:
-                    warehouse_name = dept_mapping_res[warehouse_name]
+                #elif warehouse_name not in dept_mapping_res.keys():
+                #    index_status.setdefault(count, set()).add('Invalid Department')
+                #else:
+                #    warehouse_name = dept_mapping_res[warehouse_name]
             else:
                 if not warehouse_name:
                     index_status.setdefault(count, set()).add('Invalid Destination Plant')
             if warehouse_name:
                 try:
                     if st_type == 'MR':
-                        user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
+                        # user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
+                        user_obj = dept_users.get(username=warehouse_name)
                     else:
                         user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj

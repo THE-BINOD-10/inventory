@@ -11902,7 +11902,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                     if st_type == 'MR':
                         # user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
                         # user_obj = dept_users.get(username=warehouse_name)
-                        user_obj = User.objects.get(username=plant_code)
+                        user_obj = User.objects.get(username=warehouse_name)
                     else:
                         user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj

@@ -240,7 +240,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         sku_packs = 0
         measurement_type = sku.measurement_type
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
-        if quantity:
+        if total:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
                                                                                 sku__user=data[4])
             stock_batch = wms_code_obj.filter(batch_detail__isnull=False)

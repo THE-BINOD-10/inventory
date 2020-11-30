@@ -3371,7 +3371,7 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
      ('ACCFI', 'Account & Finance'), ('MARKE', 'Marketing'),
      ('ITTEC', 'Information Technology'), ('LEGAL', 'Legal Department'),
      ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
-     ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
+     ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'), ('IMMUNO', 'Immunoassay'),
      ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1'),
      ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics'), ('GENET', 'Genetics'), ('LENA', 'LENA'), ('NEHA', 'NEHA')])
 

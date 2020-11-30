@@ -240,7 +240,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         sku_packs = 0
         measurement_type = sku.measurement_type
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
-        if quantity:
+        if total:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
                                                                                 sku__user=data[4])
             stock_batch = wms_code_obj.filter(batch_detail__isnull=False)
@@ -2697,19 +2697,23 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         mrp = 0
         weight = ''
         price = 0
+        price_with_tax = 0
         tax = 0
         batch_id = ''
         mfg_date, exp_date = '', ''
         uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
+        pcf_for_val = 1
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
             weight = data.batch_detail.weight
             price = data.batch_detail.buy_price
             tax = data.batch_detail.tax_percent
+            price_with_tax = price + ((price/100)*tax)
             batch_id = data.batch_detail.id
             #pcf = data.batch_detail.pcf
+            pcf_for_val = data.batch_detail.pcf
             if data.batch_detail.manufactured_date:
                 manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
                 mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")
@@ -2731,6 +2735,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                 sub_zone = zone
                 zone = sub_zone_obj.zone.zone
         quantity = data.quantity/pcf
+        quantity_for_val = data.quantity/pcf_for_val
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
         plant_name = sku_user.first_name
@@ -2754,7 +2759,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Zone', zone), ('Sub Zone', sub_zone),
                                 ('Location', data.location.location),
                                 ('Quantity', get_decimal_limit(user.id, quantity)),
-                                ('Stock Value', '%.2f' % float(quantity * data.sku.average_price)),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
                                 ('dept_type', dept_type),

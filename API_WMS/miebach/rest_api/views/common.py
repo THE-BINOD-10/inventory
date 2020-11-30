@@ -2468,7 +2468,8 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_stocks.save()
                 change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
             if transact_date:
-                dest_stocks.creation_date=transact_date
+                dest_stocks.creation_date = transact_date
+                dest_stocks.receipt_date = transact_date
                 dest_stocks.save()
         else:
             dest_stocks = dest_stocks[0]
@@ -10836,7 +10837,8 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
             stock_dict['batch_detail_id'] = batch_obj.id
             stock = StockDetail.objects.create(**stock_dict)
             if transact_date:
-                stock.creation_date=transact_date
+                stock.creation_date = transact_date
+                stock.receipt_date = transact_date
                 stock.save()
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
@@ -12645,7 +12647,7 @@ def get_stocktransfer_picknumber(user , picklist):
         return 1
 
 def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
-                              batch_detail='', order_typ='', last_change_date=''):
+                              batch_detail='', order_typ='', last_change_date='', sps_created_obj=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12684,7 +12686,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         exist_batch_dict = {}
         if batch_detail:
             exist_batch_dict = copy.deepcopy(batch_detail.__dict__)
-        if order_typ == 'ST_INTER' or not batch_detail:
+        if order_typ in ['MR', 'ST_INTRA', 'ST_INTER'] or not batch_detail:
             exist_batch_dict['buy_price'] = purchase_data['price']
             exist_batch_dict['tax_percent'] = float(purchase_data['cgst_tax']) + float(purchase_data['sgst_tax']) + \
                                               float(purchase_data['igst_tax'])
@@ -12709,7 +12711,13 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                 'pcf': conv_value
             }
             created_batch = BatchDetail.objects.create(**batch_dict)
-        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
+        if sps_created_obj:
+            if created_batch:
+                sps_created_obj.batch_detail = created_batch
+                sps_created_obj.save()
+            seller_po_summary_obj = SellerPOSummary.objects.filter(id=sps_created_obj.id)
+        else:
+            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
         full_grn_number = ''
         if seller_po_summary_obj.exists():
             grn_price = seller_po_summary_obj[0].price
@@ -12785,7 +12793,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
         grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(warehouse, grn_prefix,
                                                                                                    sku_code,
                                                                                                    dept_code=dept_code)
-    seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=seller_receipt_id,
+    seller_po_summary = SellerPOSummary.objects.create(receipt_number=seller_receipt_id,
                                                                        quantity=quantity,
                                                                        putaway_quantity=quantity,
                                                                        purchase_order_id=po_data.id,
@@ -12793,7 +12801,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
-                              batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date)
+                              batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary)
     po_data.received_quantity += quantity
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
@@ -13777,11 +13785,12 @@ def get_kerala_cess_tax(tax, supplier):
 
 
 def update_sku_avg_main(sku_amt, user, main_user):
+    return
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
+        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-11-01').\
                                     aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
@@ -13802,9 +13811,11 @@ def update_sku_avg_from_grn(user, grn_number):
     main_user = get_company_admin_user(user)
     if not grn_number:
         return
-    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-                                   grn_number=grn_number)
+    #sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+    #                               Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+    #                               grn_number=grn_number)
+    sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+                                  grn_number=grn_number)
     sku_amt = {}
     for sp in sps:
         price,tax = [0]*2

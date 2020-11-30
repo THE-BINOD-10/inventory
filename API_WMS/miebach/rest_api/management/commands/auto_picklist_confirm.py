@@ -169,13 +169,13 @@ class Command(BaseCommand):
                                 picking_count1 = 0  # picking_count
                                 wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                                 if not val.get('batchno', ''):
-                                    total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', **pic_check_data).\
+                                    total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', creation_date__lt='2020-11-01', **pic_check_data).\
                                                             distinct().select_for_update()
-                                    total_stock2 = StockDetail.objects.using('default').filter(**pic_check_data).\
+                                    total_stock2 = StockDetail.objects.using('default').filter(creation_date__lt='2020-11-01', **pic_check_data).\
                                                             exclude(batch_detail__batch_no='').distinct().select_for_update()
                                     total_stock = total_stock1 | total_stock2
                                 else:
-                                    total_stock = StockDetail.objects.using('default').filter(**pic_check_data).distinct().select_for_update()
+                                    total_stock = StockDetail.objects.using('default').filter(creation_date__lt='2020-11-01', **pic_check_data).distinct().select_for_update()
                                 if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                                     insert_order_serial(picklist, val)
                                 if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -434,7 +434,7 @@ class Command(BaseCommand):
 
 
         start_params = {'reserved_quantity__gt': 0, 'status__icontains': 'open'}
-        total_picklists = Picklist.objects.select_related('order', 'stock').filter(storder__stock_transfer__st_type='MR', **start_params)
+        total_picklists = Picklist.objects.select_related('order', 'stock').filter(storder__stock_transfer__st_type='ST_INTRA', **start_params)
         dist_total_picklists = total_picklists.values('picklist_number', 'stock__sku__user').distinct()
         for mrpicklist in dist_total_picklists:
             print '---------------------------------------------------------------------------------------'

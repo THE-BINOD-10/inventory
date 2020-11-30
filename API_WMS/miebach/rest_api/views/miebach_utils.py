@@ -15516,7 +15516,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         quantity = result['stock_mapping__quantity']
         if result['quantity'] < 0:
             quantity = -1 * quantity
-        pqty = result['stock_mapping__quantity']/pcf
+        pqty = quantity/pcf
         stock_value = pqty * result['price']
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
@@ -15526,7 +15526,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('SKU Code', result['sku__sku_code']),
             ('SKU Description', result['sku__sku_desc']),
             ('Location', result['stock_mapping__stock__location__location']),
-            ('Quantity', result['stock_mapping__quantity']),
+            ('Quantity', quantity),
             ('Purchase Uom Quantity', pqty),
             ('Stock Value', stock_value),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),

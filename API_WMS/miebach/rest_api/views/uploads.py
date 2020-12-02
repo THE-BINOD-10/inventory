@@ -11202,15 +11202,15 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                         buom_list = map(lambda x: x['base_uom'].lower(), uom_data)
                         #if not cell_data.lower() in buom_list:
                         #    index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
             elif key == 'purchase_uom':
                 if cell_data:
                     data_dict[key] = cell_data
                     #if not cell_data.lower() in puom_list:
                     #    index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
             elif key == 'batch_number':
                 if data_dict.get('sku', '') and data_dict.get('adjustment_date', ''):
                     first_date = data_dict['adjustment_date'].replace(day=1)
@@ -11246,7 +11246,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             all_data[sku_cond]['data'].setdefault(cond, {'stocks': StockDetail.objects.none(), 'sku': data_dict['sku'], 'location': {},
                                         'conversion_factor': data_dict['conversion_factor'],
                                         'batch_id': batch_id, 'adjustment_date': data_dict['adjustment_date'],
-                                        'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict['purchase_uom'],
+                                        'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict.get('purchase_uom', ''),
                                         'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': [],
                                        'last_date': data_dict['last_date'], 'batch_number': data_dict['batch_number'],
                                         'unit_price': data_dict.get('unit_price', 0), 'expiry_date': data_dict.get('expiry_date', '')})
@@ -11304,7 +11304,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                     remaining_stock = remaining_stocks[0]
                     closing_adj = remaining_stocks.aggregate(Sum('quantity'))['quantity__sum']
                     new_cond = (sku_group_key[0], sku_group_key[1], '')
-                    all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data['purchase_uom'], 'base_uom_qty': 0, 'purchase_uom_qty': 0,
+                    all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data.get('purchase_uom', ''), 'base_uom_qty': 0, 'purchase_uom_qty': 0,
                                                          'adjustment_date': valid_data['adjustment_date'],
                                                          'stocks': remaining_stocks, 'sku': valid_data['sku'],
                                                          'user': valid_data['user'],
@@ -11451,8 +11451,8 @@ def closing_adjustment_upload(request, user=''):
                     elif not putaway_pending_qty and closing_qty != total_qty:
                         closing_adj = total_qty - rem_base_quantity
                     last_change_date = last_date - datetime.timedelta(hours=1)
-                    adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
-                                'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
+                    adj_dict = {'base_quantity': base_quantity, 'puom': uom_dict['measurement_unit'], 'pquantity': final_data['purchase_uom_qty'],
+                                'pcf': uom_dict['sku_conversion'], 'creation_date': final_data['adjustment_date']}
                     adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
                     if adj_created:
                         AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)

@@ -1750,7 +1750,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
-    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_headers': ['Date', 'Warehouse', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -3371,7 +3371,7 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
      ('ACCFI', 'Account & Finance'), ('MARKE', 'Marketing'),
      ('ITTEC', 'Information Technology'), ('LEGAL', 'Legal Department'),
      ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
-     ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
+     ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'), ('IMMUNO', 'Immunoassay'),
      ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1'),
      ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics'), ('GENET', 'Genetics'), ('LENA', 'LENA'), ('NEHA', 'NEHA')])
 
@@ -15502,7 +15502,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     count = 0
     for result in results.iterator():
         test_code, mfg_date, exp_date = [''] * 3
-        first_name = User.objects.get(id=result['sku__user']).first_name
+        user_obj = User.objects.get(id=result['sku__user'])
+        first_name = user_obj.first_name
         if result['consumption__test__test_code']:
             test_code = result['consumption__test__test_code']
         if result['stock_mapping__stock__batch_detail__manufactured_date']:
@@ -15515,16 +15516,17 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         quantity = result['stock_mapping__quantity']
         if result['quantity'] < 0:
             quantity = -1 * quantity
-        pqty = result['stock_mapping__quantity']/pcf
+        pqty = quantity/pcf
         stock_value = pqty * result['price']
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
             ('Warehouse', first_name),
+            ('Warehouse Username', user_obj.username),
             ('Test Code', test_code),
             ('SKU Code', result['sku__sku_code']),
             ('SKU Description', result['sku__sku_desc']),
             ('Location', result['stock_mapping__stock__location__location']),
-            ('Quantity', result['stock_mapping__quantity']),
+            ('Quantity', quantity),
             ('Purchase Uom Quantity', pqty),
             ('Stock Value', stock_value),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),

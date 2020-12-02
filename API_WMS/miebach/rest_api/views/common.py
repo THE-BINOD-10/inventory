@@ -13785,6 +13785,7 @@ def get_kerala_cess_tax(tax, supplier):
 
 
 def update_sku_avg_main(sku_amt, user, main_user):
+    return
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')

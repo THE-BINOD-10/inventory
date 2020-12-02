@@ -11202,15 +11202,15 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                         buom_list = map(lambda x: x['base_uom'].lower(), uom_data)
                         #if not cell_data.lower() in buom_list:
                         #    index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
             elif key == 'purchase_uom':
                 if cell_data:
                     data_dict[key] = cell_data
                     #if not cell_data.lower() in puom_list:
                     #    index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
             elif key == 'batch_number':
                 if data_dict.get('sku', '') and data_dict.get('adjustment_date', ''):
                     first_date = data_dict['adjustment_date'].replace(day=1)
@@ -11246,7 +11246,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             all_data[sku_cond]['data'].setdefault(cond, {'stocks': StockDetail.objects.none(), 'sku': data_dict['sku'], 'location': {},
                                         'conversion_factor': data_dict['conversion_factor'],
                                         'batch_id': batch_id, 'adjustment_date': data_dict['adjustment_date'],
-                                        'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict['purchase_uom'],
+                                        'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict.get('purchase_uom', ''),
                                         'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': [],
                                        'last_date': data_dict['last_date'], 'batch_number': data_dict['batch_number'],
                                         'unit_price': data_dict.get('unit_price', 0), 'expiry_date': data_dict.get('expiry_date', '')})
@@ -11304,7 +11304,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                     remaining_stock = remaining_stocks[0]
                     closing_adj = remaining_stocks.aggregate(Sum('quantity'))['quantity__sum']
                     new_cond = (sku_group_key[0], sku_group_key[1], '')
-                    all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data['purchase_uom'], 'base_uom_qty': 0, 'purchase_uom_qty': 0,
+                    all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data.get('purchase_uom', ''), 'base_uom_qty': 0, 'purchase_uom_qty': 0,
                                                          'adjustment_date': valid_data['adjustment_date'],
                                                          'stocks': remaining_stocks, 'sku': valid_data['sku'],
                                                          'user': valid_data['user'],
@@ -11317,7 +11317,6 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             import traceback
             print e
             print traceback.format_exc()
-            #import pdb;pdb.set_trace()
     print index_status
     if not index_status:
         return 'Success', all_data
@@ -11452,8 +11451,8 @@ def closing_adjustment_upload(request, user=''):
                     elif not putaway_pending_qty and closing_qty != total_qty:
                         closing_adj = total_qty - rem_base_quantity
                     last_change_date = last_date - datetime.timedelta(hours=1)
-                    adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
-                                'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
+                    adj_dict = {'base_quantity': base_quantity, 'puom': uom_dict['measurement_unit'], 'pquantity': final_data['purchase_uom_qty'],
+                                'pcf': uom_dict['sku_conversion'], 'creation_date': final_data['adjustment_date']}
                     adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
                     if adj_created:
                         AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
@@ -11625,6 +11624,16 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
             all_data[sku_cond]['indexes'].append(data_dict['row_index'])
 
     if not index_status:
+        user_skus_copy = copy.deepcopy(user_skus)
+        for user_id in user_skus_copy.keys():
+            temp_usr = User.objects.get(id=user_id)
+            if temp_usr.userprofile.warehouse_type == 'DEPT':
+                temp_usr = get_admin(temp_usr)
+            dept_users_t = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[temp_usr.username])
+            dept_users_t = dept_users_t.exclude(id__in=user_skus.keys())
+            for dept_usr in dept_users_t:
+                if dept_usr.id not in user_skus.keys():
+                    user_skus[dept_usr.id] = []
         for user_id, skus in user_skus.items():
             remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0,
                                                               creation_date__lt=data_dict['closing_stock_date']
@@ -11892,7 +11901,8 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                 try:
                     if st_type == 'MR':
                         # user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
-                        user_obj = dept_users.get(username=warehouse_name)
+                        # user_obj = dept_users.get(username=warehouse_name)
+                        user_obj = User.objects.get(username=warehouse_name)
                     else:
                         user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj
@@ -12046,6 +12056,8 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                 else:
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
+                utc_date = reqDate + datetime.timedelta(1)
+                data_dict['closing_stock_date'] = utc_date
                 data_dict[key] = reqDate
             elif key == 'warehouse':
                 if cell_data:
@@ -12076,8 +12088,8 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif key in ['purchase_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
-        if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lt=stock_exclude_date).exclude(
+        if data_dict.get('sku', '') and data_dict.get('closing_stock_date', ''):
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lt=data_dict['closing_stock_date']).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_quantity = stock_quantity if stock_quantity else 0
@@ -12086,12 +12098,13 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
             pcf = uom_dict['sku_conversion']
             pcf = pcf if pcf else 1
             stock_pquantity = stock_quantity/pcf
-            if round(stock_pquantity,4) < round(data_dict['purchase_uom_quantity'],4):
-                data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
-                #index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
+            if stock_pquantity < data_dict['purchase_uom_quantity']:
+                #data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
+                print stock_pquantity
+                index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
             data_dict['stocks'] = stocks
             data_dict['uom_dict'] = uom_dict
-            all_stocks = all_stocks | stocks
+            #all_stocks = all_stocks | stocks
         data_list.append(data_dict)
     print index_status
     if not index_status:
@@ -12130,8 +12143,8 @@ def consumption_upload(request, user=''):
     try:
         with transaction.atomic('default'):
             loop_counter = 1
-            all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
-                select_for_update()
+            #all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
+            #    select_for_update()
             for final_data in data_list:
                 print 'Updating: %s' % str(loop_counter)
                 loop_counter += 1
@@ -12142,7 +12155,7 @@ def consumption_upload(request, user=''):
                 amount = final_data.get('amount', 0)
                 quantity = final_data['purchase_uom_quantity']
                 uom_dict = final_data['uom_dict']
-                sku_stocks = all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
+                sku_stocks = final_data['stocks'] #all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
                 closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
                 closing_qty = closing_qty if closing_qty else 0
                 unit_price = float(amount)/quantity

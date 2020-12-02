@@ -6317,7 +6317,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         remarks = ','.join(remarks_list)
         invoice_value, invoice_quantity, status, tcs = 0, 0, 0, 0
         if 'tcs' in invoice_datum.keys():
-           tcs =  invoice_datum['tcs']
+           tcs =  invoice_datum['tcs'] if invoice_datum['tcs'] else tcs
         if invoice_datum['invoice_value'] > 0 or invoice_datum['invoice_quantity'] > 0:
             invoice_value = invoice_datum['invoice_value']
             invoice_quantity = invoice_datum['invoice_quantity']

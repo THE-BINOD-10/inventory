@@ -417,7 +417,7 @@ class Integrations():
 
     def writeJsonToFile(self, recordType, data, unique_variable, action='upsert'):
         b = IntegrationMaster(
-                #user=self.userObject,
+                user=self.userObject,
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,

@@ -979,6 +979,20 @@ class StockDetail(models.Model):
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
 
+
+class ClosingStock(models.Model):
+    id = BigAutoField(primary_key=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    sku_avg_price = models.FloatField(default=0)
+    sku_pcf = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CLOSING_STOCK'
+
+
 class ASNStockDetail(models.Model):
     id = BigAutoField(primary_key=True)
     asn_po_num = models.CharField(max_length=32, default='')

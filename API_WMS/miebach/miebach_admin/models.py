@@ -979,6 +979,35 @@ class StockDetail(models.Model):
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
 
+
+class ClosingStock(models.Model):
+    id = BigAutoField(primary_key=True)
+    receipt_number = models.PositiveIntegerField(db_index=True)
+    receipt_date = models.DateTimeField()
+    receipt_type = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster, related_name='closing_stock_sku')
+    price_type = models.CharField(max_length=32, default='user_input')
+    location = models.ForeignKey(LocationMaster, db_index=True, related_name='closing_stock_location')
+    pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True, related_name='closing_stock_batch')
+    quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    grn_number =models.CharField(max_length =128 , default ='')
+    sku_avg_price = models.FloatField(default=0)
+    sku_pcf = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    remarks =models.CharField(max_length =128 , default ='')
+
+    class Meta:
+        db_table = 'CLOSING_STOCK'
+        #index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
+
+    def __unicode__(self):
+        return str(self.sku) + " : " + str(self.location)
+
+
 class ASNStockDetail(models.Model):
     id = BigAutoField(primary_key=True)
     asn_po_num = models.CharField(max_length=32, default='')

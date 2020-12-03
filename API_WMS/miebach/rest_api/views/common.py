@@ -13785,12 +13785,11 @@ def get_kerala_cess_tax(tax, supplier):
 
 
 def update_sku_avg_main(sku_amt, user, main_user):
-    return
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-11-01').\
+        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-12-01').\
                                     aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
@@ -13811,11 +13810,11 @@ def update_sku_avg_from_grn(user, grn_number):
     main_user = get_company_admin_user(user)
     if not grn_number:
         return
-    #sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-    #                               Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-    #                               grn_number=grn_number)
-    sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
-                                  grn_number=grn_number)
+    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+                                   grn_number=grn_number)
+    #sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+    #                              grn_number=grn_number)
     sku_amt = {}
     for sp in sps:
         price,tax = [0]*2

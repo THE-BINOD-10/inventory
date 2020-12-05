@@ -11617,7 +11617,7 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
+def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_type=''):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     incremental_prefix = 'st_prefix'
     if order_typ == 'MR':
@@ -11673,6 +11673,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
             st_dict['st_type'] = str(val[9])
             if user.userprofile.user_type == 'marketplace_user':
                 st_dict['st_seller_id'] = key[2].id
+            if upload_type:
+                st_dict['upload_type'] = 'BULK_UPLOAD'
             stock_transfer = StockTransfer(**st_dict)
             stock_transfer.save()
             if creation_date:
@@ -11908,24 +11910,25 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
             if po and po.status not in ['confirmed-putaway']:
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
-                if order_typ in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ == 'MR':
-                    # mr_doa_obj = {}
-                    # mr_doa_obj['destination_warehouse'] = destination_warehouse.id
-                    # mr_doa_obj['po'] = po.id
-                    # mr_doa_obj['type'] = 'st'
-                    # mr_doa_obj['update_picked'] = update_picked
-                    # mr_doa_obj['data'] = stock.id
-                    # mr_doa_obj['order_typ'] = order_typ
-                    # doa_dict = {
-                    #     'requested_user': user,
-                    #     'wh_user': destination_warehouse,
-                    #     'reference_id': stock_transfer.order_id,
-                    #     'model_name': 'mr_doa',
-                    #     'json_data': json.dumps(mr_doa_obj),
-                    #     'doa_status': 'pending'
-                    # }
-                    # doa_obj = MastersDOA(**doa_dict)
-                    # doa_obj.save()
+                if order_typ in ['MR'] and stock_transfer.upload_type == 'UI':
+                    mr_doa_obj = {}
+                    mr_doa_obj['destination_warehouse'] = destination_warehouse.id
+                    mr_doa_obj['po'] = po.id
+                    mr_doa_obj['type'] = 'st'
+                    mr_doa_obj['update_picked'] = update_picked
+                    mr_doa_obj['data'] = stock.id
+                    mr_doa_obj['order_typ'] = order_typ
+                    doa_dict = {
+                        'requested_user': user,
+                        'wh_user': destination_warehouse,
+                        'reference_id': stock_transfer.order_id,
+                        'model_name': 'mr_doa',
+                        'json_data': json.dumps(mr_doa_obj),
+                        'doa_status': 'pending'
+                    }
+                    doa_obj = MastersDOA(**doa_dict)
+                    doa_obj.save()
+                elif order_typ in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ == 'MR':
                     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
                                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}

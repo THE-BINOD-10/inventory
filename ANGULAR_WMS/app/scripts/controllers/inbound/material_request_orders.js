@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.record_serial_data = []
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
-  
+    vm.userName = Session.userName;
     function getOS() {
       var userAgent = window.navigator.userAgent,
           platform = window.navigator.platform,
@@ -245,13 +245,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = close;
     function close() {
-      vm.bt_disable = true;
+      vm.bt_disable = false;
       $state.go('app.outbound.ViewOrders');
     }
 
     vm.back_button = function() {
       vm.reloadData();
-      vm.bt_disable = true;
+      vm.bt_disable = false;
       $state.go('app.outbound.ViewOrders')
     }
 
@@ -265,7 +265,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
         }
       }
-      // if(vm.generate_data.length > 0 && vm.generate_data.length == 1) {
+      if(vm.generate_data.length > 0 && (vm.generate_data.length == 1 || vm.userName.toLocaleLowerCase() == 'mhl_admin')) {
         var data = {};
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
@@ -299,11 +299,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         });
         vm.generate_data = [];
-      // } else {
-      //   vm.bt_disable = false;
-      //   vm.service.showNoty("Please Select Single Order ! ");
-      //   reloadData();
-      // }
+      } else {
+        vm.bt_disable = false;
+        vm.service.showNoty("Please Select Single Order ! ");
+        reloadData();
+      }
     }
 
   vm.increament = function (record) {

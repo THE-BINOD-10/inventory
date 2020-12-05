@@ -10691,7 +10691,7 @@ def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
 
 
 def get_material_request_report_data(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants, get_related_users_filters, get_uom_with_sku_code
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants, get_related_users_filters, get_uom_with_sku_code, check_and_get_plants_wo_request
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',

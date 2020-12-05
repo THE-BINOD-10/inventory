@@ -16,6 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
     vm.alt_view = true;
+    vm.userName = Session.userName;
     //vm.changeDtFields(vm.alt_view);
   
     function getOS() {
@@ -373,10 +374,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = close;
     function close() {
+      vm.bt_disable = false;
+      vm.reloadData();
       $state.go('app.outbound.ViewOrders');
     }
 
     vm.back_button = function() {
+      vm.bt_disable = false;
       vm.reloadData();
       $state.go('app.outbound.ViewOrders')
     }
@@ -386,13 +390,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.generate_picklist = generate_picklist;
     function generate_picklist() {
       for(var key in vm.selected) {
-        console.log(vm.selected[key]);
         if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
         }
       }
-      if(vm.generate_data.length > 0) {
-        console.log(vm.generate_data);
+      if(vm.generate_data.length > 0 && (vm.generate_data.length == 1 || vm.userName.toLocaleLowerCase() == 'mhl_admin')) {
         var data = {};
         //data['warehouse_id'] = vm.generate_data[0]['warehouse_id'];
         for(var i=0;i<vm.generate_data.length;i++) {
@@ -423,6 +425,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         });
         vm.generate_data = [];
+      } else {
+        vm.bt_disable = false;
+        vm.service.showNoty("Please Select Single Order ! ");
+        reloadData();
       }
     }
 

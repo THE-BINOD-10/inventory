@@ -6317,7 +6317,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         remarks = ','.join(remarks_list)
         invoice_value, invoice_quantity, status, tcs = 0, 0, 0, 0
         if 'tcs' in invoice_datum.keys():
-           tcs =  invoice_datum['tcs']
+           tcs =  invoice_datum['tcs'] if invoice_datum['tcs'] else tcs
         if invoice_datum['invoice_value'] > 0 or invoice_datum['invoice_quantity'] > 0:
             invoice_value = invoice_datum['invoice_value']
             invoice_quantity = invoice_datum['invoice_quantity']
@@ -16350,13 +16350,13 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
         users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     if user.username == 'mhl_admin':
-        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR').\
+        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR', upload_type='BULK_UPLOAD').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
                                         date_only=Cast('creation_date', DateField()))
     else:
-        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR').\
+        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR', upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),

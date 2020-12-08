@@ -2926,7 +2926,7 @@ def search_supplier(request, user=''):
     if arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
-                                        Q(name__icontains=data_id), user=user.id).only('supplier_id', 'name')
+                                        Q(name__icontains=data_id), user=user.id, status=1).only('supplier_id', 'name')
     #data1 = SupplierMaster.objects.filter(supplier_id__icontains=data_id, user=user.id).only('supplier_id', 'name')
     #data2 = SupplierMaster.objects.filter(name__icontains=data_id, user=user.id).only('supplier_id', 'name')
     #data = data1 | data2
@@ -4101,7 +4101,7 @@ def splitPRtoPO(all_data, user):
 
 def checkPartialPR(existingPRObj, convertingSkus):
     partialPRFlag = False
-    allLineItems = set(existingPRObj.pending_prlineItems.filter().values_list('sku__sku_code', flat=True))
+    allLineItems = set(existingPRObj.pending_prlineItems.filter(quantity__gt=0).values_list('sku__sku_code', flat=True))
     convertingSkus = set(convertingSkus)
     if (allLineItems - convertingSkus):
         partialPRFlag = True
@@ -4537,7 +4537,7 @@ def send_pr_to_parent_store(request, user=''):
 def get_pr_preview_data(request, user=''):
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
-    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
+    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds, quantity__gt=0)
     lineItems = lineItemsQs.values_list('sku__sku_code',
         'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity', 'discount_percent')
     skuPrNumsMap = {}

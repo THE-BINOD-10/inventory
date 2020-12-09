@@ -1044,7 +1044,6 @@ def get_picklist_data(data_id, user_id):
                     original_order_id = str(order_id) + str(order_code)
                 if not invoice :
                     invoice = 0
-
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': reserved_quantity,
                                                'picklist_number': data_id, 'stock_id': st_id, 'sku_sequence': sku_sequence,
@@ -1408,7 +1407,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
             pic_check_data['batch_detail__manufactured_date__regex'] = datetime.datetime.strptime(val['manufactured_date'], '%d/%m/%Y').strftime('%Y-%m-%d')
         except:
             pass
-    pic_check = StockDetail.objects.filter(creation_date__lt='2020-11-01', **pic_check_data)
+    pic_check = StockDetail.objects.filter(creation_date__lt='2020-12-01', **pic_check_data)
     expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
     if not pic_check:
         if val.get('batchno', ''):
@@ -3780,10 +3779,10 @@ def mr_generate_picklist(request, user=''):
         if enable_damaged_stock == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
                                                                                     location__zone__zone__in=[
-                                                                                        'DAMAGED_ZONE'], creation_date__lt='2020-11-01')
+                                                                                        'DAMAGED_ZONE'], creation_date__lt='2020-12-01')
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1, creation_date__lt='2020-11-01')
+                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1, creation_date__lt='2020-12-01')
 
         company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -3871,10 +3870,10 @@ def st_generate_picklist(request, user=''):
         if enable_damaged_stock == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
                                                                                     location__zone__zone__in=[
-                                                                                        'DAMAGED_ZONE'], creation_date__lt='2020-11-01')
+                                                                                        'DAMAGED_ZONE'], creation_date__lt='2020-12-01')
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1, creation_date__lt='2020-11-01')
+                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1, creation_date__lt='2020-12-01')
         company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),

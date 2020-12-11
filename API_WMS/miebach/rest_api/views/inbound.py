@@ -1997,10 +1997,10 @@ def generated_actual_pr_data(request, user=''):
                             cess_tax = taxes[0]['cess_tax']
                         else:
                             sgst_tax, cgst_tax, igst_tax, cess_tax = 0, 0, 0, 0
-                        #if skuTaxVal.get('sku_supplier_price', ''):
-                        #    price = skuTaxVal.get('sku_supplier_price', '')
-                        #else:
-                        #    price = skuTaxVal['mrp']
+                        if skuTaxVal.get('sku_supplier_price', ''):
+                           price = skuTaxVal.get('sku_supplier_price', '')
+                        else:
+                           price = skuTaxVal['mrp']
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:

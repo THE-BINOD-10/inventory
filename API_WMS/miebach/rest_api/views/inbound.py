@@ -15658,6 +15658,8 @@ def get_credit_note_po_data(request, user=''):
                 if other_charges.exists():
                     other_charges = other_charges[0]['total']
                     grn_total_price = grn_total_price + other_charges
+                if spos.__dict__.has_key('tcs_value'):
+                    grn_total_price = grn_total_price + float(spos.tcs_value)
     return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': round(grn_total_price, 2)}))
 
 @csrf_exempt

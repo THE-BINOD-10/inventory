@@ -198,10 +198,12 @@ vm.changeUnitPrice = function(data){
     } else if (!vm.warehouse_list_states[vm.model_data.selected]){
         temp_ware_name = vm.model_data.selected;
         vm.model_data.selected = '';
+        vm.model_data.warehouse_name = '';
         colFilters.showNoty(temp_ware_name +" - Please update state in Source Plant");
     } else if (!vm.warehouse_list_states[vm.model_data.warehouse_name]){
         temp_ware_name = vm.model_data.warehouse_name;
         vm.model_data.selected = '';
+        vm.model_data.warehouse_name = '';
         colFilters.showNoty(temp_ware_name +" - Please update state in Destination Plant");
     }
   }

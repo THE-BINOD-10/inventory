@@ -11937,18 +11937,18 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     }
                     doa_obj = MastersDOA(**doa_dict)
                     doa_obj.save()
-                elif order_typ in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ == 'MR':
+                elif order_typ in ['MR', 'ST_INTRA', 'ST_INTER'] and stock_transfer.upload_type == 'BULK_UPLOAD':
                     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
                                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
-                elif inbound_automate == 'true' and order_typ == 'ST_INTRA':
-                    grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
-                                              order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
-                    grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
+                # elif order_typ == 'ST_INTRA' and stock_transfer.upload_type == 'UI':
+                #     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
+                #                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
+                #     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
-                if user.userprofile.industry_type == 'FMCG' and order_typ not in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ != 'MR':
+                if order_typ in ['ST_INTRA', 'ST_INTER'] and stock_transfer.upload_type == 'UI':
                     exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
                                     exclude(model_json__icontains='"is_stock_transfer": "true"')
                     if exist_temp_json_objs.exists():
@@ -12777,7 +12777,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date=''):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type=''):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     batch_data = ''
     if data.batch_detail:
@@ -12818,7 +12818,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
-    return grn_number
+    if not upload_type:
+        return grn_number
 
 
 def get_companies_list(user, send_parent=False):

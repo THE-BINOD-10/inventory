@@ -16484,7 +16484,7 @@ def confirm_mr_request(request, user=''):
                         stock = StockDetail.objects.get(id=filter_data['data'])
                         po =PurchaseOrder.objects.get(id=filter_data['po'])
                         destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
-                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'])
+                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
                         MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
             except Exception as e:
                 return HttpResponse('fail')

@@ -28,7 +28,7 @@
                 <label class="control-label"> Source Plant </label>
                 <input type="hidden" name="st_type" value="ST">
                 <select name="source_plant" class="form-control" ng-model="showCase.model_data.selected" ng-change="[showCase.changeDestSeller(),showCase.changeDestWarehouse()]">
-                  <option ng-repeat="wh in showCase.warehouse_dict" value="{{wh.username}}">{{wh.first_name}}:{{wh.userprofile__stockone_code}}</option>
+                  <option ng-selected="showCase.model_data.selected==wh.username" ng-repeat="wh in showCase.warehouse_dict" value="{{wh.username}}">{{wh.first_name}}:{{wh.userprofile__stockone_code}}</option>
                 </select>
               </div>
             </div>
@@ -36,7 +36,7 @@
               <div class="form-group">
                 <label class="control-label"> Destination Plant </label>
                 <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.warehouse_name" ng-change="[showCase.verifyTax(), showCase.changeDestSeller()]">
-                  <option ng-repeat="wh in showCase.dest_wh_list" value="{{wh.username}}">{{wh.name}}:{{wh.stockone_code}}</option>
+                  <option ng-selected="showCase.model_data.warehouse_name==wh.username" ng-repeat="wh in showCase.dest_wh_list" value="{{wh.username}}">{{wh.name}}:{{wh.stockone_code}}</option>
                 </select>
               </div>
             </div>

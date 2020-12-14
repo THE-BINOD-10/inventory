@@ -2239,12 +2239,12 @@ def picklist_confirmation(request, user=''):
                                 stock.quantity -= picking_count
                                 picklist.reserved_quantity -= picking_count
                                 picking_count = 0
-                            update_picked = truncate_float(update_picked, decimal_limit)
-                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
-                            stock.quantity = truncate_float(stock.quantity, decimal_limit)
+                            update_picked = truncate_float(update_picked, 5)
+                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, 5)
+                            stock.quantity = truncate_float(stock.quantity, 5)
                             if float(stock.location.filled_capacity) - update_picked >= 0:
                                 location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
-                                location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
+                                location_fill_capacity = truncate_float(location_fill_capacity, 5)
                                 setattr(stock.location, 'filled_capacity', location_fill_capacity)
                                 stock.location.save()
                             if picklist.storder_set.filter():

@@ -10731,6 +10731,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
+        search_parameters['upload_type'] = 'UI'
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     #search_parameters['sku_id__in'] = sku_master_ids
@@ -10874,6 +10875,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         users = get_related_users_filters(user.id)
     else:
         users = [user.id]
+        search_parameters['upload_type'] = 'UI'
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':

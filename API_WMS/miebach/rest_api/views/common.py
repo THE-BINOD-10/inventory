@@ -103,6 +103,8 @@ def get_decimal_limit(user_id, value,price =''):
 
 
 def truncate_float(value, decimal_limit):
+    if not decimal_limit:
+        return value
     return float(("%." + str(decimal_limit) + "f") % (value))
 
 
@@ -8758,6 +8760,8 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
         if sku.id in val_dict['pic_res_ids']:
             pic_res_id_index = val_dict['pic_res_ids'].index(sku.id)
             stock_count = stock_count - val_dict['pic_res_quans'][pic_res_id_index]
+    #stock_count = get_decimal_limit(user.id, stock_count)
+    stock_count = truncate_float(stock_count, 5)
     return stock_detail, stock_count, sku.wms_code
 
 
@@ -8774,6 +8778,8 @@ def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserve
             stock_quantity = 0
     else:
         stock_quantity = float(stock.quantity) - reserved_quantity
+    #stock_quantity = get_decimal_limit(user.id, stock_quantity)
+    stock_quantity = truncate_float(stock_quantity, 5)
     # if prev_reserved:
     #    if stock_quantity >= 0:
     #        #return order_quantity, 0
@@ -8794,6 +8800,8 @@ def get_stock_count(order, stock, stock_diff, user, order_quantity, prev_reserve
         else:
             stock_count = stock_quantity
             stock_diff = order_quantity - stock_quantity
+    #stock_diff = get_decimal_limit(user.id, stock_diff)
+    stock_diff = truncate_float(stock_diff, 5)
     return stock_count, stock_diff
 
 
@@ -8955,10 +8963,10 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 stock_detail = list(chain(stock_detail, stock_detail1))
                 stock_quantity += stock_quantity1
             elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
-                stock_detail, Userstock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
+                stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
-
-            order_quantity = member_qty
+            #order_quantity = get_decimal_limit(user.id, member_qty)
+            order_quantity = truncate_float(member_qty, 5)
             # if not seller_order:
             #     order_quantity = float(order.quantity)
             # else:
@@ -9012,7 +9020,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 elif allow_partial_picklist:
                     if not temp_order_quantity:
                         temp_order_quantity = (float(order_quantity)/uom_dict['sku_conversion']) - (float(stock_quantity)/uom_dict['sku_conversion'])
-                    if temp_order_quantity < 0:
+                        #temp_order_quantity = get_decimal_limit(user.id, temp_order_quantity)
+                        temp_order_quantity = truncate_float(temp_order_quantity, 5)
+                    if temp_order_quantity < 0 or round(temp_order_quantity, 2) == 0:
                         temp_order_quantity = 0
                     order_quantity = stock_quantity
             stock_diff = 0
@@ -9068,7 +9078,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                     st_order_dict['stock_transfer_id'] = order.id
                     st_order = STOrder(**st_order_dict)
                     st_order.save()
-
                 if not stock_diff:
                     # setattr(order, 'status', 0)
                     if seller_order:
@@ -13788,12 +13797,11 @@ def get_kerala_cess_tax(tax, supplier):
 
 
 def update_sku_avg_main(sku_amt, user, main_user):
-    return
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-11-01').\
+        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-12-01').\
                                     aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
@@ -13814,11 +13822,11 @@ def update_sku_avg_from_grn(user, grn_number):
     main_user = get_company_admin_user(user)
     if not grn_number:
         return
-    #sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-    #                               Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-    #                               grn_number=grn_number)
+    # sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+    #                                Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+    #                                grn_number=grn_number)
     sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
-                                  grn_number=grn_number)
+                                 grn_number=grn_number)
     sku_amt = {}
     for sp in sps:
         price,tax = [0]*2
@@ -13831,7 +13839,8 @@ def update_sku_avg_from_grn(user, grn_number):
         sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
         sku_amt[sku_code]['amount'] += total
         sku_amt[sku_code]['qty'] += sp.quantity
-    update_sku_avg_main(sku_amt, user, main_user)
+    if sps:
+        update_sku_avg_main(sku_amt, user, main_user)
 
 def update_sku_avg_from_rtv(user, rtv_number):
     if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:

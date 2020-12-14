@@ -1997,10 +1997,15 @@ def generated_actual_pr_data(request, user=''):
                             cess_tax = taxes[0]['cess_tax']
                         else:
                             sgst_tax, cgst_tax, igst_tax, cess_tax = 0, 0, 0, 0
-                        if skuTaxVal.get('sku_supplier_price', ''):
-                            price = skuTaxVal.get('sku_supplier_price', '')
-                        else:
-                            price = skuTaxVal['mrp']
+                        if not pr_supplier_data.exists():
+                            if skuTaxVal.get('sku_supplier_price', ''):
+                                price = skuTaxVal.get('sku_supplier_price', '')
+                            else:
+                                price = skuTaxVal['mrp']
+                        #if skuTaxVal.get('sku_supplier_price', ''):
+                        #   price = skuTaxVal.get('sku_supplier_price', '')
+                        #else:
+                        #   price = skuTaxVal['mrp']
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:
@@ -2926,7 +2931,7 @@ def search_supplier(request, user=''):
     if arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
-                                        Q(name__icontains=data_id), user=user.id).only('supplier_id', 'name')
+                                        Q(name__icontains=data_id), user=user.id, status=1).only('supplier_id', 'name')
     #data1 = SupplierMaster.objects.filter(supplier_id__icontains=data_id, user=user.id).only('supplier_id', 'name')
     #data2 = SupplierMaster.objects.filter(name__icontains=data_id, user=user.id).only('supplier_id', 'name')
     #data = data1 | data2
@@ -4101,7 +4106,7 @@ def splitPRtoPO(all_data, user):
 
 def checkPartialPR(existingPRObj, convertingSkus):
     partialPRFlag = False
-    allLineItems = set(existingPRObj.pending_prlineItems.filter().values_list('sku__sku_code', flat=True))
+    allLineItems = set(existingPRObj.pending_prlineItems.filter(quantity__gt=0).values_list('sku__sku_code', flat=True))
     convertingSkus = set(convertingSkus)
     if (allLineItems - convertingSkus):
         partialPRFlag = True
@@ -4537,7 +4542,7 @@ def send_pr_to_parent_store(request, user=''):
 def get_pr_preview_data(request, user=''):
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
-    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
+    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds, quantity__gt=0)
     lineItems = lineItemsQs.values_list('sku__sku_code',
         'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity', 'discount_percent')
     skuPrNumsMap = {}
@@ -7387,6 +7392,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     from pytz import timezone
     from django.db.models import F
     import dateutil.parser as DP
+    log.info("Netsuite Integrtaion params " + str(data_dict) + " GRN Number is " + str(
+        grn_number) + " and PO Number " + str(po_number))
     grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     s_po_s= SellerPOSummary.objects.filter(grn_number=grn_number)
     if s_po_s:
@@ -7522,6 +7529,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             import traceback
             log.debug(traceback.format_exc())
             log.info("Netsuite Confirm GRN failed for params " + str(data_dict) + " and error statement is " + str(e))
+    else:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Netsuite Confirm GRN failed for params " + str(data_dict) + " ,GRN Number is " + str(grn_number) + " ,PO Number " + str(po_number) + "Error GRN Number is not saved in SellerPOSummary table")
 
 @csrf_exempt
 def confirmation_location(record, data, total_quantity, temp_dict=''):
@@ -10064,25 +10075,59 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name', None)
-            cess_tax=0
+            sgst_tax, igst_tax, cgst_tax, utgst_tax, cess_tax= [0]*5
             if _open.cess_tax:
                 cess_tax=_open.cess_tax
-            hsn_code=""
+            if _open.cgst_tax:
+                cgst_tax= _open.cgst_tax
+            if _open.utgst_tax:
+                utgst_tax = _open.utgst_tax
+            if _open.igst_tax:
+                igst_tax= _open.igst_tax
+            if _open.sgst_tax:
+                sgst_tax = _open.sgst_tax
+            temp_tax = sgst_tax + igst_tax + cgst_tax + utgst_tax + cess_tax
+            hsn_list = {
+                "28": {"refrence_id": "978", "hsn_code": "8415"},
+                '12': {"refrence_id": "631", "hsn_code": "38220019_12"},
+                "18": {"refrence_id": "1020", "hsn_code": "38220019_18"},
+                "5": {"refrence_id": "1056", "hsn_code": "38220019_5"},
+            }
+            netsuite_hsn_code=""
             if supplier_gstin:
-                if _open.sku.hsn_code:
-                    hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
-                    if hsn_code_object.exists():
-                        if cess_tax:
-                            hsn_code=str(_open.sku.hsn_code)+"_KL"
-                        else:
-                            hsn_code=hsn_code_object[0]["reference_id"]
+                if temp_tax:
+                    if _open.sku.hsn_code:
+                        hsn_code = _open.sku.hsn_code
+                        if isinstance(hsn_code, float):
+                            hsn_code = str(int(hsn_code))
+                        hsn_code_object = TaxMaster.objects.filter(product_type= hsn_code, user= user.id).values()
+                        if hsn_code_object.exists():
+                            original_hsn_tax = hsn_code_object[0]["igst_tax"] + hsn_code_object[0]["cgst_tax"] + \
+                                               hsn_code_object[0]["apmc_tax"] + hsn_code_object[0]["utgst_tax"] + \
+                                               hsn_code_object[0]["cess_tax"] + hsn_code_object[0]["sgst_tax"]
+                            if temp_tax == original_hsn_tax:
+                                if cess_tax:
+                                    netsuite_hsn_code = str(hsn_code) + "_KL"
+                                else:
+                                    netsuite_hsn_code = hsn_code_object[0]["reference_id"]
+                                    if not netsuite_hsn_code:
+                                        log.info("HSN CODE reference_id Not present, hsn_code=" + str(_open.sku.hsn_code))
+            if not netsuite_hsn_code:
+                if cess_tax:
+                    temp_tax = temp_tax - cess_tax
+                if str(int(temp_tax)) in hsn_list:
+                    if cess_tax:
+                        netsuite_hsn_code = hsn_list[str(int(temp_tax))]["hsn_code"] + "_KL"
+                    else:
+                        netsuite_hsn_code = hsn_list[str(int(temp_tax))]["refrence_id"]
+                else:
+                    log.info("TAX is not matched to any hsn code tax " + str(temp_tax) + " PO Number " + str(po_number))
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
-                    'hsn_code': hsn_code,
+                    'hsn_code': netsuite_hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
-                    'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, "cess_tax": cess_tax,
-                    'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
-
+                    'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
+                    'cgst_tax': cgst_tax , 'utgst_tax': utgst_tax , 'cess_tax': cess_tax,
+                    'unitypeexid': unitexid, 'uom_name': purchaseUOMname }
             po_data['items'].append(item)
         # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
         intObj = Integrations(user, 'netsuiteIntegration')
@@ -10092,8 +10137,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         log.debug(traceback.format_exc())
         log.info("Netsuite Add PO failed for params " + str(data_dict) + " and error statement is " + str(e))
         print(e)
-    # if response.has_key('__values__') and not netsuite_map_obj.exists():
-    #     internal_external_map(response, type_name='PO')
+
 
 def create_mail_attachments(f_name, html_data):
     from random import randint
@@ -15619,6 +15663,8 @@ def get_credit_note_po_data(request, user=''):
                 if other_charges.exists():
                     other_charges = other_charges[0]['total']
                     grn_total_price = grn_total_price + other_charges
+                if spos.__dict__.has_key('tcs_value'):
+                    grn_total_price = grn_total_price + float(spos.tcs_value)
     return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': round(grn_total_price, 2)}))
 
 @csrf_exempt

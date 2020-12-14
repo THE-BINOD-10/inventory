@@ -16395,7 +16395,7 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
     else:
         users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    if user.username == 'mhl_admin':
+    if request.user.username == 'mhl_admin':
         stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR', upload_type='BULK_UPLOAD').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\

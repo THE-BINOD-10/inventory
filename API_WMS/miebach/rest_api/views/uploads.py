@@ -8113,8 +8113,9 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
-        mrp =0
+        mrp, price =0, 0
         st_type = 'ST_INTRA'
+        current_sku = ''
         for key, value in order_mapping.iteritems():
             if key == 'source_warehouse':
                 source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
@@ -8134,13 +8135,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
+                current_sku = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)[0]
             elif key == 'quantity':
                  quantity = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
-                    price = float(get_cell_data(row_idx, value, reader, file_type))
+                    price = current_sku.average_price
                 except:
-                    price = 0
+                    price = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'mrp':
                 try:
                     mrp = float(get_cell_data(row_idx, value, reader, file_type))

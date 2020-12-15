@@ -3266,7 +3266,7 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
     ('Source Warehouse', 'source_warehouse'), ('Destination Warehouse', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
     ('Quantity', 'quantity'), ('Price', 'price'), ('MRP', 'mrp'), ('Cgst(%)', 'cgst_tax'),
-    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'), ('Type (MR/ST)', 'st_type')
+    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'), ('Type (ST_INTRA)', 'st_type')
 ))
 MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
     ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')

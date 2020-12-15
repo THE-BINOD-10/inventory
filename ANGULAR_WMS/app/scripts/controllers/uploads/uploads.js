@@ -351,6 +351,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-stock-transfer-file",
                    value: "",
                    show: true,
+                   perm: "add_pendingpr"
                  },{
                    title: "Create Material Request Form Download/ Upload",
                    download: "Material Request Download Form",

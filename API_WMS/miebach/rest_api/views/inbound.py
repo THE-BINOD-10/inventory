@@ -6863,9 +6863,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        if product_category in ['Services', 'Assets', 'OtherItems'] or auto_putaway_grn == 'true':
+        if product_category in ['Services', 'Assets', 'OtherItems']:# or auto_putaway_grn == 'true':
             try:
-                import pdb;pdb.set_trace()
                 auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id,
                                           last_change_date=grn_date)
             except Exception as e:

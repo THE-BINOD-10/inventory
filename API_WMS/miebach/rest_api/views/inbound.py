@@ -1408,9 +1408,10 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
             grn_time_date = resultant_grns.filter(receipt_number=result['sellerposummary__receipt_number'], grn_number=result['sellerposummary__grn_number']).order_by('-creation_date')[0].creation_date
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
-
         po_reference = supplier.po_number
         warehouse = User.objects.get(id=order_data['sku'].user)
+        if order_type == 'Stock Transfer':
+            order_data['supplier_name'] = "%s%s (%s)"%(warehouse.first_name, warehouse.last_name, warehouse.username)
         temp_data['aaData'].append({'DT_RowId': supplier.order_id, 'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
                                     ' Order ID': supplier.order_id,

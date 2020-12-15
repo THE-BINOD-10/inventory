@@ -13793,13 +13793,15 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
-def update_sku_avg_main(sku_amt, user, main_user):
+def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-12-01').\
-                                    aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
+        exist_stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-12-01')
+        if grn_number:
+            exist_stocks = exist_stocks.exclude(grn_number=grn_number)
+        stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
         stock_value = stock_qty * sku.average_price
@@ -13837,7 +13839,7 @@ def update_sku_avg_from_grn(user, grn_number):
         sku_amt[sku_code]['amount'] += total
         sku_amt[sku_code]['qty'] += sp.quantity
     if sps:
-        update_sku_avg_main(sku_amt, user, main_user)
+        update_sku_avg_main(sku_amt, user, main_user, grn_number)
 
 def update_sku_avg_from_rtv(user, rtv_number):
     if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:

@@ -3198,6 +3198,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'receive_po_inv_value_qty_check': 'receive_po_inv_value_qty_check',
                         'central_admin_level_po': 'central_admin_level_po',
                         'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
+                        'auto_putaway_grn': 'auto_putaway_grn',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

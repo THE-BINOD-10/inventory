@@ -2560,6 +2560,7 @@ def switches(request, user=''):
                        'central_admin_level_po': 'central_admin_level_po',
                        'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                        'pending_pr_prefix': 'pending_pr_prefix',
+                       'auto_putaway_grn': 'auto_putaway_grn',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -6219,9 +6220,9 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
     from pytz import timezone
+    grn_date = datetime.datetime.now()
     try:
         utc_tz=timezone("UTC")
-        grn_date = datetime.datetime.now()
         if myDict.get('grn_date', ''):
             try:
                 if myDict.get('grn_date', '')[0]:
@@ -6438,7 +6439,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         log.debug(traceback.format_exc())
         log.info("sellerposummary creation failed for  " + str(user.username) + \
                  " and error statement is " + str(e))
-    return seller_received_list
+    return seller_received_list, grn_date
 
 
 def create_file_po_mapping(request, user, receipt_no, myDict):
@@ -6526,6 +6527,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     data = {}
     created_qc_ids = {}
     invoice_datum = {}
+    grn_date = datetime.datetime.now()
     mrp = 0
     supplier_id = request.POST['supplier_id']
     supplier_mapping_off = get_misc_value('supplier_mapping', user.id)
@@ -6543,6 +6545,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     challan_number = request.POST.get('dc_number', '')
     challan_date = request.POST.get('dc_date', '')
     mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+    main_user = get_company_admin_user(user)
+    auto_putaway_grn = get_misc_value('auto_putaway_grn', main_user.id)
     send_discrepencey = False
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
@@ -6785,7 +6789,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, 'grn_prefix',
                                                                                                       sku_code,
                                                                                                     dept_code=dept_code)
-            seller_received_list = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
+            seller_received_list, grn_date = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
@@ -6859,13 +6863,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        if product_category in ['Services', 'Assets', 'OtherItems']:
+        if product_category in ['Services', 'Assets', 'OtherItems'] or auto_putaway_grn == 'true':
             try:
-                auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id)
+                import pdb;pdb.set_trace()
+                auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id,
+                                          last_change_date=grn_date)
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
-                log.info("Check Generating GRN failed for params " + str(e))
+                log.info("Auto Putaway for GRN failed for params " + str(e))
             if int(purchase_data['order_quantity']) == int(data.received_quantity):
                 data.status = 'confirmed-putaway'
             else:

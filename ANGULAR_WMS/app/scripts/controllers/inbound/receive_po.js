@@ -234,9 +234,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     } else if (vm.current_month == 'February') {
                       vm.last_two_months = ['January', 'December', 'November']
                     } else {
-                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                      console.log('ok');
+                      // vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                      // vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                      // vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
                     }
                     vm.model_data.warehouse_id = aData['warehouse_id'];
                     vm.get_grn_extra_fields();
@@ -868,7 +869,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.html = "";
     vm.confirm_grn = function(form) {
       if (form.$valid) {
-        if((!vm.model_data.dc_level_grn || vm.model_data.dc_number) && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
+        if((!vm.model_data.dc_level_grn || vm.model_data.dc_number) && Object.keys(vm.model_data.uploaded_file_dict).length == 0 && vm.selected_order_type != 'Stock Transfer'){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
             return
@@ -2811,7 +2812,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.update_grn_total('', 'add');
     }
     vm.update_tcs = function(tcs){
-      vm.calc_total_amt(event, vm.model_data, 0, 0);
+      if (vm.selected_order_type != 'Stock Transfer') {
+        vm.calc_total_amt(event, vm.model_data, 0, 0);
+      }
     }
     vm.pull_cls = "pull-right";
     vm.margin_cls = {marginRight: '50px'};

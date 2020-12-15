@@ -2219,20 +2219,10 @@ def picklist_confirmation(request, user=''):
                             pre_stock = float(stock_quantity)
                             if picking_count == 0:
                                 break
-                            # new Code
-                            # print picking_count
-                            # conv_value = 1
-                            # if stock.batch_detail:
-                            #     conv_value = stock.batch_detail.pcf
-                            #     if not conv_value:
-                            #         uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
-                            #         conv_value = uom_dict.get('sku_conversion', 1)
-                            # new Code
                             if picking_count > stock_quantity:
                                 update_picked = float(stock_quantity)
                                 picking_count -= stock_quantity
                                 picklist.reserved_quantity -= stock_quantity
-
                                 stock.quantity = stock.quantity - stock_quantity
                             else:
                                 update_picked = picking_count

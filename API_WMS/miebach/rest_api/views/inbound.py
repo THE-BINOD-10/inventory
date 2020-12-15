@@ -1385,11 +1385,10 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     resultant_grns = list(po_dict.values_list('sellerposummary__grn_number',flat = True))
     rwo_dict = PurchaseOrder.objects.filter(rw_purchase_query, rwpurchase__rwo__vendor__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).exclude(order_id__in=po_ids)\
                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
-    st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1,
-                                            polocation__quantity__gt=0).\
-                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).\
-                                     values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
-                                     'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
+    st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1, polocation__quantity__gt=0, sellerposummary__status=0)\
+                                    .annotate(sellerposummary__creation_date=Cast('sellerposummary__creation_date', DateField()))\
+                                    .exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
+                                    .values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number', 'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
     resultant_grns = list(chain(resultant_grns, st_dict.values_list('sellerposummary__grn_number',flat = True)))
     results = list(chain(po_dict,rwo_dict,st_dict))
     results = verify_putaway_data(results)
@@ -1404,7 +1403,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
         if rwo_dict.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user__in=user_ids, prefix=result['prefix']).exists(): #supplier.rwpurchase_set.filter():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user__in=user_ids, prefix=result['prefix'])[0]
             order_type = 'Returnable Work Order'
-        elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix']).exists():
+        elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix'], po_number=result['po_number'], sellerposummary__grn_number=result['sellerposummary__grn_number']).exists():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix'])[0]
             grn_time_date = resultant_grns.filter(receipt_number=result['sellerposummary__receipt_number'], grn_number=result['sellerposummary__grn_number']).order_by('-creation_date')[0].creation_date
             order_type = 'Stock Transfer'

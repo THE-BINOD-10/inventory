@@ -405,7 +405,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId)
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO')
         pr_numbers = []
         if pa_mails:
             for pa_mail in pa_mails:

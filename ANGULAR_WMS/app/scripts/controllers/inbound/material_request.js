@@ -206,6 +206,7 @@ vm.changeUnitPrice = function(data){
       sku_data["capacity"] = 0
       if(data.message) {
         if(data.data.available_quantity) {
+          sku_data['price'] = parseFloat(data.data.avg_price);
           sku_data["capacity"] = (parseFloat(data.data.available_quantity)).toFixed(2);
         }
       }

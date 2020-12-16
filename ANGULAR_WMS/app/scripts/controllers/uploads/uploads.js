@@ -351,6 +351,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-stock-transfer-file",
                    value: "",
                    show: true,
+                   perm: "add_pendingpr"
                  },{
                    title: "Create Material Request Form Download/ Upload",
                    download: "Material Request Download Form",
@@ -359,7 +360,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "material_request_upload/",
                    dparam: "download-material-request-file",
                    value: "",
-                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff && Session.userName== 'mhl_admin',
                  },{
                    title: "SKUPack Master Form Download/ Upload",
                    download: "SKUPack Master Download Form",

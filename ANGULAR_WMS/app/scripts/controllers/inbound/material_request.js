@@ -99,7 +99,7 @@ vm.changeUnitPrice = function(data){
   if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
     data.total_qty = 0;
     data.order_quantity = 0;
-    colFilters.showNoty("Total Qty Should be less then available Quantity");
+    colFilters.showNoty("Total Qty Should be less than available Quantity");
   }
   data.total_price = (data.order_quantity * data.price)
   var cgst_percentage = 0;
@@ -206,6 +206,7 @@ vm.changeUnitPrice = function(data){
       sku_data["capacity"] = 0
       if(data.message) {
         if(data.data.available_quantity) {
+          sku_data['price'] = parseFloat(data.data.avg_price);
           sku_data["capacity"] = (parseFloat(data.data.available_quantity)).toFixed(2);
         }
       }

@@ -7947,9 +7947,10 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
                 except:
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
+                price = sku_master[0].average_price
             elif key == 'quantity':
                  quantity = float(get_cell_data(row_idx, value, reader, file_type))
-            price = 0
             mrp = 0
             cgst_tax = 0
             sgst_tax = 0
@@ -8112,8 +8113,9 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
-        mrp =0
+        mrp, price =0, 0
         st_type = 'ST_INTRA'
+        current_sku = ''
         for key, value in order_mapping.iteritems():
             if key == 'source_warehouse':
                 source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
@@ -8133,13 +8135,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
+                current_sku = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)[0]
             elif key == 'quantity':
                  quantity = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
-                    price = float(get_cell_data(row_idx, value, reader, file_type))
+                    price = current_sku.average_price
                 except:
-                    price = 0
+                    price = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'mrp':
                 try:
                     mrp = float(get_cell_data(row_idx, value, reader, file_type))
@@ -11901,8 +11904,8 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                 try:
                     if st_type == 'MR':
                         # user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
-                        # user_obj = dept_users.get(username=warehouse_name)
-                        user_obj = User.objects.get(username=warehouse_name)
+                        user_obj = dept_users.get(username=warehouse_name)
+                        # user_obj = User.objects.get(username=warehouse_name)
                     else:
                         user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj
@@ -12007,7 +12010,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type,
                                order_id, creation_date, batch_no])
     all_data = insert_st_gst(all_data, warehouse)
-    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type)
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type, upload_type='BULK_UPLOAD')
 
     if status.status_code == 200:
         return 'Success'

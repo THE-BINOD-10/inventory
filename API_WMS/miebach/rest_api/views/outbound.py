@@ -1407,7 +1407,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
             pic_check_data['batch_detail__manufactured_date__regex'] = datetime.datetime.strptime(val['manufactured_date'], '%d/%m/%Y').strftime('%Y-%m-%d')
         except:
             pass
-    pic_check = StockDetail.objects.filter(creation_date__lt='2020-12-01', **pic_check_data)
+    pic_check = StockDetail.objects.filter(**pic_check_data)
     expiry_batches_picklist = get_misc_value('block_expired_batches_picklist', user.id)
     if not pic_check:
         if val.get('batchno', ''):
@@ -2219,32 +2219,22 @@ def picklist_confirmation(request, user=''):
                             pre_stock = float(stock_quantity)
                             if picking_count == 0:
                                 break
-                            # new Code
-                            # print picking_count
-                            # conv_value = 1
-                            # if stock.batch_detail:
-                            #     conv_value = stock.batch_detail.pcf
-                            #     if not conv_value:
-                            #         uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
-                            #         conv_value = uom_dict.get('sku_conversion', 1)
-                            # new Code
                             if picking_count > stock_quantity:
                                 update_picked = float(stock_quantity)
                                 picking_count -= stock_quantity
                                 picklist.reserved_quantity -= stock_quantity
-
                                 stock.quantity = stock.quantity - stock_quantity
                             else:
                                 update_picked = picking_count
                                 stock.quantity -= picking_count
                                 picklist.reserved_quantity -= picking_count
                                 picking_count = 0
-                            update_picked = truncate_float(update_picked, decimal_limit)
-                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
-                            stock.quantity = truncate_float(stock.quantity, decimal_limit)
+                            update_picked = truncate_float(update_picked, 5)
+                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, 5)
+                            stock.quantity = truncate_float(stock.quantity, 5)
                             if float(stock.location.filled_capacity) - update_picked >= 0:
                                 location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
-                                location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
+                                location_fill_capacity = truncate_float(location_fill_capacity, 5)
                                 setattr(stock.location, 'filled_capacity', location_fill_capacity)
                                 stock.location.save()
                             if picklist.storder_set.filter():
@@ -2411,13 +2401,13 @@ def picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
     else:
-        try:
-            netsuite_picklist_confirmation(final_data_list, user)
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
-            str(user.username), str(data), str(e)))
+        # try:
+        #     netsuite_picklist_confirmation(final_data_list, user)
+        # except Exception as e:
+        #     import traceback
+        #     log.debug(traceback.format_exc())
+        #     log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
+        #     str(user.username), str(data), str(e)))
         return HttpResponse('Picklist Confirmed')
 
 def netsuite_picklist_confirmation(final_data_list, user):
@@ -3779,10 +3769,10 @@ def mr_generate_picklist(request, user=''):
         if enable_damaged_stock == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
                                                                                     location__zone__zone__in=[
-                                                                                        'DAMAGED_ZONE'], creation_date__lt='2020-12-01')
+                                                                                        'DAMAGED_ZONE'])
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1, creation_date__lt='2020-12-01')
+                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1)
 
         company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -3870,10 +3860,10 @@ def st_generate_picklist(request, user=''):
         if enable_damaged_stock == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
                                                                                     location__zone__zone__in=[
-                                                                                        'DAMAGED_ZONE'], creation_date__lt='2020-12-01')
+                                                                                        'DAMAGED_ZONE'])
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1, creation_date__lt='2020-12-01')
+                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1)
         company_user = get_company_admin_user(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -11288,7 +11278,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
-    summary_params = {'status':2}
+    summary_params = {'status':2, 'upload_type':'UI'}
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
@@ -11378,7 +11368,7 @@ def get_stock_transfer_inter_invoice_data(start_index, stop_index, temp_data, se
 @csrf_exempt
 def get_material_request_challan_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
-    summary_params = {'status':2}
+    summary_params = {'status':2, 'upload_type':'UI'}
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
@@ -15277,13 +15267,13 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     if user.username == 'mhl_admin':
-        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type=st_type).\
+        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type=st_type, upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
                                         date_only=Cast('creation_date', DateField()))
     else:
-        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type=st_type).\
+        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type=st_type, upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
@@ -17003,10 +16993,12 @@ def generate_mr_dc(request , user = ''):
         order = json.loads(orders)[0]
         datum = []
         user = User.objects.get(id=order['source_wh'])
-        stock_transfer_data = StockTransfer.objects.filter(st_type='MR', sku__user=user.id, order_id=order['order_id'], status=2).select_related('sku', 'st_po__open_st__sku')
-        for data in stock_transfer_data:
-            date = get_local_date(user, data.creation_date)
-            destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        idsm = StockTransferSummary.objects.filter(stock_transfer__st_type='MR', stock_transfer__order_id=order['order_id'], stock_transfer__status=2, pick_number = order['pick_number'])
+        print idsm.values('picklist__picklistlocation__id', 'picklist__stock_id', 'picklist__stock__batch_detail_id', 'pick_number', 'stock_transfer_id').distinct().count()
+        stock_transfer_data = StockTransferSummary.objects.filter(stock_transfer__st_type='MR', stock_transfer__order_id=order['order_id'], stock_transfer__status=2, pick_number = order['pick_number'])
+        for invoice_no in stock_transfer_data:
+            date = get_local_date(user, invoice_no.stock_transfer.creation_date)
+            destination = User.objects.get(id=invoice_no.stock_transfer.st_po.open_st.sku.user)
             dest_up = destination.userprofile
             invoice_data['destination_dept_name'] = "%s %s" %(destination.first_name, destination.last_name)
             invoice_data['destination_dept_address'] = dest_up.address
@@ -17015,49 +17007,40 @@ def generate_mr_dc(request , user = ''):
                 invoice_data['destination_dept_phone'] = dest_up.phone_number
             else:
                 invoice_data['destination_dept_phone'] = ''
-            duser_profile = UserProfile.objects.get(user_id=destination.id)
-            if data.stocktransfersummary_set.filter(pick_number = order['pick_number']):
-                creation_date = data.stocktransfersummary_set.filter(pick_number = order['pick_number'])[0].creation_date
-                invoice_date = get_local_date(user, creation_date, send_date='true')
-                invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
-                invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
-                for invoice_no in data.stocktransfersummary_set.filter(pick_number = order['pick_number']):
-                    batch_pcf = 1
-                    batch_number = ''
-                    expiry_date = ''
-                    manufactured_date = ''
-                    # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id, picklist__picklistlocation__quantity__gt=0,
-                    #                                     stock_transfer=data.id).values(
-                    #     'picklist__picklistlocation__stock__batch_detail__batch_no',
-                    #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
-                    #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
-                    batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
-                    batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
-                        'pick_loc__stock__batch_detail__batch_no',
-                        'pick_loc__stock__batch_detail__manufactured_date',
-                        'pick_loc__stock__batch_detail__expiry_date',
-                        'pick_loc__stock__batch_detail__pcf'
-                        )
-                    if batch_data.exists():
-                        batch_pcf = batch_data[0]['pick_loc__stock__batch_detail__pcf']
-                        batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
-                        expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
-                            "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
-                        manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
-                            "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
-                    try:
-                        invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
-                    except Exception as e:
-                        invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
-                    total_qty += float(invoice_no.quantity)
-                    temp_dict = {}
-                    temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
-                    temp_dict['desc'] = invoice_no.stock_transfer.sku.sku_desc
-                    temp_dict['qty'] = invoice_no.quantity
-                    temp_dict['batch_number'] = batch_number
-                    temp_dict['manufactured_date'] = manufactured_date
-                    temp_dict['expiry_date'] = expiry_date
-                    datum.append(temp_dict)
+            creation_date = invoice_no.creation_date
+            invoice_date = get_local_date(user, creation_date, send_date='true')
+            invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+            invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
+            uom_dict = get_uom_with_sku_code(user, invoice_no.stock_transfer.sku.sku_code, uom_type='purchase')
+            batch_pcf = uom_dict.get('sku_conversion', 0)
+            batch_number = ''
+            expiry_date = ''
+            manufactured_date = ''
+            batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
+            batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                'pick_loc__stock__batch_detail__batch_no',
+                'pick_loc__stock__batch_detail__manufactured_date',
+                'pick_loc__stock__batch_detail__expiry_date'
+                )
+            if batch_data.exists():
+                batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
+                expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
+                    "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
+                manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
+                    "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
+            try:
+                invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
+            except Exception as e:
+                invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
+            total_qty += float(invoice_no.quantity)
+            temp_dict = {}
+            temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
+            temp_dict['desc'] = invoice_no.stock_transfer.sku.sku_desc
+            temp_dict['qty'] = invoice_no.quantity
+            temp_dict['batch_number'] = batch_number
+            temp_dict['manufactured_date'] = manufactured_date
+            temp_dict['expiry_date'] = expiry_date
+            datum.append(temp_dict)
         invoice_data['username'] = user.username
         invoice_data['data'] = datum
         invoice_data['name'] = "%s - %s" %(str(user.first_name), str(user.last_name))

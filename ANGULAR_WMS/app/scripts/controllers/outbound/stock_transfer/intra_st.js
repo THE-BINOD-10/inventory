@@ -46,7 +46,7 @@ vm.changeUnitPrice = function(data){
   if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
     data.total_qty = 0;
     data.order_quantity = 0;
-    colFilters.showNoty("Total Qty Should be less then available Quantity");
+    colFilters.showNoty("Total Qty Should be less than available Quantity");
   }
   var order_quantity = data.order_quantity;
   var price = data.price;
@@ -198,10 +198,12 @@ vm.changeUnitPrice = function(data){
     } else if (!vm.warehouse_list_states[vm.model_data.selected]){
         temp_ware_name = vm.model_data.selected;
         vm.model_data.selected = '';
+        vm.model_data.warehouse_name = '';
         colFilters.showNoty(temp_ware_name +" - Please update state in Source Plant");
     } else if (!vm.warehouse_list_states[vm.model_data.warehouse_name]){
         temp_ware_name = vm.model_data.warehouse_name;
         vm.model_data.selected = '';
+        vm.model_data.warehouse_name = '';
         colFilters.showNoty(temp_ware_name +" - Please update state in Destination Plant");
     }
   }

@@ -7993,6 +7993,23 @@ def stock_transfer_order_upload(request, user=''):
 def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("stock transfer order upload started")
     st_time = datetime.datetime.now()
+    plants_list = []
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('username', flat=True)
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('username', flat=True)
     index_status = {}
     st_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING)
     st_res = dict(zip(st_mapping.values(), st_mapping.keys()))
@@ -8022,7 +8039,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         if order_mapping.has_key('source_warehouse'):
             source_warehouse = str(get_cell_data(row_idx, order_mapping['source_warehouse'], reader, file_type))
             try:
-                user = User.objects.get(username=source_warehouse)
+                if source_warehouse in plants_list:
+                    user = User.objects.get(username=source_warehouse)
+                else:
+                    index_status.setdefault(count, set()).add('Access denied for Source warehouse')
             except Exception as e:
                 index_status.setdefault(count, set()).add('Invalid Source warehouse')
         else:

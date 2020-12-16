@@ -6786,9 +6786,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if not grn_number:
                 sku_code = SKUMaster.objects.filter(user=user.id, sku_code=myDict['wms_code'][i].upper())[0].sku_code
                 dept_code = get_po_pr_dept_code(data)
-                grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, 'grn_prefix',
+                if request.POST.get('order_type', '') == 'Stock Transfer':
+                    grn_prefix_val = 'st_grn_prefix'
+                else:
+                    grn_prefix_val = 'grn_prefix'
+                grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, grn_prefix_val,
                                                                                                       sku_code,
                                                                                                     dept_code=dept_code)
+                if grn_number == '':
+                    return HttpResponse('GRN Prefix Not Available !')
             seller_received_list, grn_date = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
@@ -7353,7 +7359,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             try:
-                netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict,service_doa)
+                if request.POST.get('order_type', '') != 'Stock Transfer':
+                    netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict,service_doa)
             except Exception as e:
                 print(e)
                 pass

@@ -837,7 +837,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
             //   temp_str = temp_str + " - Quantity"
             // }
-            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total && vm.selected_order_type != 'Stock Transfer') {
               temp_str = temp_str + " - Value"
             }
             if (temp_str.includes('Value')) {
@@ -935,6 +935,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem.push({'name':'expected_date', 'value': vm.expected_date});
         elem.push({'name':'order_type', 'value': vm.order_type});
       }
+      elem.push({'name': 'order_type', 'value': vm.selected_order_type});
       $.each(elem, function(i, val) {
         val.name == 'grn_date' && val.value == vm.current_month ? form_data.append(val.name, '') : form_data.append(val.name, val.value);
       });

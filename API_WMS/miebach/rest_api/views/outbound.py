@@ -2401,13 +2401,13 @@ def picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
     else:
-        try:
-            netsuite_picklist_confirmation(final_data_list, user)
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
-            str(user.username), str(data), str(e)))
+        # try:
+        #     netsuite_picklist_confirmation(final_data_list, user)
+        # except Exception as e:
+        #     import traceback
+        #     log.debug(traceback.format_exc())
+        #     log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
+        #     str(user.username), str(data), str(e)))
         return HttpResponse('Picklist Confirmed')
 
 def netsuite_picklist_confirmation(final_data_list, user):

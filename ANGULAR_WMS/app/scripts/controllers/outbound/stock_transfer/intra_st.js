@@ -46,7 +46,7 @@ vm.changeUnitPrice = function(data){
   if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
     data.total_qty = 0;
     data.order_quantity = 0;
-    colFilters.showNoty("Total Qty Should be less then available Quantity");
+    colFilters.showNoty("Total Qty Should be less than available Quantity");
   }
   var order_quantity = data.order_quantity;
   var price = data.price;

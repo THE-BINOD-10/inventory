@@ -13798,8 +13798,24 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
+def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
+    po_pending_qty = 0
+    po_locs = POLocation.objects.filter(
+        Q(purchase_order__open_po__sku__user=user.id, purchase_order__open_po__sku__sku_code=sku_code) |
+        Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+          purchase_order__stpurchaseorder__open_st__sku__sku_code=sku_code),
+        status=1). \
+        exclude(id__in=value['exclude_po_loc'])
+    for po_loc in po_locs:
+        po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
+        batch_pcf = pcf
+        if po_batch.exists():
+            batch_pcf = po_batch[0].pcf
+        po_pending_qty += (po_loc.quantity * batch_pcf) / pcf
+    return po_pending_qty
+
+
 def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
-    return
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
@@ -13810,6 +13826,8 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
+        po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
+        stock_qty += po_pending_qty
         stock_value = stock_qty * sku.average_price
         total_qty = value['qty'] + stock_qty
         total_amount = stock_value + value['amount']
@@ -13849,12 +13867,16 @@ def update_sku_avg_from_grn(user, grn_number):
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
         amt = sp.quantity * price
         total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
         sp_quantity = sp.quantity
         if sp.purchase_order.open_po:
             sp_quantity = (sp.quantity*pcf)/skucf
         sku_amt[sku_code]['qty'] += sp_quantity
+        grn_po_locs = list(POLocation.objects.filter(purchase_order_id=sp.purchase_order.id,
+                                                receipt_number=sp.receipt_number, status=1).\
+                           values_list('id', flat=True))
+        sku_amt[sku_code]['exclude_po_loc'] = list(chain(sku_amt[sku_code]['exclude_po_loc'], grn_po_locs))
     if sps:
         update_sku_avg_main(sku_amt, user, main_user, grn_number)
 

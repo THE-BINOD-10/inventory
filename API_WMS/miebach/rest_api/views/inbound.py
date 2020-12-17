@@ -6439,7 +6439,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         log.debug(traceback.format_exc())
         log.info("sellerposummary creation failed for  " + str(user.username) + \
                  " and error statement is " + str(e))
-    return seller_received_list, grn_date
+    return seller_received_list, grn_date, seller_po_summary
 
 
 def create_file_po_mapping(request, user, receipt_no, myDict):
@@ -6795,7 +6795,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                                                                     dept_code=dept_code)
                 if grn_number == '':
                     return HttpResponse('GRN Prefix Not Available !')
-            seller_received_list, grn_date = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
+            seller_received_list, grn_date, seller_po_summary = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
@@ -6869,10 +6869,14 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        if product_category in ['Services', 'Assets', 'OtherItems']:# or auto_putaway_grn == 'true':
+        if product_category in ['Services', 'Assets', 'OtherItems'] or auto_putaway_grn == 'true':
             try:
+                batch_dict['transact_type'] = 'po'
+                batch_dict['transact_id'] = data.id
+                batch_detail = get_or_create_batch_detail(batch_dict, temp_dict)
                 auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id,
-                                          last_change_date=grn_date)
+                                          last_change_date=grn_date, sps_created_obj=seller_po_summary,
+                                          batch_detail=batch_detail)
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())

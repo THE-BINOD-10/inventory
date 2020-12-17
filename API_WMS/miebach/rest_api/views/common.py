@@ -11626,7 +11626,7 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
+def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_type=''):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     incremental_prefix = 'st_prefix'
     if order_typ == 'MR':
@@ -11682,6 +11682,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
             st_dict['st_type'] = str(val[9])
             if user.userprofile.user_type == 'marketplace_user':
                 st_dict['st_seller_id'] = key[2].id
+            if upload_type:
+                st_dict['upload_type'] = 'BULK_UPLOAD'
             stock_transfer = StockTransfer(**st_dict)
             stock_transfer.save()
             if creation_date:
@@ -11917,35 +11919,36 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
             if po and po.status not in ['confirmed-putaway']:
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
-                if order_typ in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ == 'MR':
-                    # mr_doa_obj = {}
-                    # mr_doa_obj['destination_warehouse'] = destination_warehouse.id
-                    # mr_doa_obj['po'] = po.id
-                    # mr_doa_obj['type'] = 'st'
-                    # mr_doa_obj['update_picked'] = update_picked
-                    # mr_doa_obj['data'] = stock.id
-                    # mr_doa_obj['order_typ'] = order_typ
-                    # doa_dict = {
-                    #     'requested_user': user,
-                    #     'wh_user': destination_warehouse,
-                    #     'reference_id': stock_transfer.order_id,
-                    #     'model_name': 'mr_doa',
-                    #     'json_data': json.dumps(mr_doa_obj),
-                    #     'doa_status': 'pending'
-                    # }
-                    # doa_obj = MastersDOA(**doa_dict)
-                    # doa_obj.save()
+                if order_typ in ['MR'] and stock_transfer.upload_type == 'UI':
+                    mr_doa_obj = {}
+                    mr_doa_obj['destination_warehouse'] = destination_warehouse.id
+                    mr_doa_obj['po'] = po.id
+                    mr_doa_obj['type'] = 'st'
+                    mr_doa_obj['update_picked'] = update_picked
+                    mr_doa_obj['data'] = stock.id
+                    mr_doa_obj['order_typ'] = order_typ
+                    doa_dict = {
+                        'requested_user': user,
+                        'wh_user': destination_warehouse,
+                        'reference_id': stock_transfer.order_id,
+                        'model_name': 'mr_doa',
+                        'json_data': json.dumps(mr_doa_obj),
+                        'doa_status': 'pending'
+                    }
+                    doa_obj = MastersDOA(**doa_dict)
+                    doa_obj.save()
+                elif order_typ in ['MR', 'ST_INTRA', 'ST_INTER'] and stock_transfer.upload_type == 'BULK_UPLOAD':
                     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
                                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
-                elif inbound_automate == 'true' and order_typ == 'ST_INTRA':
-                    grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
-                                              order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
-                    grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
+                # elif order_typ == 'ST_INTRA' and stock_transfer.upload_type == 'UI':
+                #     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
+                #                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
+                #     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
-                if user.userprofile.industry_type == 'FMCG' and order_typ not in ['MR', 'ST_INTRA', 'ST_INTER']: #order_typ != 'MR':
+                if order_typ in ['ST_INTRA', 'ST_INTER'] and stock_transfer.upload_type == 'UI':
                     exist_temp_json_objs = TempJson.objects.filter(model_id=po.id, model_name='PO').\
                                     exclude(model_json__icontains='"is_stock_transfer": "true"')
                     if exist_temp_json_objs.exists():
@@ -12656,7 +12659,8 @@ def get_stocktransfer_picknumber(user , picklist):
         return 1
 
 def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
-                              batch_detail='', order_typ='', last_change_date='', sps_created_obj=''):
+                              batch_detail='', order_typ='', last_change_date='', sps_created_obj='',
+                              grn_number=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12726,7 +12730,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                 sps_created_obj.save()
             seller_po_summary_obj = SellerPOSummary.objects.filter(id=sps_created_obj.id)
         else:
-            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
+            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, grn_number=grn_number)
         full_grn_number = ''
         if seller_po_summary_obj.exists():
             grn_price = seller_po_summary_obj[0].price
@@ -12774,7 +12778,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date=''):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type=''):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     batch_data = ''
     if data.batch_detail:
@@ -12815,7 +12819,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
-    return grn_number
+    if not upload_type:
+        return grn_number
 
 
 def get_companies_list(user, send_parent=False):
@@ -13793,21 +13798,40 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
+def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
+    po_pending_qty = 0
+    po_locs = POLocation.objects.filter(
+        Q(purchase_order__open_po__sku__user=user.id, purchase_order__open_po__sku__sku_code=sku_code) |
+        Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+          purchase_order__stpurchaseorder__open_st__sku__sku_code=sku_code),
+        status=1). \
+        exclude(id__in=value['exclude_po_loc'])
+    for po_loc in po_locs:
+        po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
+        batch_pcf = pcf
+        if po_batch.exists():
+            batch_pcf = po_batch[0].pcf
+        po_pending_qty += (po_loc.quantity * batch_pcf) / pcf
+    return po_pending_qty
+
+
 def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        exist_stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0, creation_date__lt='2020-12-01')
+        exist_stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
+        po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
+        stock_qty += po_pending_qty
         stock_value = stock_qty * sku.average_price
         total_qty = value['qty'] + stock_qty
         total_amount = stock_value + value['amount']
-        new_avg = float('%.2f' % (total_amount/total_qty))
+        new_avg = float('%.5f' % (total_amount/total_qty))
         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
         dept_user_ids = list(dept_users.values_list('id', flat=True))
         sku.average_price = new_avg
@@ -13821,23 +13845,38 @@ def update_sku_avg_from_grn(user, grn_number):
     main_user = get_company_admin_user(user)
     if not grn_number:
         return
-    # sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-    #                                Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-    #                                grn_number=grn_number)
-    sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
-                                 grn_number=grn_number)
+    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+                                   grn_number=grn_number)
+    # sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+    #                              grn_number=grn_number)
     sku_amt = {}
     for sp in sps:
         price,tax = [0]*2
+        po_data = get_purchase_order_data(sp.purchase_order)
+        sku = po_data['sku']
+        uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+        skucf = uom_dict['sku_conversion']
+        skucf = skucf if skucf else 1
+        pcf = ''
         if sp.batch_detail:
             price = sp.batch_detail.buy_price
             tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+            pcf = sp.batch_detail.pcf
+        pcf = pcf if pcf else skucf
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
         amt = sp.quantity * price
         total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
-        sku_amt[sku_code]['qty'] += sp.quantity
+        sp_quantity = sp.quantity
+        if sp.purchase_order.open_po:
+            sp_quantity = (sp.quantity*pcf)/skucf
+        sku_amt[sku_code]['qty'] += sp_quantity
+        grn_po_locs = list(POLocation.objects.filter(purchase_order_id=sp.purchase_order.id,
+                                                receipt_number=sp.receipt_number, status=1).\
+                           values_list('id', flat=True))
+        sku_amt[sku_code]['exclude_po_loc'] = list(chain(sku_amt[sku_code]['exclude_po_loc'], grn_po_locs))
     if sps:
         update_sku_avg_main(sku_amt, user, main_user, grn_number)
 

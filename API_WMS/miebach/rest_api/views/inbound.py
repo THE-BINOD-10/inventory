@@ -405,7 +405,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId)
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO')
         pr_numbers = []
         if pa_mails:
             for pa_mail in pa_mails:
@@ -1385,11 +1385,10 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     resultant_grns = list(po_dict.values_list('sellerposummary__grn_number',flat = True))
     rwo_dict = PurchaseOrder.objects.filter(rw_purchase_query, rwpurchase__rwo__vendor__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).exclude(order_id__in=po_ids)\
                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
-    st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1,
-                                            polocation__quantity__gt=0).\
-                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).\
-                                     values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
-                                     'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
+    st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1, polocation__quantity__gt=0, sellerposummary__status=0)\
+                                    .annotate(sellerposummary__creation_date=Cast('sellerposummary__creation_date', DateField()))\
+                                    .exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
+                                    .values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number', 'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
     resultant_grns = list(chain(resultant_grns, st_dict.values_list('sellerposummary__grn_number',flat = True)))
     results = list(chain(po_dict,rwo_dict,st_dict))
     results = verify_putaway_data(results)
@@ -1404,14 +1403,15 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
         if rwo_dict.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user__in=user_ids, prefix=result['prefix']).exists(): #supplier.rwpurchase_set.filter():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user__in=user_ids, prefix=result['prefix'])[0]
             order_type = 'Returnable Work Order'
-        elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix']).exists():
+        elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix'], po_number=result['po_number'], sellerposummary__grn_number=result['sellerposummary__grn_number']).exists():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix'])[0]
             grn_time_date = resultant_grns.filter(receipt_number=result['sellerposummary__receipt_number'], grn_number=result['sellerposummary__grn_number']).order_by('-creation_date')[0].creation_date
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
-
         po_reference = supplier.po_number
         warehouse = User.objects.get(id=order_data['sku'].user)
+        if order_type == 'Stock Transfer':
+            order_data['supplier_name'] = "%s%s (%s)"%(warehouse.first_name, warehouse.last_name, warehouse.username)
         temp_data['aaData'].append({'DT_RowId': supplier.order_id, 'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
                                     ' Order ID': supplier.order_id,
@@ -1997,10 +1997,15 @@ def generated_actual_pr_data(request, user=''):
                             cess_tax = taxes[0]['cess_tax']
                         else:
                             sgst_tax, cgst_tax, igst_tax, cess_tax = 0, 0, 0, 0
-                        if skuTaxVal.get('sku_supplier_price', ''):
-                            price = skuTaxVal.get('sku_supplier_price', '')
-                        else:
-                            price = skuTaxVal['mrp']
+                        if not pr_supplier_data.exists():
+                            if skuTaxVal.get('sku_supplier_price', ''):
+                                price = skuTaxVal.get('sku_supplier_price', '')
+                            else:
+                                price = skuTaxVal['mrp']
+                        #if skuTaxVal.get('sku_supplier_price', ''):
+                        #   price = skuTaxVal.get('sku_supplier_price', '')
+                        #else:
+                        #   price = skuTaxVal['mrp']
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:
@@ -2555,6 +2560,7 @@ def switches(request, user=''):
                        'central_admin_level_po': 'central_admin_level_po',
                        'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                        'pending_pr_prefix': 'pending_pr_prefix',
+                       'auto_putaway_grn': 'auto_putaway_grn',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2926,7 +2932,7 @@ def search_supplier(request, user=''):
     if arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
-                                        Q(name__icontains=data_id), user=user.id).only('supplier_id', 'name')
+                                        Q(name__icontains=data_id), user=user.id, status=1).only('supplier_id', 'name')
     #data1 = SupplierMaster.objects.filter(supplier_id__icontains=data_id, user=user.id).only('supplier_id', 'name')
     #data2 = SupplierMaster.objects.filter(name__icontains=data_id, user=user.id).only('supplier_id', 'name')
     #data = data1 | data2
@@ -4101,7 +4107,7 @@ def splitPRtoPO(all_data, user):
 
 def checkPartialPR(existingPRObj, convertingSkus):
     partialPRFlag = False
-    allLineItems = set(existingPRObj.pending_prlineItems.filter().values_list('sku__sku_code', flat=True))
+    allLineItems = set(existingPRObj.pending_prlineItems.filter(quantity__gt=0).values_list('sku__sku_code', flat=True))
     convertingSkus = set(convertingSkus)
     if (allLineItems - convertingSkus):
         partialPRFlag = True
@@ -4537,7 +4543,7 @@ def send_pr_to_parent_store(request, user=''):
 def get_pr_preview_data(request, user=''):
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
-    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
+    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds, quantity__gt=0)
     lineItems = lineItemsQs.values_list('sku__sku_code',
         'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity', 'discount_percent')
     skuPrNumsMap = {}
@@ -6214,9 +6220,9 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
     from pytz import timezone
+    grn_date = datetime.datetime.now()
     try:
         utc_tz=timezone("UTC")
-        grn_date = datetime.datetime.now()
         if myDict.get('grn_date', ''):
             try:
                 if myDict.get('grn_date', '')[0]:
@@ -6317,7 +6323,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         remarks = ','.join(remarks_list)
         invoice_value, invoice_quantity, status, tcs = 0, 0, 0, 0
         if 'tcs' in invoice_datum.keys():
-           tcs =  invoice_datum['tcs']
+           tcs =  invoice_datum['tcs'] if invoice_datum['tcs'] else tcs
         if invoice_datum['invoice_value'] > 0 or invoice_datum['invoice_quantity'] > 0:
             invoice_value = invoice_datum['invoice_value']
             invoice_quantity = invoice_datum['invoice_quantity']
@@ -6433,7 +6439,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         log.debug(traceback.format_exc())
         log.info("sellerposummary creation failed for  " + str(user.username) + \
                  " and error statement is " + str(e))
-    return seller_received_list
+    return seller_received_list, grn_date, seller_po_summary
 
 
 def create_file_po_mapping(request, user, receipt_no, myDict):
@@ -6521,6 +6527,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     data = {}
     created_qc_ids = {}
     invoice_datum = {}
+    grn_date = datetime.datetime.now()
     mrp = 0
     supplier_id = request.POST['supplier_id']
     supplier_mapping_off = get_misc_value('supplier_mapping', user.id)
@@ -6538,6 +6545,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     challan_number = request.POST.get('dc_number', '')
     challan_date = request.POST.get('dc_date', '')
     mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+    main_user = get_company_admin_user(user)
+    auto_putaway_grn = get_misc_value('auto_putaway_grn', main_user.id)
     send_discrepencey = False
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
@@ -6777,10 +6786,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if not grn_number:
                 sku_code = SKUMaster.objects.filter(user=user.id, sku_code=myDict['wms_code'][i].upper())[0].sku_code
                 dept_code = get_po_pr_dept_code(data)
-                grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, 'grn_prefix',
+                if request.POST.get('order_type', '') == 'Stock Transfer':
+                    grn_prefix_val = 'st_grn_prefix'
+                else:
+                    grn_prefix_val = 'grn_prefix'
+                grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, grn_prefix_val,
                                                                                                       sku_code,
                                                                                                     dept_code=dept_code)
-            seller_received_list = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
+                if grn_number == '':
+                    return HttpResponse('GRN Prefix Not Available !')
+            seller_received_list, grn_date, seller_po_summary = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
@@ -6854,13 +6869,18 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        if product_category in ['Services', 'Assets', 'OtherItems']:
+        if product_category in ['Services', 'Assets', 'OtherItems'] or auto_putaway_grn == 'true':
             try:
-                auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id)
+                batch_dict['transact_type'] = 'po'
+                batch_dict['transact_id'] = data.id
+                batch_detail = get_or_create_batch_detail(batch_dict, temp_dict)
+                auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id,
+                                          last_change_date=grn_date, sps_created_obj=seller_po_summary,
+                                          batch_detail=batch_detail)
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
-                log.info("Check Generating GRN failed for params " + str(e))
+                log.info("Auto Putaway for GRN failed for params " + str(e))
             if int(purchase_data['order_quantity']) == int(data.received_quantity):
                 data.status = 'confirmed-putaway'
             else:
@@ -7343,7 +7363,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             try:
-                netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict,service_doa)
+                if request.POST.get('order_type', '') != 'Stock Transfer':
+                    netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict,service_doa)
             except Exception as e:
                 print(e)
                 pass
@@ -7387,6 +7408,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     from pytz import timezone
     from django.db.models import F
     import dateutil.parser as DP
+    log.info("Netsuite Integrtaion params " + str(data_dict) + " GRN Number is " + str(
+        grn_number) + " and PO Number " + str(po_number))
     grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     s_po_s= SellerPOSummary.objects.filter(grn_number=grn_number)
     if s_po_s:
@@ -7522,6 +7545,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             import traceback
             log.debug(traceback.format_exc())
             log.info("Netsuite Confirm GRN failed for params " + str(data_dict) + " and error statement is " + str(e))
+    else:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Netsuite Confirm GRN failed for params " + str(data_dict) + " ,GRN Number is " + str(grn_number) + " ,PO Number " + str(po_number) + "Error GRN Number is not saved in SellerPOSummary table")
 
 @csrf_exempt
 def confirmation_location(record, data, total_quantity, temp_dict=''):
@@ -10064,25 +10091,59 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name', None)
-            cess_tax=0
+            sgst_tax, igst_tax, cgst_tax, utgst_tax, cess_tax= [0]*5
             if _open.cess_tax:
                 cess_tax=_open.cess_tax
-            hsn_code=""
+            if _open.cgst_tax:
+                cgst_tax= _open.cgst_tax
+            if _open.utgst_tax:
+                utgst_tax = _open.utgst_tax
+            if _open.igst_tax:
+                igst_tax= _open.igst_tax
+            if _open.sgst_tax:
+                sgst_tax = _open.sgst_tax
+            temp_tax = sgst_tax + igst_tax + cgst_tax + utgst_tax + cess_tax
+            hsn_list = {
+                "28": {"refrence_id": "978", "hsn_code": "8415"},
+                '12': {"refrence_id": "631", "hsn_code": "38220019_12"},
+                "18": {"refrence_id": "1020", "hsn_code": "38220019_18"},
+                "5": {"refrence_id": "1056", "hsn_code": "38220019_5"},
+            }
+            netsuite_hsn_code=""
             if supplier_gstin:
-                if _open.sku.hsn_code:
-                    hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
-                    if hsn_code_object.exists():
-                        if cess_tax:
-                            hsn_code=str(_open.sku.hsn_code)+"_KL"
-                        else:
-                            hsn_code=hsn_code_object[0]["reference_id"]
+                if temp_tax:
+                    if _open.sku.hsn_code:
+                        hsn_code = _open.sku.hsn_code
+                        if isinstance(hsn_code, float):
+                            hsn_code = str(int(hsn_code))
+                        hsn_code_object = TaxMaster.objects.filter(product_type= hsn_code, user= user.id).values()
+                        if hsn_code_object.exists():
+                            original_hsn_tax = hsn_code_object[0]["igst_tax"] + hsn_code_object[0]["cgst_tax"] + \
+                                               hsn_code_object[0]["apmc_tax"] + hsn_code_object[0]["utgst_tax"] + \
+                                               hsn_code_object[0]["cess_tax"] + hsn_code_object[0]["sgst_tax"]
+                            if temp_tax == original_hsn_tax:
+                                if cess_tax:
+                                    netsuite_hsn_code = str(hsn_code) + "_KL"
+                                else:
+                                    netsuite_hsn_code = hsn_code_object[0]["reference_id"]
+                                    if not netsuite_hsn_code:
+                                        log.info("HSN CODE reference_id Not present, hsn_code=" + str(_open.sku.hsn_code))
+            if not netsuite_hsn_code:
+                if cess_tax:
+                    temp_tax = temp_tax - cess_tax
+                if str(int(temp_tax)) in hsn_list:
+                    if cess_tax:
+                        netsuite_hsn_code = hsn_list[str(int(temp_tax))]["hsn_code"] + "_KL"
+                    else:
+                        netsuite_hsn_code = hsn_list[str(int(temp_tax))]["refrence_id"]
+                else:
+                    log.info("TAX is not matched to any hsn code tax " + str(temp_tax) + " PO Number " + str(po_number))
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
-                    'hsn_code': hsn_code,
+                    'hsn_code': netsuite_hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
-                    'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, "cess_tax": cess_tax,
-                    'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
-
+                    'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
+                    'cgst_tax': cgst_tax , 'utgst_tax': utgst_tax , 'cess_tax': cess_tax,
+                    'unitypeexid': unitexid, 'uom_name': purchaseUOMname }
             po_data['items'].append(item)
         # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
         intObj = Integrations(user, 'netsuiteIntegration')
@@ -10092,8 +10153,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         log.debug(traceback.format_exc())
         log.info("Netsuite Add PO failed for params " + str(data_dict) + " and error statement is " + str(e))
         print(e)
-    # if response.has_key('__values__') and not netsuite_map_obj.exists():
-    #     internal_external_map(response, type_name='PO')
+
 
 def create_mail_attachments(f_name, html_data):
     from random import randint
@@ -15619,6 +15679,8 @@ def get_credit_note_po_data(request, user=''):
                 if other_charges.exists():
                     other_charges = other_charges[0]['total']
                     grn_total_price = grn_total_price + other_charges
+                if spos.__dict__.has_key('tcs_value'):
+                    grn_total_price = grn_total_price + float(spos.tcs_value)
     return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': round(grn_total_price, 2)}))
 
 @csrf_exempt
@@ -16349,14 +16411,14 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
     else:
         users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    if user.username == 'mhl_admin':
-        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR').\
+    if request.user.username == 'mhl_admin':
+        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR', upload_type='BULK_UPLOAD').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
                                         date_only=Cast('creation_date', DateField()))
     else:
-        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR').\
+        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR', upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
@@ -16438,7 +16500,7 @@ def confirm_mr_request(request, user=''):
                         stock = StockDetail.objects.get(id=filter_data['data'])
                         po =PurchaseOrder.objects.get(id=filter_data['po'])
                         destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
-                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'])
+                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
                         MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
             except Exception as e:
                 return HttpResponse('fail')

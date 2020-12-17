@@ -1418,7 +1418,7 @@ STOCK_TRANSFER_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Stock Transfer ID', 'name': 'order_id', 'type': 'input'},
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
     ],
     'dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code',
@@ -1439,7 +1439,7 @@ MATERIAL_REQUEST_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Material Request ID', 'name': 'order_id', 'type': 'input'},
         # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
     ],
     'dt_headers': ['Date', 'Order ID', 'Pick Sequence', 'Source Plant', 'Destination Department', 'SKU Code',
@@ -3198,6 +3198,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'receive_po_inv_value_qty_check': 'receive_po_inv_value_qty_check',
                         'central_admin_level_po': 'central_admin_level_po',
                         'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
+                        'auto_putaway_grn': 'auto_putaway_grn',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -3265,7 +3266,7 @@ STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
     ('Source Warehouse', 'source_warehouse'), ('Destination Warehouse', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
     ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
     ('Quantity', 'quantity'), ('Price', 'price'), ('MRP', 'mrp'), ('Cgst(%)', 'cgst_tax'),
-    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'), ('Type (MR/ST)', 'st_type')
+    ('Sgst(%)', 'sgst_tax'), ('Igst(%)', 'igst_tax'), ('Cess Tax(%)', 'cess_tax'), ('Type (ST_INTRA)', 'st_type')
 ))
 MATERIAL_REQUEST_ORDER_MAPPING = OrderedDict((
     ('Source Plant', 'source_warehouse'), ('Destination Department', 'warehouse_name'), ('SKU Code', 'wms_code'), ('Quantity', 'quantity')
@@ -10691,7 +10692,7 @@ def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
 
 
 def get_material_request_report_data(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants, get_related_users_filters, get_uom_with_sku_code
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants, get_related_users_filters, get_uom_with_sku_code, check_and_get_plants_wo_request
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
@@ -10731,6 +10732,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
+        search_parameters['upload_type'] = 'UI'
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     #search_parameters['sku_id__in'] = sku_master_ids
@@ -10874,6 +10876,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         users = get_related_users_filters(user.id)
     else:
         users = [user.id]
+        search_parameters['upload_type'] = 'UI'
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':

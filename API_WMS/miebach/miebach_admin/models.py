@@ -1876,6 +1876,7 @@ class StockTransfer(models.Model):
     st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='st_seller')
     sku = models.ForeignKey(SKUMaster)
     st_type = models.CharField(max_length=32, default='ST_INTRA')
+    upload_type = models.CharField(max_length=32, default='UI')
     invoice_amount = models.FloatField(default=0)
     original_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)

@@ -7947,9 +7947,10 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
                 except:
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
+                price = sku_master[0].average_price
             elif key == 'quantity':
                  quantity = float(get_cell_data(row_idx, value, reader, file_type))
-            price = 0
             mrp = 0
             cgst_tax = 0
             sgst_tax = 0
@@ -7992,6 +7993,23 @@ def stock_transfer_order_upload(request, user=''):
 def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("stock transfer order upload started")
     st_time = datetime.datetime.now()
+    plants_list = []
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('username', flat=True)
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('username', flat=True)
     index_status = {}
     st_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING)
     st_res = dict(zip(st_mapping.values(), st_mapping.keys()))
@@ -8021,7 +8039,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         if order_mapping.has_key('source_warehouse'):
             source_warehouse = str(get_cell_data(row_idx, order_mapping['source_warehouse'], reader, file_type))
             try:
-                user = User.objects.get(username=source_warehouse)
+                if source_warehouse in plants_list:
+                    user = User.objects.get(username=source_warehouse)
+                else:
+                    index_status.setdefault(count, set()).add('Access denied for Source warehouse')
             except Exception as e:
                 index_status.setdefault(count, set()).add('Invalid Source warehouse')
         else:
@@ -8112,8 +8133,9 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
-        mrp =0
+        mrp, price =0, 0
         st_type = 'ST_INTRA'
+        current_sku = ''
         for key, value in order_mapping.iteritems():
             if key == 'source_warehouse':
                 source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
@@ -8133,13 +8155,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
+                current_sku = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)[0]
             elif key == 'quantity':
                  quantity = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
-                    price = float(get_cell_data(row_idx, value, reader, file_type))
+                    price = current_sku.average_price
                 except:
-                    price = 0
+                    price = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'mrp':
                 try:
                     mrp = float(get_cell_data(row_idx, value, reader, file_type))
@@ -11901,8 +11924,8 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
                 try:
                     if st_type == 'MR':
                         # user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
-                        # user_obj = dept_users.get(username=warehouse_name)
-                        user_obj = User.objects.get(username=warehouse_name)
+                        user_obj = dept_users.get(username=warehouse_name)
+                        # user_obj = User.objects.get(username=warehouse_name)
                     else:
                         user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj
@@ -12007,7 +12030,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type,
                                order_id, creation_date, batch_no])
     all_data = insert_st_gst(all_data, warehouse)
-    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type)
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type, upload_type='BULK_UPLOAD')
 
     if status.status_code == 200:
         return 'Success'

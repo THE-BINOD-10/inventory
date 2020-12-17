@@ -667,7 +667,7 @@ SKU_WISE_GRN_DICT = {'filters': [
                    "PO Basic Price", "Tax Amt" ,"PO total amt", "Expected delivery date","GRN date", "GRN Number",
                    "GRN Done by User Name", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
                    "SKU Code", "SKU Description", "SKU Category", "Sub Category", "SKU Brand", "HSN Code", "SKU Class",
-                   "SKU Style Name", "SKU Brand", "GRN Qty",'Purchase UOM','Purchase Quantity','Conversion', 'Base UOM ',
+                   "SKU Style Name", "SKU Brand", "GRN Qty",'Purchase UOM','Purchase Quantity','Conversion', 'Base UOM ', 'SKU Conversion', 'Revised Final Purchase Qty',
                    'Base Quantity', "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)","SGST(%)", "IGST(%)",
                    "UTGST(%)", "CESS(%)", "APMC(%)", "CGST", "SGST", "IGST", "UTGST", "CESS", "APMC",
                    "Post-Tax Received Value", "Invoiced Unit Rate","Overall Discount","Invoiced Total Amount",
@@ -4912,10 +4912,11 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         except IOError:
             pass
         uom_dict = get_uom_with_sku_code(user, data['purchase_order__open_po__sku__sku_code'], uom_type='purchase')
-        base_uom, sku_conversion, purchase_uom, base_quantity, purchase_quantity = "", "", "", '', ''
+        base_uom, sku_conversion, purchase_uom, base_quantity, purchase_quantity, sk_con = "", "", "", '', '', 1
         if uom_dict:
             base_uom = uom_dict.get('base_uom')
             sku_conversion = uom_dict.get('sku_conversion')
+            sk_con = uom_dict.get('sku_conversion')
             purchase_uom = uom_dict.get('measurement_unit')
         if data['purchase_order__pcf']:
             sku_conversion = data['purchase_order__pcf']
@@ -5009,8 +5010,10 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('LR-NUMBER', lr_detail_no),
                                 ('Purchase UOM',purchase_uom),
                                 ('Purchase Quantity',purchase_quantity),
-                                ('Conversion',sku_conversion) ,
+                                ('Conversion',sku_conversion),
                                 ('Base UOM ',base_uom),
+                                ('SKU Conversion', sk_con),
+                                ('Revised Final Purchase Qty', (base_quantity/sk_con)),
                                 ('Base Quantity', base_quantity),
                                 ('Invoice/DC Download', http_data)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':

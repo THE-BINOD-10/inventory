@@ -12659,7 +12659,8 @@ def get_stocktransfer_picknumber(user , picklist):
         return 1
 
 def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
-                              batch_detail='', order_typ='', last_change_date='', sps_created_obj=''):
+                              batch_detail='', order_typ='', last_change_date='', sps_created_obj='',
+                              grn_number=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12729,7 +12730,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                 sps_created_obj.save()
             seller_po_summary_obj = SellerPOSummary.objects.filter(id=sps_created_obj.id)
         else:
-            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
+            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, grn_number=grn_number)
         full_grn_number = ''
         if seller_po_summary_obj.exists():
             grn_price = seller_po_summary_obj[0].price
@@ -13797,8 +13798,24 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
+def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
+    po_pending_qty = 0
+    po_locs = POLocation.objects.filter(
+        Q(purchase_order__open_po__sku__user=user.id, purchase_order__open_po__sku__sku_code=sku_code) |
+        Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+          purchase_order__stpurchaseorder__open_st__sku__sku_code=sku_code),
+        status=1). \
+        exclude(id__in=value['exclude_po_loc'])
+    for po_loc in po_locs:
+        po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
+        batch_pcf = pcf
+        if po_batch.exists():
+            batch_pcf = po_batch[0].pcf
+        po_pending_qty += (po_loc.quantity * batch_pcf) / pcf
+    return po_pending_qty
+
+
 def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
-    return
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
@@ -13809,10 +13826,12 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
+        po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
+        stock_qty += po_pending_qty
         stock_value = stock_qty * sku.average_price
         total_qty = value['qty'] + stock_qty
         total_amount = stock_value + value['amount']
-        new_avg = float('%.2f' % (total_amount/total_qty))
+        new_avg = float('%.5f' % (total_amount/total_qty))
         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
         dept_user_ids = list(dept_users.values_list('id', flat=True))
         sku.average_price = new_avg
@@ -13826,23 +13845,38 @@ def update_sku_avg_from_grn(user, grn_number):
     main_user = get_company_admin_user(user)
     if not grn_number:
         return
-    # sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-    #                                Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-    #                                grn_number=grn_number)
-    sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
-                                 grn_number=grn_number)
+    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+                                   grn_number=grn_number)
+    # sps = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=user.id,
+    #                              grn_number=grn_number)
     sku_amt = {}
     for sp in sps:
         price,tax = [0]*2
+        po_data = get_purchase_order_data(sp.purchase_order)
+        sku = po_data['sku']
+        uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+        skucf = uom_dict['sku_conversion']
+        skucf = skucf if skucf else 1
+        pcf = ''
         if sp.batch_detail:
             price = sp.batch_detail.buy_price
             tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+            pcf = sp.batch_detail.pcf
+        pcf = pcf if pcf else skucf
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
         amt = sp.quantity * price
         total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
-        sku_amt[sku_code]['qty'] += sp.quantity
+        sp_quantity = sp.quantity
+        if sp.purchase_order.open_po:
+            sp_quantity = (sp.quantity*pcf)/skucf
+        sku_amt[sku_code]['qty'] += sp_quantity
+        grn_po_locs = list(POLocation.objects.filter(purchase_order_id=sp.purchase_order.id,
+                                                receipt_number=sp.receipt_number, status=1).\
+                           values_list('id', flat=True))
+        sku_amt[sku_code]['exclude_po_loc'] = list(chain(sku_amt[sku_code]['exclude_po_loc'], grn_po_locs))
     if sps:
         update_sku_avg_main(sku_amt, user, main_user, grn_number)
 

@@ -38,18 +38,18 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     is_excel = request.POST.get('excel', 'false')
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'plant_code', 'plant_name', 'dept_type',
-           'total', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value',
-           'sku__wms_code', 'sku__wms_code', 'sku__wms_code', 'plant_code', 'plant_name', 'dept_type']
+           'dept_type', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value', 
+           'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'plant_code', 'plant_name', 'dept_type', 'total', 'product_code__measurement_type', 'total', 'product_code__measurement_type',
+            'total', 'total', 'total', 'total', 'product_code__measurement_type', 'total', 'product_code__measurement_type',
             'total', 'stock_value', 'product_code__wms_code',
             'product_code__wms_code', 'product_code__wms_code', 'plant_code', 'plant_name', 'dept_type']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
-    lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'plant_code',
-            'plant_name', 'dept_type', 'threshold_quantity', 'measurement_type', 'measurement_type',
+    lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
+            'threshold_quantity', 'threshold_quantity', 'threshold_quantity', 'measurement_type', 'measurement_type',
             'wms_code', 'wms_code', 'wms_code', 'plant_code', 'plant_name', 'dept_type']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
@@ -64,7 +64,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     if 'plant_code__icontains' in search_params.keys():
         plant_code = search_params['plant_code__icontains']
         del search_params['plant_code__icontains']
-        del search_params1['plant_code__icontains']
+        if 'plant_code__icontains' in search_params1.keys():
+            del search_params1['plant_code__icontains']
         #del search_params2['plant_code__icontains']
         plant_users = list(users.filter(userprofile__stockone_code__icontains=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
@@ -75,7 +76,10 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     if 'plant_name__icontains' in search_params.keys():
         plant_name = search_params['plant_name__icontains']
         del search_params['plant_name__icontains']
-        del search_params1['plant_name__icontains']
+        if 'plant_code__icontains' in search_params1.keys():
+            del search_params1['plant_code__icontains']
+        if 'plant_name__icontains' in search_params1.keys():
+            del search_params1['plant_name__icontains']
         #del search_params2['plant_name__icontains']
         plant_users = list(users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
@@ -87,7 +91,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_type = search_params['dept_type__icontains']
         del search_params['dept_type__icontains']
-        del search_params1['dept_type__icontains']
+        if 'dept_type__icontains' in search_params1.keys():
+            del search_params1['dept_type__icontains']
         #del search_params2['dept_type__icontains']
         if dept_type.lower() != 'na':
             dept_mapping = {x:y for x,y in dept_mapping.items() if dept_type.lower() in y.lower()}

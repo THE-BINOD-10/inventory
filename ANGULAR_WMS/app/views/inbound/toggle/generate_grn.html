@@ -127,8 +127,8 @@
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number) && showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check">
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" ng-change="showCase.check_inv_number_length(showCase.model_data.invoice_number)" required>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check" ng-change="showCase.check_inv_number_length(showCase.model_data.invoice_number)">
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number) && showCase.selected_order_type != 'Stock Transfer'">

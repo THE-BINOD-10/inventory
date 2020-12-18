@@ -2645,7 +2645,8 @@ PERMISSION_DICT = OrderedDict((
                  ('Inventory Value Report', 'delete_skudetailstats'),
                  ('Stock Cover Report', 'add_skudetailstats'),
                  ('MoveInventory Report', 'view_moveinventory'),
-                 ('Bulk To Retail Report', 'view_substitutionsummary'))),
+                 ('Bulk To Retail Report', 'view_substitutionsummary'),
+                 ('Consumption Report', 'view_consumption'))),
     # Master Edit Access
     ("MASTERS_VIEW_LABEL", (('SKU Master View', 'view_skumaster'),
                             ('Supplier Master View', 'view_suppliermaster'),
@@ -3446,6 +3447,11 @@ CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjus
 CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), ('Plant Code', 'plant_code'),
                                           ('Department', 'department'), ('SKU Code', 'sku_code'),
                                           ('Base UOM Quantity', 'base_uom_quantity'),
+                                          ))
+
+CLOSING_STOCK_FEATURE_FILE_MAPPING = OrderedDict((('Plant Name', 'plant_name'),
+                                          ('Department', 'department'), ('SKU Code', 'sku_code'),
+                                          ('Base UOM Quantity', 'base_uom_quantity')
                                           ))
 
 CONSUMPTION_FILE_MAPPING = OrderedDict(( ('Date(YYYY-MM-DD)', 'closing_date'), ('Warehouse', 'warehouse'),
@@ -15451,14 +15457,14 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
-                                    check_and_get_plants_wo_request, get_related_users_filters, get_uom_with_sku_code
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters = {'sku__user__in': user_ids}
     lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',

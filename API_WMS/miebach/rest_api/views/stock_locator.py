@@ -37,19 +37,19 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     sku_codes = list(sku_master.filter(user=main_user.id).values_list('sku_code', flat=True))
     #sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     is_excel = request.POST.get('excel', 'false')
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'plant_code', 'plant_name', 'dept_type',
            'total', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value',
            'sku__wms_code', 'sku__wms_code', 'sku__wms_code', 'plant_code', 'plant_name', 'dept_type']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'total', 'total', 'product_code__measurement_type', 'total', 'product_code__measurement_type',
+            'plant_code', 'plant_name', 'dept_type', 'total', 'product_code__measurement_type', 'total', 'product_code__measurement_type',
             'total', 'stock_value', 'product_code__wms_code',
             'product_code__wms_code', 'product_code__wms_code', 'plant_code', 'plant_name', 'dept_type']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
-    lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'threshold_quantity', 'threshold_quantity', 'measurement_type', 'measurement_type',
+    lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'plant_code',
+            'plant_name', 'dept_type', 'threshold_quantity', 'measurement_type', 'measurement_type',
             'wms_code', 'wms_code', 'wms_code', 'plant_code', 'plant_name', 'dept_type']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
@@ -295,9 +295,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Reserved Qty', round(preserved, 3)), ('Purchase UOM Qty', round(ptotal, 3)),
                                                 ('Pending Putaway Qty', putaway_pending),
                                                 ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 3)),
-                                                ('Purchase Base UOM Qty', round(ptotal * sku_conversion, 3)),
+                                                ('Base UOM Qty', round(ptotal * sku_conversion, 3)),
                                                 ('Pending Putaway Base Qty', round(putaway_pending* sku_conversion, 3)),
-                                                ('Total Purchase Base UOM Qty', round((ptotal+putaway_pending)* sku_conversion, 3)),
+                                                ('Total Base UOM Qty', round((ptotal+putaway_pending)* sku_conversion, 3)),
                                                 ('Purchase UOM', measurement_type),
                                                 ('Base UOM', base_uom),
                                                 ('Unit Purchase Qty Price', sku_avg_price),
@@ -307,8 +307,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 # ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),
-                                                ('Dept Code', dept_type),
-                                                ('Dept Name', dept_name),
+                                                ('Dept Code', dept_name),
+                                                ('Dept Name', dept_type),
                                                 ('Intransit Qty', intransit_qty),
                                                 ('Intransit Value', float('%.2f' % intransit_amt)),
                                                 ('DT_RowId', data[0]))))

@@ -587,6 +587,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
        return d.promise;
     }
+
+    vm.check_inv_number_length = function(invoice_no) {
+      if (parseInt(invoice_no.length) >= 60) {
+        vm.model_data.invoice_number = '';
+        colFilters.showNoty("Invoice Number Should Not Exceed 60 Characters !");
+      }
+    }
+
     vm.get_grn_extra_fields = function(){
       vm.service.apiCall("get_grn_extra_fields/").then(function(data){
         if(data.message) {

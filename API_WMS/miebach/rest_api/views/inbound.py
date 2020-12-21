@@ -7486,7 +7486,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 for row_1 in unitdata.get('uom_items', None):
                     if row_1.get('unit_type', '') == 'Purchase':
                         purchaseUOMname = row_1.get('unit_name', None)
-                batch_number , mfg_date, exp_date = ['']*3
+                batch_number , mfg_date, exp_date, temp_exp_date = ['']*4
                 if data.batch_detail:
                     batch_number= data.batch_detail.batch_no
                     if data.batch_detail.manufactured_date:
@@ -7504,7 +7504,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                                         new_exp_date=DP.parse(exp_date)
                                         old_exp_date=DP.parse(row_line["exp_date"])
                                         if new_exp_date<old_exp_date:
-                                            exp_date=temp_exp_date.isoformat()
+                                            if temp_exp_date:
+                                                exp_date=temp_exp_date.isoformat()
                                         else:
                                             exp_date=row_line["exp_date"]
                                     else:

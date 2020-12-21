@@ -6221,6 +6221,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
     from pytz import timezone
     grn_date = datetime.datetime.now()
+    seller_po_summary = None
     try:
         utc_tz=timezone("UTC")
         if myDict.get('grn_date', ''):

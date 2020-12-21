@@ -81,7 +81,7 @@ def update_consumption(consumption_objss, user, company):
                             diff_test = data_dict['total_test'] - exist_total_test
                             status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=diff_test)
                             if status == 'Success':
-                                consumption_obj[0].update(**data_dict)
+                                consumption_obj.update(**data_dict)
                     else:
                         consumption_obj = Consumption.objects.create(**data_dict)
                         status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
@@ -104,9 +104,9 @@ class Command(BaseCommand):
             for integrate in integrations:
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
                 today = datetime.date.today().strftime('%Y%m%d')
-                for i in range(1,15):
-                    data = {'fromdate':'202009'+str(i), 'todate':'202009'+str(i), 'orgid':user.userprofile.attune_id}
-                    consumption_obj = obj.get_consumption_data(data=data,user=company)
-                    update_consumption(consumption_obj, user, company)
+                # for i in range(1,15):
+                data = {'fromdate':today, 'todate':today, 'orgid':user.userprofile.attune_id}
+                consumption_obj = obj.get_consumption_data(data=data,user=company)
+                update_consumption(consumption_obj, user, company)
             log.info("succesfull Consumption call for %s" % user.username)
         self.stdout.write("completed Consumption call")

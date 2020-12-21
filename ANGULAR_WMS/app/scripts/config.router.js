@@ -967,6 +967,10 @@ var app = angular.module('urbanApp')
           title: 'Material Request',
         }
       })
+      .state('app.inbound.MaterialRequest.DetailMR', {
+         url: '/DetailMR',
+         templateUrl: 'views/inbound/toggle/detailed_mr_view.html'
+       })
       .state('app.inbound.TransferOrder', {
         url: '/TransferOrder',
         permission: 'multi_warehouse',

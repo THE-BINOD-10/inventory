@@ -16505,3 +16505,38 @@ def confirm_mr_request(request, user=''):
             except Exception as e:
                 return HttpResponse('fail')
     return HttpResponse('success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def view_pending_mr_details(request, user=''):
+    required_data = []
+    material_id = request.POST.get('order_id', '')
+    warehouse = request.POST.get('warehouse_name', '')
+    source_user_id = request.POST.get('source_wh', '')
+    if not material_id or not warehouse or not source_user_id:
+        return HttpResponse('Inputs are Misssing !')
+    else:
+        all_pending_orders = MastersDOA.objects.filter(requested_user__username=source_user_id, model_name='mr_doa', reference_id=material_id, wh_user__username=warehouse)
+    if all_pending_orders.exists():
+        sku_grouping = {}
+        for data in all_pending_orders:
+            try:
+                filter_data = json.loads(data.json_data)
+                current_quantity = filter_data['update_picked']
+                stock = StockDetail.objects.get(id=filter_data['data'])
+                po = PurchaseOrder.objects.filter(id=filter_data['po']).values('stpurchaseorder__open_st__sku__sku_code', 'stpurchaseorder__open_st__sku__sku_desc', 'stpurchaseorder__open_st__sku__price')[0]
+                uom_dict = get_uom_with_sku_code(user, po['stpurchaseorder__open_st__sku__sku_code'], uom_type='purchase')
+                sku_conversion = uom_dict.get('sku_conversion', 1)
+                if sku_conversion == 0:
+                    sku_conversion = 1
+                if po['stpurchaseorder__open_st__sku__sku_code'] in sku_grouping.keys():
+                    sku_grouping[po['stpurchaseorder__open_st__sku__sku_code']]['quantity'] += current_quantity
+                    sku_grouping[po['stpurchaseorder__open_st__sku__sku_code']]['no_of_base_units'] += sku_conversion*current_quantity
+                else:
+                    sku_grouping[po['stpurchaseorder__open_st__sku__sku_code']] = {'sku_code': po['stpurchaseorder__open_st__sku__sku_code'], 'sku_desc': po['stpurchaseorder__open_st__sku__sku_desc'], 'quantity': current_quantity, 'price': po['stpurchaseorder__open_st__sku__price'],
+                                    'uom': uom_dict.get('measurement_unit', ''), 'no_of_base_units': sku_conversion*current_quantity, 'base_uom': uom_dict.get('base_uom', '')}
+            except Exception as e:
+                return HttpResponse('fail')
+    return HttpResponse(json.dumps(sku_grouping))

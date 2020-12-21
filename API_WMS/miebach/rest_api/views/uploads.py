@@ -12301,7 +12301,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                 else:
                     index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
             elif key == 'base_uom_quantity':
-                if cell_data:
+                if cell_data != '':
                     try:
                         data_dict[key] = float(cell_data)
                     except:

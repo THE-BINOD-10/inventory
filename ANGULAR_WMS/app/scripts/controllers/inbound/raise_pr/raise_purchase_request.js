@@ -153,12 +153,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (msg == "true") {
             vm.base();
             $state.go('app.inbound.RaisePr');
+            vm.is_resubmitted = false;
             vm.display_purchase_history_table = false;
           }
         })
       } else {
         vm.base();
         $state.go('app.inbound.RaisePr');
+        vm.is_resubmitted = false;
         vm.display_purchase_history_table = false;
       }
     }

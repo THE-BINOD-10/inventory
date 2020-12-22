@@ -256,6 +256,7 @@ urlpatterns = [
     url(r'^validate_product_wms/$', validate_product_wms),
     url(r'^grn_upload_preview/$', grn_upload_preview),
     url(r'^confirm_mr_request/$', confirm_mr_request),
+    url(r'^view_pending_mr_details/$', view_pending_mr_details),
 
 
     # Production
@@ -743,6 +744,8 @@ urlpatterns += [
     url(r'^closing_adjustment_upload/$', closing_adjustment_upload),
     url(r'^closing_stock_form/$', closing_stock_form),
     url(r'^closing_stock_upload/$', closing_stock_upload),
+    url(r'^closing_stock_in_bulk_form/$', closing_stock_in_bulk_form),
+    url(r'^closing_stock_in_bulk_upload/$', closing_stock_in_bulk_upload),
     url(r'^consumption_form/$', consumption_form),
     url(r'^consumption_upload/$', consumption_upload),
 

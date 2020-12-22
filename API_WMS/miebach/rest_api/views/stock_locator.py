@@ -38,7 +38,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     is_excel = request.POST.get('excel', 'false')
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'plant_code', 'plant_name', 'dept_type',
-           'dept_type', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value', 
+           'dept_type', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value',
            'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
@@ -246,16 +246,24 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         total_stock_value = 0
         sku_packs = 0
         measurement_type = sku.measurement_type
-        po_locs = POLocation.objects.filter(Q(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0]) |
+        '''po_locs = POLocation.objects.filter(Q(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0]) |
                             Q(purchase_order__stpurchaseorder__open_st__sku__user=data[4],
                               purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0]),
-                            status=1)
+                            status=1)'''
+        po_locs = POLocation.objects.filter(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0], status=1)
+        po_locs_st = POLocation.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=data[4], purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0], status=1)
         for po_loc in po_locs:
             po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
             batch_pcf = sku_conversion
             if po_batch.exists():
                 batch_pcf = po_batch[0].pcf
             putaway_pending += (po_loc.quantity * batch_pcf) / sku_conversion
+        for po_lst in po_locs_st:
+            po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
+            batch_pcf = sku_conversion
+            if po_batch_st.exists():
+                batch_pcf = po_batch[0].pcf
+            putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
         if total:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],

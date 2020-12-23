@@ -2646,7 +2646,8 @@ PERMISSION_DICT = OrderedDict((
                  ('Stock Cover Report', 'add_skudetailstats'),
                  ('MoveInventory Report', 'view_moveinventory'),
                  ('Bulk To Retail Report', 'view_substitutionsummary'),
-                 ('Consumption Report', 'view_consumption'))),
+                 ('Consumption Report', 'view_consumption'),
+                 ('Closing Stock Report', 'view_closingstock'))),
     # Master Edit Access
     ("MASTERS_VIEW_LABEL", (('SKU Master View', 'view_skumaster'),
                             ('Supplier Master View', 'view_suppliermaster'),
@@ -15595,3 +15596,99 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
     po_amount_details['po_total_amount'] = po_total_amount
 
     return po_amount_details
+
+
+def get_sku_wise_closing_stock_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {'sku__user__in': user_ids}
+    lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+            'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+                    'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
+                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf']
+    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
+
+    if order_term:
+        results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results.iterator():
+        test_code, mfg_date, exp_date = [''] * 3
+        user_obj = User.objects.get(id=result['sku__user'])
+        first_name = user_obj.first_name
+        if result['consumption__test__test_code']:
+            test_code = result['consumption__test__test_code']
+        if result['stock_mapping__stock__batch_detail__manufactured_date']:
+            mfg_date = str(result['stock_mapping__stock__batch_detail__manufactured_date'])
+        if result['stock_mapping__stock__batch_detail__expiry_date']:
+            exp_date = str(result['stock_mapping__stock__batch_detail__expiry_date'])
+        uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        pcf = pcf if pcf else 1
+        if result['sku_pcf']:
+            pcf = result['sku_pcf']
+        quantity = result['stock_mapping__quantity']
+        if result['quantity'] < 0:
+            quantity = -1 * quantity
+        pqty = quantity/pcf
+        stock_value = pqty * result['price']
+        ord_dict = OrderedDict((
+            ('Date', get_local_date(user, result['creation_date'])),
+            ('Warehouse', first_name),
+            ('Warehouse Username', user_obj.username),
+            ('Test Code', test_code),
+            ('SKU Code', result['sku__sku_code']),
+            ('SKU Description', result['sku__sku_desc']),
+            ('Location', result['stock_mapping__stock__location__location']),
+            ('Quantity', quantity),
+            ('Purchase Uom Quantity', pqty),
+            ('Stock Value', stock_value),
+            ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
+            ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
+            ('Manufactured Date', mfg_date),
+            ('Expiry Date', exp_date)))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data

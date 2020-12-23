@@ -4145,6 +4145,7 @@ class ConsumptionData(models.Model):
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
+    sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

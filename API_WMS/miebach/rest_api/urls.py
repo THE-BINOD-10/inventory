@@ -256,6 +256,7 @@ urlpatterns = [
     url(r'^validate_product_wms/$', validate_product_wms),
     url(r'^grn_upload_preview/$', grn_upload_preview),
     url(r'^confirm_mr_request/$', confirm_mr_request),
+    url(r'^view_pending_mr_details/$', view_pending_mr_details),
 
 
     # Production

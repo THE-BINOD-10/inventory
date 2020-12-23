@@ -37,9 +37,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     sku_codes = list(sku_master.filter(user=main_user.id).values_list('sku_code', flat=True))
     #sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     is_excel = request.POST.get('excel', 'false')
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
-           'total', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value',
-           'sku__wms_code', 'sku__wms_code', 'sku__wms_code', 'plant_code', 'plant_name', 'dept_type']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'plant_code', 'plant_name', 'dept_type',
+           'dept_type', 'sku__measurement_type', 'total', 'sku__measurement_type', 'total', 'stock_value',
+           'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total', 'total']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
             'total', 'total', 'total', 'total', 'product_code__measurement_type', 'total', 'product_code__measurement_type',
@@ -64,7 +64,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     if 'plant_code__icontains' in search_params.keys():
         plant_code = search_params['plant_code__icontains']
         del search_params['plant_code__icontains']
-        del search_params1['plant_code__icontains']
+        if 'plant_code__icontains' in search_params1.keys():
+            del search_params1['plant_code__icontains']
         #del search_params2['plant_code__icontains']
         plant_users = list(users.filter(userprofile__stockone_code__icontains=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
@@ -75,7 +76,10 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     if 'plant_name__icontains' in search_params.keys():
         plant_name = search_params['plant_name__icontains']
         del search_params['plant_name__icontains']
-        del search_params1['plant_name__icontains']
+        if 'plant_code__icontains' in search_params1.keys():
+            del search_params1['plant_code__icontains']
+        if 'plant_name__icontains' in search_params1.keys():
+            del search_params1['plant_name__icontains']
         #del search_params2['plant_name__icontains']
         plant_users = list(users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
@@ -87,7 +91,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_type = search_params['dept_type__icontains']
         del search_params['dept_type__icontains']
-        del search_params1['dept_type__icontains']
+        if 'dept_type__icontains' in search_params1.keys():
+            del search_params1['dept_type__icontains']
         #del search_params2['dept_type__icontains']
         if dept_type.lower() != 'na':
             dept_mapping = {x:y for x,y in dept_mapping.items() if dept_type.lower() in y.lower()}
@@ -195,25 +200,25 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
 
     sku_type_qty = dict(OrderDetail.objects.filter(user__in=user_ids, quantity__gt=0, status=1).values_list(
         'sku__sku_code').distinct().annotate(Sum('quantity')))
-    putaway_qty_objs = POLocation.objects.filter(Q(purchase_order__open_po__sku__user__in=user_ids)|
-                                                 Q(purchase_order__stpurchaseorder__open_st__sku__user__in=user_ids),
-                                                 status=1).\
-                        values_list('purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__user',
-                                    'purchase_order__stpurchaseorder__open_st__sku__sku_code',
-                                    'purchase_order__stpurchaseorder__open_st__sku__user').distinct().\
-                        annotate(Sum('quantity'))
-    putaway_qty_dict = {}
-    for putaway_qty_obj in putaway_qty_objs:
-        if putaway_qty_obj[0]:
-            cond = (putaway_qty_obj[0], putaway_qty_obj[1])
-        else:
-            cond = (putaway_qty_obj[2], putaway_qty_obj[3])
-        putaway_qty_dict.setdefault(cond, 0)
-        putaway_qty_dict[cond] += putaway_qty_obj[4]
+    # putaway_qty_objs = POLocation.objects.filter(Q(purchase_order__open_po__sku__user__in=user_ids)|
+    #                                              Q(purchase_order__stpurchaseorder__open_st__sku__user__in=user_ids),
+    #                                              status=1).\
+    #                     values_list('purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__user',
+    #                                 'purchase_order__stpurchaseorder__open_st__sku__sku_code',
+    #                                 'purchase_order__stpurchaseorder__open_st__sku__user').distinct().\
+    #                     annotate(Sum('quantity'))
+    # putaway_qty_dict = {}
+    # for putaway_qty_obj in putaway_qty_objs:
+    #     if putaway_qty_obj[0]:
+    #         cond = (putaway_qty_obj[0], putaway_qty_obj[1])
+    #     else:
+    #         cond = (putaway_qty_obj[2], putaway_qty_obj[3])
+    #     putaway_qty_dict.setdefault(cond, 0)
+    #     putaway_qty_dict[cond] += putaway_qty_obj[4]
 
     sku_pack_config = get_misc_value('sku_pack_config', user.id)
     for ind, data in enumerate(master_data[start_index:stop_index]):
-        total_stock_value = 0
+        total_stock_value, putaway_pending = 0, 0
         reserved = 0
         # total = data[5] if len(data) > 4 else 0
         total = 0
@@ -233,12 +238,32 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             quantity = 0
 
         uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+        sku_conversion = 1
+        sku_conversion = uom_dict['sku_conversion']
         ptotal = total/uom_dict['sku_conversion']
         pquantity = quantity/uom_dict['sku_conversion']
         preserved = reserved/uom_dict['sku_conversion']
         total_stock_value = 0
         sku_packs = 0
         measurement_type = sku.measurement_type
+        '''po_locs = POLocation.objects.filter(Q(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0]) |
+                            Q(purchase_order__stpurchaseorder__open_st__sku__user=data[4],
+                              purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0]),
+                            status=1)'''
+        po_locs = POLocation.objects.filter(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0], status=1)
+        po_locs_st = POLocation.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=data[4], purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0], status=1)
+        for po_loc in po_locs:
+            po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
+            batch_pcf = sku_conversion
+            if po_batch.exists():
+                batch_pcf = po_batch[0].pcf
+            putaway_pending += (po_loc.quantity * batch_pcf) / sku_conversion
+        for po_lst in po_locs_st:
+            po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
+            batch_pcf = sku_conversion
+            if po_batch_st.exists():
+                batch_pcf = po_batch[0].pcf
+            putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
         if total:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
@@ -257,41 +282,68 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
                     sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
-        putaway_pending = putaway_qty_dict.get((data[0], data[4]), 0)
+        # putaway_pending = putaway_qty_dict.get((data[0], data[4]), 0)
         sku_user = User.objects.get(id=data[4])
         plant_code = sku_user.userprofile.stockone_code
         plant_name = sku_user.first_name
-        dept_type = ''
+        dept_type, dept_name = '', ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
-            plant_name = admin_user.first_name
+            plant_name = "%s %s"%(admin_user.first_name, admin_user.last_name)
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
+            dept_name = "%s %s"%(sku_user.first_name, sku_user.last_name)
         #sku_conversion, measurement_unit, base_uom = get_uom_data(user, sku, 'Purchase')
         base_uom = uom_dict['base_uom']
         sku_conversion = uom_dict['sku_conversion']
         measurement_unit = uom_dict['measurement_unit']
         if sku_conversion == 0:
             sku_conversion = 1
+        sku_avg_price = SKUMaster.objects.get(user=data[4], sku_code=data[0]).average_price
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
-                                                ('SKU Category', data[2]), ('SKU Brand', data[3]),
+                                                ('SKU Category', data[2]), ('SKU Brand', data[3]), ('SKU Conversion', sku_conversion),
                                                 ('sku_packs', sku_packs),
-                                                ('Available Quantity', round(pquantity, 2)),
-                                                ('Reserved Quantity', round(preserved, 2)), ('Total Quantity', round(ptotal, 2)),
-                                                ('Open Order Quantity', open_order_qty),
+                                                ('Available Qty', round(pquantity, 3)),
+                                                ('Reserved Qty', round(preserved, 3)), ('Purchase UOM Qty', round(ptotal, 3)),
+                                                ('Pending Putaway Qty', putaway_pending),
+                                                ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 3)),
+                                                ('Base UOM Qty', round(ptotal * sku_conversion, 3)),
+                                                ('Pending Putaway Base Qty', round(putaway_pending* sku_conversion, 3)),
+                                                ('Total Base UOM Qty', round((ptotal+putaway_pending)* sku_conversion, 3)),
                                                 ('Purchase UOM', measurement_type),
-                                                ('Total Base UOM Qty', round(total,2)),
                                                 ('Base UOM', base_uom),
-                                                ('Stock Value', '%.2f' % total_stock_value),
+                                                ('Unit Purchase Qty Price', sku_avg_price),
+                                                ('In Stock Value', round(ptotal*sku_avg_price, 3)),
+                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 3)),
+                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 3)),
+                                                # ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),
-                                                ('dept_type', dept_type),
-                                                ('Putaway Pending', putaway_pending),
-                                                ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 2)),
-                                                ('Intransit Quantity', intransit_qty),
+                                                ('Dept Code', dept_name),
+                                                ('Dept Name', dept_type),
+                                                ('Intransit Qty', intransit_qty),
                                                 ('Intransit Value', float('%.2f' % intransit_amt)),
                                                 ('DT_RowId', data[0]))))
+        # temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
+        #                                         ('SKU Category', data[2]), ('SKU Brand', data[3]),
+        #                                         ('sku_packs', sku_packs),
+        #                                         ('Available Quantity', round(pquantity, 2)),
+        #                                         ('Reserved Quantity', round(preserved, 2)), ('Total Quantity', round(ptotal, 2)),
+        #                                         ('Open Order Quantity', open_order_qty),
+        #                                         ('Purchase UOM', measurement_type),
+        #                                         ('Total Base UOM Qty', round(total,2)),
+        #                                         ('Base UOM', base_uom),
+        #                                         ('Stock Value', '%.2f' % total_stock_value),
+        #                                         ('Plant Code', plant_code),
+        #                                         ('Plant Name', plant_name),
+        #                                         ('Dept Code', dept_type),
+        #                                         ('Dept Name', dept_name),
+        #                                         ('Putaway Pending', putaway_pending),
+        #                                         ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 2)),
+        #                                         ('Intransit Quantity', intransit_qty),
+        #                                         ('Intransit Value', float('%.2f' % intransit_amt)),
+        #                                         ('DT_RowId', data[0]))))
 
 
 @csrf_exempt

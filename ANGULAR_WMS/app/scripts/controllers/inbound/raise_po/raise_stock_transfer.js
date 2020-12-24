@@ -75,7 +75,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
     vm.status_data = ["Active","Inactive"];
     vm.status= vm.status_data[0];
     vm.model_data = {};
-    var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: "",
+    var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0,  to_capacity:0, tax_type: ""}], warehouse_name: "",
                               source_seller_id:"", dest_seller_id: ""};
     angular.copy(empty_data, vm.model_data);
     // var empty_data = {"Supplier_ID":"",
@@ -250,12 +250,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
     });
   }
   vm.update_availabe_stock = function(sku_data) {
-     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.warehouse_name}
+     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.warehouse_name, dept: vm.model_data.selected}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
+      sku_data["to_capacity"] = 0
       if(data.message) {
         if(data.data.available_quantity) {
           sku_data["capacity"] = data.data.available_quantity;
+          sku_data["to_capacity"] = data.data.dept_avail_qty
           sku_data['price'] = data.data.avg_price;
           vm.changeUnitPrice(sku_data);
         }
@@ -281,7 +283,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
         data = data[0]
         record.mrp = data.mrp;
           if(!(record.order_quantity)) {
-            record.order_quantity = 1
+            record.order_quantity = ''
           }
           if(!(record.price)) {
             record.price = data.cost_price;
@@ -301,6 +303,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
             record.cgst = data.cgst_tax;
             }
           }
+        record.sgst = 0;
+        record.cgst = 0;
+        record.igst = 0;
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         vm.update_availabe_stock(record);
       }
@@ -324,7 +329,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
     }
     if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
       data.total_qty = 0;
-      data.order_quantity = 0;
+      data.order_quantity = '';
       colFilters.showNoty("Total Qty Should be less than available Quantity");
     }
     var order_quantity = data.order_quantity;
@@ -408,12 +413,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
       if (elem.length == index+1) {
         vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
           if(data.message) {
-            if("Confirmed Successfully" == data.data) {
+            if("Confirmed Successfully" == data.data.status) {
               vm.close();
               vm.reloadData();
               angular.copy(empty_data, vm.model_data);
+              swal2({
+                title: 'Confirmed ST Number',
+                text: data.data.id,
+                icon: "success",
+                button: "OK",
+                allowOutsideClick: false
+              }).then(function (text) {
+              });
             }
-            colFilters.showNoty(data.data);
             vm.bt_disable = false;
           }
         })

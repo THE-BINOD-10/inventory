@@ -6612,6 +6612,15 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
     includeStoreStock = request.GET.get('includeStoreStock', '')
+    cur_dept = request.GET.get('dept', '')
+    dept_avail_qty = 0
+    if cur_dept:
+        cur_de = User.objects.get(username=cur_dept)
+        search_params1 = {'sku__user': cur_de.id}
+        search_params1['sku__sku_code'] = sku_code
+        stock_data_dept, st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept, \
+        skuPack_quantity_dept, sku_pack_config_dept, zones_data_dept, avg_price_dept = get_pr_related_stock(cur_de, sku_code, search_params1, includeStoreStock)
+        dept_avail_qty = st_avail_qty_dept + avail_qty_dept
     search_params = {'sku__user': user.id}
     if request.GET.get('sku_code', ''):
         search_params['sku__sku_code'] = sku_code
@@ -6639,7 +6648,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
                 'is_contracted_supplier': is_contracted_supplier}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty,
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
                                     'avg_price': avg_price}))
@@ -11695,6 +11704,9 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_ty
             open_st.status = 0
             open_st.save()
         check_purchase_order_created(user, st_po_id, prefix)
+    if not upload_type:
+        datum = { 'status': 'Confirmed Successfully', 'id': stock_transfer.order_id }
+        return HttpResponse(json.dumps(datum))
     return HttpResponse("Confirmed Successfully")
 
 

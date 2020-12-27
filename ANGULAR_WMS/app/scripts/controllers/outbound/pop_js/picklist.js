@@ -9,6 +9,7 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
   vm.current_source = items['source'];
+  vm.current_destination = items['destination'];
   vm.order_typ = 'SO';
   if (items['order_typ'] == 'Material Request') {
     vm.order_typ = 'MR'
@@ -1049,26 +1050,25 @@ function pull_confirmation() {
   vm.update_picklist = function(pick_id) {
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {
-        debugger
         vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
-                if(data.message) {
-                  angular.copy(data.data, vm.model_data);
-                  for(var i=0; i<vm.model_data.data.length; i++){
-                    vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
-                    var temp = {zone: vm.model_data.data[i].zone,
-                                location: vm.model_data.data[i].location,
-                                orig_location: vm.model_data.data[i].location,
-                                passed_serial_number: [],failed_serial_number:[],
-                                picked_quantity: value, new: false}
-                    if(Session.user_profile.user_type == "marketplace_user") {
-                      temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
-                    }
-                    vm.model_data.data[i]['sub_data'].push(temp);
-                  }
-                  angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
-                  vm.count_sku_quantity();
-                }
+          if(data.message) {
+            angular.copy(data.data, vm.model_data);
+            for(var i=0; i<vm.model_data.data.length; i++){
+              vm.model_data.data[i]['sub_data'] = [];
+              var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
+              var temp = {zone: vm.model_data.data[i].zone,
+                          location: vm.model_data.data[i].location,
+                          orig_location: vm.model_data.data[i].location,
+                          passed_serial_number: [],failed_serial_number:[],
+                          picked_quantity: value, new: false}
+              if(Session.user_profile.user_type == "marketplace_user") {
+                temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
+              }
+              vm.model_data.data[i]['sub_data'].push(temp);
+            }
+            angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
+            vm.count_sku_quantity();
+          }
         });
       }
     });

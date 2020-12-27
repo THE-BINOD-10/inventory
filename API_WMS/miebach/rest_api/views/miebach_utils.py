@@ -1429,7 +1429,7 @@ STOCK_TRANSFER_REPORT_DICT = {
                       'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
                       'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Total Invoice Amount', 'HSN Code', 'Status',
-                      'Batch Number', 'Manufactured Date', 'Expiry Date'],
+                      'Batch Number', 'Manufactured Date', 'Expiry Date', 'Destination Receive PO Status'],
     'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
     'print_url': 'print_stock_transfer_report',
 }
@@ -10883,6 +10883,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
+        search_parameters['upload_type'] = 'UI'
     else:
         users = [user.id]
         search_parameters['upload_type'] = 'UI'
@@ -10918,7 +10919,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         destination = User.objects.get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]
         # destination = "%s %s" % (destination.first_name, destination.last_name)
-        destination = destination.username
+        # destination = destination.username
         cgst = data.st_po.open_st.cgst_tax
         sgst = data.st_po.open_st.sgst_tax
         igst = data.st_po.open_st.igst_tax
@@ -10932,7 +10933,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         order_tax_amount = cgst_value + sgst_value + igst_value
         total_order_amount = order_wo_amount + order_tax_amount
         tax_percentage = cgst + sgst + igst
-
         manufacturer, searchable, bundle = '', '', ''
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
@@ -10944,6 +10944,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 batch_number = ''
                 expiry_date = ''
                 manufactured_date = ''
+                dest_receive_po_status = 'Pending'
                 batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
                 batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
                     'pick_loc__stock__batch_detail__batch_no',
@@ -10973,9 +10974,17 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
                 invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
                 invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
+                datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+                if datum.exists():
+                    dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                    dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+                    if dest_received_qty == dest_ordered_qty:
+                        dest_receive_po_status = 'Received'
+                    elif dest_received_qty < dest_ordered_qty:
+                        dest_receive_po_status = 'Partially Received'
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                     ('Source Warehouse', user.username), ('Destination Warehouse', destination),
+                     ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                      ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
@@ -10984,7 +10993,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                      ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date), ('Base UOM', float(invoice_quantity)),
-                     ('Expiry Date', expiry_date)))
+                     ('Expiry Date', expiry_date), ('Destination Receive PO Status', dest_receive_po_status)))
                 temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''
@@ -10996,6 +11005,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
             expiry_date = ''
             manufactured_date = ''
             pick_seq = ''
+            dest_receive_po_status = 'Pending'
             batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
@@ -11004,9 +11014,17 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                 expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if  batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+            datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            if datum.exists():
+                dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+                if dest_received_qty == dest_ordered_qty:
+                    dest_receive_po_status = 'Received'
+                elif dest_received_qty < dest_ordered_qty:
+                    dest_receive_po_status = 'Partially Received'
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                 ('Source Warehouse', user.username), ('Destination Warehouse', destination),
+                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
@@ -11015,7 +11033,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                  ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                  ('HSN Code', data.sku.hsn_code), ('Status', status),('Base UOM', float(invoice_quantity)),
                  ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
-                 ('Expiry Date', expiry_date)))
+                 ('Expiry Date', expiry_date), ('Destination Receive PO Status', dest_receive_po_status)))
             temp_data['aaData'].append(ord_dict)
     return temp_data
 

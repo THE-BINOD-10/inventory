@@ -110,8 +110,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.selected[meta.row] = vm.selectAll;
                     return vm.service.frontHtml + meta.row + vm.service.endHtml;
                 }).notSortable(),
-            DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse'),
-            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Destination Warehouse'),
+            DTColumnBuilder.newColumn('source_label').withTitle('Source Warehouse'),
+            DTColumnBuilder.newColumn('warehouse_label').withTitle('Destination Warehouse'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
             DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
@@ -396,9 +396,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
       if(vm.generate_data.length > 0 && (vm.generate_data.length == 1 || vm.userName.toLocaleLowerCase() == 'mhl_admin')) {
         var data = {};
+        var current_data = {}
         //data['warehouse_id'] = vm.generate_data[0]['warehouse_id'];
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
+          current_data['source'] = vm.generate_data[i]['source_label'];
+          current_data['destination'] = vm.generate_data[i]['warehouse_label'];
+          current_data['order_id'] = vm.generate_data[i]['Stock Transfer ID'];
+          current_data['order_date'] = vm.generate_data[i]['Creation Date'];
+          current_data['type'] = 'ST_INTRA';
           data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i]['warehouse_id'];
         }
         data["enable_damaged_stock"] = vm.enable_damaged_stock;
@@ -410,6 +416,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.apiCall(url, 'POST', data, true).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
+            vm.model_data['current_data'] = current_data;
             for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
                     var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;

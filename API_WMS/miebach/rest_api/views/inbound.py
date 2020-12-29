@@ -4150,6 +4150,8 @@ def convert_pr_to_po(request, user=''):
             supplierPrIdsMap.setdefault(supplier, []).extend(pr_ids)
             for pr_id in pr_ids:
                 prIdSkusMap.setdefault(pr_id, []).append(sku_code)
+        if len(prIdSkusMap.keys()) > 0:
+            pr_ids = prIdSkusMap.keys()
         if len(pr_ids) > 0:
             all_stats = PendingPR.objects.filter(id__in=pr_ids)
             for rec in prIdSkusMap:

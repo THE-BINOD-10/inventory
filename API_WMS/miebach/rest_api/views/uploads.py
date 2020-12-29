@@ -12325,7 +12325,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
             data_dict['stocks'] = stocks
             data_dict['uom_dict'] = uom_dict
 
-    data_list.append(data_dict)
+        data_list.append(data_dict)
     if not index_status:
         return 'Success', data_list
 

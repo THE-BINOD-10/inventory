@@ -2785,9 +2785,9 @@ def get_sku_wise_consumption_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_sku_wise_closing_stock_report(request, user=''):
+def get_closing_stock_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_sku_wise_closing_stock_report_data(search_params, fuser, request.user)
+    temp_data = get_closing_stock_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

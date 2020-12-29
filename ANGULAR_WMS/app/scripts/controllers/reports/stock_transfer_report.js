@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.dtColumns.push(DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'))
         vm.dtColumns.push(DTColumnBuilder.newColumn('Manufactured Date').withTitle('Manufactured Date'))
         vm.dtColumns.push(DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Destination Receive PO Status').withTitle('Destination Receive PO Status'))
         }
         vm.datatable = true;
         vm.dtInstance = {};

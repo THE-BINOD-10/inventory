@@ -15494,7 +15494,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
         get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
-        get_related_users_filters, get_uom_with_sku_code
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':

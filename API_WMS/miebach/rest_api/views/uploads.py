@@ -12439,7 +12439,7 @@ def closing_stock_upload(request, user=''):
                     try:
                         latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku.id).\
                             exclude(batch_detail__isnull=True).latest('id')
-                        unit_price = latest_batch.buy_price + ((latest_batch.buy_price/100) * (latest_batch.tax_percent))
+                        unit_price = latest_batch.buy_price + ((latest_batch.buy_price/100) * (latest_batch.tax_percent + latest_batch.cess_percent))
                     except:
                         pass
                 closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']

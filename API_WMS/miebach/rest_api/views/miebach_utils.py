@@ -3465,7 +3465,8 @@ CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), 
 
 CLOSING_STOCK_FEATURE_FILE_MAPPING = OrderedDict((('Plant Name', 'plant_name'),
                                           ('Department', 'department'), ('SKU Code', 'sku_code'),
-                                          ('Base UOM Quantity', 'base_uom_quantity')
+                                          ('Base UOM Quantity', 'base_uom_quantity'),
+                                          ('Year (YYYY)', 'year'), ('Month (MM)', 'month')
                                           ))
 
 CONSUMPTION_FILE_MAPPING = OrderedDict(( ('Date(YYYY-MM-DD)', 'closing_date'), ('Warehouse', 'warehouse'),
@@ -15491,8 +15492,9 @@ def get_pr_plant_and_department(po_number):
 def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
-                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -15513,10 +15515,12 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
@@ -15634,7 +15638,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
                                     check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
-                                    get_admin
+                                    get_admin, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -15654,10 +15658,12 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['stock__sku__wms_code'] = search_params['sku_code']
@@ -15692,7 +15698,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         plant = user_obj.first_name
         dept = ''
         if user_obj.userprofile.warehouse_type == 'DEPT':
-            admin_user = get_admin(user)
+            admin_user = get_admin(user_obj)
             plant_code = admin_user.userprofile.stockone_code
             plant = admin_user.first_name
             dept = user_obj.userprofile.stockone_code

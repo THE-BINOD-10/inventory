@@ -12308,6 +12308,28 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         index_status.setdefault(row_idx, set()).add('Invalid Base UOM Quantity')
                 elif key in ['base_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('Base UOM Quantity is Mandatory')
+            elif key == 'year':
+                if cell_data:
+                    try:
+                        year = int(float(cell_data))
+                        data_dict[key] = year
+                        if len(str(year)) != 4 or year != 2020:
+                            index_status.setdefault(row_idx, set()).add('Invalid Year')
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Year')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Year is Mandatory')
+            elif key == 'month':
+                if cell_data:
+                    try:
+                        month = int(float(cell_data))
+                        data_dict[key] = month
+                        if len(str(month)) > 2 or month != 12:
+                            index_status.setdefault(row_idx, set()).add('Invalid Month')
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Month')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Month is Mandatory')
         if data_dict.get('sku', ''):
             stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
@@ -12344,11 +12366,47 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
         return f_name, data_list
 
 
+def load_month_end_closing_stock(updating_users, year, month):
+    first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
+    first_date = get_utc_start_date(first_date)
+    last_date = first_date + relativedelta(months=1)
+    closing_stock_objs = ClosingStock.objects.filter(stock__sku__user__in=updating_users,
+                                                     creation_date=last_date)
+    closing_stock_objs.delete()
+    stocks = StockDetail.objects.filter(sku__user__in=updating_users, quantity__gt=0)
+    main_user = User.objects.get(id=2)
+    for ind, stock in enumerate(stocks):
+        csd = {}
+        csd['stock_id'] = stock.id
+        csd['quantity'] = stock.quantity
+        uom_dict = get_uom_with_sku_code(main_user, stock.sku.sku_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        if not pcf:
+            pcf = 1
+        csd['sku_avg_price'] = stock.sku.average_price
+        csd['sku_pcf'] = pcf
+        cs_obj = ClosingStock.objects.create(**csd)
+        ClosingStock.objects.filter(id=cs_obj.id).update(creation_date=last_date)
+
+
+def save_uploaded_closing_stock(data_list, fname, file_type, reader):
+    file_path = 'static/closing_stock_files/'
+    total_file_quantity = reduce(lambda x, y: x + y['base_uom_quantity'], data_list,0)
+    if file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        f_name = '%s_%s_%s' % (str(datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')), str(total_file_quantity), f_name)
+        rewrite_csv_file(f_name, {}, reader, file_path=file_path)
+
+    elif file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        f_name = '%s_%s_%s' % (str(datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')), str(total_file_quantity), f_name)
+        rewrite_excel_file(f_name, {}, reader, file_path=file_path)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def closing_stock_upload(request, user=''):
-    fname = request.FILES['files']
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -12360,12 +12418,17 @@ def closing_stock_upload(request, user=''):
                                                      no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
+    save_uploaded_closing_stock(data_list, fname, file_type, reader)
     try:
         last_change_date = datetime.datetime.now()
+        updating_users = set()
+        year = data_list[0]['year']
+        month = data_list[0]['month']
         with transaction.atomic('default'):
             loop_counter = 1
             for final_data in data_list:
                 print 'Updating: %s' % str(loop_counter)
+                updating_users.add(final_data['user'].id)
                 loop_counter += 1
                 user = final_data['user']
                 sku = final_data['sku']
@@ -12432,6 +12495,7 @@ def closing_stock_upload(request, user=''):
                     update_stock_detail(sku_stocks, abs(closing_adj), user,
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict)
+            load_month_end_closing_stock(updating_users, year, month)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -12254,14 +12254,21 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
         main_user = get_company_admin_user(user)
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
-            if key == 'plant_name':
+            if key == 'plant_code':
                 if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
                     data_dict[key] = cell_data
-                    user_obj = access_users.filter(first_name=cell_data,
+                    user_obj = access_users.filter(userprofile__stockone_code=cell_data,
                                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
                     if not user_obj:
+                        cell_data = int(float(cell_data))
+                        data_dict[key] = cell_data
+                        user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                       userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
                         if not all_users.filter(first_name=cell_data).exists():
-                            index_status.setdefault(row_idx, set()).add('Invalid Plant Name')
+                            index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
                         else:
                             index_status.setdefault(row_idx, set()).add("Does'nt have access for this Plant")
                     else:
@@ -12270,7 +12277,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                                                warehouse=[user.username])
                 else:
-                    index_status.setdefault(row_idx, set()).add('Plant Name is Mandatory')
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
             elif key == 'department':
                 if cell_data:
                     if cell_data not in dept_mapping_res.keys():

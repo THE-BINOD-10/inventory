@@ -3463,7 +3463,7 @@ CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), 
                                           ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
 
-CLOSING_STOCK_FEATURE_FILE_MAPPING = OrderedDict((('Plant Name', 'plant_name'),
+CLOSING_STOCK_FEATURE_FILE_MAPPING = OrderedDict((('Plant Code', 'plant_code'),
                                           ('Department', 'department'), ('SKU Code', 'sku_code'),
                                           ('Base UOM Quantity', 'base_uom_quantity'),
                                           ('Year (YYYY)', 'year'), ('Month (MM)', 'month')

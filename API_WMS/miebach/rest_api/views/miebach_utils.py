@@ -4926,6 +4926,11 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             purchase_uom = uom_dict.get('measurement_unit')
         if data['purchase_order__pcf']:
             sku_conversion = data['purchase_order__pcf']
+        st_data = StockDetail.objects.filter(grn_number=grn_number, sku__sku_code=data['purchase_order__open_po__sku__sku_code'], sku__user=data['purchase_order__open_po__sku__user'])
+        if st_data.exists():
+            if st_data[0].batch_detail:
+                sku_conversion = st_data[0].batch_detail__pcf
+                sk_con = st_data[0].batch_detail__pcf
         purchase_quantity = data['quantity']
         base_quantity = purchase_quantity * sku_conversion
         sku_user = data['purchase_order__open_po__sku__user']

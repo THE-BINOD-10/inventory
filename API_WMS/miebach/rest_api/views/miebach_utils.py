@@ -1755,6 +1755,17 @@ CONSUMPTION_REPORT_DICT = {
     'print_url': 'get_sku_wise_consumption_report',
 }
 
+CLOSING_STOCK_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['Date', 'Plant', 'Plant Code', 'Department', 'Warehouse Username', 'SKU Code', 'SKU Description', 'Base Uom Quantity', 'Purchase Uom Quantity', 'Stock Value', 'Batch Number'],
+    'dt_url': 'get_closing_stock_report', 'excel_name': 'get_closing_stock_report',
+    'print_url': 'get_closing_stock_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
@@ -1806,6 +1817,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'cancel_grn_report': CANCEL_GRN_REPORT_DICT,
                      'sku_wise_cancel_grn_report': SKU_WISE_CANCEL_GRN_REPORT_DICT,
                      'sku_wise_consumption_report': CONSUMPTION_REPORT_DICT,
+                     'closing_stock_report': CLOSING_STOCK_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2510,6 +2522,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_cancel_grn_report': 'get_cancel_grn_report_data',
                         'get_sku_wise_cancel_grn_report': 'get_sku_wise_cancel_grn_report_data',
                         'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
+                        'closing_stock_report': 'get_closing_stock_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -2646,7 +2659,8 @@ PERMISSION_DICT = OrderedDict((
                  ('Stock Cover Report', 'add_skudetailstats'),
                  ('MoveInventory Report', 'view_moveinventory'),
                  ('Bulk To Retail Report', 'view_substitutionsummary'),
-                 ('Consumption Report', 'view_consumption'))),
+                 ('Consumption Report', 'view_consumption'),
+                 ('Closing Stock Report', 'view_closingstock'))),
     # Master Edit Access
     ("MASTERS_VIEW_LABEL", (('SKU Master View', 'view_skumaster'),
                             ('Supplier Master View', 'view_suppliermaster'),
@@ -3449,9 +3463,10 @@ CLOSING_STOCK_FILE_MAPPING = OrderedDict((('Date(YYYY-MM-DD)', 'closing_date'), 
                                           ('Base UOM Quantity', 'base_uom_quantity'),
                                           ))
 
-CLOSING_STOCK_FEATURE_FILE_MAPPING = OrderedDict((('Plant Name', 'plant_name'),
+CLOSING_STOCK_FEATURE_FILE_MAPPING = OrderedDict((('Plant Code', 'plant_code'),
                                           ('Department', 'department'), ('SKU Code', 'sku_code'),
-                                          ('Base UOM Quantity', 'base_uom_quantity')
+                                          ('Base UOM Quantity', 'base_uom_quantity'),
+                                          ('Year (YYYY)', 'year'), ('Month (MM)', 'month')
                                           ))
 
 CONSUMPTION_FILE_MAPPING = OrderedDict(( ('Date(YYYY-MM-DD)', 'closing_date'), ('Warehouse', 'warehouse'),
@@ -15477,8 +15492,9 @@ def get_pr_plant_and_department(po_number):
 def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
-                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -15499,10 +15515,12 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
         search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
@@ -15613,3 +15631,96 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
     po_amount_details['po_total_amount'] = po_total_amount
 
     return po_amount_details
+
+
+def get_closing_stock_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
+                                    get_admin, get_utc_start_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {'stock__sku__user__in': user_ids}
+    lis = ['creation_date', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__sku_code',
+            'stock__sku__sku_desc', 'quantity', 'quantity', 'sku_avg_price', 'stock_mapping__stock__batch_detail__batch_no']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['stock__sku__wms_code'] = search_params['sku_code']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['creation_date', 'stock__sku__user', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'quantity', 'sku_avg_price',
+                    'stock__batch_detail__batch_no', 'sku_pcf']
+    model_data = ClosingStock.objects.filter(**search_parameters).values(*values_list)
+
+    if order_term:
+        results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    counter = 0
+    for result in results.iterator():
+        counter += 1
+        print counter
+        user_obj = User.objects.get(id=result['stock__sku__user'])
+        plant_code = user_obj.userprofile.stockone_code
+        plant = user_obj.first_name
+        dept = ''
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            plant_code = admin_user.userprofile.stockone_code
+            plant = admin_user.first_name
+            dept = user_obj.userprofile.stockone_code
+        pcf = result['sku_pcf']
+        pcf = pcf if pcf else 1
+        quantity = result['quantity']
+        pqty = quantity/pcf
+        stock_value = pqty * result['sku_avg_price']
+        closing_date = get_local_date(user, result['creation_date'], send_date='true')
+        ord_dict = OrderedDict((
+            ('Date', str(closing_date.date())),
+            ('Plant', plant),
+            ('Plant Code', plant_code),
+            ('Department', dept),
+            ('Warehouse Username', user_obj.username),
+            ('SKU Code', result['stock__sku__sku_code']),
+            ('SKU Description', result['stock__sku__sku_desc']),
+            ('Base Uom Quantity', quantity),
+            ('Purchase Uom Quantity', pqty),
+            ('Stock Value', stock_value),
+            ('Batch Number', result['stock__batch_detail__batch_no']),
+        ))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data

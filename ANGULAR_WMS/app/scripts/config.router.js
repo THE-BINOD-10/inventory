@@ -3198,6 +3198,18 @@ var app = angular.module('urbanApp')
             title: 'Consumption',
           }
         })
+        .state('app.reports.ClosingStockReport', {
+          url: '/closingStockReport',
+          templateUrl: 'views/reports/closing_stock_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/closing_stock_report.js');
+              }]
+          },
+          data: {
+            title: 'Closing Stock Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

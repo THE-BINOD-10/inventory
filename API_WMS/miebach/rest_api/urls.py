@@ -626,6 +626,7 @@ urlpatterns = [
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
     url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
+    url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
 ]
 
@@ -822,6 +823,7 @@ urlpatterns += [
     url(r'^get_user_groups_list/$', get_user_groups_list),
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
     url(r'^get_sku_uom_list/$', get_sku_uom_list),
+    url(r'^display_closing_stock_uploaded/$', display_closing_stock_uploaded),
 
 
 

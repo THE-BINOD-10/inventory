@@ -2248,7 +2248,7 @@ def auto_po(wms_codes, user):
 
 
 @csrf_exempt
-def rewrite_excel_file(f_name, index_status, open_sheet):
+def rewrite_excel_file(f_name, index_status, open_sheet, file_path=''):
     # wb = Workbook()
     # ws = wb.add_sheet(open_sheet.name)
     f_name = f_name.replace('+', '')
@@ -2286,7 +2286,10 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
         wb1.close()
         return f_name
     else:
-        path = 'static/temp_files/'
+        if file_path:
+            path = file_path
+        else:
+            path = 'static/temp_files/'
         folder_check(path)
         wb1.save(path + f_name)
         return path + f_name
@@ -13984,3 +13987,12 @@ def get_stock_summary_intransit_data(sku):
 def log_message(log,request, user, message, data):
     log.info("%s for request User %s Login %s and Data is %s" % (message, request.user.username,
                                                                  user.username, data))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def display_closing_stock_uploaded(request, user=''):
+    files_list = os.listdir('static/closing_stock_files/')
+    urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
+    data_list = OrderedDict(zip(files_list, urls_list))
+    return render(request, 'templates/display_static.html', {'data_list': data_list})

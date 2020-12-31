@@ -12262,7 +12262,10 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     user_obj = access_users.filter(userprofile__stockone_code=cell_data,
                                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
                     if not user_obj:
-                        cell_data = int(float(cell_data))
+                        try:
+                            cell_data = int(float(cell_data))
+                        except:
+                            pass
                         data_dict[key] = cell_data
                         user_obj = access_users.filter(userprofile__stockone_code=cell_data,
                                                        userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])

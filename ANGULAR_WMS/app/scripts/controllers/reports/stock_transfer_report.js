@@ -71,10 +71,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         angular.copy(vm.empty_data, vm.model_data);
         vm.dtOptions = datam.dtOptions;
         vm.dtColumns = datam.dtColumns;
-        if(vm.industry_type =='FMCG'){
-        vm.dtColumns.push(DTColumnBuilder.newColumn('Destination Receive PO Status').withTitle('Destination Receive PO Status'))
-        vm.dtColumns.push(DTColumnBuilder.newColumn('Destination Received Quantity').withTitle('Destination Received Quantity'))
-        }
         vm.datatable = true;
         vm.dtInstance = {};
       })

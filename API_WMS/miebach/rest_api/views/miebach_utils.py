@@ -11184,7 +11184,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             invoice_quantity = 0
             invoice_quantity = data.stocktransfersummary_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
-            dest_receive_po_status = 'Pending'
+            dest_receive_po_status = ''
             datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
             dest_received_qty = 0
             if datum.exists():
@@ -11195,7 +11195,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                     dest_receive_po_status = 'GRN Pending'
                 if dest_received_qty == dest_ordered_qty:
                     dest_receive_po_status = 'Received'
-                elif dest_received_qty < dest_ordered_qty:
+                elif dest_received_qty < dest_ordered_qty and invoice_quantity > 0:
                     dest_receive_po_status = 'Partially Received'
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
@@ -11216,7 +11216,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             expiry_date = ''
             manufactured_date = ''
             pick_seq = ''
-            dest_receive_po_status = 'Pending'
+            dest_receive_po_status = ''
             batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
@@ -11235,7 +11235,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                     dest_receive_po_status = 'GRN Pending'
                 if dest_received_qty == dest_ordered_qty:
                     dest_receive_po_status = 'Received'
-                elif dest_received_qty < dest_ordered_qty:
+                elif dest_received_qty < dest_ordered_qty and invoice_quantity > 0:
                     dest_receive_po_status = 'Partially Received'
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),

@@ -1429,7 +1429,7 @@ STOCK_TRANSFER_REPORT_DICT = {
                       'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
                       'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Total Invoice Amount', 'HSN Code', 'Status',
-                      'Batch Number', 'Manufactured Date', 'Expiry Date', 'Destination Receive PO Status'],
+                      'Batch Number', 'Manufactured Date', 'Expiry Date', 'Destination Received Quantity', 'Destination Receive PO Status'],
     'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
     'print_url': 'print_stock_transfer_report',
 }
@@ -1448,7 +1448,7 @@ MATERIAL_REQUEST_REPORT_DICT = {
                       'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
                       'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
                       'Total Invoice Amount', 'HSN Code', 'Status',
-                      'Batch Number', 'Manufactured Date', 'Expiry Date'],
+                      'Batch Number', 'Manufactured Date', 'Expiry Date', 'Destination Received Quantity'],
     'dt_url': 'get_material_request_report', 'excel_name': 'get_material_request_report',
     'print_url': 'print_stock_transfer_report',
 }
@@ -4743,8 +4743,12 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
+    check_count = 0
     for data in model_data:
-        result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids)[0]
+        po_result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids,
+                                        open_po__sku__sku_code=data['purchase_order__open_po__sku__sku_code']).only('open_po__order_quantity',
+                                        'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price')
+        result = po_result[0]
         receipt_no = data['receipt_number']
         if not receipt_no:
             receipt_no = ''
@@ -4805,19 +4809,20 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
+        seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
         updated_user_name = user.username
-        version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=data['id'])).\
+        version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
                                                         filter(revision__comment='generate_grn')
         if version_obj.exists():
-            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-            last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
-        seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
+            version_single_obj = version_obj.order_by('-revision__date_created').only('revision__user__username', 'revision__date_created')
+            updated_user_name = version_single_obj[0].revision.user.username
+            last_updated_date = get_local_date(user, version_single_obj[0].revision.date_created)
         lr_detail_no = ''
-        if data['purchase_order__id']:
-            lr_detail = LRDetail.objects.filter(purchase_order=data['purchase_order__id'],
-                                                purchase_order__open_po__sku__user=user.id)
-            if lr_detail.exists():
-                lr_detail_no = lr_detail[0].lr_number
+        #if data['purchase_order__id']:
+        #    lr_detail = LRDetail.objects.filter(purchase_order=data['purchase_order__id'],
+        #                                        purchase_order__open_po__sku__user=user.id)
+        #    if lr_detail.exists():
+        #        lr_detail_no = lr_detail[0].lr_number
         remarks = ''
         if data['remarks']:
             custom_remarks = []
@@ -4907,19 +4912,20 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         else:
             grn_status="Completed"
             credit_note_status= "No"
-        po_result =purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids, open_po__sku__sku_code=data['purchase_order__open_po__sku__sku_code'])
+        #po_result =purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids, open_po__sku__sku_code=data['purchase_order__open_po__sku__sku_code'])
         po_total_qty, po_total_price, po_total_tax= [0]*3
         po_total_qty, po_total_price, po_total_tax= get_sku_po_grn_price_and_taxes(po_result,"PO")
 
-        unitdata = gather_uom_master_for_sku(user, data['purchase_order__open_po__sku__sku_code'])
+        #unitdata = gather_uom_master_for_sku(user, data['purchase_order__open_po__sku__sku_code'])
 
-        unitexid = unitdata.get('name',None)
-        purchaseUOMname = None
-        for row in unitdata.get('uom_items', None):
-            if row.get('unit_type', '') == 'Purchase':
-                purchaseUOMname = row.get('unit_name',None)
+        #unitexid = unitdata.get('name',None)
+        #purchaseUOMname = None
+        #for row in unitdata.get('uom_items', None):
+        #    if row.get('unit_type', '') == 'Purchase':
+        #        purchaseUOMname = row.get('unit_name',None)
 
-        try:
+        invoice_details, http_data = '', ''
+        '''try:
             invoice_details, http_data = '', ''
             invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__po_number'],
                                                          user=data["purchase_order__open_po__sku__user"],
@@ -4931,7 +4937,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                 # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
 
         except IOError:
-            pass
+            pass'''
         uom_dict = get_uom_with_sku_code(user, data['purchase_order__open_po__sku__sku_code'], uom_type='purchase')
         base_uom, sku_conversion, purchase_uom, base_quantity, purchase_quantity, sk_con = "", "", "", '', '', 1
         if uom_dict:
@@ -4941,6 +4947,11 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             purchase_uom = uom_dict.get('measurement_unit')
         if data['purchase_order__pcf']:
             sku_conversion = data['purchase_order__pcf']
+        st_data = StockDetail.objects.filter(grn_number=grn_number, sku__user=data['purchase_order__open_po__sku__user'],sku__sku_code=data['purchase_order__open_po__sku__sku_code']).only('batch_detail__pcf')
+        if st_data.exists():
+            if st_data[0].batch_detail:
+                sku_conversion = st_data[0].batch_detail.pcf
+                #sk_con = st_data[0].batch_detail.pcf
         purchase_quantity = data['quantity']
         base_quantity = purchase_quantity * sku_conversion
         sku_user = data['purchase_order__open_po__sku__user']
@@ -4952,6 +4963,8 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                 plant_code = admin_user.userprofile.stockone_code
             else:
                 plant_code = user.userprofile.stockone_code
+        check_count = check_count +1
+        print check_count
         ord_dict = OrderedDict((("PR Number",pr_number),('PR date', pr_date),
                                 ('PR raised time', pr_date_time),
                                 ('PR raised By', pr_raised_user),
@@ -4962,7 +4975,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('PO Basic Price', round(po_total_price,2)),
                                 ('Tax Amt', round(po_total_tax,2)),
                                 ('PO total amt', round(po_total_price + po_total_tax,2)),
-                                ('UOM',  purchaseUOMname),
+                                ('UOM',  purchase_uom),
                                 ('Total Amt', round(pr_Total_Amt,2)),
                                 ('Price per Unit', pr_price),
                                 ("Plant", pr_plant),
@@ -5037,10 +5050,10 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('Revised Final Purchase Qty', (base_quantity/sk_con)),
                                 ('Base Quantity', base_quantity),
                                 ('Invoice/DC Download', http_data)))
-        if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        '''if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable
-            ord_dict['Bundle'] = bundle
+            ord_dict['Bundle'] = bundle'''
         temp_data['aaData'].append(ord_dict)
 
     if stop_index and custom_search:
@@ -10756,7 +10769,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
-        search_parameters['upload_type'] = 'UI'
+        #search_parameters['upload_type'] = 'UI'
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
     #search_parameters['sku_id__in'] = sku_master_ids
@@ -10830,6 +10843,11 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter(), conversion=qty_conversion)
                 if temp_stat:
                     status = temp_stat
+                datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+                dest_received_qty = 0
+                if datum.exists():
+                    dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                    dest_received_qty = dest_received_qty if dest_received_qty else 0
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                      ('Source Plant', user.first_name), ('Destination Department', destination),
@@ -10838,7 +10856,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                      ('Pick Quantity', (float(invoice_quantity) / float(qty_conversion))),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
-                     ('Expiry Date', expiry_date)))
+                     ('Expiry Date', expiry_date), ('Destination Received Quantity', dest_received_qty)))
                 temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''
@@ -10858,6 +10876,11 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                 expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
+            datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            dest_received_qty = 0
+            if datum.exists():
+                dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                dest_received_qty = dest_received_qty if dest_received_qty else 0
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                  ('Source Plant', "%s %s" % (user.first_name, user.last_name)), ('Destination Department', destination),
@@ -10866,7 +10889,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                  ('Pick Quantity', invoice_quantity),
                  ('HSN Code', data.sku.hsn_code), ('Status', status),
                  ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
-                 ('Expiry Date', expiry_date)))
+                 ('Expiry Date', expiry_date), ('Destination Received Quantity', dest_received_qty)))
             temp_data['aaData'].append(ord_dict)
     return temp_data
 
@@ -10898,10 +10921,10 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
-        search_parameters['upload_type'] = 'UI'
+        #search_parameters['upload_type'] = 'UI'
     else:
         users = [user.id]
-        search_parameters['upload_type'] = 'UI'
+        #search_parameters['upload_type'] = 'UI'
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
@@ -10928,7 +10951,10 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+    counter = 0
     for data in (stock_transfer_data[start_index:stop_index]):
+        counter += 1
+        print counter
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id=data.st_po.open_st.sku.user)
@@ -10990,9 +11016,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
                 invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
                 datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+                dest_received_qty = 0
                 if datum.exists():
                     dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                    dest_received_qty = dest_received_qty if dest_received_qty else 0
                     dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+                    if not dest_received_qty and invoice_quantity:
+                        dest_receive_po_status = 'GRN Pending'
                     if dest_received_qty == dest_ordered_qty:
                         dest_receive_po_status = 'Received'
                     elif dest_received_qty < dest_ordered_qty:
@@ -11008,7 +11038,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                      ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date), ('Base UOM', float(invoice_quantity)),
-                     ('Expiry Date', expiry_date), ('Destination Receive PO Status', dest_receive_po_status)))
+                     ('Expiry Date', expiry_date), ('Destination Received Quantity', dest_received_qty), ('Destination Receive PO Status', dest_receive_po_status)))
                 temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''

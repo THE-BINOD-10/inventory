@@ -13830,7 +13830,7 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
     return po_pending_qty
 
 
-def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
+def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
@@ -13844,9 +13844,15 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
         po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
         stock_qty += po_pending_qty
         stock_value = stock_qty * sku.average_price
-        total_qty = value['qty'] + stock_qty
-        total_amount = stock_value + value['amount']
-        new_avg = float('%.5f' % (total_amount/total_qty))
+        if dec:
+            temp_qty = stock_qty + value['qty']
+            total_qty = stock_qty
+            stock_value = temp_qty * sku.average_price
+            total_amount = stock_value - value['amount']
+        else:
+            total_qty = value['qty'] + stock_qty
+            total_amount = stock_value + value['amount']
+        new_avg = float('%.5f' % (abs(total_amount/total_qty)))
         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
         dept_user_ids = list(dept_users.values_list('id', flat=True))
         sku.average_price = new_avg
@@ -13913,10 +13919,10 @@ def update_sku_avg_from_rtv(user, rtv_number):
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
         amt = rtv.quantity * price
         total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
         sku_amt[sku_code]['qty'] += rtv.quantity
-    update_sku_avg_main(sku_amt, user, main_user)
+    update_sku_avg_main(sku_amt, user, main_user, dec=True)
 
 @get_admin_user
 def search_batch_data(request, user=''):

@@ -12828,6 +12828,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
+    if last_change_date:
+        SellerPOSummary.objects.filter(id=seller_po_summary.id).update(creation_date=last_change_date)
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
                               batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary)
     po_data.received_quantity += quantity
@@ -13996,3 +13998,4 @@ def display_closing_stock_uploaded(request, user=''):
     urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
+

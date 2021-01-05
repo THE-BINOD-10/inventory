@@ -797,6 +797,22 @@ def get_local_date(user, input_date, send_date=''):
     dt = local_time.strftime("%d %b, %Y %I:%M %p")
     return dt
 
+def get_user_time_zone(user):
+    time_zone = 'Asia/Calcutta'
+    user_details = UserProfile.objects.get(user_id=user.id)
+    if user_details.timezone:
+        time_zone = user_details.timezone
+    return time_zone
+
+
+def get_local_date_with_time_zone(time_zone, input_date, send_date=''):
+    utc_time = input_date.replace(tzinfo=pytz.timezone('UTC'))
+    local_time = utc_time.astimezone(pytz.timezone(time_zone))
+    if send_date:
+        return local_time
+    dt = local_time.strftime("%d %b, %Y %I:%M %p")
+    return dt
+
 
 @csrf_exempt
 def get_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
@@ -13744,6 +13760,20 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
+
+
+def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
+    base_uom = ''
+    sku_uom_dict = {}
+    company_id = get_company_id(user)
+    filt_dict = {'sku_code__in': sku_codes, 'company_id': company_id, 'uom_type': uom_type}
+    if uom:
+        filt_dict['uom'] = uom
+    sku_uoms = UOMMaster.objects.filter(**filt_dict)
+    for sku_uom in sku_uoms:
+        sku_uom_dict[sku_uom.sku_code] = {'measurement_unit': sku_uom.uom, 'sku_conversion': float(sku_uom.conversion),
+                                            'base_uom': sku_uom.base_uom}
+    return sku_uom_dict
 
 
 def reduce_consumption_stock(consumption_obj, total_test=0):

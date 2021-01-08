@@ -11122,10 +11122,10 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
-        #search_parameters['upload_type'] = 'UI'
+        #search_parameters['st_type'] = 'MR'
     else:
         users = [user.id]
-        #search_parameters['upload_type'] = 'UI'
+        #search_parameters['st_type'] = 'MR'
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
@@ -11182,28 +11182,35 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             if not qty_conversion:
                 qty_conversion = 1
             invoice_quantity = 0
-            invoice_quantity = data.stocktransfersummary_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+            #invoice_quantity = data.stocktransfersummary_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+            invoice_quantity = STOrder.objects.filter(stock_transfer__id=data.id).aggregate(Sum('picklist__picked_quantity'))['picklist__picked_quantity__sum']
+            temp_inv_qty = (float(invoice_quantity) / float(qty_conversion))
             invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
             dest_receive_po_status = ''
-            datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            #datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            datum = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id).values('quantity')
             dest_received_qty = 0
             if datum.exists():
-                dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                dest_received_qty = datum.aggregate(Sum('quantity'))['quantity__sum']
                 dest_received_qty = dest_received_qty if dest_received_qty else 0
-                dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
-                if not dest_received_qty and invoice_quantity:
+                #dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+                if not dest_received_qty and temp_inv_qty:
                     dest_receive_po_status = 'GRN Pending'
-                if dest_received_qty == dest_ordered_qty:
+                if temp_inv_qty == dest_received_qty:
                     dest_receive_po_status = 'Received'
-                elif dest_received_qty < dest_ordered_qty and invoice_quantity > 0:
+                elif dest_received_qty < temp_inv_qty and temp_inv_qty > 0:
                     dest_receive_po_status = 'Partially Received'
+                elif dest_received_qty > temp_inv_qty and temp_inv_qty > 0:
+                    dest_receive_po_status = 'Excess Received'
+                elif temp_inv_qty == 0:
+                    dest_received_qty = 0
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
                  ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
                  ('SKU Code', data.sku.sku_code),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Unit Price', price), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                 ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Base UOM', float(invoice_quantity)), 
+                 ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Base UOM', float(invoice_quantity)),
                  ('Destination Received Quantity', dest_received_qty), ('Destination Receive PO Status', dest_receive_po_status)))
             temp_data['aaData'].append(ord_dict)
         else:
@@ -11225,12 +11232,14 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                 expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if  batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
-            datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            #datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            datum = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id).values('quantity')
             dest_received_qty = 0
             if datum.exists():
-                dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                #dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
+                dest_received_qty = datum.aggregate(Sum('quantity'))['quantity__sum']
                 dest_received_qty = dest_received_qty if dest_received_qty else 0
-                dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+                #dest_ordered_qty = datum.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
                 if not dest_received_qty and invoice_quantity:
                     dest_receive_po_status = 'GRN Pending'
                 if dest_received_qty == dest_ordered_qty:

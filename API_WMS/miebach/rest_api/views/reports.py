@@ -222,6 +222,15 @@ def get_po_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_pr_po_grn_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_po_grn_filter_data(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_st_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_st_po_filter_data(search_params, user, request.user)

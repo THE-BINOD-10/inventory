@@ -13998,3 +13998,4 @@ def display_closing_stock_uploaded(request, user=''):
     urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
+

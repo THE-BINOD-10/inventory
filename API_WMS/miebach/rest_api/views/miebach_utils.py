@@ -621,6 +621,36 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
+
+PR_PO_GRN_DICT = {'filters': [
+                        # {'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+                        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+                        {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
+                        # {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
+                        # {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
+                        # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                    ],
+            'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
+            "PR Qty", "Category", "Plant Code", "Plant" ,"Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
+            "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date",
+            'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
+            "Type of GRN", "Delivery challan no","Delivery challan Date","Invoice Number",  "Invoice Date",
+            "Credit Note applicable", "Credit Note Number","GRN Status",
+            "Last Updated by", "Last Updated Date",'Supplier ID', 'Supplier Name','MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date', 'Invoice/DC Download'],
+            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
+            # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
+            #                   'SKU Code',
+            #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
+            #                   'Received Qty', 'Unit Rate',
+            #                   'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
+            #                   'Post-Tax Received Value',
+            #                   'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
+            'dt_url': 'get_pr_po_grn_filter', 'excel_name': 'pr_po_grn_dict', 'print_url': '',
+            }
 STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                                        {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
@@ -1771,7 +1801,7 @@ CLOSING_STOCK_REPORT_DICT = {
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
-                     'grn_report': GRN_DICT, 'sku_wise_grn_report': SKU_WISE_GRN_DICT,
+                     'grn_report': GRN_DICT, 'pr_po_grn_dict': PR_PO_GRN_DICT, 'sku_wise_grn_report': SKU_WISE_GRN_DICT,
                      'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
@@ -2461,6 +2491,7 @@ SKU_PACK_EXCEL = OrderedDict((('sku_code', 0), ('pack_id', 1), ('pack_quantity',
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data',
                         'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data',
+                        'pr_po_grn': 'get_pr_po_grn_filter_data',
                         'st_goods_receipt': 'get_st_po_filter_data',
                         'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
@@ -5446,6 +5477,127 @@ def get_po_grn_price_and_taxes(data, type=""):
             total_price +=  tmp_price
     return total_qty, total_price, total_tax
 
+def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
+    import pdb;pdb.set_trace()
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
+        check_and_get_plants_wo_request, \
+        get_related_users_filters, get_admin
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ['purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number',
+           'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id',
+           'purchase_order__expected_date', 'purchase_order__open_po__vendor__vendor_id',
+           'purchase_order__open_po__vendor__name',
+           'purchase_order__open_po__vendor__creation_date', 'grn_number', '', '', '', '', '',
+           'purchase_order__open_po__sku__user',
+           '', '', 'challan_number', 'challan_date', 'invoice_number', 'invoice_date', '', 'credit__credit_number',
+           'status', '',
+           'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name',
+           'challan_number', 'challan_date']
+    unsorted_dict = {}
+    model_name = SellerPOSummary
+    field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
+                     'order_id': 'purchase_order__order_id',
+                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                     'user': 'purchase_order__open_po__sku__user__in',
+                     'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
+                     'po_number': 'purchase_order__po_number',
+                     'grn_number': 'grn_number',
+                     'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
+                     'supplier_name': 'purchase_order__open_po__supplier__name'}
+    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id',
+                     'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
+                     'receipt_number', 'grn_number', 'invoice_date', 'challan_date', 'invoice_number', 'challan_number',
+                     'purchase_order__po_number', "credit_type", "purchase_order__open_po__vendor__vendor_id",
+                     "purchase_order__open_po__vendor__name", "credit__credit_number",
+                     "purchase_order__open_po__delivery_date",
+                     "purchase_order__expected_date", "purchase_order__open_po__vendor__creation_date", "status",
+                     "credit_status", "purchase_order__open_po__sku__user"
+                     ]
+    excl_status = {'purchase_order__status': ''}
+    ord_quan = 'purchase_order__open_po__order_quantity'
+    rec_quan = 'purchase_order__received_quantity'
+    rec_quan1 = 'sellerposummary__quantity'
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    if 'from_date' in search_params:
+        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'grn_from_date' in search_params:
+        search_parameters['creation_date__gte'] = search_params['grn_from_date']
+        if field_mapping['from_date'] + '__gte' in search_parameters.keys():
+            del search_parameters[field_mapping['from_date'] + '__gte']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+
+    if 'grn_to_date' in search_params:
+        search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
+                                                                 datetime.time())
+        search_parameters['creation_date__lte'] = search_params['grn_to_date']
+        if field_mapping['to_date'] + '__lte' in search_parameters.keys():
+            del search_parameters[field_mapping['to_date'] + '__lte']
+    if 'po_number' in search_params:
+        search_parameters[field_mapping['po_number']] = search_params['po_number']
+    if 'grn_number' in search_params:
+        search_parameters[field_mapping['grn_number']] = search_params['grn_number']
+    if 'sku_code' in search_params:
+        search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters['invoice_number'] = search_params['invoice_number']
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
+            search_params['supplier'].split(':')[0]
+    search_parameters[field_mapping['user']] = user_ids
+    # search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters['purchase_order__received_quantity__gt'] = 0
+    query_data = model_name.objects.prefetch_related('purchase_order__open_po__sku',
+                                                     'purchase_order__open_po__supplier').select_related(
+        'purchase_order__open_po',
+        'purchase_order__open_po__sku',
+        'purchase_order__open_po__supplier').exclude(
+        **excl_status).filter(**search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
+                                                                       total_received=Sum(rec_quan))
+    # grn_rec=Sum(rec_quan1))
+    col_num = search_params.get('order_index', 25)
+    order_term = search_params.get('order_term', 'asc')
+    if order_term:
+        if col_num == 0:
+            col_num = 14
+            order_term = 'desc'
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = "-%s" % order_data
+        if order_data:
+            model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        model_data = model_data[start_index:stop_index]
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
+    return temp_data
 
 def get_po_filter_data(request, search_params, user, sub_user):
     from miebach_admin.models import *
@@ -15257,6 +15409,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('Integration Reason', integration_error),
             ('Integration Date', integration_date),
             ('Last Updated by', updated_user_name),
+            ('Integration Status', integration_status),
+            ('Integration Reason', integration_error),
+            ('Integration Date', integration_date),
             ('Last Updated Date', po_update_date),
             ('Expected delivery date', delivery_date)))
         temp_data['aaData'].append(ord_dict)

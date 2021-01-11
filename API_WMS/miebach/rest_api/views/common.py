@@ -797,6 +797,22 @@ def get_local_date(user, input_date, send_date=''):
     dt = local_time.strftime("%d %b, %Y %I:%M %p")
     return dt
 
+def get_user_time_zone(user):
+    time_zone = 'Asia/Calcutta'
+    user_details = UserProfile.objects.get(user_id=user.id)
+    if user_details.timezone:
+        time_zone = user_details.timezone
+    return time_zone
+
+
+def get_local_date_with_time_zone(time_zone, input_date, send_date=''):
+    utc_time = input_date.replace(tzinfo=pytz.timezone('UTC'))
+    local_time = utc_time.astimezone(pytz.timezone(time_zone))
+    if send_date:
+        return local_time
+    dt = local_time.strftime("%d %b, %Y %I:%M %p")
+    return dt
+
 
 @csrf_exempt
 def get_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
@@ -11988,7 +12004,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['mrp'] = batch_detail.mrp
                         temp_json['weight'] = batch_detail.weight
                         temp_json['batch_no'] = batch_detail.batch_no
-                        temp_json['buy_price'] = batch_detail.buy_price
+                        #temp_json['buy_price'] = batch_detail.buy_price
                         temp_json['tax_percent'] = batch_detail.tax_percent
                         temp_json['quantity'] = update_picked
                         datum = get_warehouses_list_states(user)
@@ -12682,10 +12698,8 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
     batch_dict = {}
     uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
     conv_value = uom_dict.get('sku_conversion', 1)
-    '''if batch_detail:
+    if batch_detail and batch_detail.pcf and po_data.open_po:
         conv_value = batch_detail.pcf
-        if not conv_value:
-            conv_value = uom_dict.get('sku_conversion', 1)'''
     if not conv_value:
         conv_value = 1
     quantity = quantity * conv_value
@@ -12828,6 +12842,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
+    if last_change_date:
+        SellerPOSummary.objects.filter(id=seller_po_summary.id).update(creation_date=last_change_date)
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
                               batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary)
     po_data.received_quantity += quantity
@@ -13746,6 +13762,20 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     return uom_dict
 
 
+def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
+    base_uom = ''
+    sku_uom_dict = {}
+    company_id = get_company_id(user)
+    filt_dict = {'sku_code__in': sku_codes, 'company_id': company_id, 'uom_type': uom_type}
+    if uom:
+        filt_dict['uom'] = uom
+    sku_uoms = UOMMaster.objects.filter(**filt_dict)
+    for sku_uom in sku_uoms:
+        sku_uom_dict[sku_uom.sku_code] = {'measurement_unit': sku_uom.uom, 'sku_conversion': float(sku_uom.conversion),
+                                            'base_uom': sku_uom.base_uom}
+    return sku_uom_dict
+
+
 def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
     #     consumptions = []
@@ -13830,12 +13860,16 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
     return po_pending_qty
 
 
-def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
+def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
+    dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                           warehouse=[user.username], send_parent=True)
+    dept_user_ids = list(dept_users.values_list('id', flat=True))
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        exist_stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0)
+        exist_stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code=sku.sku_code,
+                                                  quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
@@ -13844,9 +13878,15 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
         po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
         stock_qty += po_pending_qty
         stock_value = stock_qty * sku.average_price
-        total_qty = value['qty'] + stock_qty
-        total_amount = stock_value + value['amount']
-        new_avg = float('%.5f' % (total_amount/total_qty))
+        if dec:
+            temp_qty = stock_qty + value['qty']
+            total_qty = stock_qty
+            stock_value = temp_qty * sku.average_price
+            total_amount = stock_value - value['amount']
+        else:
+            total_qty = value['qty'] + stock_qty
+            total_amount = stock_value + value['amount']
+        new_avg = float('%.5f' % (abs(total_amount/total_qty)))
         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
         dept_user_ids = list(dept_users.values_list('id', flat=True))
         sku.average_price = new_avg
@@ -13913,10 +13953,10 @@ def update_sku_avg_from_rtv(user, rtv_number):
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
         amt = rtv.quantity * price
         total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
         sku_amt[sku_code]['qty'] += rtv.quantity
-    update_sku_avg_main(sku_amt, user, main_user)
+    update_sku_avg_main(sku_amt, user, main_user, dec=True)
 
 @get_admin_user
 def search_batch_data(request, user=''):

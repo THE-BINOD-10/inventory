@@ -7164,7 +7164,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
-    return HttpResponse("GRN Disable for Closing Stock updations !..")
+    if request.POST.get('order_type', '') == 'Stock Transfer':
+        return HttpResponse("GRN Disable for Stock Transfer Orders !..")
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
@@ -13758,11 +13759,11 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         headers1[headers1.index('Invoice Number')]='Challan Number'
         inv_or_dc_number = 'challan_number'
     if 'from_date' in filters:
-        search_params['purchase_order__creation_date__gt'] = filters['from_date']
+        search_params['creation_date__gte'] = filters['from_date']
     if 'to_date' in filters:
         to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_params['purchase_order__creation_date__lt'] = to_date
+        search_params['creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
     if 'supplier_id' in filters:

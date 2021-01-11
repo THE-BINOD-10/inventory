@@ -12698,10 +12698,8 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
     batch_dict = {}
     uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
     conv_value = uom_dict.get('sku_conversion', 1)
-    '''if batch_detail:
+    if batch_detail and batch_detail.pcf and po_data.open_po:
         conv_value = batch_detail.pcf
-        if not conv_value:
-            conv_value = uom_dict.get('sku_conversion', 1)'''
     if not conv_value:
         conv_value = 1
     quantity = quantity * conv_value
@@ -13861,11 +13859,15 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
 
 
 def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
+    dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                           warehouse=[user.username], send_parent=True)
+    dept_user_ids = list(dept_users.values_list('id', flat=True))
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        exist_stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0)
+        exist_stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code=sku.sku_code,
+                                                  quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']

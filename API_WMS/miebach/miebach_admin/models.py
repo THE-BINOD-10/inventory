@@ -695,7 +695,7 @@ class PendingPO(models.Model):
     sku_category = models.CharField(max_length=128, default='')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     prefix = models.CharField(max_length=32, default='')
-    full_po_number = models.CharField(max_length=32, default='')
+    full_po_number = models.CharField(max_length=32, default='', db_index=True)
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')

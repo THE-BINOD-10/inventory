@@ -911,7 +911,7 @@ METROPOLIS_PO_REPORT_DICT = {
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
-                   'Supplier ID', 'Supplier Name'],
+                   'Supplier ID', 'Supplier Name', "Integration Status", "Integration Reason", "Integration Date"],
 
     'dt_url': 'get_metropolis_po_report', 'excel_name': 'get_metropolis_po_report',
     'print_url': 'get_metropolis_po_report',
@@ -15040,6 +15040,7 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
 
 def get_metropolis_po_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from stockone_integrations.models import IntegrationMaster
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
@@ -15082,7 +15083,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         search_parameters['po_number'] = po_number
     if 'pr_number' in search_params:
         search_parameters['open_po__pendingpos__pending_prs__full_pr_number'] = search_params['pr_number']
-
+    search_parameters['open_po__isnull'] = False
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -15100,6 +15101,16 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         results = model_data[start_index:stop_index]
     else:
         results = model_data
+    po_numbers = []
+    for model_dat in results:
+        po_numbers.append(model_dat['po_number'])
+    po_integration_object = IntegrationMaster.objects.filter(module_type="PurchaseOrder",
+                                                             stockone_reference__in=po_numbers)
+    po_int_status, po_int_err, po_int_date = {}, {}, {}
+    for po_int in po_integration_object:
+        po_int_status.setdefault(po_int.stockone_reference, po_int.status)
+        po_int_err.setdefault(po_int.stockone_reference, po_int.integration_error)
+        po_int_date.setdefault(po_int.stockone_reference, po_int.updation_date)
     for result in results:
         pr_plant, pr_department, pr_number, pr_date, pr_user, po_date, supplier_id, supplier_name, po_update_date= '', '', '', '', '', '', '', '', ''
         product_category, category, final_status= '', '', ''
@@ -15109,25 +15120,26 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                                             values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
                                             'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
-                                            'open_po__sku__user', 'updation_date')
+                                            'open_po__sku__user', 'updation_date' , 'open_po__cess_tax')
         po_quantity,po_tax_amount, po_amount = 0,0,0
-        for open_po in open_po_data:
-            po_quantity += open_po['open_po__order_quantity']
-            temp_tax = open_po['open_po__cgst_tax'] + open_po['open_po__sgst_tax'] + open_po['open_po__igst_tax']
-            temp_amt = (open_po['open_po__order_quantity']*open_po['open_po__price'])
-            po_tax_amount += (temp_amt/100) * temp_tax
-            po_amount += po_tax_amount + temp_amt
-            supplier_id = open_po['open_po__supplier__supplier_id']
-            supplier_name = open_po['open_po__supplier__name']
-            category = open_po['open_po__sku__sku_category']
-            user_id = open_po['open_po__sku__user']
-            po_date = open_po['po_date']
-            po_update_date = open_po['updation_date']
+        if open_po_data:
+            open_po_row = open_po_data[0]
+            supplier_id = open_po_row['open_po__supplier__supplier_id']
+            supplier_name = open_po_row['open_po__supplier__name']
+            category = open_po_row['open_po__sku__sku_category']
+            user_id = open_po_row['open_po__sku__user']
+            po_date = open_po_row['po_date']
+            po_update_date = open_po_row['updation_date']
             if po_update_date:
                 po_update_date = get_local_date(user, po_update_date)
             if po_date:
                 po_date = get_local_date(user, po_date)
-
+            for open_po in open_po_data:
+                po_quantity += open_po['open_po__order_quantity']
+                temp_tax = open_po['open_po__cgst_tax'] + open_po['open_po__sgst_tax'] + open_po['open_po__igst_tax'] + open_po['open_po__cess_tax']
+                temp_amt = (open_po['open_po__order_quantity']*open_po['open_po__price'])
+                po_tax_amount += (temp_amt/100) * temp_tax
+                po_amount += po_tax_amount + temp_amt
         '''if open_po_data:
             if open_po_data.open_po:
                 supplier_id = open_po_data.open_po.supplier.supplier_id
@@ -15203,6 +15215,19 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             if req_user:
                 req_user=req_user[0]
                 pr_department, pr_plant = get_plant_and_department(req_user)
+        integration_error = ''
+        if po_int_status.get(result['po_number'], '') == 1:
+            integration_status = 'Success'
+        elif po_int_status.get(result['po_number'], '') == 0:
+            integration_status = 'Failed'
+        else:
+            integration_status = 'Pending'
+            if not final_status.title() == "Something":
+                integration_status = 'GRN -NA- queue'
+        if integration_status == 'Failed':
+            integration_error = po_int_err.get(result['po_number'], '')
+        integration_date = po_int_date[result['po_number']].strftime("%d %b, %Y") if po_int_date.get(
+            result['po_number'], '') else ''
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),
@@ -15228,6 +15253,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('Tax Amount', round(po_tax_amount, 4)),
             ('PO Amount with Tax', (round(po_amount, 4))),
             ('PO Created by', po_user),
+            ('Integration Status', integration_status),
+            ('Integration Reason', integration_error),
+            ('Integration Date', integration_date),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
             ('Expected delivery date', delivery_date)))

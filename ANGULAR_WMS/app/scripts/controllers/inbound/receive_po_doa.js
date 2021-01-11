@@ -183,16 +183,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   var date_cnf = new Date();
                   vm.current_month = vm.months[date_cnf.getMonth()];
                   vm.last_two_months = []
-                  if (vm.current_month == 'January'){
-                    vm.last_two_months = ['December', 'November', 'October']
-                  } else if (vm.current_month == 'February') {
-                    vm.last_two_months = ['January', 'December', 'November']
-                  } else {
-                    console.log('ok');
-                    // vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                    // vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                    // vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                  }
+                  // if (vm.current_month == 'January'){
+                  //   vm.last_two_months = ['December', 'November', 'October']
+                  // } else if (vm.current_month == 'February') {
+                  //   vm.last_two_months = ['January', 'December', 'November']
+                  // } else {
+                  //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                  //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                  //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                  // }
                   vm.model_data.warehouse_id = aData["warehouse_id"];
                   vm.get_grn_extra_fields();
                   // vm.send_for_approval_check(event, vm.model_data);

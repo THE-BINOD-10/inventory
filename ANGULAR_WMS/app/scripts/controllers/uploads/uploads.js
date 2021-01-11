@@ -554,6 +554,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "closing_adjustment_upload/",
                    dparam: "download-closing-adjustment-file",
                    value: "",
+                   disable: true,
                    show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                  }, {
                    title: "Closing Stock In Bulk Download/ Upload",
@@ -563,6 +564,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "closing_stock_upload/",
                    dparam: "download-closing-stock-file",
                    value: "",
+                   disable: true,
                    show: false,
                    perm: "change_consumptiondata",
                  }, {
@@ -573,6 +575,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "consumption_upload/",
                    dparam: "download-consumption-file",
                    value: "",
+                   disable: true,
                    show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                  }, {
                    title: "Closing Stock Download/ Upload",
@@ -582,6 +585,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "closing_stock_upload/",
                    dparam: "download-closing-stock-file",
                    value: "",
+                   disable: true,
                    show: true,
                    perm: "change_consumptiondata",
                  }

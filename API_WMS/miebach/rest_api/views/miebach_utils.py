@@ -634,13 +634,20 @@ PR_PO_GRN_DICT = {'filters': [
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                     ],
-            'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
-            "PR Qty", "Category", "Plant Code", "Plant" ,"Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
-            "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date",
-            'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
-            "Type of GRN", "Delivery challan no","Delivery challan Date","Invoice Number",  "Invoice Date",
-            "Credit Note applicable", "Credit Note Number","GRN Status",
-            "Last Updated by", "Last Updated Date",'Supplier ID', 'Supplier Name','MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date', 'Invoice/DC Download'],
+            'dt_headers': [
+            "PR No","PR date", "PR raised By",  "Department Name","PR Category",
+            "PR Qty", "Category", "Plant Name", "Plant Code", "Materials Code" , "Material Desp",
+            "PR Purchase UOM" , "PR Purchase UOM Qty" , "PR Base UOM", "PR Base UOM Qty", "PR Status", "PR Approval Pending at",
+
+            "PO No", "PO Date", "Vendor Name", "Vendor Code",
+            "PO Purchase UOM" , "PO Purchase UOM Qty" , "PO Base UOM", "PO Base UOM Qty",
+            "PO Basic Price",  "PO IGST", "PO CGST", "PO SGST", "PO CESS", "PO amt(without Tax)", "PO total tax Amt",
+            "PO Total amount (with Tax)", "PO Status", "Expected Delivery Date",
+
+            "GRN No", "GRN Date", "GRN Purchase UOM" , "GRN Purchase UOM Qty" , "GRN Base UOM", "GRN Base UOM Qty",
+            "Batch No", "Expiry date",  "GRN Basic Price", "GRN amount( without Tax )",
+            "GRN IGST", "GRN CGST", "GRN SGST", "GRN CESS", "GRN TCS",
+            "GRN total tax Amount",  "GRN Total amount(with Tax)", "GRN Status" ],
             'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
             #                   'SKU Code',
@@ -2491,7 +2498,7 @@ SKU_PACK_EXCEL = OrderedDict((('sku_code', 0), ('pack_id', 1), ('pack_quantity',
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data',
                         'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data',
-                        'pr_po_grn': 'get_pr_po_grn_filter_data',
+                        'pr_po_grn_dict': 'get_pr_po_grn_filter_data',
                         'st_goods_receipt': 'get_st_po_filter_data',
                         'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
@@ -5478,11 +5485,14 @@ def get_po_grn_price_and_taxes(data, type=""):
     return total_qty, total_price, total_tax
 
 def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
-    import pdb;pdb.set_trace()
     from miebach_admin.models import *
+    import time
+    from stockone_integrations.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
         check_and_get_plants_wo_request, \
-        get_related_users_filters, get_admin
+        get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
+        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin
+    from masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
@@ -5490,25 +5500,25 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
-    # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
-           'purchase_order__order_id',
-           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
-           'purchase_order__order_id',
-           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
-           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number',
-           'purchase_order__order_id',
-           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
-           'purchase_order__order_id',
-           'purchase_order__expected_date', 'purchase_order__open_po__vendor__vendor_id',
-           'purchase_order__open_po__vendor__name',
-           'purchase_order__open_po__vendor__creation_date', 'grn_number', '', '', '', '', '',
-           'purchase_order__open_po__sku__user',
-           '', '', 'challan_number', 'challan_date', 'invoice_number', 'invoice_date', '', 'credit__credit_number',
-           'status', '',
-           'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name',
-           'challan_number', 'challan_date']
+    lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+           'purchase_order__open_po__po_name',
+           'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
+           'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
+           'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__sku__sku_class',
+           'purchase_order__open_po__sku__style_name', 'purchase_order__open_po__sku__sku_brand',
+           'purchase_order__open_po__sku__sku_category', 'total_received', 'purchase_order__open_po__price',
+           'purchase_order__open_po__mrp', 'id',
+           'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
+           'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
+           'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax',
+           'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
+           'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
+           'purchase_order__open_po__cess_tax', 'purchase_order__open_po__apmc_tax',
+           'id', 'seller_po__margin_percent', 'overall_discount', 'id', 'id', 'id', 'id', 'id', 'id', 'id', 'id',
+           'id',
+           'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'remarks', 'id',
+           'purchase_order__id', 'id']
     unsorted_dict = {}
     model_name = SellerPOSummary
     field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
@@ -5516,19 +5526,83 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                      'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
                      'user': 'purchase_order__open_po__sku__user__in',
                      'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
-                     'po_number': 'purchase_order__po_number',
-                     'grn_number': 'grn_number',
+                     'po_number': 'purchase_order__po_number', 'grn_number': 'grn_number',
+                     'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
+                     'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
+                     'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
                      'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
-                     'supplier_name': 'purchase_order__open_po__supplier__name'}
+                     'supplier_name': 'purchase_order__open_po__supplier__name','gst_num': 'purchase_order__open_po__supplier__tin_number'}
+    pr_field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
+                     'order_id': 'purchase_order__order_id',
+                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                     'user': 'pending_prlineItems__sku__user__in',
+                     'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
+                     'po_number': 'purchase_order__po_number', 'grn_number': 'grn_number',
+                     'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
+                     'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
+                     'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
+                     'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
+                     'supplier_name': 'purchase_order__open_po__supplier__name','gst_num': 'purchase_order__open_po__supplier__tin_number'}
+
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id',
-                     'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
-                     'receipt_number', 'grn_number', 'invoice_date', 'challan_date', 'invoice_number', 'challan_number',
-                     'purchase_order__po_number', "credit_type", "purchase_order__open_po__vendor__vendor_id",
-                     "purchase_order__open_po__vendor__name", "credit__credit_number",
-                     "purchase_order__open_po__delivery_date",
-                     "purchase_order__expected_date", "purchase_order__open_po__vendor__creation_date", "status",
-                     "credit_status", "purchase_order__open_po__sku__user"
+                     'purchase_order__open_po__supplier__name', 'purchase_order__open_po__sku_id',
+                     'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
+                     'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
+                     'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
+                     'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
+                     'purchase_order__open_po__sku__sub_category',
+                     'purchase_order__received_quantity', 'purchase_order__open_po__price',
+                     'purchase_order__open_po__mrp', 'purchase_order__open_po__cgst_tax',
+                     'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
+                     'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
+                     'purchase_order__open_po__apmc_tax', 'batch_detail__weight',
+                     'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix',
+                     'seller_po__unit_price', 'id',
+                     'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price', 'overall_discount',
+                     'invoice_date',
+                     'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks',
+                     'purchase_order__open_po__supplier__tin_number', "purchase_order__po_number",
+                     'purchase_order__id', 'price', 'invoice_number', 'challan_number', 'grn_number',
+                     "purchase_order__open_po__sku__user", "purchase_order__expected_date","purchase_order__open_po__delivery_date",
+                     "purchase_order__open_po__vendor__vendor_id", "purchase_order__open_po__vendor__name",
+                     "purchase_order__open_po__vendor__creation_date", "status", "credit_status",
+                     "credit__credit_number",
+                     "purchase_order__po_number", "quantity", "purchase_order__pcf"
                      ]
+    pr_result_values= [
+            "full_pr_number", 'creation_date', 'requested_user__username',
+            "pending_prlineItems__cess_tax",
+            "pending_prlineItems__cgst_tax", "pending_prlineItems__sgst_tax",
+            "pending_prlineItems__igst_tax", 'pending_prlineItems__sku__sku_code',
+            "pending_prlineItems__sku__sku_desc",
+            "pending_prlineItems__quantity",
+            "pending_prlineItems__price",
+            "pending_prlineItems__measurement_unit",
+            "pending_prlineItems__purchase_type",
+            "wh_user__userprofile__stockone_code",
+            "wh_user_id",
+            "sku_category",
+            "product_category",
+
+            "pendingpo__full_po_number",
+            "pendingpo__open_po__order_quantity",
+            "pendingpo__open_po__cgst_tax",
+            "pendingpo__open_po__sgst_tax",
+            "pendingpo__open_po__igst_tax",
+            "pendingpo__open_po__cess_tax",
+            "pendingpo__open_po__supplier__supplier_id",
+            "pendingpo__open_po__supplier__name",
+            "pendingpo__open_po__price",
+
+            "pendingpo__open_po__purchaseorder__sellerposummary__quantity",
+            "pendingpo__open_po__purchaseorder__sellerposummary__price",
+            "pendingpo__open_po__purchaseorder__sellerposummary__grn_number",
+            "pendingpo__open_po__purchaseorder__sellerposummary__batch_detail__batch_no",
+            "pendingpo__open_po__purchaseorder__sellerposummary__status",
+            "pendingpo__open_po__purchaseorder__sellerposummary__cess_tax",
+            "pendingpo__open_po__purchaseorder__sellerposummary__tcs_value"
+
+    ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'purchase_order__open_po__order_quantity'
     rec_quan = 'purchase_order__received_quantity'
@@ -5539,18 +5613,12 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
-        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
-    if 'grn_from_date' in search_params:
-        search_parameters['creation_date__gte'] = search_params['grn_from_date']
+        search_parameters['creation_date__gte'] = search_params['from_date']
         if field_mapping['from_date'] + '__gte' in search_parameters.keys():
             del search_parameters[field_mapping['from_date'] + '__gte']
-    if 'to_date' in search_params:
-        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
-                                                             datetime.time())
-        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
 
-    if 'grn_to_date' in search_params:
-        search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
+    if 'to_date' in search_params:
+        search_params['grn_to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                                  datetime.time())
         search_parameters['creation_date__lte'] = search_params['grn_to_date']
         if field_mapping['to_date'] + '__lte' in search_parameters.keys():
@@ -5566,37 +5634,93 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     if 'supplier' in search_params and ':' in search_params['supplier']:
         search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
             search_params['supplier'].split(':')[0]
-    search_parameters[field_mapping['user']] = user_ids
-    # search_parameters[field_mapping['sku_id__in']] = sku_master_ids
-    search_parameters['purchase_order__received_quantity__gt'] = 0
-    query_data = model_name.objects.prefetch_related('purchase_order__open_po__sku',
-                                                     'purchase_order__open_po__supplier').select_related(
-        'purchase_order__open_po',
-        'purchase_order__open_po__sku',
-        'purchase_order__open_po__supplier').exclude(
-        **excl_status).filter(**search_parameters)
-    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
-                                                                       total_received=Sum(rec_quan))
-    # grn_rec=Sum(rec_quan1))
-    col_num = search_params.get('order_index', 25)
-    order_term = search_params.get('order_term', 'asc')
-    if order_term:
-        if col_num == 0:
-            col_num = 14
-            order_term = 'desc'
-        order_data = lis[col_num]
-        if order_term == 'desc':
-            order_data = "-%s" % order_data
-        if order_data:
-            model_data = model_data.order_by(order_data)
-    temp_data['recordsTotal'] = model_data.count()
+    if 'sku_category' in search_params:
+        search_parameters[field_mapping['sku_category']] = search_params['sku_category']
+    if 'sku_brand' in search_params:
+        search_parameters[field_mapping['sku_brand']] = search_params['sku_brand']
+    # search_parameters[field_mapping['user']] = user_ids
+    # search_parameters['purchase_order__received_quantity__gt'] = 0
+    # query_data = model_name.objects.select_related(
+    #     'purchase_order__open_po',
+    #     'purchase_order__open_po__sku',
+    #     'purchase_order__open_po__supplier').exclude(
+    #     **excl_status).filter(**search_parameters)
+    pr_search_params= {}
+    pr_search_params[pr_field_mapping['user']] = user_ids
+    start_time = time.time()
+    model_data_result= PendingPR.objects.filter(**pr_search_params).values(*pr_result_values)
+    po_numbers_sku =[]
+
+    temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    col_num = search_params.get('order_index', 25)
+    # order_term = search_params.get('order_term', 'asc')
+    # if order_term:
+    #     if col_num == 0:
+    #         col_num = 14
+    #         order_term = 'desc'
+    #     order_data = lis[col_num]
+    #     if order_term == 'desc':
+    #         order_data = "-%s" % order_data
+    #     if order_data:
+    #         model_data_result = model_data_result.order_by(order_data)
     custom_search = False
     if col_num in unsorted_dict.keys():
         custom_search = True
     if stop_index and not custom_search:
-        model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
+        model_data = model_data_result[start_index:stop_index]
+    else:
+        model_data= model_data_result
+    # po_numbers = []
+    # for model_dat in model_data:
+    #     po_numbers.append(model_dat['pendingpo__full_po_number'])
+    for record in model_data:
+        pr_department= record.get("wh_user__userprofile__stockone_code", "")
+        if record.get("wh_user_id", ''):
+            pr_dept_obj = User.objects.get(id=record.get("wh_user_id", ''))
+        if pr_dept_obj:
+            pr_plant = get_admin(pr_dept_obj)
+            if pr_plant.first_name:
+                pr_plant_name = pr_plant.first_name
+                pr_plant_code = pr_plant.userprofile.stockone_code
+            else:
+                pr_plant_name = pr_dept_obj.username
+                pr_plant_code = pr_dept_obj.userprofile.stockone_code
+        pr_date= record.get("creation_date").strftime("%d %b, %Y") if record.get("creation_date", '') else ''
+        ord_dict = OrderedDict((
+        ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
+        ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
+        ("PR Category", record.get('product_category', '')),
+        ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Category", record.get('sku_category', '')),
+        ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
+        ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
+        ("PR Purchase UOM Qty", record.get('pending_prlineItems__quantity', 0)),
+        ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", ""), ("PR Approval Pending at", ""),
+
+        ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date", ""), ("Vendor Name", record.get("pendingpo__open_po__supplier__name", "")),
+        ("Vendor Code", record.get("pendingpo__open_po__supplier__supplier_id", "")),
+        ("PO Purchase UOM", "") , ("PO Purchase UOM Qty", record.get("pendingpo__open_po__order_quantity", 0)) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+        ("PO Basic Price", record.get("pendingpo__open_po__price", 0)),  ("PO IGST", record.get("pendingpo__open_po__igst_tax", 0)),
+        ("PO CGST", record.get("pendingpo__open_po__cgst_tax", 0)), ("PO SGST", record.get("pendingpo__open_po__sgst_tax", 0)),
+        ("PO CESS", record.get("pendingpo__open_po__cess_tax", 0)),
+        ("PO amt(without Tax)", ""), ("PO total tax Amt", ""),
+        ("PO Total amount (with Tax)", ""), ("PO Status", ""), ("Expected Delivery Date", ""),
+
+        ("GRN No", record.get("pendingpo__open_po__purchaseorder__sellerposummary__grn_number", "")),
+        ("GRN Date", ""), ("GRN Purchase UOM", "") ,
+         ("GRN Purchase UOM Qty", record.get("pendingpo__open_po__purchaseorder__sellerposummary__quantity", 0)) ,
+        ("GRN Base UOM", ""), ("GRN Base UOM Qty", ""),
+        ("Batch No", record.get("pendingpo__open_po__purchaseorder__sellerposummary__batch_detail__batch_no", "")),
+        ("Expiry date", ""),
+        ("GRN Basic Price", record.get("pendingpo__open_po__purchaseorder__sellerposummary__price", 0)),
+        ("GRN amount( without Tax )", ""),
+        ("GRN IGST", record.get("pendingpo__open_po__igst_tax", 0)), ("GRN CGST", record.get("pendingpo__open_po__cgst_tax", 0)),
+        ("GRN SGST", record.get("pendingpo__open_po__sgst_tax", 0)), ("GRN CESS", record.get("pendingpo__open_po__purchaseorder__sellerposummary__cess_tax", 0)),
+        ("GRN TCS", record.get("pendingpo__open_po__purchaseorder__sellerposummary__tcs_value", 0)),
+        ("GRN total tax Amount", ""),  ("GRN Total amount(with Tax)", ""), ("GRN Status", "")
+        ))
+        temp_data['aaData'].append(ord_dict)
+    print("--- %s seconds ---" % (time.time() - start_time))
     return temp_data
 
 def get_po_filter_data(request, search_params, user, sub_user):

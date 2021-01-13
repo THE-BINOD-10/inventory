@@ -1568,6 +1568,8 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
+    if 'excel_name=pr_po_grn_dict' in excel_name:
+        params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
     if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report']:

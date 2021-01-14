@@ -5583,25 +5583,42 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             "wh_user_id",
             "sku_category",
             "product_category",
-
-            "pendingpo__full_po_number",
-            "pendingpo__open_po__order_quantity",
-            "pendingpo__open_po__cgst_tax",
-            "pendingpo__open_po__sgst_tax",
-            "pendingpo__open_po__igst_tax",
-            "pendingpo__open_po__cess_tax",
-            "pendingpo__open_po__supplier__supplier_id",
-            "pendingpo__open_po__supplier__name",
-            "pendingpo__open_po__price",
-
-            "pendingpo__open_po__purchaseorder__sellerposummary__quantity",
-            "pendingpo__open_po__purchaseorder__sellerposummary__price",
-            "pendingpo__open_po__purchaseorder__sellerposummary__grn_number",
-            "pendingpo__open_po__purchaseorder__sellerposummary__batch_detail__batch_no",
-            "pendingpo__open_po__purchaseorder__sellerposummary__status",
-            "pendingpo__open_po__purchaseorder__sellerposummary__cess_tax",
-            "pendingpo__open_po__purchaseorder__sellerposummary__tcs_value"
-
+            "pendingpo__full_po_number"
+    ]
+    po_grn_result_values= [
+        "creation_date",
+        "open_po__sku__sku_code",
+        "po_number",
+        "open_po__supplier__supplier_id",
+        "open_po__supplier__name",
+        "open_po__price",
+        "open_po__order_quantity",
+        "open_po__cgst_tax",
+        "open_po__sgst_tax",
+        "open_po__igst_tax",
+        "open_po__cess_tax",
+        "sellerposummary__quantity",
+        "sellerposummary__price",
+        "sellerposummary__grn_number",
+        "sellerposummary__status",
+        "sellerposummary__cess_tax",
+        "sellerposummary__tcs_value",
+        "sellerposummary__creation_date",
+        "sellerposummary__batch_detail__batch_no",
+        "sellerposummary__batch_detail__expiry_date"
+    ]
+    pending_po_result_values= [
+        "pending_po__full_po_number",
+        "quantity",
+        "cgst_tax",
+        "sgst_tax",
+        "igst_tax",
+        "cess_tax",
+        "sku__sku_code",
+        "price",
+        "pending_po__supplier__supplier_id",
+        "pending_po__supplier__name",
+        "pending_po__final_status"
     ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'purchase_order__open_po__order_quantity'
@@ -5650,7 +5667,6 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     start_time = time.time()
     model_data_result= PendingPR.objects.filter(**pr_search_params).values(*pr_result_values)
     po_numbers_sku =[]
-
     temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     col_num = search_params.get('order_index', 25)
@@ -5671,10 +5687,34 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
         model_data = model_data_result[start_index:stop_index]
     else:
         model_data= model_data_result
-    # po_numbers = []
-    # for model_dat in model_data:
-    #     po_numbers.append(model_dat['pendingpo__full_po_number'])
+    po_numbers, sku_codes = [], []
+    for model_dat in model_data:
+        po_numbers.append(model_dat['pendingpo__full_po_number'])
+        sku_codes.append(model_dat['pending_prlineItems__sku__sku_code'])
+    pending_po_results = PendingLineItems.objects.filter(pending_po__full_po_number__in=po_numbers, sku__sku_code__in=sku_codes).values(*pending_po_result_values)
+    po_model_data= {}
+    for po_dat in pending_po_results:
+        pending_po_key = (po_dat["pending_po__full_po_number"], po_dat['sku__sku_code'])
+        po_model_data.setdefault(pending_po_key, {"quantity": po_dat["quantity"] ,
+                'cgst_tax': po_dat["cgst_tax"], 'sgst_tax': po_dat["sgst_tax"],
+                'igst_tax': po_dat["igst_tax"], 'cess_tax': po_dat["cess_tax"],
+                'supplier_id': po_dat["pending_po__supplier__supplier_id"], 'supplier__name': po_dat["pending_po__supplier__name"],
+                'price': po_dat["price"], 'po_final_status': po_dat["pending_po__final_status"]})
+    po_grn_results= PurchaseOrder.objects.filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
     for record in model_data:
+        pending_po_key= (record.get("pendingpo__full_po_number", ""), record.get("pending_prlineItems__sku__sku_code", ""))
+        vendor_code, vendor_name, po_final_status, po_date = [""]*4
+        po_cgst_tax , po_sgst_tax, po_igst_tax , po_cess_tax, po_quantity, po_price= [0]*6
+        if pending_po_key in po_model_data:
+            vendor_code = po_model_data[pending_po_key]["supplier_id"]
+            vendor_name = po_model_data[pending_po_key]["supplier__name"]
+            po_final_status =po_model_data[pending_po_key]["po_final_status"]
+            po_cgst_tax = po_model_data[pending_po_key]["cgst_tax"]
+            po_sgst_tax = po_model_data[pending_po_key]["sgst_tax"]
+            po_igst_tax = po_model_data[pending_po_key]["igst_tax"]
+            po_cess_tax = po_model_data[pending_po_key]["cess_tax"]
+            po_quantity = po_model_data[pending_po_key]["quantity"]
+            po_price = po_model_data[pending_po_key]["price"]
         pr_department= record.get("wh_user__userprofile__stockone_code", "")
         if record.get("wh_user_id", ''):
             pr_dept_obj = User.objects.get(id=record.get("wh_user_id", ''))
@@ -5687,39 +5727,88 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 pr_plant_name = pr_dept_obj.username
                 pr_plant_code = pr_dept_obj.userprofile.stockone_code
         pr_date= record.get("creation_date").strftime("%d %b, %Y") if record.get("creation_date", '') else ''
-        ord_dict = OrderedDict((
-        ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
-        ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
-        ("PR Category", record.get('product_category', '')),
-        ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Category", record.get('sku_category', '')),
-        ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
-        ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
-        ("PR Purchase UOM Qty", record.get('pending_prlineItems__quantity', 0)),
-        ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", ""), ("PR Approval Pending at", ""),
+        po_grn_check=False
+        for po_grn_dat in po_grn_results:
+            if pending_po_key and record.get("pendingpo__full_po_number")== po_grn_dat["po_number"] and record.get("pending_prlineItems__sku__sku_code")==po_grn_dat["open_po__sku__sku_code"]:
+                vendor_code = po_grn_dat.get("open_po__supplier__supplier_id", "")
+                vendor_name = po_grn_dat.get("open_po__supplier__name", "")
+                po_cgst_tax = po_grn_dat.get("open_po__cgst_tax", 0)
+                po_sgst_tax = po_grn_dat.get("open_po__sgst_tax", 0)
+                po_igst_tax = po_grn_dat.get("open_po__igst_tax", 0)
+                po_cess_tax = po_grn_dat.get("open_po__cess_tax", 0)
+                po_quantity = po_grn_dat.get("open_po__order_quantity", 0)
+                po_price = po_grn_dat.get("open_po__price", 0)
+                po_date= po_grn_dat.get("creation_date").strftime("%d %b, %Y") if po_grn_dat.get("creation_date", '') else ''
+                grn_date= po_grn_dat.get("sellerposummary__creation_date").strftime("%d %b, %Y") if po_grn_dat.get("sellerposummary__creation_date", '') else ''
+                expiry_date= po_grn_dat.get("sellerposummary__batch_detail__expiry_date").strftime("%d %b, %Y") if po_grn_dat.get("sellerposummary__batch_detail__expiry_date", '') else ''
+                ord_dict = OrderedDict((
+                ("PR No", po_model_data.get('full_pr_number', '')), ("PR date",pr_date),
+                ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
+                ("PR Category", record.get('product_category', '')),
+                ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Category", record.get('sku_category', '')),
+                ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
+                ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
+                ("PR Purchase UOM Qty", record.get('pending_prlineItems__quantity', 0)),
+                ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", ""), ("PR Approval Pending at", ""),
 
-        ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date", ""), ("Vendor Name", record.get("pendingpo__open_po__supplier__name", "")),
-        ("Vendor Code", record.get("pendingpo__open_po__supplier__supplier_id", "")),
-        ("PO Purchase UOM", "") , ("PO Purchase UOM Qty", record.get("pendingpo__open_po__order_quantity", 0)) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
-        ("PO Basic Price", record.get("pendingpo__open_po__price", 0)),  ("PO IGST", record.get("pendingpo__open_po__igst_tax", 0)),
-        ("PO CGST", record.get("pendingpo__open_po__cgst_tax", 0)), ("PO SGST", record.get("pendingpo__open_po__sgst_tax", 0)),
-        ("PO CESS", record.get("pendingpo__open_po__cess_tax", 0)),
-        ("PO amt(without Tax)", ""), ("PO total tax Amt", ""),
-        ("PO Total amount (with Tax)", ""), ("PO Status", ""), ("Expected Delivery Date", ""),
+                ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date" , po_date), ("Vendor Name", vendor_name),
+                ("Vendor Code", vendor_code),
+                ("PO Purchase UOM", "") , ("PO Purchase UOM Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+                ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
+                ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
+                ("PO CESS", po_cess_tax),
+                ("PO amt(without Tax)", ""), ("PO total tax Amt", ""),
+                ("PO Total amount (with Tax)", ""), ("PO Status", po_final_status), ("Expected Delivery Date", ""),
 
-        ("GRN No", record.get("pendingpo__open_po__purchaseorder__sellerposummary__grn_number", "")),
-        ("GRN Date", ""), ("GRN Purchase UOM", "") ,
-         ("GRN Purchase UOM Qty", record.get("pendingpo__open_po__purchaseorder__sellerposummary__quantity", 0)) ,
-        ("GRN Base UOM", ""), ("GRN Base UOM Qty", ""),
-        ("Batch No", record.get("pendingpo__open_po__purchaseorder__sellerposummary__batch_detail__batch_no", "")),
-        ("Expiry date", ""),
-        ("GRN Basic Price", record.get("pendingpo__open_po__purchaseorder__sellerposummary__price", 0)),
-        ("GRN amount( without Tax )", ""),
-        ("GRN IGST", record.get("pendingpo__open_po__igst_tax", 0)), ("GRN CGST", record.get("pendingpo__open_po__cgst_tax", 0)),
-        ("GRN SGST", record.get("pendingpo__open_po__sgst_tax", 0)), ("GRN CESS", record.get("pendingpo__open_po__purchaseorder__sellerposummary__cess_tax", 0)),
-        ("GRN TCS", record.get("pendingpo__open_po__purchaseorder__sellerposummary__tcs_value", 0)),
-        ("GRN total tax Amount", ""),  ("GRN Total amount(with Tax)", ""), ("GRN Status", "")
-        ))
-        temp_data['aaData'].append(ord_dict)
+                ("GRN No",  po_grn_dat.get("sellerposummary__grn_number", "") ),
+                ("GRN Date", grn_date), ("GRN Purchase UOM", "") ,
+                 ("GRN Purchase UOM Qty", po_grn_dat.get("sellerposummary__quantity", "") ) ,
+                ("GRN Base UOM", ""), ("GRN Base UOM Qty", ""),
+                ("Batch No", po_grn_dat.get("sellerposummary__batch_detail__batch_no", "")),
+                ("Expiry date", expiry_date),
+                ("GRN Basic Price", po_grn_dat.get("sellerposummary__price", "")),
+                ("GRN amount( without Tax )", ""),
+                ("GRN IGST", po_igst_tax), ("GRN CGST", po_cgst_tax),
+                ("GRN SGST", po_sgst_tax ), ("GRN CESS", po_grn_dat.get("sellerposummary__cess_tax", 0)),
+                ("GRN TCS", po_grn_dat.get("sellerposummary__tcs_value", 0)),
+                ("GRN total tax Amount", ""),  ("GRN Total amount(with Tax)", ""), ("GRN Status",  po_grn_dat.get("sellerposummary__status", 0))
+                ))
+                temp_data['aaData'].append(ord_dict)
+                po_grn_check=True
+        if not po_grn_check:
+            ord_dict = OrderedDict((
+            ("PR No", po_model_data.get('full_pr_number', '')), ("PR date",pr_date),
+            ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
+            ("PR Category", record.get('product_category', '')),
+            ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Category", record.get('sku_category', '')),
+            ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
+            ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
+            ("PR Purchase UOM Qty", record.get('pending_prlineItems__quantity', 0)),
+            ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", ""), ("PR Approval Pending at", ""),
+
+            ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date", po_date), ("Vendor Name", vendor_name),
+            ("Vendor Code", vendor_code),
+            ("PO Purchase UOM", "") , ("PO Purchase UOM Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+            ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
+            ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
+            ("PO CESS", po_cess_tax),
+            ("PO amt(without Tax)", ""), ("PO total tax Amt", ""),
+            ("PO Total amount (with Tax)", ""), ("PO Status", po_final_status), ("Expected Delivery Date", ""),
+
+            ("GRN No", ""),
+            ("GRN Date", ""), ("GRN Purchase UOM", "") ,
+             ("GRN Purchase UOM Qty", 0) ,
+            ("GRN Base UOM", ""), ("GRN Base UOM Qty", 0),
+            ("Batch No", ""),
+            ("Expiry date", ""),
+            ("GRN Basic Price", 0),
+            ("GRN amount( without Tax )", 0),
+            ("GRN IGST", 0), ("GRN CGST", 0),
+            ("GRN SGST", 0), ("GRN CESS",0),
+            ("GRN TCS", 0),
+            ("GRN total tax Amount",0),  ("GRN Total amount(with Tax)", 0), ("GRN Status", "")
+            ))
+            temp_data['aaData'].append(ord_dict)
     print("--- %s seconds ---" % (time.time() - start_time))
     return temp_data
 

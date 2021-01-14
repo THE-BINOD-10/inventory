@@ -12006,7 +12006,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['weight'] = batch_detail.weight
                         temp_json['batch_no'] = batch_detail.batch_no
                         #temp_json['buy_price'] = batch_detail.buy_price
-                        temp_json['tax_percent'] = batch_detail.tax_percent
+                        #temp_json['tax_percent'] = batch_detail.tax_percent
                         temp_json['quantity'] = update_picked
                         datum = get_warehouses_list_states(user)
                         compare_user = User.objects.get(id=st_po.open_st.sku.user).username

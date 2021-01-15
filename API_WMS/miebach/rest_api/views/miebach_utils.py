@@ -623,9 +623,9 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
 
 
 PR_PO_GRN_DICT = {'filters': [
-                        {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
-                        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+                        # {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
                         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+                        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
                         # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label':'Plant Code', 'name': 'plant_code', 'type': 'input'},
@@ -635,23 +635,26 @@ PR_PO_GRN_DICT = {'filters': [
                         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
                     ],
             'dt_headers': [
-            "PR No","PR date", "PR raised By",  "Department Name","PR Category",
-            "PR Qty", "Category", "Plant Name", "Plant Code", "Materials Code" , "Material Desp",
-            "PR Purchase UOM" , "PR Purchase UOM Qty" , "PR Base UOM", "PR Base UOM Qty", "PR Status", "PR Approval Pending at",
+            "PR No", "PR date", "Plant Name", "Plant Code", "Department Name", "PR Category",
+            "Materials Code" , "Material Desp",  "Material Category",
+            "PR Purchase UOM" , "PR Purchase Qty" ,  "PR raised By", "PR Approval Pending at",  "PR Status",
+            # "PR Base UOM", "PR Base Qty",
 
             "PO No", "PO Date", "Vendor Name", "Vendor Code",
-            "PO Purchase UOM" , "PO Purchase UOM Qty" , "PO Base UOM", "PO Base UOM Qty",
+            "PO Purchase UOM" , "PO Purchase Qty" ,
+            # "PO Base UOM", "PO Base UOM Qty",
             "PO Basic Price",  "PO IGST", "PO CGST", "PO SGST", "PO CESS", "PO amt(without Tax)", "PO total tax Amt",
             "PO Total amount (with Tax)", "PO Status", "Expected Delivery Date",
 
-            "GRN No", "GRN Date", "GRN Purchase UOM" , "GRN Purchase UOM Qty" , "GRN Base UOM", "GRN Base UOM Qty",
+            "GRN No", "GRN Date", "GRN Purchase UOM" , "GRN Purchase Qty" ,
+             # "GRN Base UOM", "GRN Base UOM Qty",
             "Batch No", "Expiry date",  "GRN Basic Price", "GRN amount( without Tax )",
             "GRN IGST", "GRN CGST", "GRN SGST", "GRN CESS", "GRN TCS",
             "GRN total tax Amount",  "GRN Total amount(with Tax)", "GRN Status" ],
             'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'dt_url': 'get_pr_po_grn_filter', 'excel_name': 'pr_po_grn_dict', 'print_url': '',
             }
-            
+
 STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                                        {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
@@ -5529,7 +5532,8 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             "final_status",
             "sku_category",
             "product_category",
-            "pendingpo__full_po_number"
+            "pendingpo__full_po_number",
+            "pendingpo__delivery_date",
     ]
     po_grn_result_values= [
         "creation_date",
@@ -5577,27 +5581,24 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
     # import pdb; pdb.set_trace()
-    if 'pr_from_date' in search_params:
+    if 'pr_from_date' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_params['pr_from_date'] = datetime.datetime.combine(search_params['pr_from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['pr_from_date']
-    if 'priority_type' in search_params:
+    if 'priority_type' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters['priority_type'] = search_params['priority_type']
-    if 'pr_number' in search_params:
-        pr_number = search_params['pr_number']
-        search_parameters['full_pr_number'] = pr_number
-    if 'product_category' in search_params:
+    if 'product_category' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters['product_category'] = search_params['product_category']
         if search_parameters['product_category'] == 'KitsConsumables':
             search_parameters['product_category'] = 'Kits&Consumables'
-    if 'final_status' in search_params:
+    if 'final_status' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters['final_status'] = search_params['final_status'].lower()
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
     if 'pr_number' in search_params:
         search_parameters[field_mapping['pr_number']] = search_params['pr_number']
-    if 'sku_code' in search_params:
+    if 'sku_code' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
-    if user.userprofile.warehouse_type == 'ADMIN':
+    if user.userprofile.warehouse_type == 'ADMIN' and 'po_number' not in search_params and 'pr_number' not in search_params:
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user_data = User.objects.filter(first_name=sister_warehouse_name)
@@ -5614,7 +5615,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             warehouse_users = warehouses
         search_parameters['wh_user__in'] = warehouse_users.keys()
 
-    elif user.userprofile.warehouse_type != 'ADMIN':
+    elif user.userprofile.warehouse_type != 'ADMIN' and 'po_number' not in search_params and 'pr_number' not in search_params:
         if 'sister_warehouse' in search_params:
             search_parameters['wh_user__first_name'] = search_params['sister_warehouse']
         elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
@@ -5624,6 +5625,28 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             search_parameters['wh_user__in'] = user_ids
         else:
             search_parameters['requested_user'] = user.id
+    if user.userprofile.warehouse_type == 'ADMIN' and 'po_number' not in search_params and 'pr_number' not in search_params:
+        if 'plant_code' in search_params:
+            plant_code = search_params['plant_code']
+            main_user= User.objects.get(username="mhl_admin")
+            plant_user_profile= UserProfile.objects.filter(warehouse_type="STORE", stockone_code=search_params['plant_code'])
+            if plant_user_profile.exists():
+                users_data = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[plant_user_profile[0].user.username], send_parent=True).values("id")
+                plant_users_list= []
+                if users_data.exists():
+                    for user_id in users_data:
+                        plant_users_list.append(user_id["id"])
+                    search_parameters['wh_user__in'] = plant_users_list
+    # elif user.userprofile.warehouse_type != 'ADMIN' and 'po_number' not in search_params and 'pr_number' not in search_params:
+    #     if 'plant_code' in search_params:
+    #         plant_code = search_params['plant_code']
+    #     elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
+    #         sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+    #         user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="STORE").values_list(
+    #                     'user__id', flat=True))
+    #         search_parameters['wh_user__in'] = user_ids
+    #     else:
+    #         search_parameters['requested_user'] = user.id
     # pr_search_params= {}
     search_parameters[pr_field_mapping['user']] = user_ids
     start_time = time.time()
@@ -5689,7 +5712,16 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 pr_plant_name = pr_dept_obj.username
                 pr_plant_code = pr_dept_obj.userprofile.stockone_code
         pr_date= record.get("creation_date").strftime("%d %b, %Y") if record.get("creation_date", '') else ''
+        exp_delivery_date= record.get("pendingpo__delivery_date").strftime("%d %b, %Y") if record.get("pendingpo__delivery_date", '') else ''
         po_grn_check=False
+        pending_approval = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=record.get('full_pr_number', ""),
+        status='', pending_pr__final_status='pending').values("level", "approval_type", "validated_by")
+        next_approver_mail, pending_level, approval_type = [''] * 3
+        if pending_approval.exists():
+            pending_approval = pending_approval[0]
+            next_approver_mail = pending_approval["validated_by"]
+            pending_level = pending_approval["level"]
+            approval_type = pending_approval["approval_type"]
         for po_grn_dat in po_grn_results:
             if pending_po_key and record.get("pendingpo__full_po_number")== po_grn_dat["po_number"] and record.get("pending_prlineItems__sku__sku_code")==po_grn_dat["open_po__sku__sku_code"]:
                 vendor_code = po_grn_dat.get("open_po__supplier__supplier_id", "")
@@ -5715,31 +5747,36 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
 
                 grn_total_tax_amount= ((grn_amount_without_tax * (po_cgst_tax + po_sgst_tax + po_igst_tax + grn_cess_tax))/100)
                 grn_total_amount_with_tax= grn_amount_without_tax + grn_total_tax_amount
-                grn_status= "Cancelled" if po_grn_dat.get("sellerposummary__status", 0)==1 else ""
+                grn_number= ""
+                grn_status= "Open"
+                if po_grn_dat.get("sellerposummary__grn_number", ""):
+                    grn_number = po_grn_dat.get("sellerposummary__grn_number", "")
+                    grn_status= "Cancelled" if po_grn_dat.get("sellerposummary__status", 0)==1 else "Received"
+
 
                 ord_dict = OrderedDict((
                 ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
                 ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
                 ("PR Category", record.get('product_category', '')),
-                ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Category", record.get('sku_category', '')),
+                ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Material Category", record.get('sku_category', '')),
                 ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
                 ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
-                ("PR Purchase UOM Qty", record.get('pending_prlineItems__quantity', 0)),
-                ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", ""),
+                ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
+                ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
 
                 ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date" , po_date), ("Vendor Name", vendor_name),
                 ("Vendor Code", vendor_code),
                 ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
-                ("PO Purchase UOM Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+                ("PO Purchase Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
                 ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
                 ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
                 ("PO CESS", po_cess_tax),
                 ("PO amt(without Tax)",  po_amount_without_tax), ("PO total tax Amt", po_total_tax_amount),
-                ("PO Total amount (with Tax)", po_total_amount_with_tax), ("PO Status", po_final_status), ("Expected Delivery Date", ""),
+                ("PO Total amount (with Tax)", po_total_amount_with_tax), ("PO Status", po_final_status), ("Expected Delivery Date", exp_delivery_date),
 
-                ("GRN No",  po_grn_dat.get("sellerposummary__grn_number", "") ),
+                ("GRN No",  grn_number),
                 ("GRN Date", grn_date), ("GRN Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
-                ("GRN Purchase UOM Qty", grn_quantity) ,
+                ("GRN Purchase Qty", grn_quantity) ,
                 ("GRN Base UOM", ""), ("GRN Base UOM Qty", ""),
                 ("Batch No", po_grn_dat.get("sellerposummary__batch_detail__batch_no", "")),
                 ("Expiry date", expiry_date),
@@ -5760,25 +5797,25 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
             ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
             ("PR Category", record.get('product_category', '')),
-            ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Category", record.get('sku_category', '')),
+            ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Material Category", record.get('sku_category', '')),
             ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
             ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
-            ("PR Purchase UOM Qty", record.get('pending_prlineItems__quantity', 0)),
-            ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", ""),
+            ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
+            ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
 
             ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date", po_date), ("Vendor Name", vendor_name),
             ("Vendor Code", vendor_code),
-            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) , ("PO Purchase UOM Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) , ("PO Purchase Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
             ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
             ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
             ("PO CESS", po_cess_tax),
             ("PO amt(without Tax)", po_amount_without_tax), ("PO total tax Amt", po_total_tax_amount),
-            ("PO Total amount (with Tax)", po_total_amount_with_tax), ("PO Status", po_final_status), ("Expected Delivery Date", ""),
+            ("PO Total amount (with Tax)", po_total_amount_with_tax), ("PO Status", po_final_status), ("Expected Delivery Date", exp_delivery_date),
 
-            ("GRN No", ""), ("GRN Date", ""), ("GRN Purchase UOM", "") , ("GRN Purchase UOM Qty", 0) ,("GRN Base UOM", ""),
+            ("GRN No", ""), ("GRN Date", ""), ("GRN Purchase UOM", "") , ("GRN Purchase Qty", 0) ,("GRN Base UOM", ""),
             ("GRN Base UOM Qty", 0), ("Batch No", ""), ("Expiry date", ""), ("GRN Basic Price", 0),
             ("GRN amount( without Tax )", 0), ("GRN IGST", 0), ("GRN CGST", 0), ("GRN SGST", 0), ("GRN CESS",0),
-            ("GRN TCS", 0), ("GRN total tax Amount",0),  ("GRN Total amount(with Tax)", 0), ("GRN Status", "")
+            ("GRN TCS", 0), ("GRN total tax Amount",0),  ("GRN Total amount(with Tax)", 0), ("GRN Status", "Open")
 
             ))
             temp_data['aaData'].append(ord_dict)

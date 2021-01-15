@@ -623,16 +623,16 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
 
 
 PR_PO_GRN_DICT = {'filters': [
-                        # {'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
-                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
                         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
-                        {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
-                        # {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
-                        # {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
-                        # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
-                        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                        {'label':'Plant Code', 'name': 'plant_code', 'type': 'input'},
+                        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+                        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+                        {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
+                        {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
                     ],
             'dt_headers': [
             "PR No","PR date", "PR raised By",  "Department Name","PR Category",
@@ -648,16 +648,10 @@ PR_PO_GRN_DICT = {'filters': [
             "Batch No", "Expiry date",  "GRN Basic Price", "GRN amount( without Tax )",
             "GRN IGST", "GRN CGST", "GRN SGST", "GRN CESS", "GRN TCS",
             "GRN total tax Amount",  "GRN Total amount(with Tax)", "GRN Status" ],
-            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
-            # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
-            #                   'SKU Code',
-            #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-            #                   'Received Qty', 'Unit Rate',
-            #                   'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
-            #                   'Post-Tax Received Value',
-            #                   'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
+            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'dt_url': 'get_pr_po_grn_filter', 'excel_name': 'pr_po_grn_dict', 'print_url': '',
             }
+            
 STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                                        {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
@@ -5491,7 +5485,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
         check_and_get_plants_wo_request, \
         get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
-        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin
+        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , get_all_department_data
     from masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -5506,10 +5500,12 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     model_name = SellerPOSummary
     field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
                      'order_id': 'purchase_order__order_id',
-                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                     'wms_code': 'pending_prlineItems__sku__sku_code',
                      'user': 'purchase_order__open_po__sku__user__in',
                      'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
-                     'po_number': 'purchase_order__po_number', 'grn_number': 'grn_number',
+                     'po_number': 'pendingpo__full_po_number',
+                     'pr_number': 'full_pr_number',
+                      'grn_number': 'grn_number',
                      'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
                      'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
                      'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
@@ -5575,41 +5571,63 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     rec_quan = 'purchase_order__received_quantity'
     rec_quan1 = 'sellerposummary__quantity'
     search_parameters = {}
+    search_parameters = {'pending_prlineItems__purchase_type': 'PR'}
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
-    if 'from_date' in search_params:
-        search_parameters['creation_date__gte'] = search_params['from_date']
-        if field_mapping['from_date'] + '__gte' in search_parameters.keys():
-            del search_parameters[field_mapping['from_date'] + '__gte']
-
-    if 'to_date' in search_params:
-        search_params['grn_to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
-                                                                 datetime.time())
-        search_parameters['creation_date__lte'] = search_params['grn_to_date']
-        if field_mapping['to_date'] + '__lte' in search_parameters.keys():
-            del search_parameters[field_mapping['to_date'] + '__lte']
+    # import pdb; pdb.set_trace()
+    if 'pr_from_date' in search_params:
+        search_params['pr_from_date'] = datetime.datetime.combine(search_params['pr_from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['pr_from_date']
+    if 'priority_type' in search_params:
+        search_parameters['priority_type'] = search_params['priority_type']
+    if 'pr_number' in search_params:
+        pr_number = search_params['pr_number']
+        search_parameters['full_pr_number'] = pr_number
+    if 'product_category' in search_params:
+        search_parameters['product_category'] = search_params['product_category']
+        if search_parameters['product_category'] == 'KitsConsumables':
+            search_parameters['product_category'] = 'Kits&Consumables'
+    if 'final_status' in search_params:
+        search_parameters['final_status'] = search_params['final_status'].lower()
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
-    if 'grn_number' in search_params:
-        search_parameters[field_mapping['grn_number']] = search_params['grn_number']
+    if 'pr_number' in search_params:
+        search_parameters[field_mapping['pr_number']] = search_params['pr_number']
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
-    if 'invoice_number' in search_params:
-        search_parameters['invoice_number'] = search_params['invoice_number']
-    if 'supplier' in search_params and ':' in search_params['supplier']:
-        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
-            search_params['supplier'].split(':')[0]
-    if 'sku_category' in search_params:
-        search_parameters[field_mapping['sku_category']] = search_params['sku_category']
-    if 'sku_brand' in search_params:
-        search_parameters[field_mapping['sku_brand']] = search_params['sku_brand']
+    if user.userprofile.warehouse_type == 'ADMIN':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user_data = User.objects.filter(first_name=sister_warehouse_name)
+            temp_dict,warehouses_dict = {}, {}
+            if user_data.exists():
+                for user_1 in user_data:
+                    temp_dict[user_1.id] = user_1.username
+                    warehouses_dict.update(temp_dict)
+            # warehouses = get_warehouses_data(user)
+            warehouse_users = warehouses_dict
+        else:
+            warehouses = get_all_department_data(user)
+            # warehouses = get_warehouses_data(user)
+            warehouse_users = warehouses
+        search_parameters['wh_user__in'] = warehouse_users.keys()
 
-    pr_search_params= {}
-    pr_search_params[pr_field_mapping['user']] = user_ids
+    elif user.userprofile.warehouse_type != 'ADMIN':
+        if 'sister_warehouse' in search_params:
+            search_parameters['wh_user__first_name'] = search_params['sister_warehouse']
+        elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
+            sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+                        'user__id', flat=True))
+            search_parameters['wh_user__in'] = user_ids
+        else:
+            search_parameters['requested_user'] = user.id
+    # pr_search_params= {}
+    search_parameters[pr_field_mapping['user']] = user_ids
     start_time = time.time()
-    model_data_result= PendingPR.objects.filter(**pr_search_params).values(*pr_result_values)
+    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values)
     po_numbers_sku =[]
     temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

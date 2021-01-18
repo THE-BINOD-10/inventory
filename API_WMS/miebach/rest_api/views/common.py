@@ -11976,13 +11976,14 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     mr_doa_obj['update_picked'] = update_picked
                     mr_doa_obj['data'] = stock.id
                     mr_doa_obj['order_typ'] = order_typ
+                    mr_doa_obj['sku_code'] = open_st.sku.sku_code
                     doa_dict = {
                         'requested_user': user,
                         'wh_user': destination_warehouse,
                         'reference_id': stock_transfer.order_id,
                         'model_name': 'mr_doa',
                         'json_data': json.dumps(mr_doa_obj),
-                        'doa_status': 'pending'
+                        'doa_status': 'pending',
                     }
                     doa_obj = MastersDOA(**doa_dict)
                     doa_obj.save()
@@ -12023,7 +12024,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['weight'] = batch_detail.weight
                         temp_json['batch_no'] = batch_detail.batch_no
                         #temp_json['buy_price'] = batch_detail.buy_price
-                        temp_json['tax_percent'] = batch_detail.tax_percent
+                        #temp_json['tax_percent'] = batch_detail.tax_percent
                         temp_json['quantity'] = update_picked
                         datum = get_warehouses_list_states(user)
                         compare_user = User.objects.get(id=st_po.open_st.sku.user).username
@@ -13861,6 +13862,16 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
+def get_pending_mr_qty_for_avg(user):
+    doas = MastersDOA.objects.filter(model_name='mr_doa', doa_status='pending', requested_user_id=user.id)
+    sku_pending_mr_qty = {}
+    for doa in doas:
+        json_dat = json.loads(doa.json_data)
+        sku_code = json_dat['sku_code']
+        sku_pending_mr_qty.setdefault(sku_code, {'qty': 0})
+        sku_pending_mr_qty[sku_code]['qty'] += json_dat['update_picked']
+    return sku_pending_mr_qty
+
 def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
     po_pending_qty = 0
     po_locs = POLocation.objects.filter(
@@ -13882,6 +13893,7 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
     dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                            warehouse=[user.username], send_parent=True)
     dept_user_ids = list(dept_users.values_list('id', flat=True))
+    sku_pending_mr_qty = get_pending_mr_qty_for_avg(user)
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
@@ -13894,7 +13906,9 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
         if not stock_qty:
             stock_qty = 0
         po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
+        mr_pending = sku_pending_mr_qty.get(sku.sku_code, {}).get('qty', 0)
         stock_qty += po_pending_qty
+        stock_qty += mr_pending
         stock_value = stock_qty * sku.average_price
         if dec:
             temp_qty = stock_qty + value['qty']

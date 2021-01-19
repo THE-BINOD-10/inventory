@@ -46,7 +46,9 @@ from django.template import loader, Context
 from barcodes import *
 import ConfigParser
 from miebach.settings import INTEGRATIONS_CFG_FILE
+from miebach.settings import base
 from miebach.celery import app
+import git
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -437,7 +439,22 @@ def wms_login(request):
             if parent_user_profile.warehouse_type:
                 user_profile[0].warehouse_type = parent_user_profile.warehouse_type
                 user_profile[0].save()
-
+    try:
+        version_number= base.VERSION_NUMBER
+        current_path= os.getcwd()
+        current_path= current_path.split("/API_WMS/miebach")
+        git_path=""
+        if current_path:
+            git_path= current_path[0]
+        else:
+            git_path= current_path
+        repo=git.Repo(git_path)
+        git_version_obj= next((tag for tag in repo.tags if tag.commit == repo.head.commit), None)
+        if git_version_obj:
+            version_number= git_version_obj.name[1:]
+        response_data["data"].update({"version_number":version_number})
+    except:
+        pass
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 
@@ -484,12 +501,13 @@ def status(request):
     """
     Checks if user is a valid user or not
     """
+    version_number= base.VERSION_NUMBER
     response_data = {'data': {}, 'message': 'Fail'}
     status_dict = {1: 'true', 0: 'false'}
 
     if request.user.is_authenticated():
         response_data = add_user_permissions(request, response_data)
-
+    response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 
@@ -12006,7 +12024,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['weight'] = batch_detail.weight
                         temp_json['batch_no'] = batch_detail.batch_no
                         #temp_json['buy_price'] = batch_detail.buy_price
-                        temp_json['tax_percent'] = batch_detail.tax_percent
+                        #temp_json['tax_percent'] = batch_detail.tax_percent
                         temp_json['quantity'] = update_picked
                         datum = get_warehouses_list_states(user)
                         compare_user = User.objects.get(id=st_po.open_st.sku.user).username

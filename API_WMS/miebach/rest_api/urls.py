@@ -509,6 +509,7 @@ urlpatterns = [
     url(r'^get_supplier_details/$', get_supplier_details),
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
+    url(r'^get_pr_po_grn_filter/$', get_pr_po_grn_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),

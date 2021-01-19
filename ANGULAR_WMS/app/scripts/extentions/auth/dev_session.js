@@ -19,6 +19,7 @@
         "roles"   : [],
         "user_profile" : {},
         "notification_count": 0,
+	"version_number": null,
       });
     }
 
@@ -55,7 +56,8 @@
         "parent"  : this.parent,
         "roles"   : this.roles,
         "user_profile" : this.user_profile,
-        "notification_count" : this.notification_count
+        "notification_count" : this.notification_count,
+	"version_number": this.version_number,
       };
     };
 
@@ -67,6 +69,7 @@
       this.roles    = data.roles;
       this.user_profile = data.user_profile;
       this.notification_count = data.notification_count
+      this.version_number =  data.version_number
 
       this.changeUserData();
     };

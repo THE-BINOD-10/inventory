@@ -11363,6 +11363,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
 @login_required
 @get_admin_user
 def closing_adjustment_upload(request, user=''):
+    return HttpResponse('Consumption Adjustiment upload Disabled !!')
     from dateutil.relativedelta import relativedelta
     fname = request.FILES['files']
     try:
@@ -12152,6 +12153,7 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
 @login_required
 @get_admin_user
 def consumption_upload(request, user=''):
+    return HttpResponse('Consumption Uploads Disabled !!')
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -12417,6 +12419,7 @@ def save_uploaded_closing_stock(data_list, fname, file_type, reader):
 @login_required
 @get_admin_user
 def closing_stock_upload(request, user=''):
+    return HttpResponse('Closing Stock Uploads Disabled !!')
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)

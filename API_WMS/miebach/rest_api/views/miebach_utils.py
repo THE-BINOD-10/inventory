@@ -11517,6 +11517,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
         get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params, get_uom_with_sku_code
     from miebach_admin.models import *
+    from reversion.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
            'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
@@ -11607,7 +11608,8 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             temp_inv_qty = (float(invoice_quantity) / float(qty_conversion))
             invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
             dest_receive_po_status = ''
-            datum = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id).values('quantity')
+            datums = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id)
+            datum = datums.values('quantity')
             dest_received_qty = 0
             if datum.exists():
                 dest_received_qty = datum.aggregate(Sum('quantity'))['quantity__sum']
@@ -11622,8 +11624,10 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                     dest_receive_po_status = 'Excess Received'
                 elif temp_inv_qty == 0:
                     dest_received_qty = 0
-            if request.POST.get('special_key', '') == 'ST_INTRA':
-                print 'kaladhar'
+            if request.POST.get('special_key', '') == 'ST_INTRA' and datums.exists():
+                version_obj = Version.objects.using('reversion').get_for_object(datums[0]).filter(revision__comment='generate_grn')
+                if version_obj.exists():
+                    send_accepted_user_dest = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if request.POST.get('special_key', '') == 'MR':
                 accepted_user_dest = MastersDOA.objects.filter(doa_status='approved', model_name='mr_doa', reference_id=data.order_id, requested_user__username=user.username, wh_user__username=destination.username).values('validated_by')
                 if accepted_user_dest.exists():

@@ -29,7 +29,7 @@
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Request To</label>
+                <label class="control-label"> Request raised by </label>
                 <!-- <label class="control-label"> Source Plant (Request From)</label> -->
                 <input type="hidden" name="st_type" value="ST">
                 <select name="source_plant" class="form-control" ng-model="showCase.model_data.selected" ng-change="showCase.changeDestWarehouse()">
@@ -39,7 +39,7 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Request From</label>
+                <label class="control-label"> Material to be dispatched by </label>
                 <!-- <label class="control-label"> Destination Plant (Request To)</label> -->
                 <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.warehouse_name" ng-change="showCase.verifyTax()">
                   <option ng-repeat="wh in showCase.dest_wh_list" value="{{wh.username}}">{{wh.name}}:{{wh.stockone_code}}</option>

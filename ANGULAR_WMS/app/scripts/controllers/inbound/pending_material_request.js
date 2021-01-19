@@ -88,7 +88,8 @@ var vm = this;
     }
 
     function reloadData () {
-        vm.dtInstance.reloadData();
+      vm.bt_disable = true;
+      vm.dtInstance.reloadData();
     };
 
     vm.close = function() {
@@ -97,6 +98,7 @@ var vm = this;
     }
 
     vm.confirm_mr = function() {
+      vm.bt_disable = true;
       var selected_order_ids = []
       var selected_rows = []
       var valid = true
@@ -122,7 +124,6 @@ var vm = this;
       }
       if (valid) {
         vm.service.apiCall('confirm_mr_request/', 'POST', {'selected_orders': JSON.stringify(selected_rows)}).then(function(resp) {
-          vm.bt_disable = false;
           if(resp.data == "success") {
             vm.service.showNoty("Success")
             vm.dtInstance.reloadData();
@@ -130,10 +131,10 @@ var vm = this;
             vm.service.showNoty("Failed !!")
             vm.dtInstance.reloadData();
           }
-          vm.bt_disable = true;
         })
       }
       else {
+        vm.dtInstance.reloadData();
         vm.service.showNoty("Please Select Single Order")
       }
     }

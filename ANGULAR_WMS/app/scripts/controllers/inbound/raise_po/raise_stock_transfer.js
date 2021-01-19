@@ -132,15 +132,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $timeout, Session, 
             vm.tax_cg_sg = false;
             vm.igst_enable = true;
           }
-        } else if (!vm.warehouse_list_states[vm.model_data.selected]){
-            temp_ware_name = vm.model_data.selected;
-            vm.model_data.selected = '';
-            colFilters.showNoty(temp_ware_name +" - Please update state in Source Plant");
-        } else if (!vm.warehouse_list_states[vm.model_data.warehouse_name]){
-            temp_ware_name = vm.model_data.warehouse_name;
-            vm.model_data.warehouse_name = '';
-            colFilters.showNoty(temp_ware_name +" - Please update state in Destination Plant");
         }
+        // else if (!vm.warehouse_list_states[vm.model_data.selected]){
+        //     temp_ware_name = vm.model_data.selected;
+        //     vm.model_data.selected = '';
+        //     colFilters.showNoty(temp_ware_name +" - Please update state in Source Plant");
+        // } else if (!vm.warehouse_list_states[vm.model_data.warehouse_name]){
+        //     temp_ware_name = vm.model_data.warehouse_name;
+        //     vm.model_data.warehouse_name = '';
+        //     colFilters.showNoty(temp_ware_name +" - Please update state in Destination Plant");
+        // }
       } else {
         colFilters.showNoty("Request To & Request From Cannot be Same !");
         vm.model_data.selected = ''

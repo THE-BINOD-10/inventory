@@ -550,6 +550,11 @@
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.PR_PO_GRNReport">
+            <span>PR PO GRN Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.GoodsReceiptNote">
             <span>Goods Receipt Note</span>
           </a>
@@ -904,7 +909,8 @@
     <li data-ng-class="{open: $state.includes('user')}" style="" class="user-section">
       <a href="javascript:;">
         <i class="fa fa-user"></i>
-        <span><b style="display: inline-flex;width: 120px;">{{(user.user_profile['first_name'] == "")? user.userName:user.user_profile['first_name'];}}</b></span>
+        <span><b style="display: inline-flex;width: 120px;">{{(user.user_profile['first_name'] == "")? user.userName:user.user_profile['first_name'];}}</b></span><br>
+        <span style="align-items: start;font-size: 10px;font-weight: 900;margin-left: 35%;text-transform: lowercase;">{{user.version_number}}</span>
       </a>
       <ul class="sub-menu manage" style="position: absolute;bottom: 50px;width:100%">
         <li ui-sref-active="active" ng-show="show_tab('is_staff')">

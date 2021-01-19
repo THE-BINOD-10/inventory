@@ -240,3 +240,5 @@ BARCODE_DEFAULT = {
                 'rows_columns' : (1,1),
                 'styles' : {'leftIndent': 4, 'spaceAfter': 4, 'spaceBefore': 4, 'fontName': 'Arial', 'fontSize': 6, 'spaceShrinkage': 12, 'leading': 9, 'showBoundary': 0.1, 'rightIndent': 0},
 		}
+
+VERSION_NUMBER= "v1.4.0"

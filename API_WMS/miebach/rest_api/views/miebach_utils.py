@@ -11173,7 +11173,7 @@ def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
         invoice_quantity = invoice_no.quantity
         temp_total = temp_total + round(float(invoice_quantity) / float(qty_conversion), 2)
     if float(total_qty) > temp_total:
-        status = "Partially Received"
+        status = "Partially Dispatched"
     return status
 
 

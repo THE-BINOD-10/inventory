@@ -13871,13 +13871,16 @@ def get_kerala_cess_tax(tax, supplier):
 
 
 def get_pending_mr_qty_for_avg(user):
-    doas = MastersDOA.objects.filter(model_name='mr_doa', doa_status='pending', requested_user_id=user.id)
-    sku_pending_mr_qty = {}
-    for doa in doas:
-        json_dat = json.loads(doa.json_data)
-        sku_code = json_dat['sku_code']
-        sku_pending_mr_qty.setdefault(sku_code, {'qty': 0})
-        sku_pending_mr_qty[sku_code]['qty'] += json_dat['update_picked']
+    try:
+        doas = MastersDOA.objects.filter(model_name='mr_doa', doa_status='pending', requested_user_id=user.id)
+        sku_pending_mr_qty = {}
+        for doa in doas:
+            json_dat = json.loads(doa.json_data)
+            sku_code = json_dat['sku_code']
+            sku_pending_mr_qty.setdefault(sku_code, {'qty': 0})
+            sku_pending_mr_qty[sku_code]['qty'] += json_dat['update_picked']
+    except:
+        pass
     return sku_pending_mr_qty
 
 def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):

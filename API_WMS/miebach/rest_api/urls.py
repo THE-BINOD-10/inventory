@@ -519,6 +519,8 @@ urlpatterns = [
     url(r'^get_deallocation_report/$', get_deallocation_report),
     url(r'^get_order_summary_filter/$', get_order_summary_filter),
     url(r'^get_sku_stock_filter/$', get_sku_stock_filter),
+    url(r'^get_ageing_data_filter/$', get_ageing_data_filter),
+    url(r'^get_expired_stock_data_filter/$', get_expired_stock_data_filter),
     url(r'^get_sales_return_filter/$', get_sales_return_filter),
     url(r'^get_sku_purchase_filter/$', get_sku_purchase_filter),
     url(r'^get_inventory_adjust_filter/$', get_inventory_adjust_filter),

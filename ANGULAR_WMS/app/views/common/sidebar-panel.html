@@ -599,6 +599,16 @@
             <span>SKU Wise Stock</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_stockdetail')">
+          <a ui-sref="app.reports.StockExpired">
+            <span>Expired Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_stockdetail')">
+          <a ui-sref="app.reports.StockAgeing">
+            <span>Ageing Report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_openpo')">
           <a ui-sref="app.reports.SKUWisePurchaseOrders">
             <span>SKU Wise Purchase Orders</span>

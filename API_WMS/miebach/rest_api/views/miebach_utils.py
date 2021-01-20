@@ -11189,7 +11189,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
            'st_po__open_st__igst_tax',
            'st_po__open_st__price', 'status', 'st_po__open_st__igst_tax', 'st_po__open_st__price', 'status']
 
-    status_map = ['Pick List Generated', 'Pending', 'Accepted']
+    status_map = ['Pick List Generated', 'Pending', 'Dispatched']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)
@@ -11540,12 +11540,12 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
-        if request.POST.get('special_key', ''):
-            search_parameters['st_type'] = request.POST.get('special_key', '')
+        if request.POST.get('special_key', '') or search_params.get('special_key', ''):
+            search_parameters['st_type'] = request.POST.get('special_key', '') if request.POST.get('special_key', '') else search_params.get('special_key', '')
     else:
         users = [user.id]
-        if request.POST.get('special_key', ''):
-            search_parameters['st_type'] = request.POST.get('special_key', '')
+        if request.POST.get('special_key', '') or search_params.get('special_key', ''):
+            search_parameters['st_type'] = request.POST.get('special_key', '') if request.POST.get('special_key', '') else search_params.get('special_key', '')
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
@@ -11624,11 +11624,11 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                     dest_receive_po_status = 'Excess Received'
                 elif temp_inv_qty == 0:
                     dest_received_qty = 0
-            if request.POST.get('special_key', '') == 'ST_INTRA' and datums.exists():
+            if (request.POST.get('special_key', '') == 'ST_INTRA' or search_params.get('special_key', '') == 'ST_INTRA') and datums.exists():
                 version_obj = Version.objects.using('reversion').get_for_object(datums[0]).filter(revision__comment='generate_grn')
                 if version_obj.exists():
                     send_accepted_user_dest = version_obj.order_by('-revision__date_created')[0].revision.user.username
-            if request.POST.get('special_key', '') == 'MR':
+            if request.POST.get('special_key', '') == 'MR' or search_params.get('special_key', '') == 'MR':
                 accepted_user_dest = MastersDOA.objects.filter(doa_status='approved', model_name='mr_doa', reference_id=data.order_id, requested_user__username=user.username, wh_user__username=destination.username).values('validated_by')
                 if accepted_user_dest.exists():
                     send_accepted_user_dest = accepted_user_dest[0]['validated_by']

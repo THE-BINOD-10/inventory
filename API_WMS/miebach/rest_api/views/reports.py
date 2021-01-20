@@ -622,7 +622,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user__in=user_ids, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.select_related('open_po').filter(open_po__sku__user__in=user_ids, **search_parameters)
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='deleted').filter(open_po__sku__user__in=user_ids, **search_parameters)
     purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
         total_received=Sum('received_quantity')). \
@@ -2183,7 +2183,7 @@ def print_purchase_order_form(request, user=''):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num).exclude(status='deleted')
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]

@@ -15635,7 +15635,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
 
     values_list = ['po_number', 'creation_date','expected_date']
 
-    model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+    model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
                                         #annotate(total_qty=Sum('open_po__order_quantity'),
                                     #total_temp_amt=Sum(F('open_po__order_quantity') * F('open_po__price')),
                                     #annotate(total_tax_amount=Sum((F('open_po__order_quantity') * F('open_po__price')/100)*(F('open_po__cgst_tax')+F('open_po__sgst_tax')+F('open_po__igst_tax'))),
@@ -15662,7 +15662,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         product_category, category, final_status= '', '', ''
         pr_quantity = ''
         user_id= ''
-        open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).\
+        open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).exclude(status='deleted').\
                                             values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
                                             'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
@@ -15879,7 +15879,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                    'open_po__sku__sub_category', 'updation_date', 'creation_date', 'open_po__order_quantity', 'status', 'reason',
                    'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price', 'received_quantity', 'id']
 
-    model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+    model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
     if order_term:
         model_data = model_data.order_by(order_data)
     temp_data['recordsTotal'] = model_data.count()

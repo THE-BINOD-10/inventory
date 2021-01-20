@@ -64,10 +64,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'))
     }
 
-    $scope.$on('change_filters_data', function(){
+    /*$scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.reloadData();
     });
+    */
 
   }
 

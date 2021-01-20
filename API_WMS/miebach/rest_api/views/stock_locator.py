@@ -2702,12 +2702,14 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
-           'batch_detail__batch_no',
-           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
+           'sku__user', 'sku__user', 'sku__user', 'batch_detail__batch_no',
+           'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent', 'sku__average_price',
            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
-           'location__zone__zone', 'location__zone__zone', 'location__location',
+           'location__zone__zone', 'location__zone__zone', 'location__location', 'sku__sku_code',
            'pallet_detail__pallet_code',
-           'quantity', 'receipt_type', 'creation_date']
+           'quantity', 'quantity', 'quantity', 'quantity', 'quantity', 'receipt_type', 'creation_date']
+    filt_lis = copy.deepcopy(lis)
+    filt_lis[5:8] = ['plant_code', 'plant_name', 'dept_type']
     sub_zone_perm = get_permission(user, 'add_subzonemapping')
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
@@ -2715,15 +2717,44 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    search_params = get_filtered_params(filters, lis)
+    search_params = get_filtered_params(filters, filt_lis)
     if 'receipt_date__icontains' in search_params:
         search_params['receipt_date__regex'] = search_params['receipt_date__icontains']
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
+    if 'plant_code__icontains' in search_params.keys():
+        plant_code = search_params['plant_code__icontains']
+        del search_params['plant_code__icontains']
+        plant_users = list(users.filter(userprofile__stockone_code__icontains=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name__icontains' in search_params.keys():
+        plant_name = search_params['plant_name__icontains']
+        del search_params['plant_name__icontains']
+        plant_users = list(users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'dept_type__icontains' in search_params.keys():
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_type = search_params['dept_type__icontains']
+        del search_params['dept_type__icontains']
+        if dept_type.lower() != 'na':
+            dept_mapping = {x:y for x,y in dept_mapping.items() if dept_type.lower() in y.lower()}
+            users = users.filter(userprofile__stockone_code__in=dept_mapping.keys())
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
 
-    stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone', 'pallet_detail',
-                                                           'batch_detail').prefetch_related('sku', 'location',
-                                                                                            'location__zone'). \
+    user_ids = list(users.values_list('id', flat=True))
+    user_ids.append(user.id)
+
+    stock_detail_objs = StockDetail.objects.prefetch_related('sku', 'location', 'location__zone', 'pallet_detail',
+                                                           'batch_detail').\
         exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0,
                                          **search_params)
     if search_term:
@@ -2742,8 +2773,13 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     counter = 1
+    model_sku_codes = list(master_data.values_list('sku__sku_code', flat=True)[start_index:stop_index])
+    skus_uom_dict = get_uom_with_multi_skus(user, model_sku_codes, uom_type='purchase')
+    user_time_zone = get_user_time_zone(user)
     for data in master_data[start_index:stop_index]:
-        _date = get_local_date(user, data.receipt_date, True)
+        counter += 1
+        _date = get_local_date_with_time_zone(user_time_zone, data.receipt_date, send_date=True)
+        #_date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         batch_no = manufactured_date = expiry_date = ''
         mrp = 0
@@ -2753,8 +2789,8 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         tax = 0
         batch_id = ''
         mfg_date, exp_date = '', ''
-        uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
-        pcf = uom_dict['sku_conversion']
+        uom_dict = skus_uom_dict.get( data.sku.sku_code, {})
+        pcf = uom_dict.get('sku_conversion', 1)
         pcf_for_val = 1
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
@@ -2764,7 +2800,6 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
             tax = data.batch_detail.tax_percent
             price_with_tax = price + ((price/100)*tax)
             batch_id = data.batch_detail.id
-            #pcf = data.batch_detail.pcf
             pcf_for_val = data.batch_detail.pcf
             if data.batch_detail.manufactured_date:
                 manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
@@ -2786,7 +2821,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                 sub_zone_obj = sub_zone_obj[0]
                 sub_zone = zone
                 zone = sub_zone_obj.zone.zone
-        quantity = data.quantity/pcf
+        pquantity = data.quantity/pcf
         quantity_for_val = data.quantity/pcf_for_val
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
@@ -2803,18 +2838,23 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('WMS Code', data.sku.wms_code),
                                 ('Product Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
-                                ('Batch Number', batch_no), ('exp_date', exp_date),
-                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
-                                ('MRP', mrp), ('Weight', weight),
-                                ('Price', price), ('Tax Percent', tax),
-                                ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
-                                ('Zone', zone), ('Sub Zone', sub_zone),
-                                ('Location', data.location.location),
-                                ('Quantity', get_decimal_limit(user.id, quantity)),
-                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
                                 ('dept_type', dept_type),
+                                ('Batch Number', batch_no), ('exp_date', exp_date),
+                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
+                                ('MRP', mrp), ('Weight', weight),
+                                ('Procurement Price', price), ('Procurement Tax Percent', tax),
+                                ('Unit Purchase Qty Price', data.sku.average_price),
+                                ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
+                                ('Zone', zone), ('Sub Zone', sub_zone),
+                                ('Location', data.location.location),
+                                ('Conversion Factor', pcf),
+                                ('Base Uom Quantity', round(data.quantity, 5)),
+                                ('Base Uom', ''),
+                                ('Purchase Uom Quantity', round(pquantity, 5)),
+                                ('Purchase Uom', ''),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Pallet', pallet_code), ('Receipt Type', data.receipt_type),
                                 ('Creation Date', get_local_date(user, data.creation_date))))
         if pallet_switch != 'true' and row_data.get('Pallet'):

@@ -439,8 +439,16 @@ def wms_login(request):
             if parent_user_profile.warehouse_type:
                 user_profile[0].warehouse_type = parent_user_profile.warehouse_type
                 user_profile[0].save()
+        version_number= get_git_current_version_number()
+        if not version_number:
+            version_number= base.VERSION_NUMBER
+        response_data["data"].update({"version_number":version_number})
+    return HttpResponse(json.dumps(response_data), content_type='application/json')
+
+
+def get_git_current_version_number():
+    version_number= ""
     try:
-        version_number= base.VERSION_NUMBER
         current_path= os.getcwd()
         current_path= current_path.split("/API_WMS/miebach")
         git_path=""
@@ -452,11 +460,9 @@ def wms_login(request):
         git_version_obj= next((tag for tag in repo.tags if tag.commit == repo.head.commit), None)
         if git_version_obj:
             version_number= git_version_obj.name[1:]
-        response_data["data"].update({"version_number":version_number})
     except:
         pass
-    return HttpResponse(json.dumps(response_data), content_type='application/json')
-
+    return version_number
 
 @csrf_exempt
 def create_user(request):
@@ -501,12 +507,14 @@ def status(request):
     """
     Checks if user is a valid user or not
     """
-    version_number= base.VERSION_NUMBER
     response_data = {'data': {}, 'message': 'Fail'}
     status_dict = {1: 'true', 0: 'false'}
 
     if request.user.is_authenticated():
         response_data = add_user_permissions(request, response_data)
+    version_number= get_git_current_version_number()
+    if not version_number:
+        version_number= base.VERSION_NUMBER
     response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 

@@ -1021,7 +1021,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     sort_col = 'po__creation_date'
     if order_term == 'desc':
         sort_col = '-po__creation_date'
-    results = PurchaseOrder.objects.filter(id__in=results1).\
+    results = PurchaseOrder.objects.filter(id__in=results1).exclude(status='deleted').\
                 annotate(po__creation_date=Cast('creation_date', DateField())).\
                 order_by(sort_col, '-order_id').\
                 values('order_id', 'open_po__sku__user', 'rwpurchase__rwo__vendor__user', 'stpurchaseorder__open_st__sku__user', 'prefix', 'po_number').distinct()

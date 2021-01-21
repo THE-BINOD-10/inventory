@@ -544,6 +544,25 @@ def get_sku_stock_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_ageing_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_ageing_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_expired_stock_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_expired_stock_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_sku_wise_stock(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     report_data = print_sku_wise_data(search_params, user, request.user)

@@ -2518,6 +2518,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'st_goods_receipt': 'get_st_po_filter_data',
                         'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
+                        'ageing_data': 'get_ageing_data',
+                        "expired_stock_data": "get_expired_stock_data",
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
                         'inventory_adjust_report': 'get_adjust_filter_data',
                         'inventory_aging_report': 'get_aging_filter_data',
@@ -11160,6 +11162,376 @@ def print_sku_wise_data(search_params, user, sub_user):
             ord_dict['Bundle'] = bundle
         temp_data['aaData'].append(ord_dict)
     return temp_data
+
+
+def get_ageing_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
+        check_and_get_plants_wo_request, \
+        get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
+        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , \
+            get_all_department_data, get_permission, get_uom_with_sku_code , get_decimal_limit
+    from datetime import date, datetime
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    if "sku_code" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_code", 'icontains')] = search_params["sku_code"]
+    if "wms_code" in search_params:
+        search_parameters['sku__%s__%s' % ("wms_code", 'icontains')] = search_params["wms_code"]
+    if "sku_category" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_category", 'icontains')] = search_params["sku_category"]
+    if "sku_type" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_type", 'icontains')] = search_params["sku_type"]
+    if "sku_class" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_class", 'icontains')] = search_params["sku_class"]
+    if "sub_category" in search_params:
+        search_parameters['sku__%s__%s' % ("sub_category", 'icontains')] = search_params["sub_category"]
+    if "sku_brand" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_brand", 'icontains')] = search_params["sku_brand"]
+    if 'plant_code' in search_params:
+        plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+        if plant_obj:
+            search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    lis = ['sku_id__wms_code', 'sku_id__sku_desc',
+           'batch_detail__batch_no',
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
+           'quantity']
+    search_term = {}
+    stock_detail_objs = StockDetail.objects.select_related('sku', 'batch_detail').prefetch_related('sku').\
+        exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, 
+        batch_detail__expiry_date__isnull=False,  batch_detail__expiry_date__gte=datetime.now(), **search_parameters)
+    if search_term:
+        master_data = stock_detail_objs.filter(Q(sku__wms_code__icontains=search_term) |
+                                               Q(quantity__icontains=search_term) |
+                                               Q(location__zone__zone__icontains=search_term) |
+                                               Q(sku__sku_code__icontains=search_term) |
+                                               Q(sku__sku_desc__icontains=search_term) |
+                                               Q(location__location__icontains=search_term) |
+                                               Q(sku__sku_category__icontains=search_term))
+                                            #    Q(sku__sku_category__icontains=search_term)).order_by(order_data)
+
+    else:
+        # master_data = stock_detail_objs.order_by(order_data)
+        master_data = stock_detail_objs
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    counter = 1
+    if stop_index:
+        master_data = master_data[start_index:stop_index]
+    for data in master_data:
+        _date = get_local_date(user, data.receipt_date, True)
+        _date = _date.strftime("%d %b, %Y")
+        batch_no = manufactured_date = expiry_date = ''
+        mrp = 0
+        weight = ''
+        price = 0
+        price_with_tax = 0
+        tax = 0
+        batch_id = ''
+        mfg_date, exp_date = '', ''
+        days_to_expired = ''
+        uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        pcf_for_val = 1
+        if data.batch_detail:
+            batch_no = data.batch_detail.batch_no
+            mrp = data.batch_detail.mrp
+            weight = data.batch_detail.weight
+            price = data.batch_detail.buy_price
+            tax = data.batch_detail.tax_percent
+            price_with_tax = price + ((price/100)*tax)
+            batch_id = data.batch_detail.id
+            pcf_for_val = data.batch_detail.pcf
+            if data.batch_detail.manufactured_date:
+                manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
+                mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")            
+            else:
+                manufactured_date = ''
+            if data.batch_detail.expiry_date:
+                expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y")
+                exp_date = data.batch_detail.expiry_date.strftime("%m/%d/%Y")
+                days_to_expired= datetime.strptime(exp_date, "%m/%d/%Y").toordinal() - date.today().toordinal()
+            else:
+                expiry_date = ''
+        pallet_code, sub_zone = '', ''
+        zone = data.location.zone.zone
+        if data.pallet_detail:
+            pallet_code = data.pallet_detail.pallet_cod
+        quantity = data.quantity/pcf
+        quantity_for_val = data.quantity/pcf_for_val
+        sku_user = User.objects.get(id=data.sku.user)
+        plant_code = sku_user.userprofile.stockone_code
+        plant_name = sku_user.first_name
+        dept_type = ''
+        if sku_user.userprofile.warehouse_type.lower() == 'dept':
+            admin_user = get_admin(sku_user)
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+            dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
+        expiry_range = ""
+        if days_to_expired > 0  and days_to_expired <= 30:
+            expiry_range = "0 < 30"
+        elif days_to_expired > 31  and days_to_expired <= 60:
+            expiry_range = "31 < 60"
+        elif days_to_expired > 61  and days_to_expired <= 90:
+            expiry_range = "61 < 90"
+        else:
+            expiry_range = "  > 90"
+        row_data = OrderedDict((
+                                ('SKU Code', data.sku.sku_code),
+                                ('WMS Code', data.sku.wms_code),
+                                ('Sku Brand', data.sku.sku_brand),
+                                ('Product Description', data.sku.sku_desc),
+                                ('SKU Category', data.sku.sku_category),
+                                ('Batch Number', batch_no), ('exp_date', exp_date),
+                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
+                                ('MRP', mrp), ('Weight', weight),
+                                ('Price', price), ('Tax Percent', tax),
+                                ('Manufactured Date', manufactured_date), 
+                                ('Expiry Date', expiry_date),
+                                ('Zone', zone),
+                                ('Total Quantity', get_decimal_limit(user.id, quantity)),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
+                                ('Plant Code', plant_code),
+                                ('Plant Name', plant_name),
+                                ('pcf', pcf),
+                                ('dept_type', dept_type),
+                                ('Purchase UOM', uom_dict["measurement_unit"]),
+                                ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
+                                ('Base UOM', uom_dict["base_uom"]), 
+                                ('Base Quantity', get_decimal_limit(user.id, data.quantity)),
+                                ('Expiry Range', expiry_range),
+                                ('days_to_expired', days_to_expired),
+                                ('Receipt Type', data.receipt_type)))
+        temp_data['aaData'].append(row_data)
+    return temp_data
+
+
+def get_expired_stock_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
+        check_and_get_plants_wo_request, \
+        get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
+        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , \
+            get_all_department_data, get_permission, get_uom_with_sku_code , get_decimal_limit
+    from datetime import date, datetime
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    if "sku_code" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_code", 'icontains')] = search_params["sku_code"]
+    if "wms_code" in search_params:
+        search_parameters['sku__%s__%s' % ("wms_code", 'icontains')] = search_params["wms_code"]
+    if "sku_category" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_category", 'icontains')] = search_params["sku_category"]
+    if "sku_type" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_type", 'icontains')] = search_params["sku_type"]
+    if "sku_class" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_class", 'icontains')] = search_params["sku_class"]
+    if "sub_category" in search_params:
+        search_parameters['sku__%s__%s' % ("sub_category", 'icontains')] = search_params["sub_category"]
+    if "sku_brand" in search_params:
+        search_parameters['sku__%s__%s' % ("sku_brand", 'icontains')] = search_params["sku_brand"]
+    if 'plant_code' in search_params:
+        plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+        if plant_obj:
+            search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    lis = ['sku_id__wms_code', 'sku_id__sku_desc',
+           'batch_detail__batch_no',
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
+           'quantity']
+    search_term = {}
+    stock_detail_objs = StockDetail.objects.select_related('sku', 'batch_detail').prefetch_related('sku').\
+        exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, 
+        batch_detail__expiry_date__isnull=False,  batch_detail__expiry_date__lte=datetime.now(), **search_parameters)
+    if search_term:
+        master_data = stock_detail_objs.filter(Q(receipt_number__icontains=search_term) |
+                                               Q(sku__wms_code__icontains=search_term) |
+                                               Q(quantity__icontains=search_term) |
+                                               Q(location__zone__zone__icontains=search_term) |
+                                               Q(sku__sku_code__icontains=search_term) |
+                                               Q(sku__sku_desc__icontains=search_term) |
+                                               Q(location__location__icontains=search_term) |
+                                               Q(sku__sku_category__icontains=search_term))
+                                            #    Q(sku__sku_category__icontains=search_term)).order_by(order_data)
+
+    else:
+        # master_data = stock_detail_objs.order_by(order_data)
+        master_data = stock_detail_objs
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    counter = 1
+    if stop_index:
+        master_data = master_data[start_index:stop_index]
+    for data in master_data:
+        _date = get_local_date(user, data.receipt_date, True)
+        _date = _date.strftime("%d %b, %Y")
+        batch_no = manufactured_date = expiry_date = ''
+        mrp = 0
+        weight = ''
+        price = 0
+        price_with_tax = 0
+        tax = 0
+        batch_id = ''
+        mfg_date, exp_date = '', ''
+        days_to_expired = ''
+        uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        pcf_for_val = 1
+        if data.batch_detail:
+            batch_no = data.batch_detail.batch_no
+            mrp = data.batch_detail.mrp
+            weight = data.batch_detail.weight
+            price = data.batch_detail.buy_price
+            tax = data.batch_detail.tax_percent
+            price_with_tax = price + ((price/100)*tax)
+            batch_id = data.batch_detail.id
+            pcf_for_val = data.batch_detail.pcf
+            if data.batch_detail.manufactured_date:
+                manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
+                mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")            
+            else:
+                manufactured_date = ''
+            if data.batch_detail.expiry_date:
+                expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y")
+                exp_date = data.batch_detail.expiry_date.strftime("%m/%d/%Y")
+                days_to_expired= date.today().toordinal() - datetime.strptime(exp_date, "%m/%d/%Y").toordinal()
+            else:
+                expiry_date = ''
+        pallet_code, sub_zone = '', ''
+        zone = data.location.zone.zone
+        if data.pallet_detail:
+            pallet_code = data.pallet_detail.pallet_cod
+        quantity = data.quantity/pcf
+        quantity_for_val = data.quantity/pcf_for_val
+        sku_user = User.objects.get(id=data.sku.user)
+        plant_code = sku_user.userprofile.stockone_code
+        plant_name = sku_user.first_name
+        dept_type = ''
+        if sku_user.userprofile.warehouse_type.lower() == 'dept':
+            admin_user = get_admin(sku_user)
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+            dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
+        expiry_range = ""
+        if days_to_expired > 0  and days_to_expired <= 30:
+            expiry_range = "0 < 30"
+        elif days_to_expired > 31  and days_to_expired <= 60:
+            expiry_range = "31 < 60"
+        elif days_to_expired > 61  and days_to_expired <= 90:
+            expiry_range = "61 < 90"
+        else:
+            expiry_range = "  > 90"
+        row_data = OrderedDict((
+                                ('SKU Code', data.sku.sku_code),
+                                ('WMS Code', data.sku.wms_code),
+                                ('Sku Brand', data.sku.sku_brand),
+                                ('Product Description', data.sku.sku_desc),
+                                ('SKU Category', data.sku.sku_category),
+                                ('Batch Number', batch_no), ('exp_date', exp_date),
+                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
+                                ('MRP', mrp), ('Weight', weight),
+                                ('Price', price), ('Tax Percent', tax),
+                                ('Manufactured Date', manufactured_date), 
+                                ('Expiry Date', expiry_date),
+                                ('Zone', zone),
+                                ('Total Quantity', get_decimal_limit(user.id, quantity)),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
+                                ('Plant Code', plant_code),
+                                ('Plant Name', plant_name),
+                                ('pcf', pcf),
+                                ('dept_type', dept_type),
+                                ('Purchase UOM', uom_dict["measurement_unit"]),
+                                ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
+                                ('Base UOM', uom_dict["base_uom"]), 
+                                ('Base Quantity', get_decimal_limit(user.id, data.quantity)),
+                                ('Expiry Range', expiry_range),
+                                ('days_to_expired', days_to_expired),
+                                ('Receipt Type', data.receipt_type)))
+        temp_data['aaData'].append(row_data)
+    return temp_data
+
+    # from rest_api.views.common import get_sku_master
+    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    # temp_data = copy.deepcopy(AJAX_DATA)
+    # search_parameters = {}
+    # cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class', 'sub_category', 'sku_brand')
+    # for data in cmp_data:
+    #     if data in search_params:
+    #         search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
+    # if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+    #     if 'manufacturer' in search_params:
+    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+    #     if 'searchable' in search_params:
+    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['searchable']
+    #     if 'bundle' in search_params:
+    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['bundle']
+    # start_index = search_params.get('start', 0)
+    # stop_index = start_index + search_params.get('length', 0)
+    # search_parameters['user'] = user.id
+
+    # sku_master = sku_master.filter(**search_parameters)
+    # temp_data['recordsTotal'] = sku_master.count()
+    # temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    # if stop_index:
+    #     sku_master = sku_master[start_index:stop_index]
+
+    # stock_dict = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id). \
+    #                   values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
+    # attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+    # for data in sku_master:
+    #     total_quantity = stock_dict.get(data.id, 0)
+    #     # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
+    #     # for stock in stock_data:
+    #     #     total_quantity += int(stock.quantity)
+    #     manufacturer, searchable, bundle = '', '', ''
+    #     attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in=attributes_list)
+    #     if attributes_obj.exists():
+    #         for attribute in attributes_obj:
+    #             if attribute.attribute_name == 'Manufacturer':
+    #                 manufacturer = attribute.attribute_value
+    #             if attribute.attribute_name == 'Searchable':
+    #                 searchable = attribute.attribute_value
+    #             if attribute.attribute_name == 'Bundle':
+    #                 bundle = attribute.attribute_value
+    #     ord_dict = OrderedDict((
+    #             ('Plant Code', ''), ('Plant Name', ''),
+    #             ('SKU Code', data.sku_code), ('SKU Code', data.wms_code),
+    #                             ('Product Description', data.sku_desc),
+    #                             ('SKU Category', data.sku_category),
+    #                             ('SKU Sub Category', data.sub_category),
+    #                             ('Sku Brand', data.sku_brand),
+    #                             ('Purchase UOM', ''),
+    #                             ('Purchase Quantity', 0),
+    #                             ('Base UOM', ''), ('Base Quantity', 0),
+    #                             ('Batch Number', ''),('Materials Expired on', ''),
+    #                             ('Total Quantity', total_quantity)))
+    #     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+    #         ord_dict['Manufacturer'] = manufacturer
+    #         ord_dict['Searchable'] = searchable
+    #         ord_dict['Bundle'] = bundle
+    #     temp_data['aaData'].append(ord_dict)
+    # return temp_data
 
 
 def get_mr_status(user, data_id, total_qty, all_data, conversion=''):

@@ -2704,10 +2704,9 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
            'sku__user', 'sku__user', 'sku__user', 'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent', 'sku__average_price',
-           'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
-           'location__zone__zone', 'location__zone__zone', 'location__location', 'sku__sku_code',
-           'pallet_detail__pallet_code',
-           'quantity', 'quantity', 'quantity', 'quantity', 'quantity', 'receipt_type', 'creation_date']
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date',
+           'location__zone__zone', 'location__location', 'sku__sku_code',
+           'quantity', 'quantity', 'quantity', 'quantity', 'quantity', 'receipt_type', 'creation_date', 'pallet_detail__pallet_code']
     filt_lis = copy.deepcopy(lis)
     filt_lis[5:8] = ['plant_code', 'plant_name', 'dept_type']
     sub_zone_perm = get_permission(user, 'add_subzonemapping')
@@ -2851,9 +2850,9 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Location', data.location.location),
                                 ('Conversion Factor', pcf),
                                 ('Base Uom Quantity', round(data.quantity, 5)),
-                                ('Base Uom', ''),
+                                ('Base Uom', uom_dict.get('base_uom', '')),
                                 ('Purchase Uom Quantity', round(pquantity, 5)),
-                                ('Purchase Uom', ''),
+                                ('Purchase Uom', uom_dict.get('measurement_unit', '')),
                                 ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Pallet', pallet_code), ('Receipt Type', data.receipt_type),
                                 ('Creation Date', get_local_date(user, data.creation_date))))

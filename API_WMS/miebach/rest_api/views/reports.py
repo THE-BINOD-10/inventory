@@ -544,6 +544,25 @@ def get_sku_stock_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_ageing_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_ageing_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_expired_stock_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_expired_stock_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_sku_wise_stock(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     report_data = print_sku_wise_data(search_params, user, request.user)
@@ -1572,7 +1591,7 @@ def excel_reports(request, user=''):
         params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
-    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report']:
+    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report', 'excel_name=get_stock_transfer_report_main']:
         params = [request, search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
@@ -1995,6 +2014,14 @@ def get_material_request_report(request, user=''):
 def get_stock_transfer_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_stock_transfer_report_data(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_stock_transfer_report_main(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_stock_transfer_report_data_main(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 

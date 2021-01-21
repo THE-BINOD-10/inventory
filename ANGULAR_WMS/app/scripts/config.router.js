@@ -2562,6 +2562,30 @@ var app = angular.module('urbanApp')
             title: 'SKU Wise Stock',
           }
         })
+        .state('app.reports.StockAgeing', {
+          url: '/StockAgeingReport',
+          templateUrl: 'views/reports/ageing_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/ageing_report.js');
+              }]
+          },
+          data: {
+            title: 'Ageing Report',
+          }
+        })
+        .state('app.reports.StockExpired', {
+          url: '/StockExpiredReport',
+          templateUrl: 'views/reports/stock_expired.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_expired.js');
+              }]
+          },
+          data: {
+            title: 'Expired Report',
+          }
+        })
         .state('app.reports.SKUWisePurchaseOrders', {
           url: '/SKUWisePurchaseOrders',
           templateUrl: 'views/reports/sku_wise_purchase_orders.html',

@@ -10,7 +10,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     
-    vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': ''}
+    vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': '',
+                  'search9': '', 'search10': '', 'search11': '', 'search12': '', 'search13': '', 'search14': '', 'search15': '', 'search16': '', 'search17': '',
+                  'search18': '', 'search19': '', 'search20': '', 'search21': '', 'search22': '', 'search23': '', 'search24': '', 'search25': '', 'search26': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -25,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
+       //.withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });

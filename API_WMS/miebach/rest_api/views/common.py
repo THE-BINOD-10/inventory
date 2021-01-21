@@ -439,8 +439,16 @@ def wms_login(request):
             if parent_user_profile.warehouse_type:
                 user_profile[0].warehouse_type = parent_user_profile.warehouse_type
                 user_profile[0].save()
+        version_number= get_git_current_version_number()
+        if not version_number:
+            version_number= base.VERSION_NUMBER
+        response_data["data"].update({"version_number":version_number})
+    return HttpResponse(json.dumps(response_data), content_type='application/json')
+
+
+def get_git_current_version_number():
+    version_number= ""
     try:
-        version_number= base.VERSION_NUMBER
         current_path= os.getcwd()
         current_path= current_path.split("/API_WMS/miebach")
         git_path=""
@@ -449,14 +457,13 @@ def wms_login(request):
         else:
             git_path= current_path
         repo=git.Repo(git_path)
-        git_version_obj= next((tag for tag in repo.tags if tag.commit == repo.head.commit), None)
+        tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+        git_version_obj = tags[-1]
         if git_version_obj:
             version_number= git_version_obj.name[1:]
-        response_data["data"].update({"version_number":version_number})
     except:
         pass
-    return HttpResponse(json.dumps(response_data), content_type='application/json')
-
+    return version_number
 
 @csrf_exempt
 def create_user(request):
@@ -501,12 +508,14 @@ def status(request):
     """
     Checks if user is a valid user or not
     """
-    version_number= base.VERSION_NUMBER
     response_data = {'data': {}, 'message': 'Fail'}
     status_dict = {1: 'true', 0: 'false'}
 
     if request.user.is_authenticated():
         response_data = add_user_permissions(request, response_data)
+    version_number= get_git_current_version_number()
+    if not version_number:
+        version_number= base.VERSION_NUMBER
     response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -585,6 +594,10 @@ def get_search_params(request, user=''):
                       'search14': 'search_14', 'search15': 'search_15',
                       'search16': 'search_16', 'search17': 'search_17',
                       'search18': 'search_18', 'search19': 'search_19',
+                      'search20': 'search_20', 'search21': 'search_21',
+                      'search22': 'search_22', 'search23': 'search_23',
+                      'search24': 'search_24', 'search25': 'search_25',
+                      'search26': 'search_26',
                       'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
@@ -13863,13 +13876,16 @@ def get_kerala_cess_tax(tax, supplier):
 
 
 def get_pending_mr_qty_for_avg(user):
-    doas = MastersDOA.objects.filter(model_name='mr_doa', doa_status='pending', requested_user_id=user.id)
-    sku_pending_mr_qty = {}
-    for doa in doas:
-        json_dat = json.loads(doa.json_data)
-        sku_code = json_dat['sku_code']
-        sku_pending_mr_qty.setdefault(sku_code, {'qty': 0})
-        sku_pending_mr_qty[sku_code]['qty'] += json_dat['update_picked']
+    try:
+        doas = MastersDOA.objects.filter(model_name='mr_doa', doa_status='pending', requested_user_id=user.id)
+        sku_pending_mr_qty = {}
+        for doa in doas:
+            json_dat = json.loads(doa.json_data)
+            sku_code = json_dat['sku_code']
+            sku_pending_mr_qty.setdefault(sku_code, {'qty': 0})
+            sku_pending_mr_qty[sku_code]['qty'] += json_dat['update_picked']
+    except:
+        pass
     return sku_pending_mr_qty
 
 def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):

@@ -11605,6 +11605,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 status = temp_stat
             invoice_quantity = 0
             invoice_quantity = STOrder.objects.filter(stock_transfer__id=data.id).aggregate(Sum('picklist__picked_quantity'))['picklist__picked_quantity__sum']
+            invoice_quantity = invoice_quantity if invoice_quantity else 0
             temp_inv_qty = (float(invoice_quantity) / float(qty_conversion))
             invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
             dest_receive_po_status = 'Pending'

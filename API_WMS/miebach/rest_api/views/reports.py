@@ -96,7 +96,7 @@ def get_report_data(request, user=''):
 
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
-                         'metropolis_po_detail_report', 'pr_po_grn_dict']:
+                         'metropolis_po_detail_report', 'pr_po_grn_dict', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report']:
         if 'sister_warehouse' in filter_keys:
             if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -124,6 +124,9 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'po_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PO_REPORT_PO_STATUS
 
+        if 'status' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PURCHASE_ORDER_REPORT_STATUS
         if 'priority_type' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'priority_type' in person['name'], data['filters'])[0])
@@ -138,6 +141,9 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'po_view' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PO_REPORT_VIEW
+        if 'zone_code' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'zone_code' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ZONE_CODES
 
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
@@ -601,7 +607,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
+    #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user)
     order_term = search_params.get('order_term', 'asc')
     order_index = search_params.get('order_index', 0)
@@ -609,8 +615,8 @@ def get_supplier_details_data(search_params, user, sub_user):
     search_parameters = {}
     supplier_data = {'aaData': []}
     supplier_name = search_params.get('supplier_id')
-    lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
-           'order_id']
+    lis = ['created_date', 'open_po__sku__user', 'open_po__sku__user', 'open_po__sku__user', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
+           'order_id', 'created_date']
     order_val = lis[order_index]
     if order_term == 'desc':
         order_val = '-%s' % lis[order_index]
@@ -623,28 +629,58 @@ def get_supplier_details_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    print search_params
     if 'status' in search_params:
         status = search_params.get('status')
-        if status == 'yet_to_receive':
+        if status == 'Yet To Receive':
             search_parameters['status'] = ''
-        elif status == 'partially_received':
+        elif status == 'Partially Received':
             search_parameters['status'] = 'grn-generated'
-        elif status == 'location_assigned':
+        elif status == 'Received':
             search_parameters['status'] = 'location-assigned'
-        elif status == 'putaway_completed':
+        elif status == 'Putaway Completed':
             search_parameters['status'] = 'confirmed-putaway'
     if 'po_number' in search_params:
         order_id = search_params.get('po_number')
         search_parameters['po_number'] = order_id
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
     if supplier_name:
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
-            open_po__sku__user__in=user_ids, **search_parameters)
+            open_po__sku__user__in=user_ids, **search_parameters).exclude(status='deleted')
     else:
         suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='deleted').filter(open_po__sku__user__in=user_ids, **search_parameters)
-    purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
+    purchase_orders = suppliers.values('order_id', 'status', 'prefix', 'po_number', 'open_po__sku__user').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
-        total_received=Sum('received_quantity')). \
+        total_received=Sum('received_quantity'),
+        created_date=Cast('creation_date', DateField())). \
         order_by(order_val)
 
     supplier_data['recordsTotal'] = purchase_orders.count()
@@ -658,12 +694,14 @@ def get_supplier_details_data(search_params, user, sub_user):
         purchase_orders = purchase_orders[start_index:stop_index]
 
     for purchase_order in purchase_orders:
-        po_data = suppliers.filter(order_id=purchase_order['order_id'], prefix=purchase_order['prefix'])
+        plant_code, plant_name, zone = [''] * 3
+        pending_days = 0
+        po_data = suppliers.filter(po_number=purchase_order['po_number'], open_po__sku__user=purchase_order['open_po__sku__user'])
         total_amt = 0
         total_ordered= 0
         for po in po_data:
             price, quantity = po.open_po.price, po.open_po.order_quantity
-            taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax
+            taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax + po.open_po.cess_tax
             amt = price * quantity
             total_amt += amt + ((amt / 100) * taxes)
             total_ordered += quantity
@@ -683,7 +721,18 @@ def get_supplier_details_data(search_params, user, sub_user):
             status_var = 'Putaway Confirmed'
         else:
             status_var = 'Partially Received'
-        supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
+        if status_var not in  ['Received', 'Putaway Confirmed']:
+            pending_days = (datetime.datetime.now() - po_obj.creation_date.replace(tzinfo=None)).days
+        user_obj = users.get(id=po_obj.open_po.sku.user)
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            user_obj = get_admin(user_obj)
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone = user_obj.userprofile.zone
+        supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.creation_date)),
+                                                    ('Plant Code', plant_code),
+                                                    ('Plant Name', plant_name),
+                                                    ('Zone', zone),
                                                     ('PO Number', po_obj.po_number), #get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
@@ -691,7 +740,8 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', total_ordered),
                                                     ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
-                                                    ('Status', status_var), ('order_id', po_obj.order_id))))
+                                                    ('Status', status_var), ('order_id', po_obj.order_id),
+                                                    ('PO Pending Days', pending_days))))
     # supplier_data['total_charge'] = total_charge
     return supplier_data
 
@@ -2081,7 +2131,7 @@ def get_pr_report(request, user=''):
 @get_admin_user
 def get_pr_detail_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_pr_detail_report_data(search_params, user, request)
+    temp_data = get_pr_detail_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

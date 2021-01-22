@@ -4111,6 +4111,21 @@ class StockMapping(models.Model):
     class Meta:
         db_table = 'STOCK_MAPPING'
 
+class OrgDeptMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True)
+    org_name = models.CharField(max_length=128, default='')
+    instrument_name = models.CharField(max_length=128, default='')
+    product_code = models.CharField(max_length=128, default='')
+    instrument_id =  models.IntegerField(default=None, blank=True, null=True)
+    tcode = models.CharField(max_length=128, default='')
+    tname = models.CharField(max_length=128, default='')
+    dept_name = models.CharField(max_length=128, default='')
+    server_location = models.CharField(max_length=128, default='')
+    
+    class Meta:
+        db_table = 'ORG_DEPT_MAPPING'
+
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, related_name='consumption_user')

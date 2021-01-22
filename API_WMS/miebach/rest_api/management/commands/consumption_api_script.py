@@ -51,12 +51,12 @@ def update_consumption(consumption_objss, user, company):
                         test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
                         data_dict['test'] = test_obj[0]
                     consumption_filter = {'test_id': str(test_obj[0].id)}
-                machine_code = consumption_dict.get('MachineID', '')
-                if machine_code:
-                    machine_obj = MachineMaster.objects.filter(user=user.id,machine_code=str(machine_code))
-                    if machine_obj.exists():
-                        data_dict['machine'] = machine_obj[0]
-                        consumption_filter['machine__machine_code'] = str(machine_code)
+                #machine_code = consumption_dict.get('MachineID', '')
+                #if machine_code:
+                    #machine_obj = MachineMaster.objects.filter(user=company.id,machine_code=str(machine_code))
+                    #if machine_obj.exists():
+                        #data_dict['machine'] = machine_obj[0]
+                        #consumption_filter['machine__machine_code'] = str(machine_code)
                 name = consumption_dict.get('NAME', '')
                 orgid = consumption_dict.get('OrgID', '')
                 number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
@@ -72,8 +72,16 @@ def update_consumption(consumption_objss, user, company):
                 if diff and data_dict['n_time_process']:
                     n_time_process_val = diff/data_dict['n_time_process']
                 data_dict['n_time_process_val'] = n_time_process_val
+                org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
+                consumption_user = user
+                if org_objs:
+                    org_dept = org_objs[0].dept_name
+                    if org_dept:
+                        user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=org_dept)
+                        consumption_user = User.objects.get(id = user_groups[0].user.id)
+                        data_dict['user'] = consumption_user
                 try:
-                    consumption_obj = Consumption.objects.filter(user=user.id, **consumption_filter)
+                    consumption_obj = Consumption.objects.filter(user=consumption_user.id, **consumption_filter)
                     if consumption_obj.exists():
                         status = 'Success'
                         exist_total_test = consumption_obj[0].total_test
@@ -86,9 +94,9 @@ def update_consumption(consumption_objss, user, company):
                         consumption_obj = Consumption.objects.create(**data_dict)
                         status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
                     if status == 'Success':
-                        log.info("Reduced consumption stock for user %s and test code %s" %  (str(user.username), str(test_code)))
+                        log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
                 except Exception as e:
-                    log.info("Consumption creation/updation failed for %s and data_dict was %s and exception %s" % (str(user.username), str(data_dict), str(e)))
+                    log.info("Consumption creation/updation failed for %s,plant %s and data_dict was %s and exception %s" % (str(consumption_user.username), str(user.username),str(data_dict), str(e)))
 
 
 class Command(BaseCommand):
@@ -105,8 +113,10 @@ class Command(BaseCommand):
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
                 today = datetime.date.today().strftime('%Y%m%d')
                 # for i in range(1,15):
+                servers = list(OrgDeptMapping.objects.filter(attune_id=250).values_list('server_location', flat=True).distinct())
                 data = {'fromdate':today, 'todate':today, 'orgid':user.userprofile.attune_id}
-                consumption_obj = obj.get_consumption_data(data=data,user=company)
-                update_consumption(consumption_obj, user, company)
+                for server in servers:
+                    consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
+                    update_consumption(consumption_obj, user, company)
             log.info("succesfull Consumption call for %s" % user.username)
         self.stdout.write("completed Consumption call")

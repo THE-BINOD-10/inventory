@@ -256,6 +256,7 @@ urlpatterns = [
     url(r'^validate_product_wms/$', validate_product_wms),
     url(r'^grn_upload_preview/$', grn_upload_preview),
     url(r'^confirm_mr_request/$', confirm_mr_request),
+    url(r'^view_pending_mr_details/$', view_pending_mr_details),
 
 
     # Production
@@ -508,6 +509,7 @@ urlpatterns = [
     url(r'^get_supplier_details/$', get_supplier_details),
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
+    url(r'^get_pr_po_grn_filter/$', get_pr_po_grn_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
@@ -517,6 +519,8 @@ urlpatterns = [
     url(r'^get_deallocation_report/$', get_deallocation_report),
     url(r'^get_order_summary_filter/$', get_order_summary_filter),
     url(r'^get_sku_stock_filter/$', get_sku_stock_filter),
+    url(r'^get_ageing_data_filter/$', get_ageing_data_filter),
+    url(r'^get_expired_stock_data_filter/$', get_expired_stock_data_filter),
     url(r'^get_sales_return_filter/$', get_sales_return_filter),
     url(r'^get_sku_purchase_filter/$', get_sku_purchase_filter),
     url(r'^get_inventory_adjust_filter/$', get_inventory_adjust_filter),
@@ -591,6 +595,7 @@ urlpatterns = [
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
     url(r'^get_material_request_report/$', get_material_request_report),
+    url(r'^get_stock_transfer_report_main/$', get_stock_transfer_report_main),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
     url(r'^get_margin_report/$', get_margin_report),
@@ -625,6 +630,7 @@ urlpatterns = [
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
     url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
+    url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
 ]
 
@@ -743,6 +749,8 @@ urlpatterns += [
     url(r'^closing_adjustment_upload/$', closing_adjustment_upload),
     url(r'^closing_stock_form/$', closing_stock_form),
     url(r'^closing_stock_upload/$', closing_stock_upload),
+    url(r'^closing_stock_in_bulk_form/$', closing_stock_in_bulk_form),
+    url(r'^closing_stock_in_bulk_upload/$', closing_stock_in_bulk_upload),
     url(r'^consumption_form/$', consumption_form),
     url(r'^consumption_upload/$', consumption_upload),
 
@@ -819,6 +827,7 @@ urlpatterns += [
     url(r'^get_user_groups_list/$', get_user_groups_list),
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
     url(r'^get_sku_uom_list/$', get_sku_uom_list),
+    url(r'^display_closing_stock_uploaded/$', display_closing_stock_uploaded),
 
 
 

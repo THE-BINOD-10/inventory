@@ -1021,7 +1021,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     sort_col = 'po__creation_date'
     if order_term == 'desc':
         sort_col = '-po__creation_date'
-    results = PurchaseOrder.objects.filter(id__in=results1).\
+    results = PurchaseOrder.objects.filter(id__in=results1).exclude(status='deleted').\
                 annotate(po__creation_date=Cast('creation_date', DateField())).\
                 order_by(sort_col, '-order_id').\
                 values('order_id', 'open_po__sku__user', 'rwpurchase__rwo__vendor__user', 'stpurchaseorder__open_st__sku__user', 'prefix', 'po_number').distinct()
@@ -4150,6 +4150,8 @@ def convert_pr_to_po(request, user=''):
             supplierPrIdsMap.setdefault(supplier, []).extend(pr_ids)
             for pr_id in pr_ids:
                 prIdSkusMap.setdefault(pr_id, []).append(sku_code)
+        if len(prIdSkusMap.keys()) > 0:
+            pr_ids = prIdSkusMap.keys()
         if len(pr_ids) > 0:
             all_stats = PendingPR.objects.filter(id__in=pr_ids)
             for rec in prIdSkusMap:
@@ -6221,6 +6223,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
     from pytz import timezone
     grn_date = datetime.datetime.now()
+    seller_po_summary = None
     try:
         utc_tz=timezone("UTC")
         if myDict.get('grn_date', ''):
@@ -7161,6 +7164,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
+    if request.POST.get('order_type', '') == 'Stock Transfer':
+        return HttpResponse("GRN Disable for Stock Transfer Orders !..")
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
@@ -7486,7 +7491,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 for row_1 in unitdata.get('uom_items', None):
                     if row_1.get('unit_type', '') == 'Purchase':
                         purchaseUOMname = row_1.get('unit_name', None)
-                batch_number , mfg_date, exp_date = ['']*3
+                batch_number , mfg_date, exp_date, temp_exp_date = ['']*4
                 if data.batch_detail:
                     batch_number= data.batch_detail.batch_no
                     if data.batch_detail.manufactured_date:
@@ -7504,7 +7509,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                                         new_exp_date=DP.parse(exp_date)
                                         old_exp_date=DP.parse(row_line["exp_date"])
                                         if new_exp_date<old_exp_date:
-                                            exp_date=temp_exp_date.isoformat()
+                                            if temp_exp_date:
+                                                exp_date=temp_exp_date.isoformat()
                                         else:
                                             exp_date=row_line["exp_date"]
                                     else:
@@ -13753,11 +13759,11 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         headers1[headers1.index('Invoice Number')]='Challan Number'
         inv_or_dc_number = 'challan_number'
     if 'from_date' in filters:
-        search_params['purchase_order__creation_date__gt'] = filters['from_date']
+        search_params['creation_date__gte'] = filters['from_date']
     if 'to_date' in filters:
         to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_params['purchase_order__creation_date__lt'] = to_date
+        search_params['creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
     if 'supplier_id' in filters:
@@ -16505,3 +16511,38 @@ def confirm_mr_request(request, user=''):
             except Exception as e:
                 return HttpResponse('fail')
     return HttpResponse('success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def view_pending_mr_details(request, user=''):
+    required_data = []
+    material_id = request.POST.get('order_id', '')
+    warehouse = request.POST.get('warehouse_name', '')
+    source_user_id = request.POST.get('source_wh', '')
+    if not material_id or not warehouse or not source_user_id:
+        return HttpResponse('Inputs are Misssing !')
+    else:
+        all_pending_orders = MastersDOA.objects.filter(requested_user__username=source_user_id, model_name='mr_doa', reference_id=material_id, wh_user__username=warehouse)
+    if all_pending_orders.exists():
+        sku_grouping = {}
+        for data in all_pending_orders:
+            try:
+                filter_data = json.loads(data.json_data)
+                current_quantity = filter_data['update_picked']
+                stock = StockDetail.objects.get(id=filter_data['data'])
+                po = PurchaseOrder.objects.filter(id=filter_data['po']).values('stpurchaseorder__open_st__sku__sku_code', 'stpurchaseorder__open_st__sku__sku_desc', 'stpurchaseorder__open_st__sku__price')[0]
+                uom_dict = get_uom_with_sku_code(user, po['stpurchaseorder__open_st__sku__sku_code'], uom_type='purchase')
+                sku_conversion = uom_dict.get('sku_conversion', 1)
+                if sku_conversion == 0:
+                    sku_conversion = 1
+                if po['stpurchaseorder__open_st__sku__sku_code'] in sku_grouping.keys():
+                    sku_grouping[po['stpurchaseorder__open_st__sku__sku_code']]['quantity'] += current_quantity
+                    sku_grouping[po['stpurchaseorder__open_st__sku__sku_code']]['no_of_base_units'] += sku_conversion*current_quantity
+                else:
+                    sku_grouping[po['stpurchaseorder__open_st__sku__sku_code']] = {'sku_code': po['stpurchaseorder__open_st__sku__sku_code'], 'sku_desc': po['stpurchaseorder__open_st__sku__sku_desc'], 'quantity': current_quantity, 'price': po['stpurchaseorder__open_st__sku__price'],
+                                    'uom': uom_dict.get('measurement_unit', ''), 'no_of_base_units': sku_conversion*current_quantity, 'base_uom': uom_dict.get('base_uom', '')}
+            except Exception as e:
+                return HttpResponse('fail')
+    return HttpResponse(json.dumps(sku_grouping))

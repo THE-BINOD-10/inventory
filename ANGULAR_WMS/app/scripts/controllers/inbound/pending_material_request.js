@@ -11,6 +11,7 @@ var vm = this;
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.filters = {'datatable': 'PendingMaterialRequest', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.model_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -63,9 +64,19 @@ var vm = this;
     $('td:not(td:first)', nRow).unbind('click');
     $('td:not(td:first)', nRow).bind('click', function() {
         $scope.$apply(function() {
-          // var data = {order_id: aData['Stock Transfer ID'], warehouse_id: aData['warehouse_id']};
-          // $state.go('app.outbound.ViewOrders.StockTransferAltView');
-          // vm.get_order_data(data);
+          var data = {order_id: aData['Material Request ID'], warehouse_name: aData['Warehouse Name'], source_wh: aData['Source Name']};
+          vm.model_data['material_id'] = aData['Material Request ID'];
+          vm.model_data['source_plant'] = aData['source_label'];
+          vm.model_data['destination_dept'] = aData['warehouse_label'];
+          vm.model_data['order_date'] = aData['Creation Date'];
+          vm.service.apiCall("view_pending_mr_details/","POST", data).then(function(datum) {
+            if (datum.message) {
+              $state.go("app.inbound.MaterialRequest.DetailMR");
+              vm.model_data['records'] = datum.data;
+            } else{
+              vm.service.showNoty("Please Contact To Stockone Team !! ")
+            }
+          })
        })
      })
    }
@@ -77,14 +88,17 @@ var vm = this;
     }
 
     function reloadData () {
-        vm.dtInstance.reloadData();
+      vm.bt_disable = true;
+      vm.dtInstance.reloadData();
     };
 
-    var empty_data = {"order_id": ""}
-    vm.model_data = {};
-    angular.copy(empty_data, vm.model_data);
+    vm.close = function() {
+      $state.go("app.inbound.MaterialRequest");
+      vm.model_data = {};
+    }
 
     vm.confirm_mr = function() {
+      vm.bt_disable = true;
       var selected_order_ids = []
       var selected_rows = []
       var valid = true
@@ -110,7 +124,6 @@ var vm = this;
       }
       if (valid) {
         vm.service.apiCall('confirm_mr_request/', 'POST', {'selected_orders': JSON.stringify(selected_rows)}).then(function(resp) {
-          vm.bt_disable = false;
           if(resp.data == "success") {
             vm.service.showNoty("Success")
             vm.dtInstance.reloadData();
@@ -118,10 +131,10 @@ var vm = this;
             vm.service.showNoty("Failed !!")
             vm.dtInstance.reloadData();
           }
-          vm.bt_disable = true;
         })
       }
       else {
+        vm.dtInstance.reloadData();
         vm.service.showNoty("Please Select Single Order")
       }
     }

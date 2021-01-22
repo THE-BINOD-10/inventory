@@ -46,7 +46,9 @@ from django.template import loader, Context
 from barcodes import *
 import ConfigParser
 from miebach.settings import INTEGRATIONS_CFG_FILE
+from miebach.settings import base
 from miebach.celery import app
+import git
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -437,9 +439,31 @@ def wms_login(request):
             if parent_user_profile.warehouse_type:
                 user_profile[0].warehouse_type = parent_user_profile.warehouse_type
                 user_profile[0].save()
-
+        version_number= get_git_current_version_number()
+        if not version_number:
+            version_number= base.VERSION_NUMBER
+        response_data["data"].update({"version_number":version_number})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
+
+def get_git_current_version_number():
+    version_number= ""
+    try:
+        current_path= os.getcwd()
+        current_path= current_path.split("/API_WMS/miebach")
+        git_path=""
+        if current_path:
+            git_path= current_path[0]
+        else:
+            git_path= current_path
+        repo=git.Repo(git_path)
+        tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+        git_version_obj = tags[-1]
+        if git_version_obj:
+            version_number= git_version_obj.name[1:]
+    except:
+        pass
+    return version_number
 
 @csrf_exempt
 def create_user(request):
@@ -489,7 +513,10 @@ def status(request):
 
     if request.user.is_authenticated():
         response_data = add_user_permissions(request, response_data)
-
+    version_number= get_git_current_version_number()
+    if not version_number:
+        version_number= base.VERSION_NUMBER
+    response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
 
@@ -567,6 +594,10 @@ def get_search_params(request, user=''):
                       'search14': 'search_14', 'search15': 'search_15',
                       'search16': 'search_16', 'search17': 'search_17',
                       'search18': 'search_18', 'search19': 'search_19',
+                      'search20': 'search_20', 'search21': 'search_21',
+                      'search22': 'search_22', 'search23': 'search_23',
+                      'search24': 'search_24', 'search25': 'search_25',
+                      'search26': 'search_26',
                       'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
@@ -791,6 +822,22 @@ def get_local_date(user, input_date, send_date=''):
     time_zone = 'Asia/Calcutta'
     if user_details.timezone:
         time_zone = user_details.timezone
+    local_time = utc_time.astimezone(pytz.timezone(time_zone))
+    if send_date:
+        return local_time
+    dt = local_time.strftime("%d %b, %Y %I:%M %p")
+    return dt
+
+def get_user_time_zone(user):
+    time_zone = 'Asia/Calcutta'
+    user_details = UserProfile.objects.get(user_id=user.id)
+    if user_details.timezone:
+        time_zone = user_details.timezone
+    return time_zone
+
+
+def get_local_date_with_time_zone(time_zone, input_date, send_date=''):
+    utc_time = input_date.replace(tzinfo=pytz.timezone('UTC'))
     local_time = utc_time.astimezone(pytz.timezone(time_zone))
     if send_date:
         return local_time
@@ -2248,7 +2295,7 @@ def auto_po(wms_codes, user):
 
 
 @csrf_exempt
-def rewrite_excel_file(f_name, index_status, open_sheet):
+def rewrite_excel_file(f_name, index_status, open_sheet, file_path=''):
     # wb = Workbook()
     # ws = wb.add_sheet(open_sheet.name)
     f_name = f_name.replace('+', '')
@@ -2286,7 +2333,10 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
         wb1.close()
         return f_name
     else:
-        path = 'static/temp_files/'
+        if file_path:
+            path = file_path
+        else:
+            path = 'static/temp_files/'
         folder_check(path)
         wb1.save(path + f_name)
         return path + f_name
@@ -6612,6 +6662,15 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
     includeStoreStock = request.GET.get('includeStoreStock', '')
+    cur_dept = request.GET.get('dept', '')
+    dept_avail_qty = 0
+    if cur_dept:
+        cur_de = User.objects.get(username=cur_dept)
+        search_params1 = {'sku__user': cur_de.id}
+        search_params1['sku__sku_code'] = sku_code
+        stock_data_dept, st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept, \
+        skuPack_quantity_dept, sku_pack_config_dept, zones_data_dept, avg_price_dept = get_pr_related_stock(cur_de, sku_code, search_params1, includeStoreStock)
+        dept_avail_qty = st_avail_qty_dept + avail_qty_dept
     search_params = {'sku__user': user.id}
     if request.GET.get('sku_code', ''):
         search_params['sku__sku_code'] = sku_code
@@ -6639,7 +6698,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
                 'is_contracted_supplier': is_contracted_supplier}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty,
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
                                     'avg_price': avg_price}))
@@ -11695,6 +11754,9 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_ty
             open_st.status = 0
             open_st.save()
         check_purchase_order_created(user, st_po_id, prefix)
+    if not upload_type:
+        datum = { 'status': 'Confirmed Successfully', 'id': stock_transfer.order_id }
+        return HttpResponse(json.dumps(datum))
     return HttpResponse("Confirmed Successfully")
 
 
@@ -11927,13 +11989,14 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     mr_doa_obj['update_picked'] = update_picked
                     mr_doa_obj['data'] = stock.id
                     mr_doa_obj['order_typ'] = order_typ
+                    mr_doa_obj['sku_code'] = open_st.sku.sku_code
                     doa_dict = {
                         'requested_user': user,
                         'wh_user': destination_warehouse,
                         'reference_id': stock_transfer.order_id,
                         'model_name': 'mr_doa',
                         'json_data': json.dumps(mr_doa_obj),
-                        'doa_status': 'pending'
+                        'doa_status': 'pending',
                     }
                     doa_obj = MastersDOA(**doa_dict)
                     doa_obj.save()
@@ -11973,8 +12036,8 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['mrp'] = batch_detail.mrp
                         temp_json['weight'] = batch_detail.weight
                         temp_json['batch_no'] = batch_detail.batch_no
-                        temp_json['buy_price'] = batch_detail.buy_price
-                        temp_json['tax_percent'] = batch_detail.tax_percent
+                        #temp_json['buy_price'] = batch_detail.buy_price
+                        #temp_json['tax_percent'] = batch_detail.tax_percent
                         temp_json['quantity'] = update_picked
                         datum = get_warehouses_list_states(user)
                         compare_user = User.objects.get(id=st_po.open_st.sku.user).username
@@ -12667,10 +12730,8 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
     batch_dict = {}
     uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
     conv_value = uom_dict.get('sku_conversion', 1)
-    '''if batch_detail:
+    if batch_detail and batch_detail.pcf and po_data.open_po:
         conv_value = batch_detail.pcf
-        if not conv_value:
-            conv_value = uom_dict.get('sku_conversion', 1)'''
     if not conv_value:
         conv_value = 1
     quantity = quantity * conv_value
@@ -12813,6 +12874,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
+    if last_change_date:
+        SellerPOSummary.objects.filter(id=seller_po_summary.id).update(creation_date=last_change_date)
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
                               batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary)
     po_data.received_quantity += quantity
@@ -13731,6 +13794,20 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     return uom_dict
 
 
+def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
+    base_uom = ''
+    sku_uom_dict = {}
+    company_id = get_company_id(user)
+    filt_dict = {'sku_code__in': sku_codes, 'company_id': company_id, 'uom_type': uom_type}
+    if uom:
+        filt_dict['uom'] = uom
+    sku_uoms = UOMMaster.objects.filter(**filt_dict)
+    for sku_uom in sku_uoms:
+        sku_uom_dict[sku_uom.sku_code] = {'measurement_unit': sku_uom.uom, 'sku_conversion': float(sku_uom.conversion),
+                                            'base_uom': sku_uom.base_uom}
+    return sku_uom_dict
+
+
 def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
     #     consumptions = []
@@ -13798,6 +13875,19 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
+def get_pending_mr_qty_for_avg(user):
+    try:
+        doas = MastersDOA.objects.filter(model_name='mr_doa', doa_status='pending', requested_user_id=user.id)
+        sku_pending_mr_qty = {}
+        for doa in doas:
+            json_dat = json.loads(doa.json_data)
+            sku_code = json_dat['sku_code']
+            sku_pending_mr_qty.setdefault(sku_code, {'qty': 0})
+            sku_pending_mr_qty[sku_code]['qty'] += json_dat['update_picked']
+    except:
+        pass
+    return sku_pending_mr_qty
+
 def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
     po_pending_qty = 0
     po_locs = POLocation.objects.filter(
@@ -13815,23 +13905,36 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
     return po_pending_qty
 
 
-def update_sku_avg_main(sku_amt, user, main_user, grn_number=''):
+def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
+    dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                           warehouse=[user.username], send_parent=True)
+    dept_user_ids = list(dept_users.values_list('id', flat=True))
+    sku_pending_mr_qty = get_pending_mr_qty_for_avg(user)
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        exist_stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0)
+        exist_stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code=sku.sku_code,
+                                                  quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0
         po_pending_qty = get_pending_putaway_qty_for_avg(user, sku_code, value, pcf)
+        mr_pending = sku_pending_mr_qty.get(sku.sku_code, {}).get('qty', 0)
         stock_qty += po_pending_qty
+        stock_qty += mr_pending
         stock_value = stock_qty * sku.average_price
-        total_qty = value['qty'] + stock_qty
-        total_amount = stock_value + value['amount']
-        new_avg = float('%.5f' % (total_amount/total_qty))
+        if dec:
+            temp_qty = stock_qty + value['qty']
+            total_qty = stock_qty
+            stock_value = temp_qty * sku.average_price
+            total_amount = stock_value - value['amount']
+        else:
+            total_qty = value['qty'] + stock_qty
+            total_amount = stock_value + value['amount']
+        new_avg = float('%.5f' % (abs(total_amount/total_qty)))
         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
         dept_user_ids = list(dept_users.values_list('id', flat=True))
         sku.average_price = new_avg
@@ -13898,10 +14001,10 @@ def update_sku_avg_from_rtv(user, rtv_number):
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
         amt = rtv.quantity * price
         total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
         sku_amt[sku_code]['qty'] += rtv.quantity
-    update_sku_avg_main(sku_amt, user, main_user)
+    update_sku_avg_main(sku_amt, user, main_user, dec=True)
 
 @get_admin_user
 def search_batch_data(request, user=''):
@@ -13972,3 +14075,12 @@ def get_stock_summary_intransit_data(sku):
 def log_message(log,request, user, message, data):
     log.info("%s for request User %s Login %s and Data is %s" % (message, request.user.username,
                                                                  user.username, data))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def display_closing_stock_uploaded(request, user=''):
+    files_list = os.listdir('static/closing_stock_files/')
+    urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
+    data_list = OrderedDict(zip(files_list, urls_list))
+    return render(request, 'templates/display_static.html', {'data_list': data_list})

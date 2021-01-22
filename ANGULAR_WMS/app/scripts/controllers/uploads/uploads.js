@@ -183,7 +183,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "inventory_adjust_upload/",
                    dparam: "download-inventory-adjust-file",
                    value: "",
-                   show: true,
+                   show: false,
                    perm: "add_inventoryadjustment"
                  }, {
                    title: "Vendor Download/ Upload",
@@ -554,16 +554,18 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "closing_adjustment_upload/",
                    dparam: "download-closing-adjustment-file",
                    value: "",
+                   disable: true,
                    show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                  }, {
-                   title: "Closing Stock Download/ Upload",
-                   download: "Download Closing Stock Form",
-                   upload: "Upload Closing Stock Form",
+                   title: "Closing Stock In Bulk Download/ Upload",
+                   download: "Download Closing In Bulk Stock Form",
+                   upload: "Upload Closing Stock In Bulk Form",
                    durl: "closing_stock_form/",
                    uurl: "closing_stock_upload/",
                    dparam: "download-closing-stock-file",
                    value: "",
-                   show: true,
+                   disable: true,
+                   show: false,
                    perm: "change_consumptiondata",
                  }, {
                    title: "Consumption Download/ Upload",
@@ -573,8 +575,19 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "consumption_upload/",
                    dparam: "download-consumption-file",
                    value: "",
-                   show: true,
+                   disable: true,
                    show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                 }, {
+                   title: "Closing Stock Download/ Upload",
+                   download: "Download Closing Stock Form",
+                   upload: "Upload Closing Stock Form",
+                   durl: "closing_stock_form/",
+                   uurl: "closing_stock_upload/",
+                   dparam: "download-closing-stock-file",
+                   value: "",
+                   disable: true,
+                   show: true,
+                   perm: "change_consumptiondata",
                  }
 
                 ]

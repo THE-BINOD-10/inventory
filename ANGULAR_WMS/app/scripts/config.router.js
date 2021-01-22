@@ -967,6 +967,10 @@ var app = angular.module('urbanApp')
           title: 'Material Request',
         }
       })
+      .state('app.inbound.MaterialRequest.DetailMR', {
+         url: '/DetailMR',
+         templateUrl: 'views/inbound/toggle/detailed_mr_view.html'
+       })
       .state('app.inbound.TransferOrder', {
         url: '/TransferOrder',
         permission: 'multi_warehouse',
@@ -2426,6 +2430,17 @@ var app = angular.module('urbanApp')
           data: {
             title: 'Location Wise Filter',
           }
+        }).state('app.reports.PR_PO_GRNReport', {
+          url: '/PR_PO_GRNReport',
+          templateUrl: 'views/reports/pr_po_grn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/pr_po_grn_report.js');
+              }]
+          },
+          data: {
+            title: 'PR PO GRN Report',
+          }
         })
         .state('app.reports.GoodsReceiptNote', {
           url: '/GoodsReceiptNote',
@@ -2545,6 +2560,30 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'SKU Wise Stock',
+          }
+        })
+        .state('app.reports.StockAgeing', {
+          url: '/StockAgeingReport',
+          templateUrl: 'views/reports/ageing_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/ageing_report.js');
+              }]
+          },
+          data: {
+            title: 'Ageing Report',
+          }
+        })
+        .state('app.reports.StockExpired', {
+          url: '/StockExpiredReport',
+          templateUrl: 'views/reports/stock_expired.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_expired.js');
+              }]
+          },
+          data: {
+            title: 'Expired Report',
           }
         })
         .state('app.reports.SKUWisePurchaseOrders', {
@@ -3192,6 +3231,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Consumption',
+          }
+        })
+        .state('app.reports.ClosingStockReport', {
+          url: '/closingStockReport',
+          templateUrl: 'views/reports/closing_stock_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/closing_stock_report.js');
+              }]
+          },
+          data: {
+            title: 'Closing Stock Report',
           }
         })
       // configuration route

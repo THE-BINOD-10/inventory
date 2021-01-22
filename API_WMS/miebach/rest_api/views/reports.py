@@ -96,7 +96,7 @@ def get_report_data(request, user=''):
 
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
-                         'metropolis_po_detail_report']:
+                         'metropolis_po_detail_report', 'pr_po_grn_dict']:
         if 'sister_warehouse' in filter_keys:
             if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -216,6 +216,15 @@ def print_stock_location(request, user=''):
 def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_po_filter_data(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_po_grn_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_po_grn_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -535,6 +544,25 @@ def get_sku_stock_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_ageing_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_ageing_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_expired_stock_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_expired_stock_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_sku_wise_stock(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     report_data = print_sku_wise_data(search_params, user, request.user)
@@ -613,7 +641,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user__in=user_ids, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.select_related('open_po').filter(open_po__sku__user__in=user_ids, **search_parameters)
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='deleted').filter(open_po__sku__user__in=user_ids, **search_parameters)
     purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
         total_received=Sum('received_quantity')). \
@@ -1559,9 +1587,11 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
+    if 'excel_name=pr_po_grn_dict' in excel_name:
+        params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
-    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report']:
+    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report', 'excel_name=get_stock_transfer_report_main']:
         params = [request, search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
@@ -1986,6 +2016,14 @@ def get_stock_transfer_report(request, user=''):
     temp_data = get_stock_transfer_report_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_stock_transfer_report_main(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_stock_transfer_report_data_main(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @csrf_exempt
 @login_required
@@ -2164,7 +2202,7 @@ def print_purchase_order_form(request, user=''):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num).exclude(status='deleted')
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
@@ -2781,6 +2819,15 @@ def get_sku_wise_consumption_report(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_closing_stock_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_closing_stock_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 def download_invoice_file(request, user=''):
     receipt_type, http_data = '', ''

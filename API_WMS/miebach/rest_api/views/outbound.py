@@ -2934,7 +2934,13 @@ def view_picklist(request, user=''):
         if order_count_len == 1:
             single_order = str(order_count[0])
         order_status = data[0]['status']
-    return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id,
+    display_order_id = ''
+    display_order_id = STOrder.objects.filter(picklist__picklist_number=data_id, stock_transfer__sku__user=user.id).values('stock_transfer__order_id').distinct()
+    if display_order_id.exists():
+        display_order_id_date = StockTransfer.objects.filter(order_id=display_order_id[0]['stock_transfer__order_id'])[0].creation_date
+        display_order_id_date = get_local_date(request.user, display_order_id_date)
+        display_order_id = display_order_id[0]['stock_transfer__order_id']
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id, 'display_order_id': display_order_id, 'display_order_id_date': display_order_id_date,
                                     'show_image': show_image, 'use_imei': use_imei,
                                     'order_status': order_status, 'user': request.user.id,
                                     'single_order': single_order,
@@ -15294,8 +15300,11 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
 
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
+        source_name = User.objects.get(username=data['st_po__open_st__warehouse__username'])
         warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'],
                                     'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],

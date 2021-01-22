@@ -6,7 +6,7 @@
     </div>
     <div class="layout-body">
       <tabset class="box-tab" ng-if="showCase.industry_type=='FMCG'">
-        <tab heading="Stock Detail">
+        <tab heading="Stock Detail" ng-if="false">
           <div class="panel-header">
             <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
           </div>
@@ -17,7 +17,7 @@
             <div ui-view></div>
           </div>
         </tab>
-        <tab heading="Batch Level Stock" ng-click="FMCGCtrl=true">
+        <tab heading="Batch Level Stock" ng-init="FMCGCtrl=true" ng-show="false">
           <div ng-if="FMCGCtrl" ng-controller="BatchLevelStockCtrl as showCase">
             <div ng-include="'views/stockLocator/batch_level_stock.html'"></div>
           </div>

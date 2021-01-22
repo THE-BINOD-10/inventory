@@ -695,7 +695,7 @@ class PendingPO(models.Model):
     sku_category = models.CharField(max_length=128, default='')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     prefix = models.CharField(max_length=32, default='')
-    full_po_number = models.CharField(max_length=32, default='')
+    full_po_number = models.CharField(max_length=32, default='', db_index=True)
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
@@ -840,7 +840,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'))
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'))
 
     def __unicode__(self):
         return str(self.id)
@@ -4160,6 +4160,7 @@ class ConsumptionData(models.Model):
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
+    sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

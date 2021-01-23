@@ -34,7 +34,10 @@ def update_consumption(consumption_objss, user, company):
             consumption_lis = consumption_objss.keys()
             consumption_lis.remove('STATUS_CODE')
             consumption_lis.remove('TIME')
+            count = 0
             for key in consumption_lis:
+                count += 1
+                department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
                 consumption_dict = consumption_objss[key]
                 data_dict = {'user':user}
                 test_code = consumption_dict.get('TCODE', '')
@@ -76,8 +79,13 @@ def update_consumption(consumption_objss, user, company):
                 consumption_user = user
                 if org_objs:
                     org_dept = org_objs[0].dept_name
-                    if org_dept:
-                        user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=org_dept)
+                    department = [key for key, value in department_mapping.items() if  value == org_dept]
+                    if department:
+                        department = department[0]
+                    if department:
+                        user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=department)
+                        if not user_groups:
+                            continue
                         consumption_user = User.objects.get(id = user_groups[0].user.id)
                         data_dict['user'] = consumption_user
                 try:
@@ -106,15 +114,20 @@ class Command(BaseCommand):
         users = User.objects.filter().exclude(userprofile__attune_id=None)
         self.stdout.write("Started Consumption call")
         for user in users:
-            company_id = user.userprofile.company_id
-            company = User.objects.get(id=company_id)
+            org_id = user.userprofile.attune_id
+            subsudary_id = user.userprofile.company_id
+            subsudary = User.objects.get(id=subsudary_id)
+            company = subsudary
             integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
+            if not integrations:
+                company = User.objects.get(id=subsudary.userprofile.company_id)
+                integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
             for integrate in integrations:
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
                 today = datetime.date.today().strftime('%Y%m%d')
                 # for i in range(1,15):
-                servers = list(OrgDeptMapping.objects.filter(attune_id=250).values_list('server_location', flat=True).distinct())
-                data = {'fromdate':today, 'todate':today, 'orgid':user.userprofile.attune_id}
+                servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
+                data = {'fromdate':'20201214', 'todate':'20201215', 'orgid':org_id}
                 for server in servers:
                     consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
                     update_consumption(consumption_obj, user, company)

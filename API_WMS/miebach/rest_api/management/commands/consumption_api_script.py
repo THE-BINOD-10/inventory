@@ -37,58 +37,58 @@ def update_consumption(consumption_objss, user, company):
             count = 0
             for key in consumption_lis:
                 count += 1
-                department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-                consumption_dict = consumption_objss[key]
-                data_dict = {'user':user}
-                test_code = consumption_dict.get('TCODE', '')
-                test_name = consumption_dict.get('TNAME', '')
-                consumption_filter = {}
-                if test_code:
-                    test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
-                    if test_obj.exists():
-                        data_dict['test'] = test_obj[0]
-                    else:
-                        department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-                        dept_type = department_mapping.get(user.userprofile.stockone_code, '')
-                        TestMaster.objects.create(**{'test_code':str(test_code), 'test_type':'', 'test_name':str(test_name),'department_type':dept_type,'user':company.id, 'sku_code':str(test_code), 'wms_code':str(test_code), 'sku_desc':str(test_name)})
-                        test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
-                        data_dict['test'] = test_obj[0]
-                    consumption_filter = {'test_id': str(test_obj[0].id)}
-                #machine_code = consumption_dict.get('MachineID', '')
-                #if machine_code:
-                    #machine_obj = MachineMaster.objects.filter(user=company.id,machine_code=str(machine_code))
-                    #if machine_obj.exists():
-                        #data_dict['machine'] = machine_obj[0]
-                        #consumption_filter['machine__machine_code'] = str(machine_code)
-                name = consumption_dict.get('NAME', '')
-                orgid = consumption_dict.get('OrgID', '')
-                number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
-                'n_time_process':'PN', 'rerun':'RR', 'quality_check':'Q', 'total_patients':'TP', 'total':'T', 'no_patient':'NP',
-                'qnp':'QNP', 'patient_samples': 'PatientSamples'}
-                for key, value in number_dict.iteritems():
-                    data_dict[key] = 0
-                    if consumption_dict.get(value, 0):
-                        data_dict[key] = float(consumption_dict.get(value, 0))
-                sum_ = data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['quality_check'] +data_dict['no_patient']
-                diff = data_dict['total_test'] - sum_
-                n_time_process_val = 0
-                if diff and data_dict['n_time_process']:
-                    n_time_process_val = diff/data_dict['n_time_process']
-                data_dict['n_time_process_val'] = n_time_process_val
-                org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
-                consumption_user = user
-                if org_objs:
-                    org_dept = org_objs[0].dept_name
-                    department = [key for key, value in department_mapping.items() if  value == org_dept]
-                    if department:
-                        department = department[0]
-                    if department:
-                        user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=department)
-                        if not user_groups:
-                            continue
-                        consumption_user = User.objects.get(id = user_groups[0].user.id)
-                        data_dict['user'] = consumption_user
                 try:
+                    department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+                    consumption_dict = consumption_objss[key]
+                    data_dict = {'user':user}
+                    test_code = consumption_dict.get('TCODE', '')
+                    test_name = consumption_dict.get('TNAME', '')
+                    consumption_filter = {}
+                    if test_code:
+                        test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
+                        if test_obj.exists():
+                            data_dict['test'] = test_obj[0]
+                        else:
+                            department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+                            dept_type = department_mapping.get(user.userprofile.stockone_code, '')
+                            TestMaster.objects.create(**{'test_code':str(test_code), 'test_type':'', 'test_name':str(test_name),'department_type':dept_type,'user':company.id, 'sku_code':str(test_code), 'wms_code':str(test_code), 'sku_desc':str(test_name)})
+                            test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
+                            data_dict['test'] = test_obj[0]
+                        consumption_filter = {'test_id': str(test_obj[0].id)}
+                    #machine_code = consumption_dict.get('MachineID', '')
+                    #if machine_code:
+                        #machine_obj = MachineMaster.objects.filter(user=company.id,machine_code=str(machine_code))
+                        #if machine_obj.exists():
+                            #data_dict['machine'] = machine_obj[0]
+                            #consumption_filter['machine__machine_code'] = str(machine_code)
+                    name = consumption_dict.get('NAME', '')
+                    orgid = consumption_dict.get('OrgID', '')
+                    number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
+                    'n_time_process':'PN', 'rerun':'RR', 'quality_check':'Q', 'total_patients':'TP', 'total':'T', 'no_patient':'NP',
+                    'qnp':'QNP', 'patient_samples': 'PatientSamples'}
+                    for key, value in number_dict.iteritems():
+                        data_dict[key] = 0
+                        if consumption_dict.get(value, 0):
+                            data_dict[key] = float(consumption_dict.get(value, 0))
+                    sum_ = data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['quality_check'] +data_dict['no_patient']
+                    diff = data_dict['total_test'] - sum_
+                    n_time_process_val = 0
+                    if diff and data_dict['n_time_process']:
+                        n_time_process_val = diff/data_dict['n_time_process']
+                    data_dict['n_time_process_val'] = n_time_process_val
+                    org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
+                    consumption_user = user
+                    if org_objs:
+                        org_dept = org_objs[0].dept_name
+                        department = [key for key, value in department_mapping.items() if  value == org_dept]
+                        if department:
+                            department = department[0]
+                        if department:
+                            user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=department)
+                            if not user_groups:
+                                continue
+                            consumption_user = User.objects.get(id = user_groups[0].user.id)
+                            data_dict['user'] = consumption_user
                     consumption_obj = Consumption.objects.filter(user=consumption_user.id, **consumption_filter)
                     if consumption_obj.exists():
                         status = 'Success'
@@ -127,7 +127,7 @@ class Command(BaseCommand):
                 today = datetime.date.today().strftime('%Y%m%d')
                 # for i in range(1,15):
                 servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
-                data = {'fromdate':'20201214', 'todate':'20201215', 'orgid':org_id}
+                data = {'fromdate':today, 'todate':today, 'orgid':org_id}
                 for server in servers:
                     consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
                     update_consumption(consumption_obj, user, company)

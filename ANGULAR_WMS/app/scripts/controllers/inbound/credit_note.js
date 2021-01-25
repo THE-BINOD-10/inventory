@@ -144,7 +144,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.submit = function(form) {
       if (!vm.model_data.credit_number || !vm.model_data.credit_date || !vm.model_data.credit_value) {
         Service.showNoty('Please Fill * Fields');
-      } else if ((parseFloat(vm.model_data['GRN Price']) + parseFloat(vm.model_data.credit_value)) != vm.model_data['Invoice Value']) {
+      } else if ((parseFloat(vm.model_data['GRN Price']) + parseFloat(vm.model_data.credit_value)).toFixed(2) != vm.model_data['Invoice Value'].toFixed(2)) {
         Service.showNoty('Credit Note Value Does Not Match Difference Between Invoice Value & GRN Value');
       } else {
         var elem = angular.element($('form'));

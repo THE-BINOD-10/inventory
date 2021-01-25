@@ -176,6 +176,9 @@ vm.changeUnitPrice = function(data){
               }).then(function (text) {
               });
             }
+            if (data.data == 'MR & Stock Transfer Disable Due to Closing Stock Updations' || data.data == 'Prefix not defined') {
+              colFilters.showNoty(data.data);
+            }
             vm.bt_disable = false;
           }
         })

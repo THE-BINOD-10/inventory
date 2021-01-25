@@ -2018,6 +2018,8 @@ def picklist_confirmation(request, user=''):
     warehouse_id = request.POST.get('warehouse_id_', '')
     if warehouse_id:
         user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("Picklist Confirmation Disable Due to Closing Stock Updations")
     if request.POST.get('source'):
         cur_user = request.POST.get('source')
         user = User.objects.get(username=cur_user)
@@ -5906,6 +5908,11 @@ def create_stock_transfer(request, user=''):
     if not warehouse:
         return HttpResponse("Invalid Destination Plant")
     warehouse = warehouse[0]
+    urs = [user.id]
+    if order_typ == 'ST_INTRA':
+        urs.append(warehouse.id)
+    if check_consumption_configuration(urs):
+        return HttpResponse('MR & Stock Transfer Disable Due to Closing Stock Updations')
     status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
     if status:
         return HttpResponse(status)

@@ -13908,13 +13908,13 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
 def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
     dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                            warehouse=[user.username], send_parent=True)
-    dept_user_ids = list(dept_users.values_list('id', flat=True))
+    all_dept_user_ids = list(dept_users.values_list('id', flat=True))
     sku_pending_mr_qty = get_pending_mr_qty_for_avg(user)
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        exist_stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code=sku.sku_code,
+        exist_stocks = StockDetail.objects.filter(sku__user__in=all_dept_user_ids, sku__sku_code=sku.sku_code,
                                                   quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)

@@ -4868,15 +4868,17 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(po_number__in=list(model_data.values_list('purchase_order__po_number', flat=True))).\
-                                            select_related('open_po')
-    po_price_dict = get_sku_wise_grn_price_dict(purchase_orders)
+
     check_count = 0
     model_sku_codes, po_numbers, grn_numbers = [], [], []
     for model_dat in model_data:
         model_sku_codes.append(model_dat['purchase_order__open_po__sku__sku_code'])
         po_numbers.append(model_dat['purchase_order__po_number'])
         grn_numbers.append(model_dat['grn_number'])
+
+    purchase_orders = PurchaseOrder.objects.filter(po_number__in=po_numbers).\
+                                            select_related('open_po')
+    po_price_dict = get_sku_wise_grn_price_dict(purchase_orders)
     skus_uom_dict = get_uom_with_multi_skus(user, model_sku_codes, uom_type='purchase')
     pending_po_dict = get_pending_po_grn_dict(user, po_numbers)
     grn_integration_object = IntegrationMaster.objects.filter(module_type="grn", stockone_reference__in=grn_numbers)

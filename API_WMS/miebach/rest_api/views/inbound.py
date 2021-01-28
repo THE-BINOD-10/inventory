@@ -13883,6 +13883,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 def get_po_putaway_summary(request, user=''):
     warehouse_id = request.GET['warehouse_id']
     user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("RTV Disable Due to Closing Stock Updations")
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
     challan_number = request.GET['challan_number']
@@ -16502,6 +16504,8 @@ def confirm_mr_request(request, user=''):
     if len(cnf_data) > 0:
         for data in cnf_data:
             try:
+                if check_consumption_configuration([User.objects.get(username=data['source_wh']).id]):
+                    return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
                 all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='mr_doa', reference_id=data['order_id'], wh_user__username=data['dest_dept'])
                 if all_pending_orders.exists():
                     for entry in all_pending_orders:

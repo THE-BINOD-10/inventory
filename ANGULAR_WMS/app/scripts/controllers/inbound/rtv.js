@@ -179,14 +179,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         vm.service.apiCall('get_po_putaway_summary/', 'GET', data_to_send).then(function(data){
           if(data.message) {
-            angular.copy(data.data, vm.model_data);
-            vm.model_data.warehouse_id = warehouse_id;
+            if (typeof(data.data) == 'string') {
+              vm.print_enable = false;
+              Service.showNoty(data.data);  
+            } else {
+              angular.copy(data.data, vm.model_data);
+              vm.model_data.warehouse_id = warehouse_id;
               vm.extra_width = {
                 'width': '1250px'
               };
               vm.title = "Create RTV";
               vm.print_enable = false;
               $state.go('app.inbound.rtv.details');
+            }
           }
         });
       }

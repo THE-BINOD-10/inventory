@@ -3768,6 +3768,8 @@ def mr_generate_picklist(request, user=''):
             user = User.objects.get(id=int(value))
         except Exception as e:
             user = User.objects.get(id=value)
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("MR Picklist Generation Disable Due to Closing Stock Updations")
         if user.username in user_picknumber_dict.keys():
             picklist_number = user_picknumber_dict[user.username]
         else:
@@ -3859,6 +3861,8 @@ def st_generate_picklist(request, user=''):
             user = User.objects.get(id=int(value))
         except Exception as e:
             user = User.objects.get(id=value)
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("Stock Transfer Picklist Generation Disable Due to Closing Stock Updations")
         if user.username in user_picknumber_dict.keys():
             picklist_number = user_picknumber_dict[user.username]
         else:

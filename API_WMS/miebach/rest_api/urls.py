@@ -493,6 +493,7 @@ urlpatterns = [
     url(r'^create_manual_test/$', create_manual_test),
     url(r'^create_manual_test_approval/$', create_manual_test_approval),
     url(r'^get_manual_test_approval_pending/$', get_manual_test_approval_pending),
+    url(r'^save_closing_stock_ui/$', save_closing_stock_ui),
 
 
     # Uploaded POs [SWISS MILITARY]

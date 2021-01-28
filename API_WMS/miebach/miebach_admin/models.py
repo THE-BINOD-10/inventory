@@ -89,7 +89,7 @@ class VendorMaster(models.Model):
 @reversion.register()
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
+    user = models.PositiveIntegerField(db_index=True)
     sku_code = models.CharField(max_length=128)
     wms_code = models.CharField(max_length=128)
     sku_desc = models.CharField(max_length=350, default='')
@@ -4147,6 +4147,7 @@ class ConsumptionData(models.Model):
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
+    remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

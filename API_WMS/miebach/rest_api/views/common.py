@@ -14113,3 +14113,12 @@ def display_closing_stock_uploaded(request, user=''):
     urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
+
+def check_consumption_configuration(users):
+    status = False
+    for user_id in users:
+        if get_misc_value('eom_consumption_configuration_plant', user_id) == 'true':
+            return True
+        else:
+            status = False
+    return status

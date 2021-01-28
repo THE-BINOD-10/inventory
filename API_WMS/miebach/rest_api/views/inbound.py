@@ -2561,6 +2561,7 @@ def switches(request, user=''):
                        'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                        'pending_pr_prefix': 'pending_pr_prefix',
                        'auto_putaway_grn': 'auto_putaway_grn',
+                       'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -7164,11 +7165,13 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
-    if request.POST.get('order_type', '') == 'Stock Transfer':
-        return HttpResponse("GRN Disable for Stock Transfer Orders !..")
+    # if request.POST.get('order_type', '') == 'Stock Transfer':
+    #     return HttpResponse("GRN Disable for Stock Transfer Orders !..")
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("GRN Disable Due to Closing Stock Updations")
     if(service_doa):
         model_id=request.POST['doa_id']
         doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
@@ -13880,6 +13883,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 def get_po_putaway_summary(request, user=''):
     warehouse_id = request.GET['warehouse_id']
     user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("RTV Disable Due to Closing Stock Updations")
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
     challan_number = request.GET['challan_number']
@@ -16499,6 +16504,8 @@ def confirm_mr_request(request, user=''):
     if len(cnf_data) > 0:
         for data in cnf_data:
             try:
+                if check_consumption_configuration([User.objects.get(username=data['source_wh']).id]):
+                    return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
                 all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='mr_doa', reference_id=data['order_id'], wh_user__username=data['dest_dept'])
                 if all_pending_orders.exists():
                     for entry in all_pending_orders:

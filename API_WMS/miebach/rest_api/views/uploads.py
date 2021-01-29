@@ -12381,7 +12381,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
 def load_month_end_closing_stock(updating_users, year, month):
     first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
     first_date = get_utc_start_date(first_date)
-    last_date = first_date + relativedelta(months=1)
+    last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
     main_user = User.objects.get(id=2)
     for upd_user, upd_skus in updating_users.items():
         closing_stock_objs = ClosingStock.objects.filter(stock__sku__user=upd_user.id, stock__sku__sku_code__in=upd_skus,

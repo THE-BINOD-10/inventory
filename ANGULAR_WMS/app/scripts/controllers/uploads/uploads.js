@@ -585,7 +585,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "closing_stock_upload/",
                    dparam: "download-closing-stock-file",
                    value: "",
-                   disable: true,
+                   disable: false,
                    show: true,
                    perm: "change_consumptiondata",
                  }

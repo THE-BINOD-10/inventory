@@ -126,7 +126,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.service.refresh(vm.dtInstance);
     });
-
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+      $(row_click_bind, nRow).unbind('click');
+      $(row_click_bind, nRow).bind('click', function() {
+        var data = {'supplier_id': aData}
+        var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/toggle/update_cls.html',
+          controller: 'ClosingUpdateCtrl',
+          controllerAs: 'pop',
+          size: 'md',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          if (selectedItem['status'] == 'success') {
+            selectedItem['datum']['price_request'] = true;
+          }
+        });
+      }
+    }
     vm.check_closing_qty = function(row_id, data_id, closing_qty){
       var row_data = vm.dtInstance.DataTable.context[0].aoData[row_id]._aData;
       var avail_stock = Number.parseFloat(row_data["Current Available Stock"]);
@@ -237,3 +260,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 }
 
 })();
+
+angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.grnData = items;
+  vm.service = Service;
+  vm.cancel = function (data) {
+    temp_dict = {
+      'status': 'cancel'
+    }
+    $modalInstance.close(temp_dict);
+  };
+});

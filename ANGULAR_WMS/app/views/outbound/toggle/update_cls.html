@@ -1,0 +1,53 @@
+<form name="form" role="form">
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">Update Closing Stock</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row">
+    <!-- <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>Supplier : </b></label>
+        <div class="col-md-6 col-sm-6 pull-left">
+          <label class="control-label">{{$ctrl.grnData.supplier}}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal" ng-if="$ctrl.user_type!='customer'">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>SKU Code : </b></label>
+        <div class="col-md-6  col-sm-6 pull-left">
+          <label class="control-label">{{$ctrl.grnData.sku}}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>SKU Desc : </b></label>
+        <div class="col-md-6 col-sm-6 pull-left">
+          <label class="control-label">{{$ctrl.grnData.sku_desc}}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Old Price</label>
+        <div class="col-sm-6">
+          <input type="text" ng-model="$ctrl.grnData.price" style="margin-top: 8px;" readonly disabled>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Enter New Price</label>
+        <div class="col-sm-6">
+          <input type="text" ng-model="$ctrl.grnData.buyprice" style="margin-top: 8px;">
+        </div>
+      </div>
+    </div> -->
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel('')">Close</button>
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.send_supplier_doa()">Send For Approval</button>
+</div>
+</form>

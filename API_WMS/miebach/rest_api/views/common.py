@@ -13755,14 +13755,23 @@ def check_and_get_plants_depts_wo_request(request_user, user, req_users):
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
-        if not users:
+        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        if not plant_users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
             if parent_company_id == staff_obj[0].company_id:
                 company_id = ''
-            users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'],
+            plant_users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'],
                                               company_id=company_id)
+        plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=list(plant_users.values_list('username', flat=True)))
+        dept_users = plant_depts.filter(username__in=list(staff_obj.values_list('department_type__name', flat=True)))
+        if not dept_users:
+            parent_company_id = get_company_id(user)
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
+                company_id = ''
+            dept_users = plant_depts
+        users = plant_users | dept_users
     if users:
         req_users = users
     else:

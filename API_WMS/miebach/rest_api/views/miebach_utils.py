@@ -1438,7 +1438,7 @@ SKU_WISE_RTV_DICT = {'filters': [
                    "Supplier ID", "Supplier Name", "Invoice Number", "Invoice Date",
                    "Material Code", "Material Description", "SKU Brand", "SKU Category", "SKU Sub-Category",
                    "SKU Group", "SKU Class",
-                   "PO Quantity", "Received Qty", "RTV Quantity",
+                   "PO Quantity", "Received Qty", "Revised PUOM Received Qty", "RTV Quantity", "Revised PUOM RTV Qty",
                    "MRP", "Unit Price pre tax", "Tax per unit", "Unit price with tax", "RTV Amount Pre Tax",
                    "RTV Tax Amount", "RTV Amount with Tax", "Reason", 'Vendor Name', 'DC Number', 'DC Date',
                    'MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date'],
@@ -1492,10 +1492,10 @@ STOCK_TRANSFER_REPORT_DICT_MAIN = {
     ],
     'dt_headers': ['Date', 'Order ID', 'Order Type', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 
                       'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
-                      'Status', 'Destination Received Quantity', 'Destination Receive PO Status', 'Destination Received By'],
+                      'Status', 'Destination Received Quantity', 'Destination Received Value', 'Destination Receive PO Status', 'Destination Received By'],
     'mk_dt_headers': ['Date', 'Order ID', 'Order Type', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 
                       'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
-                      'Status', 'Destination Received Quantity', 'Destination Receive PO Status', 'Destination Received By'],
+                      'Status', 'Destination Received Quantity', 'Destination Received Value', 'Destination Receive PO Status', 'Destination Received By'],
     'dt_url': 'get_stock_transfer_report_main', 'excel_name': 'get_stock_transfer_report_main',
     'print_url': 'print_stock_transfer_report_main',
 }
@@ -10912,7 +10912,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
-        truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin, check_and_get_plants_wo_request
+        truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin, check_and_get_plants_wo_request, get_uom_with_sku_code
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     users = [user.id]
     users = check_and_get_plants_wo_request(sub_user, user, users)
@@ -10989,10 +10989,16 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
     for rtv in model_data:
+        pr_plant, sku_pcf, line_sku_pcf= '', 1, 1
         data = OrderedDict()
         seller_po_summary = rtv.seller_po_summary
         purchase_order = seller_po_summary.purchase_order
         open_po = purchase_order.open_po
+        uom_dict = get_uom_with_sku_code(user, open_po.sku.sku_code, uom_type='purchase')
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        if seller_po_summary.batch_detail:
+            line_sku_pcf = seller_po_summary.batch_detail.pcf
+        pr_plant = User.objects.get(id=open_po.sku.user).username
         po_date = get_local_date(user, purchase_order.creation_date)
         receipt_no = seller_po_summary.receipt_number
         city = purchase_order.open_po.supplier.city
@@ -11077,7 +11083,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         # if data['seller_po_summary__purchase_order__open_po__vendor__creation_date']:
         #     vendor_dispatch_date = get_local_date(user, data['seller_po_summary__purchase_order__open_po__vendor__creation_date'])
 
-        pr_plant, pr_department, pr_request_user = '', '', ''
+        pr_department, pr_request_user = '', ''
         if pr_data:
             pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
             user_profile = UserProfile.objects.get(user_id=pr_dept.id)
@@ -11088,11 +11094,6 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
                     pr_department = pr_dept.username
             else:
                 pr_department = pr_request_user
-            pr_plant = get_admin(pr_dept)
-            if pr_plant.first_name:
-                pr_plant = pr_plant.first_name
-            else:
-                pr_plant = pr_plant.username
 
         temp_data['aaData'].append(
             OrderedDict((('PR Number', pr_number), ('PR date', pr_date), ('PR raised By ( User Name)', pr_raised_user),
@@ -11115,7 +11116,9 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
                          ('SKU Class', open_po.sku.sku_class),
                          ('PO Quantity', po_qty),
                          ('Received Qty', rec_qty),
+                         ('Revised PUOM Received Qty', round((rec_qty/sku_pcf)* line_sku_pcf, 4)),
                          ('RTV Quantity', data['total_received']),
+                         ('Revised PUOM RTV Qty', round((data['total_received']/sku_pcf)* line_sku_pcf, 4)),
                          ('RTV Amount Pre Tax', data['debit_wo_tax_amount']),
                          ('RTV Tax Amount', data['debit_note_tax_amount']),
                          ('RTV Amount with Tax', data['debit_note_total_amount']),
@@ -11436,10 +11439,10 @@ def get_ageing_data(search_params, user, sub_user):
         else:
             expiry_range = "  > 90"
         row_data = OrderedDict((
-                                ('SKU Code', data.sku.sku_code),
+                                ('Material Code', data.sku.sku_code),
                                 ('WMS Code', data.sku.wms_code),
                                 ('Sku Brand', data.sku.sku_brand),
-                                ('Product Description', data.sku.sku_desc),
+                                ('Material Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
                                 ('Batch Number', batch_no), ('exp_date', exp_date),
                                 ('Batch ID', batch_id), ('mfg_date', mfg_date),
@@ -11449,7 +11452,7 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Expiry Date', expiry_date),
                                 ('Zone', zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
-                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
                                 ('pcf', pcf),
@@ -12155,12 +12158,12 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                     send_accepted_user_dest = accepted_user_dest[0]['validated_by']
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
-                 ('Source Warehouse', "%s %s" % (user.first_name, user.last_name)), ('Destination Warehouse', "%s %s" % (destination.first_name, destination.last_name)),
+                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
                  ('SKU Code', data.sku.sku_code),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Unit Price', price), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
                  ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Base UOM', float(invoice_quantity)),
-                 ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
+                 ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
             temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''
@@ -12197,10 +12200,10 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                     dest_receive_po_status = 'Partially Received'
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
-                 ('Source Warehouse', "%s %s" % (user.first_name, user.last_name)), ('Destination Warehouse', "%s %s" % (destination.first_name, destination.last_name)), ('SKU Code', data.sku.sku_code),
+                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username), ('SKU Code', data.sku.sku_code),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Unit Price', price), ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                 ('Base UOM', float(invoice_quantity)), ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
+                 ('Base UOM', float(invoice_quantity)), ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
             temp_data['aaData'].append(ord_dict)
     return temp_data
 

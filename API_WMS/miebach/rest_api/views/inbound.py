@@ -7164,8 +7164,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
-    if request.POST.get('order_type', '') == 'Stock Transfer':
-        return HttpResponse("GRN Disable for Stock Transfer Orders !..")
+    #if request.POST.get('order_type', '') == 'Stock Transfer':
+    #    return HttpResponse("GRN Disable for Stock Transfer Orders !..")
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)

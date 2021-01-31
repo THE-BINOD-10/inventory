@@ -1,0 +1,77 @@
+<form name="form" role="form">
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">Update Closing Stock</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row">
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>Plant Name (Code): </b></label>
+        <div class="col-md-6 col-sm-6 pull-left">
+          <label class="control-label">{{ $ctrl.csData['Plant Name'] }} - {{ $ctrl.csData['Plant Code'] }}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>Department: </b></label>
+        <div class="col-md-6 col-sm-6 pull-left">
+          <label class="control-label">{{$ctrl.csData['Department']}}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal" ng-if="$ctrl.user_type!='customer'">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>SKU Code : </b></label>
+        <div class="col-md-6  col-sm-6 pull-left">
+          <label class="control-label">{{$ctrl.csData['SKU Code']}}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label"><b>SKU Desc : </b></label>
+        <div class="col-md-6 col-sm-6 pull-left">
+          <label class="control-label">{{$ctrl.csData['SKU Description']}}</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Current Available Stock</label>
+        <div class="col-sm-6">
+          <input type="text" ng-model="$ctrl.csData['Current Available Stock']" style="margin-top: 8px;" readonly disabled>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Consumption Quantity</label>
+        <div class="col-sm-6">
+          <input type="text" ng-model="$ctrl.current_consumption_qty" style="margin-top: 8px;" readonly disabled>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Enter New Closing Qty</label>
+        <div class="col-sm-6">
+          <input type="text" ng-model="$ctrl.current_cs_qty" ng-change="$ctrl.update_consumption_qty($ctrl.current_cs_qty)" style="margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Remarks</label>
+        <div class="col-sm-6">
+          <input type="text" ng-model="$ctrl.current_remarks" style="margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel('')">Close</button>
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.confirm_cs_value()" ng-disabled="$ctrl.conf_disable">Confirm</button>
+</div>
+</form>

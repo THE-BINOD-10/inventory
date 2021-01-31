@@ -2018,6 +2018,8 @@ def picklist_confirmation(request, user=''):
     warehouse_id = request.POST.get('warehouse_id_', '')
     if warehouse_id:
         user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("Picklist Confirmation Disable Due to Closing Stock Updations")
     if request.POST.get('source'):
         cur_user = request.POST.get('source')
         user = User.objects.get(username=cur_user)
@@ -3766,6 +3768,8 @@ def mr_generate_picklist(request, user=''):
             user = User.objects.get(id=int(value))
         except Exception as e:
             user = User.objects.get(id=value)
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("MR Picklist Generation Disable Due to Closing Stock Updations")
         if user.username in user_picknumber_dict.keys():
             picklist_number = user_picknumber_dict[user.username]
         else:
@@ -3857,6 +3861,8 @@ def st_generate_picklist(request, user=''):
             user = User.objects.get(id=int(value))
         except Exception as e:
             user = User.objects.get(id=value)
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("Stock Transfer Picklist Generation Disable Due to Closing Stock Updations")
         if user.username in user_picknumber_dict.keys():
             picklist_number = user_picknumber_dict[user.username]
         else:
@@ -5906,6 +5912,11 @@ def create_stock_transfer(request, user=''):
     if not warehouse:
         return HttpResponse("Invalid Destination Plant")
     warehouse = warehouse[0]
+    urs = [user.id]
+    if order_typ == 'ST_INTRA':
+        urs.append(warehouse.id)
+    if check_consumption_configuration(urs):
+        return HttpResponse('MR & Stock Transfer Disable Due to Closing Stock Updations')
     status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
     if status:
         return HttpResponse(status)
@@ -17581,3 +17592,172 @@ def get_manual_test_approval_pending(request, user=''):
         data_dict['data'].append({'test_code': value[0]['test_code'], 'test_desc': value[0]['test_desc'],
                                   'sub_data': sub_data, 'remarks': value[0]['remarks']})
     return HttpResponse(json.dumps({'data': data_dict}))
+
+
+def get_closing_stock_ui_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
+    users = [user.id]
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(request.user, user, users)
+    lis = ['user', 'user', 'user','sku_code', 'sku_desc', 'stock_quantity', 'sku_code', 'sku_code', 'sku_code', 'sku_code', 'sku_code', 'sku_code',
+    'sku_code', 'sku_code']
+    headers1, search_params, filter_params1 = get_search_params(request)
+    search_parameters = {}
+    if 'sku_code' in search_params:
+        search_parameters['sku_code'] = search_params['sku_code'].upper()
+    if 'sku_category' in search_params:
+       search_parameters['sku_category'] = search_params['sku_category']
+    user_query = False
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'sister_warehouse' in search_params:
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_type)
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    user_ids = list(users.values_list('id', flat=True))
+    if not user_query:
+        skus = SKUMaster.objects.none()
+    else:
+        skus = SKUMaster.objects.filter(user__in=user_ids, **search_parameters).values('id', 'sku_code', 'sku_desc', 'average_price', 'user').\
+                                exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
+                                exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).annotate(stock_quantity=Sum('stockdetail__quantity')).distinct()
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if order_term:
+        skus = skus.order_by(order_data)
+    temp_data['recordsTotal'] = skus.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    count = 0
+    skus = skus[start_index: stop_index]
+    model_sku_codes = []
+    model_sku_ids = []
+    stock_dict = {}
+    consumption_dict = {}
+    for sku in skus:
+        model_sku_codes.append(sku['sku_code'])
+        model_sku_ids.append(sku['id'])
+
+    stocks = StockDetail.objects.filter(sku_id__in=model_sku_ids, quantity__gt=0).\
+                                exclude(location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date').only('sku_id', 'quantity')
+    for stock in stocks:
+        stock_dict.setdefault(stock.sku_id, 0)
+        stock_dict[stock.sku_id] += stock.quantity
+    cons_filter = {'sku_id__in': model_sku_ids, 'quantity__gt': 0}
+    if 'year' in search_params and 'month_no' in search_params:
+        first_date = datetime.datetime.strptime('%s-%s-1' % (str(search_params['year']),str(search_params['month_no'])), '%Y-%m-%d')
+        last_date = first_date + relativedelta(months=1)
+        cons_filter['creation_date__range'] = [first_date.date(), last_date.date()]
+    skus_uom_dict = get_uom_with_multi_skus(user, model_sku_codes, uom_type='purchase')
+    consumption = ConsumptionData.objects.filter(**cons_filter).\
+                                            only('sku_id', 'quantity', 'price')
+    for cons in consumption:
+       consumption_dict.setdefault(cons.sku_id, {'qty': 0, 'value': 0})
+       uom_dict = skus_uom_dict.get(sku['sku_code'], {})
+       pcf = uom_dict.get('sku_conversion', 1)
+       cons_pqty = cons.quantity/pcf
+       cons_value = cons_pqty * cons.price
+       consumption_dict[cons.sku_id]['qty'] += cons.quantity
+       consumption_dict[cons.sku_id]['value'] += cons_value
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    for sku in skus:
+        user_obj = User.objects.get(id=sku['user'])
+        department = ''
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            department = dept_mapping.get(user_obj.userprofile.stockone_code, user_obj.userprofile.stockone_code)
+            user_obj = get_admin(user_obj)
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        data_id = sku['id']
+        stock_qty = stock_dict.get(data_id, 0)
+        cons_dict = consumption_dict.get(data_id, {})
+        cons_qty = cons_dict.get('qty', 0)
+        cons_value = round(cons_dict.get('value', 0), 5)
+        uom_dict = skus_uom_dict.get(sku['sku_code'], {})
+        base_uom = uom_dict.get('base_uom', '')
+        pcf = uom_dict.get('sku_conversion', 1)
+        pqty = stock_qty/pcf
+        cons_pqty = cons_qty/pcf
+        stock_value = round(pqty * sku['average_price'], 5)
+        #cons_value = cons_pqty * sku['average_price']
+        cls_input = '<input type="number" class="form-control" name="closing_qty" min="0" ng-model="showCase.closing_qty_val_%s" ng-init="showCase.closing_qty_val_%s=0" ng-keyup="showCase.check_closing_qty(%s, %s, showCase.closing_qty_val_%s)" style="width: 120px !important">' % (str(data_id), str(data_id), str(count), str(data_id), str(data_id))
+        remarks_input = '<input type="text"  class="form-control" name="remarks" ng-model="showCase.remarks_%s" ng-init="showCase.remarks_%s=%s" auto-complete="false" style="width: 150px !important">' % \
+                                (str(data_id), str(data_id), str("''"))
+        data_dict = OrderedDict((('data_id', data_id),
+                                                ('Plant Code', plant_code),
+                                                ('Plant Name', plant_name),
+                                                ('Department', department),
+                                                ('SKU Code', sku['sku_code']),
+                                                ('SKU Description', sku['sku_desc']),
+                                                ('Current Available Stock', stock_qty),
+                                                ('Base UOM', base_uom),
+                                                ('Stock Value', stock_value),
+                                                ('Closing Quantity', cls_input),
+                                                ('Consumption Quantity', cons_qty),
+                                                ('Consumption Value', cons_value),
+                                                ('Remarks', remarks_input),
+                                                ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_closing_qty(%s, %s)" ng-disabled="showCase.conf_disable">Save</button>' % (str(count), str(data_id))),
+                                                ('id', data_id),
+                                                ('DT_RowClass', 'results'),
+                                ))
+
+        temp_data['aaData'].append(data_dict)
+        count += 1
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_closing_stock_ui(request, user=''):
+    log.info('Request params for Closing Stock UI for ' + user.username + ' is ' + str(request.POST.dict()))
+    from rest_api.views.uploads import update_closing_stock_quantity
+    data_id = request.POST['data_id']
+    quantity = float(request.POST['quantity'])
+    year = request.POST['year']
+    month = request.POST['month']
+    sku = SKUMaster.objects.get(id=data_id)
+    user = User.objects.get(id=sku.user)
+    stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).exclude(
+                                        location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
+    stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    stock_quantity = stock_quantity if stock_quantity else 0
+    uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+    if stock_quantity < quantity:
+        return HttpResponse("Quantity is less than Stock quantity")
+    data_dict = {}
+    data_dict['sku'] = sku
+    data_dict['user'] = user
+    data_dict['base_uom_quantity'] = quantity
+    data_dict['stocks'] = stocks
+    data_dict['uom_dict'] = uom_dict
+    data_dict['remarks'] = request.POST.get('remarks', '')
+    try:
+        update_closing_stock_quantity([data_dict], year, month)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Closing Stock UI failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+
+    return HttpResponse("Success")

@@ -581,7 +581,8 @@ def get_search_params(request, user=''):
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
-                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number'
+                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number',
+                    'plant_name': 'plant_name', 'year': 'year', 'month_no': 'month_no'
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -715,6 +716,7 @@ data_datatable = {  # masters
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
     'OrderAllocations': 'get_order_allocation_data',
     'ViewManualTest': 'view_manual_test_entries',
+    'ClosingStockUI': 'get_closing_stock_ui_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -3673,6 +3675,33 @@ def search_sku_brands(request, user=''):
     #             else:
     #                 break
     return HttpResponse(json.dumps(list(set(sku_brands))))
+
+
+@login_required
+@get_admin_user
+def search_plants(request, user=''):
+    search_key = request.GET.get('q', '')
+    stype = request.GET.get('type', '')
+    stype_val = stype
+    search_map = {'STORE': 'first_name__icontains', 'DEPT': 'first_name__icontains', 'plant_code': 'userprofile__stockone_code__icontains'}
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    company_user = get_company_admin_user(user)
+    if stype == 'STORE':
+        stype = ['STORE', 'SUB_STORE']
+    elif stype == 'plant_code':
+        stype = ['STORE', 'SUB_STORE']
+    else:
+        stype = [stype]
+    users = get_related_users_filters(company_user.id, warehouse_types=stype)
+    filter_params  = {search_map[stype_val]: search_key}
+    master_data = users.filter(**filter_params)
+
+    for data in master_data[:30]:
+        total_data.append({'plant_name': data.first_name, 'plant_code': data.userprofile.stockone_code})
+    return HttpResponse(json.dumps(total_data))
 
 @csrf_exempt
 @login_required
@@ -14093,3 +14122,12 @@ def display_closing_stock_uploaded(request, user=''):
     urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
+
+def check_consumption_configuration(users):
+    status = False
+    for user_id in users:
+        if get_misc_value('eom_consumption_configuration_plant', user_id) == 'true':
+            return True
+        else:
+            status = False
+    return status

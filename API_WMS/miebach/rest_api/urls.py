@@ -172,6 +172,7 @@ urlpatterns = [
     url(r'^search_corporate_names/$', search_corporate_names),
     url(r'^search_reseller_names/$', search_reseller_names),
     url(r'^search_distributor_codes/$', search_distributor_codes),
+    url(r'^search_plants/$', search_plants),
     url(r'^get_supplier_data/$', get_supplier_data),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
@@ -492,6 +493,7 @@ urlpatterns = [
     url(r'^create_manual_test/$', create_manual_test),
     url(r'^create_manual_test_approval/$', create_manual_test_approval),
     url(r'^get_manual_test_approval_pending/$', get_manual_test_approval_pending),
+    url(r'^save_closing_stock_ui/$', save_closing_stock_ui),
 
 
     # Uploaded POs [SWISS MILITARY]

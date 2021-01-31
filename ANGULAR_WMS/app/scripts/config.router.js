@@ -2073,6 +2073,21 @@ var app = angular.module('urbanApp')
             title: 'Create Stock Transfer',
           }
         })
+        .state('app.outbound.ClosingStock', {
+          url: '/ClosingStock',
+          permission: 'change_consumptiondata',
+          templateUrl: 'views/outbound/closing_stock_main.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/closing_stock.js',
+                  ])
+              }]
+          },
+          data: {
+            title: 'Closing Stock',
+          }
+        })
         .state('app.outbound.CreateManualTest', {
           url: '/CreateManualTest',
           permission: 'add_consumptiondata',

@@ -412,26 +412,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         //if (vm.alt_view) {
         //  url = 'stock_transfer_generate_picklist/';
         //}
-
         vm.service.apiCall(url, 'POST', data, true).then(function(data){
           if(data.message) {
-            angular.copy(data.data, vm.model_data);
-            vm.model_data['current_data'] = current_data;
-            for(var i=0; i<vm.model_data.data.length; i++){
-                    vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
-                    vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
-                                                         location: vm.model_data.data[i].location,
-                                                         orig_location: vm.model_data.data[i].location,
-                                                         orig_batchno: vm.model_data.data[i].batchno,
-                                                         batchno: vm.model_data.data[i].batchno,
-                                                         expiry_date: vm.model_data.data[i].expiry_date,
-                                                         manufactured_date: vm.model_data.data[i].manufactured_date,
-                                                         picked_quantity: value});
-                  }
-            $state.go('app.outbound.ViewOrders.Picklist');
-            reloadData();
-            pop_msg(data.data.stock_status);
+            if (typeof(data.data) == 'string') {
+              vm.bt_disable = false;
+              reloadData();
+              vm.service.showNoty(data.data);      
+            } else {
+              angular.copy(data.data, vm.model_data);
+              vm.model_data['current_data'] = current_data;
+              for(var i=0; i<vm.model_data.data.length; i++){
+                      vm.model_data.data[i]['sub_data'] = [];
+                      var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                      vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
+                                                           location: vm.model_data.data[i].location,
+                                                           orig_location: vm.model_data.data[i].location,
+                                                           orig_batchno: vm.model_data.data[i].batchno,
+                                                           batchno: vm.model_data.data[i].batchno,
+                                                           expiry_date: vm.model_data.data[i].expiry_date,
+                                                           manufactured_date: vm.model_data.data[i].manufactured_date,
+                                                           picked_quantity: value});
+                    }
+              $state.go('app.outbound.ViewOrders.Picklist');
+              reloadData();
+              pop_msg(data.data.stock_status);
+            }
           }
         });
         vm.generate_data = [];

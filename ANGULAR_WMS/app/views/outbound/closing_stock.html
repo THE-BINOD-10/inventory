@@ -1,0 +1,95 @@
+<div ng-controller="ClosingStockCtrl as showCase">
+  <div class="page-layout reports">
+    <!-- <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'sku_list')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+        </div>
+      </div>
+    </div> -->
+    <div class="layout-sub-header">
+        <form name="form" role="form" class="filters">
+          <div class="clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label"> Consumption Month</label>
+                  <input type="text" name="month_name" ng-model="showCase.month_name" class="form-control" ng-readonly="true" style="background-color:white">
+                  <input type="hidden" name="month_no" ng-model="showCase.model_data.filters.month_no" value="{{showCase.month_no}}" ng-init="showCase.model_data.filters.month_no=showCase.month_no">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label"> Consumption Year</label>
+                  <input type="text" name="year" ng-model="showCase.year" class="form-control" ng-readonly="true" style="background-color:white" ng-init="showCase.model_data.filters.year=showCase.year">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Plant Code</label>
+                  <input type="text" autocomplete="off" name="plant_code" class="form-control" placeholder="Search Plant Code" typeahead="address.plant_code for address in showCase.service.getSearchValues($viewValue, 'search_plants?', 'plant_code')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.filters.plant_code">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Plant Name</label>
+                  <input type="text" autocomplete="off" name="plant_name" class="form-control" placeholder="Search Plant Name" typeahead="address.plant_name for address in showCase.service.getSearchValues($viewValue, 'search_plants?', 'STORE')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.filters.plant_name">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label"> Department Type </label>
+                  <select class="form-control" ng-model="showCase.model_data.filters.sister_warehouse" name="sister_warehouse">
+                    <option value=""></option>
+                    <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="dept_code==showCase.model_data.department_code">{{dept_type}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label"> SKU Category </label>
+                  <select class="form-control" ng-model="showCase.model_data.filters.sku_category" name="sku_category">
+                    <option value=""></option>
+                    <option ng-repeat="cat in showCase.category_list" value="{{cat}}" ng-selected="cat==showCase.model_data.sku_category">{{cat}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Code</label>
+                  <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.filters.sku_code">
+                </div>
+              </div>
+
+            </div>
+            <div class="col-md-12">
+              <div class="filter-controls">
+                <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
+                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.filters)"> Search </button>
+              </div>
+            </div>
+          </div>
+        </form>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-header">
+          <div ng-include="'views/common/excel.html'"></div>
+        </div>
+        <div ng-include="'views/common/datatable.html'"></div>
+        <!-- <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+          <div ui-view></div>
+        </div> -->
+      </div>
+    </div>
+    <!--<div class="panel-footer">
+        <button type="button" class="btn btn-primary pull-right"
+        ng-disabled="showCase.bt_disable" ng-click="showCase.create_rtv(form)">Create RTV</button>
+    </div>-->
+  </div>
+</div>

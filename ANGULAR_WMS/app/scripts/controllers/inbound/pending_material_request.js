@@ -127,8 +127,8 @@ var vm = this;
           if(resp.data == "success") {
             vm.service.showNoty("Success")
             vm.dtInstance.reloadData();
-          } else {
-            vm.service.showNoty("Failed !!")
+          } else if (resp.data == "MR Confirmation Disable Due to Closing Stock Updations" || resp.data == "fail"){
+            vm.service.showNoty(resp.data)
             vm.dtInstance.reloadData();
           }
         })

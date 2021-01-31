@@ -5,97 +5,74 @@ angular.module('urbanApp', ['datatables'])
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
-    var vm = this;
-    vm.service = Service;
-    vm.service.print_enable = false;
-    vm.tb_data = {}
-    vm.total_data = {positions:[7], keys:{7: 'total_charge'}}
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'get_supplier_details/',
-              type: 'GET',
-              data: vm.model_data,
-              xhrFields: {
-                withCredentials: true
-              },
-              // complete: function(jqXHR, textStatus) {
-              //   $scope.$apply(function(){
-              //     angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
-              //   })
-              // }
-           })
-       .withDataProp('data')
-       .withOption('order', [0, 'desc'])
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
-       .withOption('initComplete', function( settings ) {
-         var html = vm.service.add_totals(settings.aoColumns.length, vm.total_data)
-         $(".dataTable > thead").prepend(html)
-         $compile(angular.element(".totals_row").contents())($scope);
-       });
+  var vm = this;
+  vm.service = Service;
+  vm.datatable = false;
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
-        DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity'),
-        DTColumnBuilder.newColumn('Amount').withTitle('Amount'),
-        DTColumnBuilder.newColumn('Status').withTitle('Status'),
-    ];
+  vm.empty_data = {}
+  vm.model_data = {};
 
-   vm.dtInstance = {};
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
 
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                angular.copy(aData, vm.model_data);
-                vm.update = true;
-                vm.title = "Purchase Order";
 
-                $http.get(Session.url+'print_purchase_order_form/?po_id='+aData['order_id']+'&prefix='+aData['prefix']+'&po_number='+aData['PO Number'], {withCredential: true})
-                .success(function(data, status, headers, config) {
-//                  vm.html = $(data)[0];
-//                  $(html).find(".modal-dialog").removeClass('modal-lg');
-//                  $(html).find(".modal-dialog").addClass('modal-lgi');
-//                  $(html).find(".modal-dialog").addClass('modal-size');
-//                  var html = $(vm.html).closest("form").clone();
-//                  vm.print_page = $(html).clone();
-//                  $(".modal-body").html($(html).find(".modal-body > .form-group"));
-                  //vm.extra_width = {'width': '990px'};
-                  //vm.html = $(data.data);
-                  //angular.element(".modal-body").html($(data.data));
-                  $(".modal-body").html($(data).html());
-                  vm.print_page = $($(data).html()).clone();
-                  vm.print_enable = true;
-                });
-                $state.go("app.reports.SupplierWisePOs.POs");
-            });
-        });
-        return nRow;
-    }
+  //vm.title = "Closing Stock";
 
-   vm.empty_data = {
-                    'supplier': '',
-                    'status' : '',
+  vm.report_data = {};
+
+  vm.reports = {}
+  var send = {};
+  var name = 'supplier_wise_po_report';
+  vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
+  	if(data.message) {
+  	  if ($.isEmptyObject(data.data.data)) {
+  		  vm.datatable = false;
+  		  vm.dtInstance = {};
+  	  } else {
+  	    vm.reports[name] = data.data.data;
+  	    angular.copy(data.data.data, vm.report_data);
+        vm.report_data["row_call"] = vm.row_call;
+        vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
+          vm.empty_data = datam.empty_data;
+          angular.copy(vm.empty_data, vm.model_data);
+          vm.dtOptions = datam.dtOptions;
+          vm.dtColumns = datam.dtColumns;
+          vm.datatable = true;
+          vm.dtInstance = {};
+          vm.report_data['excel2'] = true;
+  	      vm.report_data['row_click'] = true;
+          vm.report_data['excel_name'] = 'supplier_wise_po_report';
+        })
+  	  }
+  	}
+  });
+
+
+  vm.row_call = function(aData) {
+    angular.copy(aData, vm.model_data);
+    vm.update = true;
+    vm.title = "Purchase Order";
+
+    $http.get(Session.url+'print_purchase_order_form/?po_id='+aData['order_id']+'&prefix='+aData['prefix']+'&po_number='+aData['PO Number'], {withCredential: true})
+    .success(function(data, status, headers, config) {
+      $(".modal-body").html($(data).html());
+      vm.print_page = $($(data).html()).clone();
+      vm.print_enable = true;
+    });
+    $state.go("app.reports.SupplierWisePOs.POs");
+  }
+
+  vm.print_page = "";
+  vm.dtInstance = {};
+
+  vm.empty_data = {
                     'from_date': '',
                     'to_date': '',
-                    'sku_code': ''
+                    'wms_code': ''
                     };
 
-   vm.model_data = {};
-
-   angular.copy(vm.empty_data, vm.model_data);
-
-   vm.suppliers = {};
-   vm.service.apiCall('get_supplier_list/').then(function(data){
-      if(data.message) {
-        vm.suppliers = data.data.suppliers;
-      }
-   })
+  vm.model_data = {};
+  angular.copy(vm.empty_data, vm.model_data);
 
     vm.close = function() {
 
@@ -109,4 +86,4 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.service.print_data(vm.print_page, "Purchase Order");
     }
 
-  }
+}

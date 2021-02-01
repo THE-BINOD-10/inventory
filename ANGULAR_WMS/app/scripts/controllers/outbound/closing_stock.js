@@ -100,6 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
       })
      .withPaginationType('full_numbers')
+     .withOption('rowCallback', rowCallback)
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
@@ -127,13 +128,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-      $(row_click_bind, nRow).unbind('click');
-      $(row_click_bind, nRow).bind('click', function() {
-        var data = {'supplier_id': aData}
+      $('td', nRow).unbind('click');
+      $('td', nRow).bind('click', function() {
+        aData['year'] = vm.year;
+        aData['month'] = vm.month_no;
+        var data = {'cs_data': aData}
         var modalInstance = $modal.open({
           templateUrl: 'views/outbound/toggle/update_cls.html',
           controller: 'ClosingUpdateCtrl',
-          controllerAs: 'pop',
+          controllerAs: '$ctrl',
           size: 'md',
           backdrop: 'static',
           keyboard: false,
@@ -148,7 +151,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             selectedItem['datum']['price_request'] = true;
           }
         });
-      }
+      });
     }
     vm.check_closing_qty = function(row_id, data_id, closing_qty){
       var row_data = vm.dtInstance.DataTable.context[0].aoData[row_id]._aData;
@@ -264,8 +267,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInstance, $modal, items, Service, Session) {
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
-  vm.grnData = items;
+  vm.csData = items['cs_data'];
+  console.log(vm.csData);
+  vm.current_remarks = ''
+  vm.current_cs_qty = 0;
+  vm.temp_current_consumption_qty = vm.csData['Consumption Quantity'];
+  vm.current_consumption_qty = vm.csData['Consumption Quantity'];
   vm.service = Service;
+  vm.confirm_cs_value = function () {
+    vm.conf_disable = true;
+    var elem = {data_id: vm.csData['data_id'], quantity: vm.current_cs_qty, year: vm.csData['year'], month: vm.csData['month'], remarks: vm.current_remarks};
+    vm.service.apiCall('save_closing_stock_ui/', 'POST', elem, true).then(function(data){
+      if(data.message) {
+        if(data.data == 'Success') {
+          vm.cancel('');
+          vm.service.showNoty('success');
+          //vm.service.refresh(vm.dtInstance);
+        } else {
+          vm.service.showNoty(data.data);
+        }
+      }
+    vm.conf_disable = false;
+    });
+  }
+  vm.update_consumption_qty = function (dat) {
+    if (dat) {
+      vm.current_consumption_qty = vm.temp_current_consumption_qty + parseFloat(dat);
+    } else {
+      vm.current_consumption_qty = vm.temp_current_consumption_qty;
+    }
+  }
   vm.cancel = function (data) {
     temp_dict = {
       'status': 'cancel'

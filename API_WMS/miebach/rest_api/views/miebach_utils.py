@@ -5593,7 +5593,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
         check_and_get_plants_wo_request, \
         get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
-        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , get_all_department_data
+        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , get_all_department_data, check_and_get_plants_depts_wo_request
     from rest_api.views.masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -14570,7 +14570,7 @@ def get_pr_report_data(search_params, user, sub_user):
     from common import get_misc_value, get_admin
     from rest_api.views.common import get_sku_master, get_local_date, get_filtered_params, \
         get_warehouse_user_from_sub_user, get_plant_and_department, get_warehouses_data, \
-        get_all_department_data, get_related_users_filters
+        get_all_department_data, get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PR'}
@@ -14992,7 +14992,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin
     from rest_api.views.common import get_sku_master, get_local_date, get_filtered_params, \
-        get_warehouse_user_from_sub_user, get_plant_and_department, get_all_department_data, get_related_users_filters
+        get_warehouse_user_from_sub_user, get_plant_and_department, get_all_department_data, get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PR'}
@@ -15463,7 +15463,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department, \
-        get_all_department_data, get_related_users_filters
+        get_all_department_data, get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PO'}
@@ -15670,7 +15670,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data,\
-        get_related_users_filters
+        get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PO'}
@@ -16272,7 +16272,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data,\
-        get_related_users_filters
+        get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     lis = ['open_po__pendingpos__pending_prs__full_pr_number', 'open_po__pendingpos__pending_prs__creation_date',

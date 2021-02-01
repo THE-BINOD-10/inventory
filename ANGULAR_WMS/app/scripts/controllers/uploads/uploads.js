@@ -698,7 +698,12 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
     if (!msg.includes("Success") && msg != "Upload Fail" && msg.indexOf("Orders exceeded") === -1) {
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
-      vm.service.showNotyNotHide("Please Download The Error Form");
+      if(msg.includes("Closing Stock")){
+        vm.service.showNotyNotHide(msg);
+      }
+      else {
+        vm.service.showNotyNotHide("Please Download The Error Form");
+      }
     }
     else {
       vm.service.showNotyNotHide(msg);

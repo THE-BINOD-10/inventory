@@ -113,12 +113,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Current Available Stock').withTitle('Current Available Stock'),
         DTColumnBuilder.newColumn('Base UOM').withTitle('Base UOM'),
         DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
-        DTColumnBuilder.newColumn('Closing Quantity').withTitle('Closing Quantity'),
-        DTColumnBuilder.newColumn('Base UOM').withTitle('Base UOM'),
+        //DTColumnBuilder.newColumn('Closing Quantity').withTitle('Closing Quantity'),
+        //DTColumnBuilder.newColumn('Base UOM').withTitle('Base UOM'),
         DTColumnBuilder.newColumn('Consumption Quantity').withTitle('Consumption Quantity'),
         DTColumnBuilder.newColumn('Consumption Value').withTitle('Consumption Value'),
-        DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
-        DTColumnBuilder.newColumn('').withTitle('')
+        //DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
+        //DTColumnBuilder.newColumn('').withTitle('')
     ];
 
     vm.dtInstance = {};
@@ -273,6 +273,9 @@ angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInsta
   vm.current_cs_qty = 0;
   vm.temp_current_consumption_qty = vm.csData['Consumption Quantity'];
   vm.current_consumption_qty = vm.csData['Consumption Quantity'];
+  vm.current_consumption_value = vm.csData['Consumption Value'];
+  vm.temp_consumption_value = vm.csData['Consumption Value'];
+  vm.sku_avg_price = vm.csData['sku_average_price'];
   vm.service = Service;
   vm.confirm_cs_value = function () {
     vm.conf_disable = true;
@@ -291,10 +294,14 @@ angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInsta
     });
   }
   vm.update_consumption_qty = function (dat) {
-    if (dat) {
-      vm.current_consumption_qty = vm.temp_current_consumption_qty + parseFloat(dat);
+    if (dat != "" && dat != undefined) {
+      var temp_cq = (vm.csData["Current Available Stock"] - parseFloat(dat))
+      vm.current_consumption_qty = vm.temp_current_consumption_qty + temp_cq;
+      vm.current_consumption_value = vm.temp_consumption_value + ((temp_cq/vm.csData["sku_pcf"])*vm.csData["sku_avg_price"]);
+
     } else {
       vm.current_consumption_qty = vm.temp_current_consumption_qty;
+      vm.current_consumption_value = vm.temp_consumption_value;
     }
   }
   vm.cancel = function (data) {

@@ -2632,6 +2632,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_sku_wise_cancel_grn_report': 'get_sku_wise_cancel_grn_report_data',
                         'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
                         'closing_stock_report': 'get_closing_stock_report_data',
+                        'supplier_wise_po_report': 'get_supplier_details_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -6155,7 +6156,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                 pr_date= pr_date_time.split(' ')
                 pr_date = ' '.join(pr_date[0:3])
                 pr_raised_user = pending_pr.requested_user.username
-                pr_dept = get_warehouse_user_from_sub_user(pending_pr.requested_user_id)
+                pr_dept = pending_pr.wh_user #get_warehouse_user_from_sub_user(pending_pr.requested_user_id)
                 user_profile= UserProfile.objects.get(user_id=pr_dept.id)
                 if(user_profile.warehouse_type=="DEPT"):
                     if(user_profile.stockone_code):

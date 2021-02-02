@@ -147,8 +147,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
         modalInstance.result.then(function (selectedItem) {
-          if (selectedItem['status'] == 'success') {
-            selectedItem['datum']['price_request'] = true;
+          if (selectedItem['status'] == 'Success') {
+            vm.reloadData();
           }
         });
       });
@@ -283,8 +283,8 @@ angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInsta
     vm.service.apiCall('save_closing_stock_ui/', 'POST', elem, true).then(function(data){
       if(data.message) {
         if(data.data == 'Success') {
-          vm.cancel('');
-          vm.service.showNoty('success');
+          vm.cancel(data.data);
+          vm.service.showNoty(data.data);
           //vm.service.refresh(vm.dtInstance);
         } else {
           vm.service.showNoty(data.data);
@@ -305,8 +305,10 @@ angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInsta
     }
   }
   vm.cancel = function (data) {
-    temp_dict = {
-      'status': 'cancel'
+    if (data) {
+      temp_dict = {'status': data}
+    } else {
+      temp_dict = {'status': 'cancel'}
     }
     $modalInstance.close(temp_dict);
   };

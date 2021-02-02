@@ -11321,15 +11321,15 @@ def get_ageing_data(search_params, user, sub_user):
         check_and_get_plants_wo_request, \
         get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
         get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , \
-            get_all_department_data, get_permission, get_uom_with_sku_code , get_decimal_limit
+            get_all_department_data, get_permission, get_uom_with_sku_code , get_decimal_limit,\
+            check_and_get_plants_depts_wo_request
     from datetime import date, datetime
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     user_profile = UserProfile.objects.get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -11347,10 +11347,19 @@ def get_ageing_data(search_params, user, sub_user):
         search_parameters['sku__%s__%s' % ("sub_category", 'icontains')] = search_params["sub_category"]
     if "sku_brand" in search_params:
         search_parameters['sku__%s__%s' % ("sku_brand", 'icontains')] = search_params["sku_brand"]
+    #if 'plant_code' in search_params:
+    #    plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+    #    if plant_obj:
+    #        search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
     if 'plant_code' in search_params:
-        plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
-        if plant_obj:
-            search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    user_ids = list(users.values_list('id', flat=True))
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     lis = ['sku_id__wms_code', 'sku_id__sku_desc',
@@ -11359,8 +11368,7 @@ def get_ageing_data(search_params, user, sub_user):
            'quantity']
     search_term = {}
     stock_detail_objs = StockDetail.objects.select_related('sku', 'batch_detail').prefetch_related('sku').\
-        exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, 
-        batch_detail__expiry_date__isnull=False,  batch_detail__expiry_date__gte=datetime.now(), **search_parameters)
+        exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, **search_parameters)
     if search_term:
         master_data = stock_detail_objs.filter(Q(sku__wms_code__icontains=search_term) |
                                                Q(quantity__icontains=search_term) |
@@ -11379,10 +11387,30 @@ def get_ageing_data(search_params, user, sub_user):
     counter = 1
     if stop_index:
         master_data = master_data[start_index:stop_index]
+
+    grn_numbers, sku_codes = [], []
+    for model_dat in master_data:
+        grn_numbers.append(model_dat.grn_number)
+        sku_codes.append(model_dat.sku.sku_code)
+    grn_model_data={}
+    seller_summary_objs= SellerPOSummary.objects.filter(
+                                Q(purchase_order__open_po__sku__sku_code__in=sku_codes) | Q(purchase_order__stpurchaseorder__open_st__sku__sku_code__in=sku_codes),
+                                grn_number__in=grn_numbers
+                            ).\
+                        values("grn_number", "creation_date", "purchase_order__open_po__sku__sku_code", "purchase_order__stpurchaseorder__open_st__sku__sku_code")
+    for grn_dat in seller_summary_objs:
+        sku_code = grn_dat['purchase_order__open_po__sku__sku_code']
+        if not sku_code:
+            sku_code = grn_dat['purchase_order__stpurchaseorder__open_st__sku__sku_code']
+        grn_sku_key = (grn_dat["grn_number"], sku_code)
+        grn_model_data.setdefault(grn_sku_key, {"creation_date": grn_dat["creation_date"]})
+
     for data in master_data:
+        grn_sku_key= (data.grn_number, data.sku.sku_code)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         batch_no = manufactured_date = expiry_date = ''
+        expiry_date_obj = None
         mrp = 0
         weight = ''
         price = 0
@@ -11405,10 +11433,11 @@ def get_ageing_data(search_params, user, sub_user):
             pcf_for_val = data.batch_detail.pcf
             if data.batch_detail.manufactured_date:
                 manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
-                mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")            
+                mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")
             else:
                 manufactured_date = ''
             if data.batch_detail.expiry_date:
+                expiry_date_obj = data.batch_detail.expiry_date
                 expiry_date = data.batch_detail.expiry_date.strftime("%d %b %Y")
                 exp_date = data.batch_detail.expiry_date.strftime("%m/%d/%Y")
                 days_to_expired= datetime.strptime(exp_date, "%m/%d/%Y").toordinal() - date.today().toordinal()
@@ -11419,7 +11448,7 @@ def get_ageing_data(search_params, user, sub_user):
         if data.pallet_detail:
             pallet_code = data.pallet_detail.pallet_cod
         quantity = data.quantity/pcf
-        quantity_for_val = data.quantity/pcf_for_val
+        quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
         plant_name = sku_user.first_name
@@ -11431,7 +11460,11 @@ def get_ageing_data(search_params, user, sub_user):
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         expiry_range = ""
-        if days_to_expired > 0  and days_to_expired <= 30:
+        if not expiry_date_obj:
+            expiry_range = 'No Expiry'
+        elif expiry_date_obj <= datetime.now().date():
+            expiry_range = 'Already Expired'
+        elif days_to_expired > 0  and days_to_expired <= 30:
             expiry_range = "0 < 30"
         elif days_to_expired > 31  and days_to_expired <= 60:
             expiry_range = "31 < 60"
@@ -11439,6 +11472,11 @@ def get_ageing_data(search_params, user, sub_user):
             expiry_range = "61 < 90"
         else:
             expiry_range = "  > 90"
+        grn_number, grn_date= "", ""
+        if grn_sku_key in grn_model_data:
+            grn_number= data.grn_number
+            temp_grn_date= get_local_date(user, grn_model_data[grn_sku_key]["creation_date"]).split(' ')
+            grn_date= ' '.join(temp_grn_date[0:3])
         row_data = OrderedDict((
                                 ('Material Code', data.sku.sku_code),
                                 ('WMS Code', data.sku.wms_code),
@@ -11463,6 +11501,8 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Base UOM', uom_dict["base_uom"]), 
                                 ('Base Quantity', get_decimal_limit(user.id, data.quantity)),
                                 ('Expiry Range', expiry_range),
+                                ('GRN Number', grn_number),
+                                ('GRN Date', grn_date),
                                 ('days_to_expired', days_to_expired),
                                 ('Receipt Type', data.receipt_type)))
         temp_data['aaData'].append(row_data)

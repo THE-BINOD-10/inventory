@@ -12325,7 +12325,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         year = int(float(cell_data))
                         data_dict[key] = year
-                        if len(str(year)) != 4:# or year != 2021:
+                        if len(str(year)) != 4 or year != 2021:
                             index_status.setdefault(row_idx, set()).add('Invalid Year')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Year')
@@ -12336,7 +12336,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2:# or month != 1:
+                        if len(str(month)) > 2 or month != 1:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')
@@ -12421,7 +12421,7 @@ def update_closing_stock_quantity(data_list, year, month):
     updating_users = {}
     first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
     first_date = get_utc_start_date(first_date)
-    last_date = first_date + relativedelta(months=1)
+    last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
     last_change_date = get_utc_start_date(last_change_date)
     if last_date < last_change_date:
         last_change_date = last_date

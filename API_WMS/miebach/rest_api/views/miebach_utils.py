@@ -1837,7 +1837,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
-    'dt_headers': ['Date', 'Warehouse', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_headers': ['Date', 'Warehouse', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -11369,7 +11369,7 @@ def get_ageing_data(search_params, user, sub_user):
            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
            'quantity']
     search_term = {}
-    stock_detail_objs = StockDetail.objects.select_related('sku', 'batch_detail').prefetch_related('sku').\
+    stock_detail_objs = StockDetail.objects.prefetch_related('sku', 'batch_detail').\
         exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, **search_parameters)
     if search_term:
         master_data = stock_detail_objs.filter(Q(sku__wms_code__icontains=search_term) |
@@ -11408,6 +11408,7 @@ def get_ageing_data(search_params, user, sub_user):
         grn_sku_key = (grn_dat["grn_number"], sku_code)
         grn_model_data.setdefault(grn_sku_key, {"creation_date": grn_dat["creation_date"]})
 
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     for data in master_data:
         counter += 1
         grn_sku_key= (data.grn_number, data.sku.sku_code)
@@ -11423,8 +11424,8 @@ def get_ageing_data(search_params, user, sub_user):
         batch_id = ''
         mfg_date, exp_date = '', ''
         days_to_expired = ''
-        uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
-        pcf = uom_dict['sku_conversion']
+        uom_dict = skus_uom_dict.get(data.sku.sku_code)#get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+        pcf = uom_dict.get('sku_conversion', 1)
         pcf_for_val = 1
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
@@ -11447,10 +11448,8 @@ def get_ageing_data(search_params, user, sub_user):
                 days_to_expired= datetime.strptime(exp_date, "%m/%d/%Y").toordinal() - date.today().toordinal()
             else:
                 expiry_date = ''
-        pallet_code, sub_zone = '', ''
+        pallet_code = ''
         zone = data.location.zone.zone
-        if data.pallet_detail:
-            pallet_code = data.pallet_detail.pallet_cod
         quantity = data.quantity/pcf
         quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
@@ -16177,6 +16176,7 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
 
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     order_data = lis[col_num]
@@ -16983,9 +16983,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters = {'sku__user__in': user_ids}
-    lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+    lis = ['creation_date', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
             'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
-            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -16995,7 +16995,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_params['from_date'] = get_utc_start_date(search_params['from_date'])
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        search_parameters['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
@@ -17009,12 +17009,12 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf']
+                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
-                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).order_by(order_data)
 
-    if order_term:
-        results = model_data.order_by(order_data)
+    #if order_term:
+    #    results = model_data.order_by(order_data)
 
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = model_data.count()
@@ -17061,7 +17061,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),
-            ('Expiry Date', exp_date)))
+            ('Expiry Date', exp_date),
+            ('Remarks', result['remarks'])))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

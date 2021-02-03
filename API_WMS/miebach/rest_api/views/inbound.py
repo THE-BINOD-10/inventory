@@ -14174,6 +14174,10 @@ def prepare_rtv_json_data(request_data, user):
                     'reserved__sum']
             if reserved_quantity:
                 stock_count = stock_count - reserved_quantity
+            if len(data_list) > 0:
+                for dat in data_list:
+                    if dat['summary_id'] == data_dict['summary_id'] and dat['stocks'][0].sku.sku_code == data_dict['stocks'][0].sku.sku_code and dat['location'].id == data_dict['location'].id:
+                        quantity = quantity + dat['quantity']
             if stock_count < float(quantity):
                 return data_list, 'Return Quantity Exceeded available quantity'
             data_list.append(data_dict)

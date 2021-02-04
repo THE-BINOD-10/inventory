@@ -276,6 +276,7 @@ angular.module('urbanApp').controller('ClosingUpdateCtrl', function ($modalInsta
   vm.current_consumption_value = vm.csData['Consumption Value'];
   vm.temp_consumption_value = vm.csData['Consumption Value'];
   vm.sku_avg_price = vm.csData['sku_average_price'];
+  vm.current_cs_qty = vm.csData['Current Available Stock'];
   vm.service = Service;
   vm.confirm_cs_value = function () {
     vm.conf_disable = true;

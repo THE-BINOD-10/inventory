@@ -612,8 +612,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }).then(function(response){
         vm.search_res = [];
         var results = response.data;
-        if (results.length > 7) {
-          results = results.slice(0,7);
+        if (results.length > 10) {
+          results = results.slice(0,10);
         }
         vm.popup_dyn_style = {height: (175 + (25 * results.length))}; // It is for scaning sku alert popup height
         return results.map(function(item){

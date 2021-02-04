@@ -98,7 +98,7 @@ def get_report_data(request, user=''):
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report']:
         if 'sister_warehouse' in filter_keys:
-            if user.userprofile.warehouse_type == 'ADMIN':
+            '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
                 sister_wh = user_data.keys()
             else:
@@ -113,7 +113,18 @@ def get_report_data(request, user=''):
             sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").\
                 values_list('user__first_name', flat=True))
 
-            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
+            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))'''
+            users = [user.id]
+            sub_user = request.user
+            if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'])
+            else:
+                users = [user.id]
+                users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+                users = users.filter(userprofile__warehouse_type='DEPT')
+            depts = users.values_list('first_name', flat=True).distinct()
+            data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(depts)
 
         if 'final_status' in filter_keys:
             data_index = data['filters'].index(
@@ -614,7 +625,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     # search_parameters = {'open_po__sku_id__in': sku_master_ids}
     search_parameters = {}
     supplier_data = {'aaData': []}
-    supplier_name = search_params.get('supplier_id')
+    supplier_name = search_params.get('supplier')
     lis = ['created_date', 'open_po__sku__user', 'open_po__sku__user', 'open_po__sku__user', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
            'order_id', 'created_date']
     order_val = lis[order_index]
@@ -672,6 +683,8 @@ def get_supplier_details_data(search_params, user, sub_user):
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     if supplier_name:
+        if ':' in supplier_name:
+            supplier_name = supplier_name.split(':')[0]
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user__in=user_ids, **search_parameters).exclude(status='deleted')

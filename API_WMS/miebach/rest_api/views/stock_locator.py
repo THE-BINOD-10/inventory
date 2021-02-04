@@ -2821,7 +2821,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                 sub_zone = zone
                 zone = sub_zone_obj.zone.zone
         pquantity = data.quantity/pcf
-        quantity_for_val = data.quantity/pcf_for_val
+        quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
         plant_name = sku_user.first_name
@@ -2853,7 +2853,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Base Uom', uom_dict.get('base_uom', '')),
                                 ('Purchase Uom Quantity', round(pquantity, 5)),
                                 ('Purchase Uom', uom_dict.get('measurement_unit', '')),
-                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Pallet', pallet_code), ('Receipt Type', data.receipt_type),
                                 ('Creation Date', get_local_date(user, data.creation_date))))
         if pallet_switch != 'true' and row_data.get('Pallet'):

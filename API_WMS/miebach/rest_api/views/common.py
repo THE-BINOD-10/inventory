@@ -457,10 +457,11 @@ def get_git_current_version_number():
         else:
             git_path= current_path
         repo=git.Repo(git_path)
-        tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
-        git_version_obj = tags[-1]
+        #tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+        #git_version_obj = tags[-1]
+        git_version_obj = repo.git.tag('--contains')
         if git_version_obj:
-            version_number= git_version_obj.name[1:]
+            version_number= git_version_obj[1:]
     except:
         pass
     return version_number

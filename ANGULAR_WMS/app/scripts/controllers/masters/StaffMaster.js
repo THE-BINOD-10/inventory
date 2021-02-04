@@ -109,9 +109,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.customer = function(url) {
-
     var send = {}
     var send = $("form").serializeArray();
+    if (vm.model_data.password && vm.model_data.re_password) {
+      var pwd_check =  /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,25}$/;
+      if (vm.model_data.password != vm.model_data.re_password) {
+        vm.service.pop_msg('Password Mismatch !');
+        return false;
+      } else if (!vm.model_data.password.match(pwd_check)) {
+        vm.service.pop_msg('New password minimum of 8 characters, which should contain atleast One LowerCase, One UpperCase, One Numeric Digit & One Special Character');
+        return false;
+      }
+    }
     if(vm.model_data.warehouse){ send.push({name: 'plant', value: vm.model_data.warehouse.join(',')}); }
     else {send.push({name: 'plant', value: ""});}
     if(vm.model_data.department_type_list){ send.push({name: 'department_type', value: vm.model_data.department_type_list.join(',')}); }

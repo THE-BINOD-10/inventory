@@ -7170,8 +7170,9 @@ def confirm_grn(request, confirm_returns='', user=''):
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
-    if check_consumption_configuration([user.id]):
-        return HttpResponse("GRN Disable Due to Closing Stock Updations")
+    if request.POST.get('product_category') == 'Kits&Consumables' or request.POST.get('order_type', '') == 'Stock Transfer':
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("GRN Disable Due to Closing Stock Updations")
     if(service_doa):
         model_id=request.POST['doa_id']
         doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
@@ -14174,6 +14175,10 @@ def prepare_rtv_json_data(request_data, user):
                     'reserved__sum']
             if reserved_quantity:
                 stock_count = stock_count - reserved_quantity
+            if len(data_list) > 0:
+                for dat in data_list:
+                    if dat['summary_id'] == data_dict['summary_id'] and dat['stocks'][0].sku.sku_code == data_dict['stocks'][0].sku.sku_code and dat['location'].id == data_dict['location'].id:
+                        quantity = quantity + dat['quantity']
             if stock_count < float(quantity):
                 return data_list, 'Return Quantity Exceeded available quantity'
             data_list.append(data_dict)

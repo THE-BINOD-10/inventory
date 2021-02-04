@@ -12,8 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
   vm.industry_type = Session.user_profile.industry_type;
-  vm.user_type = Session.user_profile.user_type
-
+  vm.user_type = Session.user_profile.user_type;
   vm.filters = {'datatable': 'SupplierMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
   vm.dtOptions = DTOptionsBuilder.newOptions()
     .withOption('ajax', {
@@ -69,7 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.title = "Update Supplier";
         vm.model_data.status = vm.status_data[vm.status_data.indexOf(aData["status"])]
         for(var i in vm.model_data.uploads_list){
-            vm.model_data.uploads_list[i][0] = vm.service.get_host_url(vm.model_data.uploads_list[i][0]);
+          vm.model_data.uploads_list[i][0] = vm.service.get_host_url(vm.model_data.uploads_list[i][0]);
         }
         $state.go('app.masters.SupplierMaster.supplier');
       });
@@ -97,6 +96,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.searched_sup_code = vm.service.search_key;
         $state.go('app.inbound.RaisePo.PurchaseOrder');
       }else{
+        $(':input').removeAttr('readonly');
+        vm.service.refresh(vm.dtInstance);
         $state.go('app.masters.SupplierMaster');
       }
   }

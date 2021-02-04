@@ -17717,6 +17717,8 @@ def get_closing_stock_ui_data(start_index, stop_index, temp_data, search_term, o
                                                 ('Consumption Quantity', cons_qty),
                                                 ('Consumption Value', cons_value),
                                                 ('Remarks', remarks_input),
+                                                ('sku_avg_price', sku['average_price']),
+                                                ('sku_pcf', pcf),
                                                 ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_closing_qty(%s, %s)" ng-disabled="showCase.conf_disable">Save</button>' % (str(count), str(data_id))),
                                                 ('id', data_id),
                                                 ('DT_RowClass', 'results'),

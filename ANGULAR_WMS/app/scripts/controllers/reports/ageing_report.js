@@ -44,6 +44,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'),
       DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
       DTColumnBuilder.newColumn('Expiry Range').withTitle('Expiry Range'),
+      DTColumnBuilder.newColumn('GRN Number').withTitle('GRN Number'),
+      DTColumnBuilder.newColumn('GRN Date').withTitle('GRN Date'),
     ];
     if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
       vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))

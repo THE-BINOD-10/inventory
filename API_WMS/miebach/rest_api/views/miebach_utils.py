@@ -11392,7 +11392,7 @@ def get_ageing_data(search_params, user, sub_user):
 
     grn_numbers, sku_codes = [], []
     for model_dat in master_data:
-        if not model_dat.grn_number:
+        if model_dat.grn_number:
             grn_numbers.append(model_dat.grn_number)
         sku_codes.append(model_dat.sku.sku_code)
     grn_model_data={}

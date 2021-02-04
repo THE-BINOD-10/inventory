@@ -625,7 +625,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     # search_parameters = {'open_po__sku_id__in': sku_master_ids}
     search_parameters = {}
     supplier_data = {'aaData': []}
-    supplier_name = search_params.get('supplier_id')
+    supplier_name = search_params.get('supplier')
     lis = ['created_date', 'open_po__sku__user', 'open_po__sku__user', 'open_po__sku__user', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
            'order_id', 'created_date']
     order_val = lis[order_index]
@@ -683,6 +683,8 @@ def get_supplier_details_data(search_params, user, sub_user):
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     if supplier_name:
+        if ':' in supplier_name:
+            supplier_name = supplier_name.split(':')[0]
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user__in=user_ids, **search_parameters).exclude(status='deleted')

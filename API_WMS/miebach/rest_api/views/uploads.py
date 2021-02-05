@@ -12237,6 +12237,7 @@ def closing_stock_form(request, user=''):
 def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
+    distinct_sku_user_combo = []
     inv_mapping = copy.deepcopy(CLOSING_STOCK_FEATURE_FILE_MAPPING)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -12306,6 +12307,11 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
                         sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        tus = (data_dict['user'].id, cell_data)
+                        if tus in distinct_sku_user_combo:
+                            index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
+                        else:
+                            distinct_sku_user_combo.append(tus)
                         if not sku_master.exists():
                             index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                         else:

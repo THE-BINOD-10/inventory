@@ -2150,11 +2150,11 @@ def print_pending_po_form(request, user=''):
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         name = order.supplier.name
+        code = order.supplier.supplier_id
         gstin_no = order.supplier.tin_number
         address = order.supplier.address
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
-        name = order.supplier.name
         supplier_email = order.supplier.email_id
         gstin_no = order.supplier.tin_number
         if order.supplier.lead_time:
@@ -2206,6 +2206,7 @@ def print_pending_po_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'code': code,
         'order_date': order_date,
         'delivery_date': delivery_date,
         'total': round(total),
@@ -2654,6 +2655,7 @@ def confirm_po(request, user=''):
     po_data = []
     total = 0
     total_qty = 0
+    code = ''
     industry_type = user.userprofile.industry_type
     myDict = dict(request.POST.iterlists())
     display_remarks = get_misc_value('display_remarks_mail', user.id)
@@ -2849,6 +2851,7 @@ def confirm_po(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
+    code = purchase_order.supplier.supplier_id
     supplier_email = purchase_order.supplier.email_id
     secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
     supplier_email_id =[]
@@ -2882,7 +2885,7 @@ def confirm_po(request, user=''):
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address,
                  'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': round(total),
+                 'name': name, 'code':code, 'order_date': order_date, 'total': round(total),
                  'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name,
                  'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
@@ -9891,6 +9894,7 @@ def confirm_add_po(request, sales_data='', user=''):
             vendor_telephone = purchase_order.vendor.phone_number
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
+        code = purchase_order.supplier.supplier_id
         order_id = po_id
         supplier_email = purchase_order.supplier.email_id
         secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
@@ -9952,7 +9956,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 terms_condition = tc_master[0].text_field
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,
+                     'name': name, 'code':code, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,
                      'po_reference':po_reference, 'supplier_payment_terms': supplier_payment_terms, 'supplier_currency': supplier_currency,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,

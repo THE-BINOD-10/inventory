@@ -2378,6 +2378,7 @@ def print_purchase_order_form(request, user=''):
         vendor_telephone = open_po.vendor.phone_number
     telephone = open_po.supplier.phone_number
     name = open_po.supplier.name
+    code = open_po.supplier.supplier_id
     order_id = order.order_id
     gstin_no = open_po.supplier.tin_number
     if open_po:
@@ -2398,6 +2399,7 @@ def print_purchase_order_form(request, user=''):
         ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
+        code = open_po.supplier.supplier_id
         supplier_email = open_po.supplier.email_id
         gstin_no = open_po.supplier.tin_number
         if open_po.order_type == 'VR':
@@ -2456,6 +2458,7 @@ def print_purchase_order_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'code': code,
         'remarks': remarks,
         'order_date': order_date,
         'total': round(total),

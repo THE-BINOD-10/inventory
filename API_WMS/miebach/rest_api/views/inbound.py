@@ -14261,89 +14261,92 @@ def create_rtv(request, user=''):
         return_type = 'Invoice'
     data_list = []
     try:
-        data_list, status = prepare_rtv_json_data(request_data, user)
-        if status:
-            return HttpResponse(status)
-        if data_list:
-            data_list = save_update_rtv(data_list)
-            rtv_no = get_incremental(user, 'rtv')
-            #date_val = datetime.datetime.now().strftime('%Y%m%d')
-            date_val = get_financial_year(datetime.datetime.now())
-            date_val = date_val.replace('-', '')
-            rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
-            invoice_number= ''
-            send_rtv_mail = False
-            if get_misc_value('rtv_mail', user.id) == 'true':
-                send_rtv_mail = True
-            for final_dict in data_list:
-                if float(final_dict['needed_stock_quantity']) > 0:
-                    update_stock_detail(final_dict['stocks'], float(final_dict['needed_stock_quantity']), user,
-                                        final_dict['rtv_id'])
-                #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
-                #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-                rtv_reason = final_dict.get('rtv_reasons', '')
-                rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+        with transaction.atomic('default'):
+            data_list, status = prepare_rtv_json_data(request_data, user)
+            if status:
+                return HttpResponse(status)
+            if data_list:
+                data_list = save_update_rtv(data_list)
+                rtv_no = get_incremental(user, 'rtv')
+                #date_val = datetime.datetime.now().strftime('%Y%m%d')
+                date_val = get_financial_year(datetime.datetime.now())
+                date_val = date_val.replace('-', '')
+                rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
+                invoice_number= ''
+                send_rtv_mail = False
+                if get_misc_value('rtv_mail', user.id) == 'true':
+                    send_rtv_mail = True
+                for final_dict in data_list:
+                    if float(final_dict['needed_stock_quantity']) > 0:
+                        update_stock_detail(final_dict['stocks'], float(final_dict['needed_stock_quantity']), user,
+                                            final_dict['rtv_id'])
+                    #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
+                    #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
+                    rtv_reason = final_dict.get('rtv_reasons', '')
+                    rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+                    if send_rtv_mail:
+                        if not invoice_number:
+                            invoice_number = rtv_obj.seller_po_summary.invoice_number
+                    rtv_obj.rtv_number = rtv_number
+                    rtv_obj.return_type = return_type
+                    rtv_obj.status=0
+                    rtv_obj.return_reason = rtv_reason
+                    rtv_obj.save()
+                show_data_invoice = get_debit_note_data(rtv_number, user)
                 if send_rtv_mail:
-                    if not invoice_number:
-                        invoice_number = rtv_obj.seller_po_summary.invoice_number
-                rtv_obj.rtv_number = rtv_number
-                rtv_obj.return_type = return_type
-                rtv_obj.status=0
-                rtv_obj.return_reason = rtv_reason
-                rtv_obj.save()
-            show_data_invoice = get_debit_note_data(rtv_number, user)
-            if send_rtv_mail:
-                supplier_email = show_data_invoice.get('supplier_email', '')
-                supplier_id = show_data_invoice.get('supplier_id', '')
-                owner_email = show_data_invoice.get('owner_email', '')
-                supplier_email_id = []
-                supplier_email_id.insert(0, supplier_email)
-                if supplier_id:
-                    secondary_supplier_email = list(
-                        MasterEmailMapping.objects.filter(master_id=supplier_id, user=user.id,
-                                                      master_type='supplier').values_list(
-                            'email_id', flat=True).distinct())
+                    supplier_email = show_data_invoice.get('supplier_email', '')
+                    supplier_id = show_data_invoice.get('supplier_id', '')
+                    owner_email = show_data_invoice.get('owner_email', '')
+                    supplier_email_id = []
+                    supplier_email_id.insert(0, supplier_email)
+                    if supplier_id:
+                        secondary_supplier_email = list(
+                            MasterEmailMapping.objects.filter(master_id=supplier_id, user=user.id,
+                                                          master_type='supplier').values_list(
+                                'email_id', flat=True).distinct())
 
-                    supplier_email_id.extend(secondary_supplier_email)
-                if owner_email:
-                    supplier_email_id.append(owner_email)
-                data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
-                                'po_reference': show_data_invoice.get('grn_no',''),
-                                'invoice_number': invoice_number,
-                                'supplier_name':show_data_invoice.get('supplier_name',''),
-                                'rtv_number':show_data_invoice.get('rtv_number',''),
-                                 }
+                        supplier_email_id.extend(secondary_supplier_email)
+                    if owner_email:
+                        supplier_email_id.append(owner_email)
+                    data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
+                                    'po_reference': show_data_invoice.get('grn_no',''),
+                                    'invoice_number': invoice_number,
+                                    'supplier_name':show_data_invoice.get('supplier_name',''),
+                                    'rtv_number':show_data_invoice.get('rtv_number',''),
+                                     }
+                    t = loader.get_template('templates/toggle/rtv_mail.html')
+                    rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
+                    supplier_phone_number = show_data_invoice.get('phone_number', '')
+                    company_name = show_data_invoice.get('warehouse_details', '').get('company__company_name', '')
+                    write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
+                                       supplier_email_id, supplier_phone_number, company_name + 'Return to vendor order',
+                                       '', False, False, 'rtv_mail' ,data_dict_po )
+                if user.username in MILKBASKET_USERS:
+                    check_and_update_marketplace_stock(sku_codes, user)
                 t = loader.get_template('templates/toggle/rtv_mail.html')
-                rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
-                supplier_phone_number = show_data_invoice.get('phone_number', '')
-                company_name = show_data_invoice.get('warehouse_details', '').get('company__company_name', '')
-                write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
-                                   supplier_email_id, supplier_phone_number, company_name + 'Return to vendor order',
-                                   '', False, False, 'rtv_mail' ,data_dict_po )
-            if user.username in MILKBASKET_USERS:
-                check_and_update_marketplace_stock(sku_codes, user)
-            t = loader.get_template('templates/toggle/rtv_mail.html')
-            rendered_data = t.render({'show_data_invoice': [show_data_invoice]})
-            attachments= write_html_to_pdf(show_data_invoice.get('rtv_number',''),rendered_data)
-            if(len(attachments)>0):
-                show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
-            # from api_calls.netsuite import netsuite_update_create_rtv
-            plant = user.userprofile.reference_id
-            subsidary= user.userprofile.company.reference_id
-            department= ""
-            try:
-                intObj = Integrations(user, 'netsuiteIntegration')
-                show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
-                show_data_invoice["po_number"]=request_data["po_number"][0]
+                rendered_data = t.render({'show_data_invoice': [show_data_invoice]})
+                attachments= write_html_to_pdf(show_data_invoice.get('rtv_number',''),rendered_data)
+                if(len(attachments)>0):
+                    show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
+                # from api_calls.netsuite import netsuite_update_create_rtv
+                plant = user.userprofile.reference_id
+                subsidary= user.userprofile.company.reference_id
+                department= ""
+                try:
+                    intObj = Integrations(user, 'netsuiteIntegration')
+                    show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
+                    show_data_invoice["po_number"]=request_data["po_number"][0]
 
-                intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
-            except Exception as e:
-                print(e)
-            try:
+                    intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
+                except Exception as e:
+                    print(e)
+                #try:
                 update_sku_avg_from_rtv(user, rtv_number)
-            except Exception as e:
-                log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
-            return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
+                #except Exception as e:
+                #    import traceback
+                #    log.debug(traceback.format_exc())
+                #    log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
+                return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

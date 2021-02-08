@@ -14038,15 +14038,21 @@ def update_sku_avg_from_rtv(user, rtv_number):
     for rtv in rtvs:
         price,tax = [0]*2
         sp = rtv.seller_po_summary
+        pcf = ''
         if sp.batch_detail:
             price = sp.batch_detail.buy_price
             tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+            pcf = sp.batch_detail.pcf
+        pcf = pcf if pcf else skucf
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        skucf = uom_dict['sku_conversion']
+        skucf = skucf if skucf else 1
         amt = rtv.quantity * price
         total = amt + ((amt/100)*tax)
         sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
-        sku_amt[sku_code]['qty'] += rtv.quantity
+        sku_amt[sku_code]['qty'] += (rtv.quantity * pcf)/skucf
     update_sku_avg_main(sku_amt, user, main_user, dec=True)
 
 @get_admin_user

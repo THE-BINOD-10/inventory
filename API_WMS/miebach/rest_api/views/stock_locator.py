@@ -129,6 +129,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
     temp_data['totalAvailableQuantity'] = 0
+    search_params['quantity__gt']=0
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',

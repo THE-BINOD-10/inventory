@@ -15557,6 +15557,7 @@ def grn_extra_fields(user):
 
 @csrf_exempt
 def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
+    sub_user = request.user
     stat = 1
     if filters.get('search_1', '') == 'completed':
         stat = 2
@@ -15567,7 +15568,13 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
     else:
         order_data = '%s' % order_data
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    # users = [user.id]
+    # users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     main_master_data = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user__in=user_ids, credit_status=stat).exclude(status=1)
     master_data = main_master_data.values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()

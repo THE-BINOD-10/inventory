@@ -2384,7 +2384,7 @@ def print_purchase_order_form(request, user=''):
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        if open_po.ship_to:
+        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < open_po.creation_date:
             ship_to_address = open_po.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.wh_address
@@ -2392,11 +2392,12 @@ def print_purchase_order_form(request, user=''):
                 company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
-        if wh_ship_to.exists():
-            wh_ship_to = wh_ship_to[0]
-            ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
-        ship_to_address = '\n'.join(ship_to_address.split(','))
+        if not ship_to_address:
+            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+            if wh_ship_to.exists():
+                wh_ship_to = wh_ship_to[0]
+                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+        # ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
         code = open_po.supplier.supplier_id

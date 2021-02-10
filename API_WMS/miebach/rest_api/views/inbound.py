@@ -9596,10 +9596,12 @@ def confirm_add_po(request, sales_data='', user=''):
     ean_flag = False
     po_order_id = ''
     status = ''
-    suggestion = ''
+    suggestion, ship_to_address = '', ''
     pending_po_line_entries = ''
     terms_condition = request.POST.get('terms_condition', '')
     supplier_payment_terms = request.POST.get('supplier_payment_terms', '')
+    if not request.POST.get('ship_to'):
+        return HttpResponse('Ship to address mandatory !')
     if supplier_payment_terms:
         supplier_payment_terms = supplier_payment_terms.split(':')[1]
     if not request.POST:
@@ -9711,7 +9713,6 @@ def confirm_add_po(request, sales_data='', user=''):
             mrp = value['mrp']
             if not mrp:
                 mrp = 0
-
             supplier = SupplierMaster.objects.get(user=user.id, supplier_id=value['supplier_id'])
             po_suggestions['sku_id'] = sku_id[0].id
             po_suggestions['supplier_id'] = supplier.id
@@ -9858,32 +9859,24 @@ def confirm_add_po(request, sales_data='', user=''):
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
-            ship_to_address = purchase_order.ship_to
+            if get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < purchase_order.creation_date:
+                ship_to_address = purchase_order.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.address
-                # Company Address should be address only.
-                # Didn't change the same for Milkbasket after checking with Sreekanth
-                if user.username in MILKBASKET_USERS:
-                    company_address = user.userprofile.wh_address
-                    if user.userprofile.user.email:
-                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
-                    if user.userprofile.phone_number:
-                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
-                    if user.userprofile.gst_number:
-                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
             else:
                 company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        try:
-            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
-            if wh_ship_to.exists():
-                wh_ship_to = wh_ship_to[0]
-                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
-        except Exception as e:
-            pass
+        if not ship_to_address:
+            try:
+                wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+                if wh_ship_to.exists():
+                    wh_ship_to = wh_ship_to[0]
+                    ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+            except Exception as e:
+                pass
         wh_telephone = user.userprofile.wh_phone_number
-        ship_to_address = '\n'.join(ship_to_address.split(','))
+        # ship_to_address = '\n'.join(ship_to_address.split(','))
         vendor_name = ''
         vendor_address = ''
         vendor_telephone = ''

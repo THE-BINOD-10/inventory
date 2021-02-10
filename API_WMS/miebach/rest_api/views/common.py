@@ -457,12 +457,16 @@ def get_git_current_version_number():
         else:
             git_path= current_path
         repo=git.Repo(git_path)
+        git_version_str= subprocess.Popen(["git", "describe", "--tags", "--abbrev=0"], stdout=subprocess.PIPE).communicate()
+        if git_version_str:
+            version_number= git_version_str[0][1:-1]
         #tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
         #git_version_obj = tags[-1]
-        git_version_obj = repo.git.tag('--contains')
-        if git_version_obj:
-            version_number= git_version_obj[1:]
-    except:
+        #git_version_obj = repo.git.tag('--contains')
+        #if git_version_obj:
+        #    version_number= git_version_obj[1:]
+    except Exception as e:
+        log.info(e)
         pass
     return version_number
 

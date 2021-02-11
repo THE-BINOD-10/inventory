@@ -1020,6 +1020,10 @@ var app = angular.module('urbanApp')
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/pending_pr_enquiries.js'
                   ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/cancelled_rejected.js'
+                  ])
                 });
               }]
           },

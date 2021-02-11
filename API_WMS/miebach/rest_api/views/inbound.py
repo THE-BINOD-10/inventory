@@ -264,7 +264,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 
 
 @csrf_exempt
-def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, special_key=''):
     filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id, 'quantity__gt': 0}
     status =  request.POST.get('special-key', '')
     lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
@@ -273,6 +273,10 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
+    if special_key:
+        search_params['pending_pr__final_status__in'] = ['cancelled', 'rejected']
+    else:
+        search_params['pending_pr__final_status__in'] = ['pending', 'approved', 'saved']
     if search_params.get('pending_pr__delivery_date__icontains'):
         plant_search = search_params['pending_pr__delivery_date__icontains']
         search_params.pop('pending_pr__delivery_date__icontains')

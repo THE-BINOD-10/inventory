@@ -404,7 +404,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         count += 1
 
 @csrf_exempt
-def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, special_key=''):
     filtersMap = {'purchase_type': 'PO', 'pending_po__open_po': None} # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
     if request.user.id != user.id:
         currentUserLevel = ''
@@ -456,6 +456,11 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             'pending_po_id', 'pending_po_id', 'pending_po_id',
             'pending_po__remarks']
     search_params = get_filtered_params(filters, lis)
+    exclude_dat = []
+    if special_key:
+        exclude_dat = ['approved', 'pending', 'saved', 'po_converted_back_to_pr']
+    else:
+        exclude_dat = ['cancelled', 'rejected', 'po_converted_back_to_pr']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -467,7 +472,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__product_category', 'pending_po_id', 'pending_po__full_po_number',
                     'pending_po__sku_category']
     results = PendingLineItems.objects.filter(**filtersMap). \
-                exclude(pending_po__final_status='po_converted_back_to_pr'). \
+                exclude(pending_po__final_status__in=exclude_dat). \
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:

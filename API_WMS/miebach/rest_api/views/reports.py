@@ -2423,7 +2423,14 @@ def print_purchase_order_form(request, user=''):
     company_details = {}
     company_logo=""
     if profile.company.logo:
-        company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
+        try:
+            import base64
+            _logo_url = profile.company.logo.url
+            _logo_url = _logo_url.replace('/static/', 'static/').replace('%20', ' ')
+            with open(_logo_url, "rb") as image_file:
+                company_logo = base64.b64encode(image_file.read())
+        except:
+            company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
     if profile.company:
         company_details['company_address'] = ''
         if profile.company.address:

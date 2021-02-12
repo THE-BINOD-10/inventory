@@ -9868,7 +9868,7 @@ def confirm_add_po(request, sales_data='', user=''):
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
-            if get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < purchase_order.creation_date:
+            if get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < purchase_order.creation_date:
                 ship_to_address = purchase_order.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.address

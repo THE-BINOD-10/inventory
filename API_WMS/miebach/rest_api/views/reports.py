@@ -2385,7 +2385,7 @@ def print_purchase_order_form(request, user=''):
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < open_po.creation_date:
+        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < open_po.creation_date:
             ship_to_address = open_po.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.wh_address

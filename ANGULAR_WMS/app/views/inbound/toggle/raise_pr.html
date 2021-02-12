@@ -131,6 +131,10 @@
    .sidebar-panel{
       z-index: 1000;
    }
+   .select2-container .select2-choice {
+      height: 32px !important;
+      border: 1px solid #aaaaaa5c !important;
+   }
 </style>
 
 <div id="page-pop" class="modal fade in over-x">
@@ -155,7 +159,7 @@
           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.warehouse_type!='DEPT'">
             <div class="form-group">
               <label class="control-label">Plant *</label>
-              <select class="form-control" name="plant"
+              <select ui-select2 class="form-control" name="plant"
               ng-model="showCase.model_data.plant"  ng-change="showCase.get_warehouse_department_list()" required>
                 <option ng-repeat="(plant_name, plant_code) in showCase.plants_list"
                         value="{{plant_code}}">{{plant_name}}
@@ -166,7 +170,7 @@
           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.warehouse_type!='DEPT'">
             <div class="form-group">
               <label class="control-label">Department Type *</label>
-              <select class="form-control" name="department_type"
+              <select ui-select2 class="form-control" name="department_type"
               ng-model="showCase.model_data.department_type" required>
                 <option ng-repeat="(dept_code, dept_name) in showCase.department_type_list"
                         value="{{dept_code}}">{{dept_name}}
@@ -177,7 +181,7 @@
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
               <label class="control-label">Product Category</label>
-              <select class="form-control" name="product_category" 
+              <select ui-select2 class="form-control" name="product_category"
               ng-init="showCase.model_data.product_category='Kits&Consumables'"
               ng-model="showCase.model_data.product_category"
               ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
@@ -190,7 +194,7 @@
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
               <label class="control-label">Category</label>
-              <select class="form-control" name="sku_category" 
+              <select ui-select2 class="form-control" name="sku_category"
                       ng-model="showCase.model_data.sku_category"
                       ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
                 <option ng-if="showCase.model_data.product_category=='Kits&Consumables'"

@@ -257,6 +257,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
+          vm.model_data.ship_addr_names = data.data.shipment_add_names;
+          vm.model_data.shipment_addresses = data.data.shipment_addresses;
           vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
           vm.model_data.ship_addr_names = data.data.shipment_add_names;
           vm.model_data.shipment_addresses = data.data.shipment_addresses;

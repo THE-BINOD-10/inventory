@@ -96,7 +96,8 @@ def get_report_data(request, user=''):
 
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
-                         'metropolis_po_detail_report', 'pr_po_grn_dict', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report']:
+                         'metropolis_po_detail_report', 'pr_po_grn_dict', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
+                         'sku_wise_consumption_report', 'closing_stock_report']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -2378,12 +2379,13 @@ def print_purchase_order_form(request, user=''):
         vendor_telephone = open_po.vendor.phone_number
     telephone = open_po.supplier.phone_number
     name = open_po.supplier.name
+    code = open_po.supplier.supplier_id
     order_id = order.order_id
     gstin_no = open_po.supplier.tin_number
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        if open_po.ship_to:
+        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < open_po.creation_date:
             ship_to_address = open_po.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.wh_address
@@ -2391,13 +2393,15 @@ def print_purchase_order_form(request, user=''):
                 company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
-        if wh_ship_to.exists():
-            wh_ship_to = wh_ship_to[0]
-            ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
-        ship_to_address = '\n'.join(ship_to_address.split(','))
+        if not ship_to_address:
+            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+            if wh_ship_to.exists():
+                wh_ship_to = wh_ship_to[0]
+                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+        # ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
+        code = open_po.supplier.supplier_id
         supplier_email = open_po.supplier.email_id
         gstin_no = open_po.supplier.tin_number
         if open_po.order_type == 'VR':
@@ -2456,6 +2460,7 @@ def print_purchase_order_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'code': code,
         'remarks': remarks,
         'order_date': order_date,
         'total': round(total),

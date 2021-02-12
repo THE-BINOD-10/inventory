@@ -600,7 +600,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         } else {
           data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
           typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-          if (!vm.permissions.central_admin_level_po) {
+          if (!vm.permissions.central_admin_level_po && typeof(vm.permissions.central_admin_level_po) != 'undefined') {
             vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
           }
         }

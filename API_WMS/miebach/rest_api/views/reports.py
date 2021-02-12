@@ -2385,7 +2385,7 @@ def print_purchase_order_form(request, user=''):
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < open_po.creation_date:
+        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < open_po.creation_date:
             ship_to_address = open_po.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.wh_address
@@ -2423,7 +2423,14 @@ def print_purchase_order_form(request, user=''):
     company_details = {}
     company_logo=""
     if profile.company.logo:
-        company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
+        try:
+            import base64
+            _logo_url = profile.company.logo.url
+            _logo_url = _logo_url.replace('/static/', 'static/').replace('%20', ' ')
+            with open(_logo_url, "rb") as image_file:
+                company_logo = base64.b64encode(image_file.read())
+        except:
+            company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
     if profile.company:
         company_details['company_address'] = ''
         if profile.company.address:

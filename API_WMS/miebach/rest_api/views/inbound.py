@@ -9868,7 +9868,7 @@ def confirm_add_po(request, sales_data='', user=''):
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
-            if get_utc_start_date(datetime.datetime.strptime('2021-02-10', '%Y-%m-%d')) < purchase_order.creation_date:
+            if get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < purchase_order.creation_date:
                 ship_to_address = purchase_order.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.address
@@ -9925,7 +9925,12 @@ def confirm_add_po(request, sales_data='', user=''):
         company_logo=""
         if profile.company.logo:
             try:
-                company_logo = "/".join(["%s:/" % 'http', request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
+                import base64
+                _logo_url = profile.company.logo.url
+                _logo_url = _logo_url.replace('/static/', 'static/').replace('%20', ' ')
+                with open(_logo_url, "rb") as image_file:
+                    company_logo = base64.b64encode(image_file.read())
+                #company_logo = "/".join(["%s:/" % 'http', request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
                 log.info("Email PDF " + str(company_logo))
             except Exception as e:
                 company_logo = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])

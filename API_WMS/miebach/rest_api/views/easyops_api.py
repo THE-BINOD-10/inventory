@@ -192,6 +192,17 @@ class EasyopsAPI:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, server, 'get_consumption'))
         json_response = self.get_response(url, data)
         return json_response
+      
+    def get_device_data(self, token='', data={},user='', server=''):
+        if user:
+            self.user = user
+            self.get_user_token(user)
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, server, 'get_device')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, server, 'get_device'))
+        json_response = self.get_response(url, data)
+        return json_response
 
     def get_stock_count(self, sku_id, token='', user=''):
         """ Getting Stock Count for a particular SKU """

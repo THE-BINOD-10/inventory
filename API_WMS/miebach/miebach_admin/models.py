@@ -4126,6 +4126,21 @@ class OrgDeptMapping(models.Model):
     class Meta:
         db_table = 'ORG_DEPT_MAPPING'
 
+class OrgInstrumentMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True)
+    org_name = models.CharField(max_length=128, default='', blank=True, null=True)
+    machine = models.ForeignKey(MachineMaster, default=None, blank=True, null=True)
+    instrument_name = models.CharField(max_length=128, default='', blank=True, null=True)
+    instrument_id =  models.IntegerField(default=None, blank=True, null=True)
+    investigation_id =  models.IntegerField(default=None, blank=True, null=True)
+    tcode = models.CharField(max_length=128, default='', blank=True, null=True)
+    tname = models.CharField(max_length=128, default='', blank=True, null=True)
+    dept_name = models.CharField(max_length=128, default='', blank=True, null=True)
+
+    class Meta:
+        db_table = 'ORG_INSTRUMENT_MAPPING'
+
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, related_name='consumption_user')

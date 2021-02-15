@@ -3922,6 +3922,46 @@ def get_central_order_id(customer_id):
         interm_id = 10001
     return interm_id
 
+def get_devices(data_dict={}, user=''):
+    from rest_api.views.easyops_api import *
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        today = datetime.date.today().strftime('%Y%m%d')
+        data_dict['date'] = today
+        servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
+        for server in servers:
+            server = server+'_DEVICE'
+            device_objs = obj.get_device_data(data=data_dict,user=user,server=server)
+            update_devices(device_objs, user)
+
+def update_devices(device_objs, user):
+    if device_objs and device_objs.get('STATUS_CODE', 0) == 200:
+        status_time = device_objs.get('TIME', 0)
+        if device_objs.keys() > 2:
+            devices_lis = device_objs.keys()
+            devices_lis.remove('STATUS_CODE')
+            devices_lis.remove('TIME')
+            count = 0
+            for key in devices_lis:
+                count += 1
+                try:
+                    device_data = device_objs[key]
+                    machine_code = device_data.get('DeviceID', '')
+                    machine_name = device_data.get('DeviceName', '')
+                    device_dict = {'tcode':device_data.get('Tcode', ''), 'attune_id':device_data.get('OrgID', ''), 'tname':device_data.get('Tname', ''),
+                                    'org_name':device_data.get('OrgName', ''),'instrument_name':device_data.get('DeviceName', ''), 'instrument_id':device_data.get('DeviceID', ''),
+                                    'investigation_id':device_data.get('InvestigationID', ''), 'dept_name':device_data.get('DeptName', '')}
+                    if machine_code:
+                        machine_obj = MachineMaster.objects.filter(test_code=str(machine_code), user=user.id)
+                        if machine_obj.exists():
+                            data_dict['machine'] = machine_obj[0]
+                        else:
+                            machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user.id, 'machine_name': machine_name})
+                            data_dict['machine'] = machine_obj
+                    OrgInstrumentMapping.objects.create(**device_dict)
+
+
 
 def check_and_update_stock(wms_codes, user):
     stock_sync = get_misc_value('stock_sync', user.id)

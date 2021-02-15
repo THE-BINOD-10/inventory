@@ -51,7 +51,9 @@ def update_consumption(consumption_objss, user, company):
                         else:
                             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
                             dept_type = department_mapping.get(user.userprofile.stockone_code, '')
-                            TestMaster.objects.create(**{'test_code':str(test_code), 'test_type':'', 'test_name':str(test_name),'department_type':dept_type,'user':company.id, 'sku_code':str(test_code), 'wms_code':str(test_code), 'sku_desc':str(test_name)})
+                            TestMaster.objects.create(**{'test_code':str(test_code), 'test_type':'', 'test_name':str(test_name),
+                                                        'department_type':dept_type,'user':company.id, 
+                                                        'sku_code':str(test_code), 'wms_code':str(test_code), 'sku_desc':str(test_name)})
                             test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
                             data_dict['test'] = test_obj[0]
                         consumption_filter = {'test_id': str(test_obj[0].id)}
@@ -63,6 +65,7 @@ def update_consumption(consumption_objss, user, company):
                             #consumption_filter['machine__machine_code'] = str(machine_code)
                     name = consumption_dict.get('NAME', '')
                     orgid = consumption_dict.get('OrgID', '')
+                    investigation_id = consumption_dict.get('InvestigationID', '')
                     number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
                     'n_time_process':'PN', 'rerun':'RR', 'quality_check':'Q', 'total_patients':'TP', 'total':'T', 'no_patient':'NP',
                     'qnp':'QNP', 'patient_samples': 'PatientSamples'}
@@ -89,6 +92,10 @@ def update_consumption(consumption_objss, user, company):
                                 continue
                             consumption_user = User.objects.get(id = user_groups[0].user.id)
                             data_dict['user'] = consumption_user
+                    instrument_objs = OrgInstrumentMapping.objects.filter(attune_id=orgid, investigation_id=investigation_id)
+                    if instrument_objs:
+                        consumption_filter['machine'] = instrument_objs[0].machine
+                        data_dict['machine'] = instrument_objs[0].machine
                     consumption_obj = Consumption.objects.filter(user=consumption_user.id, **consumption_filter)
                     if consumption_obj.exists():
                         status = 'Success'

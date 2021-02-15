@@ -1571,6 +1571,7 @@ vm.checkWHSupplierExist  = function (sup_id) {
     wh_data['warehouse_type'] = 'DEPT';
     vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
       if(data.message) {
+        vm.department_type_list[''] = 'None';
         angular.forEach(data.data.warehouse_list, function(dat){
           if(vm.department_type_mapping[dat.stockone_code]) {
             vm.department_type_list[dat.stockone_code] = vm.department_type_mapping[dat.stockone_code];

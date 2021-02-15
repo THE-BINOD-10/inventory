@@ -546,38 +546,40 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                    perm: "add_netsuiteidmapping",
-                 }, {
-                   title: "Closing Adjustment Download/ Upload",
-                   download: "Download Closing Adjustment Form",
-                   upload: "Upload Closing Adjustment Form",
-                   durl: "closing_adjustment_form/",
-                   uurl: "closing_adjustment_upload/",
-                   dparam: "download-closing-adjustment-file",
-                   value: "",
-                   disable: true,
-                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
-                 }, {
-                   title: "Closing Stock In Bulk Download/ Upload",
-                   download: "Download Closing In Bulk Stock Form",
-                   upload: "Upload Closing Stock In Bulk Form",
-                   durl: "closing_stock_form/",
-                   uurl: "closing_stock_upload/",
-                   dparam: "download-closing-stock-file",
-                   value: "",
-                   disable: true,
-                   show: false,
-                   perm: "change_consumptiondata",
-                 }, {
-                   title: "Consumption Download/ Upload",
-                   download: "Download Consumption Form",
-                   upload: "Upload Consumption Form",
-                   durl: "consumption_form/",
-                   uurl: "consumption_upload/",
-                   dparam: "download-consumption-file",
-                   value: "",
-                   disable: true,
-                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
-                 }, {
+                 }, 
+                 // {
+                 //   title: "Closing Adjustment Download/ Upload",
+                 //   download: "Download Closing Adjustment Form",
+                 //   upload: "Upload Closing Adjustment Form",
+                 //   durl: "closing_adjustment_form/",
+                 //   uurl: "closing_adjustment_upload/",
+                 //   dparam: "download-closing-adjustment-file",
+                 //   value: "",
+                 //   disable: true,
+                 //   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                 // }, {
+                 //   title: "Closing Stock In Bulk Download/ Upload",
+                 //   download: "Download Closing In Bulk Stock Form",
+                 //   upload: "Upload Closing Stock In Bulk Form",
+                 //   durl: "closing_stock_form/",
+                 //   uurl: "closing_stock_upload/",
+                 //   dparam: "download-closing-stock-file",
+                 //   value: "",
+                 //   disable: true,
+                 //   show: false,
+                 //   perm: "change_consumptiondata",
+                 // }, {
+                 //   title: "Consumption Download/ Upload",
+                 //   download: "Download Consumption Form",
+                 //   upload: "Upload Consumption Form",
+                 //   durl: "consumption_form/",
+                 //   uurl: "consumption_upload/",
+                 //   dparam: "download-consumption-file",
+                 //   value: "",
+                 //   disable: true,
+                 //   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                 // },
+                  {
                    title: "Closing Stock Download/ Upload",
                    download: "Download Closing Stock Form",
                    upload: "Upload Closing Stock Form",
@@ -587,9 +589,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    disable: true,
                    show: true,
-                   perm: "change_consumptiondata",
                  }
-
                 ]
 
   $scope.download = function(data) {
@@ -698,7 +698,12 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
     if (!msg.includes("Success") && msg != "Upload Fail" && msg.indexOf("Orders exceeded") === -1) {
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
-      vm.service.showNotyNotHide("Please Download The Error Form");
+      if(msg.includes("Closing Stock")){
+        vm.service.showNotyNotHide(msg);
+      }
+      else {
+        vm.service.showNotyNotHide("Please Download The Error Form");
+      }
     }
     else {
       vm.service.showNotyNotHide(msg);

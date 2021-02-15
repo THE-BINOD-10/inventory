@@ -21,6 +21,14 @@
       <tab heading="Pending PR Enquiries" ng-if="showCase.permissions.enable_pending_approval_prs" ng-controller="PendingPREnquiriesCtrl as showCase" ng-click="showCase.loadjs()">
         <div ng-if="showCase.PendingPREnquiriesCtrl" ng-include="'views/inbound/raise_po/pending_pr_enquiries.html'"></div>
       </tab>
+      <tab heading="Cancelled & Rejected PR's" ng-if="showCase.permissions.enable_pending_approval_prs" ng-controller="rejectedCancelledCtrl as showCase" ng-click="showCase.loadjs()">
+        <div class="panel" ng-if="showCase.rejectedCancelledCtrl">
+          <div class="panel-header">
+            <div ng-include="'views/common/excel.html'"></div>
+          </div>
+          <div ng-include="'views/common/datatable.html'"></div>
+        </div>
+      </tab>
     </tabset>
   </div>
 </div>

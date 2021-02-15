@@ -12237,6 +12237,7 @@ def closing_stock_form(request, user=''):
 def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
+    distinct_sku_user_combo = []
     inv_mapping = copy.deepcopy(CLOSING_STOCK_FEATURE_FILE_MAPPING)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -12306,6 +12307,11 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
                         sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        tus = (data_dict['user'].id, cell_data)
+                        if tus in distinct_sku_user_combo:
+                            index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
+                        else:
+                            distinct_sku_user_combo.append(tus)
                         if not sku_master.exists():
                             index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                         else:
@@ -12381,7 +12387,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
 def load_month_end_closing_stock(updating_users, year, month):
     first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
     first_date = get_utc_start_date(first_date)
-    last_date = first_date + relativedelta(months=1)
+    last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
     main_user = User.objects.get(id=2)
     for upd_user, upd_skus in updating_users.items():
         closing_stock_objs = ClosingStock.objects.filter(stock__sku__user=upd_user.id, stock__sku__sku_code__in=upd_skus,
@@ -12416,6 +12422,95 @@ def save_uploaded_closing_stock(data_list, fname, file_type, reader):
         rewrite_excel_file(f_name, {}, reader, file_path=file_path)
 
 
+def update_closing_stock_quantity(data_list, year, month):
+    last_change_date = datetime.datetime.now()
+    updating_users = {}
+    first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
+    first_date = get_utc_start_date(first_date)
+    last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
+    last_change_date = get_utc_start_date(last_change_date)
+    if last_date < last_change_date:
+        last_change_date = last_date
+    print last_change_date
+    with transaction.atomic('default'):
+        loop_counter = 1
+        for final_data in data_list:
+            print 'Updating: %s' % str(loop_counter)
+            updating_users.setdefault(final_data['user'], set())
+            updating_users[final_data['user']].add(final_data['sku'].sku_code)
+            loop_counter += 1
+            user = final_data['user']
+            sku = final_data['sku']
+            base_quantity = final_data['base_uom_quantity']
+            sku_stocks = final_data['stocks']
+            remarks = final_data.get('remarks', '')
+            unit_price = sku.average_price
+            if not unit_price:
+                try:
+                    latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku.id).\
+                        exclude(batch_detail__isnull=True).latest('id')
+                    unit_price = latest_batch.buy_price + ((latest_batch.buy_price/100) * (latest_batch.tax_percent + latest_batch.cess_percent))
+                except:
+                    pass
+            closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
+            closing_qty = closing_qty if closing_qty else 0
+            closing_adj = closing_qty - base_quantity
+            uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+            temp_batch_stocks = sku_stocks.filter(batch_detail__isnull=False)
+            if temp_batch_stocks:
+                puom = temp_batch_stocks[0].batch_detail.puom
+                pcf = temp_batch_stocks[0].batch_detail.pcf
+            else:
+                pcf = uom_dict['sku_conversion']
+                puom = uom_dict['measurement_unit']
+            pquantity = base_quantity * pcf
+            adj_dict = {'base_quantity': base_quantity, 'puom': puom,
+                        'pquantity': pquantity,
+                        'pcf': pcf, 'creation_date': last_change_date.date()}
+            stock_dict = {}
+            if not sku_stocks:
+                if sku.zone:
+                    location = sku.zone.locationmaster_set.filter()[0]
+                else:
+                    put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+                    if not put_zone:
+                        create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                    else:
+                        put_zone = put_zone[0]
+                    location = put_zone.locationmaster_set.filter()[0]
+                stock_dict = {'sku_id': sku.id,
+                              'quantity': base_quantity,
+                              'receipt_date': last_change_date.date(),
+                              'receipt_number': get_stock_receipt_number(user),
+                              'location_id': location.id}
+                batch_dict = {'pquantity': pquantity, 'puom': puom,
+                              'pcf': pcf, 'buy_price': unit_price}
+                stock_dict['batch_dict'] = batch_dict
+            #adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id,
+            #                                                               batch_no='',
+            #                                                               creation_date__date=last_change_date.date(),
+            #                                                               defaults=adj_dict)
+            if not closing_adj: continue
+            consumption_data = ConsumptionData.objects.create(
+                sku_id=sku.id,
+                quantity=closing_adj,
+                price=unit_price,
+                remarks=remarks
+            )
+            consumption_data.creation_date = last_change_date
+            consumption_data.save()
+            if closing_adj > 0:
+                update_stock_detail(sku_stocks, closing_adj, user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='dec', transact_date=last_change_date)
+            else:
+                update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict, transact_date=last_change_date)
+        load_month_end_closing_stock(updating_users, year, month)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -12434,17 +12529,20 @@ def closing_stock_upload(request, user=''):
         return HttpResponse(status)
     save_uploaded_closing_stock(data_list, fname, file_type, reader)
     try:
-        last_change_date = datetime.datetime.now()
-        updating_users = {}
+        #last_change_date = datetime.datetime.now()
+        #updating_users = {}
         year = data_list[0]['year']
         month = data_list[0]['month']
-        first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
-        first_date = get_utc_start_date(first_date)
-        last_date = first_date + relativedelta(months=1)
-        last_change_date = get_utc_start_date(last_change_date)
-        if last_date < last_change_date:
-            last_change_date = last_date
-        print last_change_date
+        #first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
+        #first_date = get_utc_start_date(first_date)
+        #last_date = first_date + relativedelta(months=1)
+        #last_change_date = get_utc_start_date(last_change_date)
+        #if last_date < last_change_date:
+        #    last_change_date = last_date
+        #print last_change_date
+        update_closing_stock_quantity(data_list, year, month)
+
+        '''
         with transaction.atomic('default'):
             loop_counter = 1
             for final_data in data_list:
@@ -12520,6 +12618,7 @@ def closing_stock_upload(request, user=''):
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict, transact_date=last_change_date)
             load_month_end_closing_stock(updating_users, year, month)
+            '''
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

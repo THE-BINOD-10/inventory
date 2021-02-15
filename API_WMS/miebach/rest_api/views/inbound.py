@@ -264,7 +264,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 
 
 @csrf_exempt
-def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, special_key=''):
     filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id, 'quantity__gt': 0}
     status =  request.POST.get('special-key', '')
     lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
@@ -273,6 +273,10 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
+    if special_key:
+        search_params['pending_pr__final_status__in'] = ['cancelled', 'rejected']
+    else:
+        search_params['pending_pr__final_status__in'] = ['pending', 'approved', 'saved']
     if search_params.get('pending_pr__delivery_date__icontains'):
         plant_search = search_params['pending_pr__delivery_date__icontains']
         search_params.pop('pending_pr__delivery_date__icontains')
@@ -400,7 +404,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         count += 1
 
 @csrf_exempt
-def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, special_key=''):
     filtersMap = {'purchase_type': 'PO', 'pending_po__open_po': None} # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
     if request.user.id != user.id:
         currentUserLevel = ''
@@ -452,6 +456,11 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             'pending_po_id', 'pending_po_id', 'pending_po_id',
             'pending_po__remarks']
     search_params = get_filtered_params(filters, lis)
+    exclude_dat = []
+    if special_key:
+        exclude_dat = ['approved', 'pending', 'saved', 'po_converted_back_to_pr']
+    else:
+        exclude_dat = ['cancelled', 'rejected', 'po_converted_back_to_pr']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -463,7 +472,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__product_category', 'pending_po_id', 'pending_po__full_po_number',
                     'pending_po__sku_category']
     results = PendingLineItems.objects.filter(**filtersMap). \
-                exclude(pending_po__final_status='po_converted_back_to_pr'). \
+                exclude(pending_po__final_status__in=exclude_dat). \
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
@@ -2150,11 +2159,11 @@ def print_pending_po_form(request, user=''):
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         name = order.supplier.name
+        code = order.supplier.supplier_id
         gstin_no = order.supplier.tin_number
         address = order.supplier.address
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
-        name = order.supplier.name
         supplier_email = order.supplier.email_id
         gstin_no = order.supplier.tin_number
         if order.supplier.lead_time:
@@ -2206,6 +2215,7 @@ def print_pending_po_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'code': code,
         'order_date': order_date,
         'delivery_date': delivery_date,
         'total': round(total),
@@ -2561,6 +2571,7 @@ def switches(request, user=''):
                        'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                        'pending_pr_prefix': 'pending_pr_prefix',
                        'auto_putaway_grn': 'auto_putaway_grn',
+                       'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2653,6 +2664,7 @@ def confirm_po(request, user=''):
     po_data = []
     total = 0
     total_qty = 0
+    code = ''
     industry_type = user.userprofile.industry_type
     myDict = dict(request.POST.iterlists())
     display_remarks = get_misc_value('display_remarks_mail', user.id)
@@ -2848,6 +2860,7 @@ def confirm_po(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
+    code = purchase_order.supplier.supplier_id
     supplier_email = purchase_order.supplier.email_id
     secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
     supplier_email_id =[]
@@ -2881,7 +2894,7 @@ def confirm_po(request, user=''):
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address,
                  'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': round(total),
+                 'name': name, 'code':code, 'order_date': order_date, 'total': round(total),
                  'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name,
                  'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
@@ -7164,11 +7177,14 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
-    if request.POST.get('order_type', '') == 'Stock Transfer':
-        return HttpResponse("GRN Disable for Stock Transfer Orders !..")
+    # if request.POST.get('order_type', '') == 'Stock Transfer':
+    #     return HttpResponse("GRN Disable for Stock Transfer Orders !..")
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
+    if request.POST.get('product_category') == 'Kits&Consumables' or request.POST.get('order_type', '') == 'Stock Transfer':
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("GRN Disable Due to Closing Stock Updations")
     if(service_doa):
         model_id=request.POST['doa_id']
         doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
@@ -9589,10 +9605,12 @@ def confirm_add_po(request, sales_data='', user=''):
     ean_flag = False
     po_order_id = ''
     status = ''
-    suggestion = ''
+    suggestion, ship_to_address = '', ''
     pending_po_line_entries = ''
     terms_condition = request.POST.get('terms_condition', '')
     supplier_payment_terms = request.POST.get('supplier_payment_terms', '')
+    if not request.POST.get('ship_to'):
+        return HttpResponse('Ship to address mandatory !')
     if supplier_payment_terms:
         supplier_payment_terms = supplier_payment_terms.split(':')[1]
     if not request.POST:
@@ -9704,7 +9722,6 @@ def confirm_add_po(request, sales_data='', user=''):
             mrp = value['mrp']
             if not mrp:
                 mrp = 0
-
             supplier = SupplierMaster.objects.get(user=user.id, supplier_id=value['supplier_id'])
             po_suggestions['sku_id'] = sku_id[0].id
             po_suggestions['supplier_id'] = supplier.id
@@ -9851,32 +9868,24 @@ def confirm_add_po(request, sales_data='', user=''):
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
         if purchase_order.ship_to:
-            ship_to_address = purchase_order.ship_to
+            if get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < purchase_order.creation_date:
+                ship_to_address = purchase_order.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.address
-                # Company Address should be address only.
-                # Didn't change the same for Milkbasket after checking with Sreekanth
-                if user.username in MILKBASKET_USERS:
-                    company_address = user.userprofile.wh_address
-                    if user.userprofile.user.email:
-                        company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
-                    if user.userprofile.phone_number:
-                        company_address = ("%s, Phone:%s") % (company_address, user.userprofile.phone_number)
-                    if user.userprofile.gst_number:
-                        company_address = ("%s, GSTINo:%s") % (company_address, user.userprofile.gst_number)
             else:
                 company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        try:
-            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
-            if wh_ship_to.exists():
-                wh_ship_to = wh_ship_to[0]
-                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
-        except Exception as e:
-            pass
+        if not ship_to_address:
+            try:
+                wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+                if wh_ship_to.exists():
+                    wh_ship_to = wh_ship_to[0]
+                    ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+            except Exception as e:
+                pass
         wh_telephone = user.userprofile.wh_phone_number
-        ship_to_address = '\n'.join(ship_to_address.split(','))
+        # ship_to_address = '\n'.join(ship_to_address.split(','))
         vendor_name = ''
         vendor_address = ''
         vendor_telephone = ''
@@ -9887,6 +9896,7 @@ def confirm_add_po(request, sales_data='', user=''):
             vendor_telephone = purchase_order.vendor.phone_number
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
+        code = purchase_order.supplier.supplier_id
         order_id = po_id
         supplier_email = purchase_order.supplier.email_id
         secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
@@ -9915,7 +9925,11 @@ def confirm_add_po(request, sales_data='', user=''):
         company_logo=""
         if profile.company.logo:
             try:
-                company_logo = "/".join(["%s:/" % 'http', request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
+                _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+                _logo_url =  urllib.url2pathname(_logo_url)
+                with open(_logo_url, "rb") as image_file:
+                    company_logo = base64.b64encode(image_file.read())
+                #company_logo = "/".join(["%s:/" % 'http', request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
                 log.info("Email PDF " + str(company_logo))
             except Exception as e:
                 company_logo = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
@@ -9948,7 +9962,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 terms_condition = tc_master[0].text_field
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,
+                     'name': name, 'code':code, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,
                      'po_reference':po_reference, 'supplier_payment_terms': supplier_payment_terms, 'supplier_currency': supplier_currency,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
@@ -13880,6 +13894,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 def get_po_putaway_summary(request, user=''):
     warehouse_id = request.GET['warehouse_id']
     user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("RTV Disable Due to Closing Stock Updations")
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
     challan_number = request.GET['challan_number']
@@ -14169,6 +14185,10 @@ def prepare_rtv_json_data(request_data, user):
                     'reserved__sum']
             if reserved_quantity:
                 stock_count = stock_count - reserved_quantity
+            if len(data_list) > 0:
+                for dat in data_list:
+                    if dat['summary_id'] == data_dict['summary_id'] and dat['stocks'][0].sku.sku_code == data_dict['stocks'][0].sku.sku_code and dat['location'].id == data_dict['location'].id:
+                        quantity = quantity + dat['quantity']
             if stock_count < float(quantity):
                 return data_list, 'Return Quantity Exceeded available quantity'
             data_list.append(data_dict)
@@ -14251,89 +14271,92 @@ def create_rtv(request, user=''):
         return_type = 'Invoice'
     data_list = []
     try:
-        data_list, status = prepare_rtv_json_data(request_data, user)
-        if status:
-            return HttpResponse(status)
-        if data_list:
-            data_list = save_update_rtv(data_list)
-            rtv_no = get_incremental(user, 'rtv')
-            #date_val = datetime.datetime.now().strftime('%Y%m%d')
-            date_val = get_financial_year(datetime.datetime.now())
-            date_val = date_val.replace('-', '')
-            rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
-            invoice_number= ''
-            send_rtv_mail = False
-            if get_misc_value('rtv_mail', user.id) == 'true':
-                send_rtv_mail = True
-            for final_dict in data_list:
-                if float(final_dict['needed_stock_quantity']) > 0:
-                    update_stock_detail(final_dict['stocks'], float(final_dict['needed_stock_quantity']), user,
-                                        final_dict['rtv_id'])
-                #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
-                #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-                rtv_reason = final_dict.get('rtv_reasons', '')
-                rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+        with transaction.atomic('default'):
+            data_list, status = prepare_rtv_json_data(request_data, user)
+            if status:
+                return HttpResponse(status)
+            if data_list:
+                data_list = save_update_rtv(data_list)
+                rtv_no = get_incremental(user, 'rtv')
+                #date_val = datetime.datetime.now().strftime('%Y%m%d')
+                date_val = get_financial_year(datetime.datetime.now())
+                date_val = date_val.replace('-', '')
+                rtv_number = '%s%s-%s' % (rtv_prefix_code, date_val, rtv_no)
+                invoice_number= ''
+                send_rtv_mail = False
+                if get_misc_value('rtv_mail', user.id) == 'true':
+                    send_rtv_mail = True
+                for final_dict in data_list:
+                    if float(final_dict['needed_stock_quantity']) > 0:
+                        update_stock_detail(final_dict['stocks'], float(final_dict['needed_stock_quantity']), user,
+                                            final_dict['rtv_id'])
+                    #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
+                    #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
+                    rtv_reason = final_dict.get('rtv_reasons', '')
+                    rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+                    if send_rtv_mail:
+                        if not invoice_number:
+                            invoice_number = rtv_obj.seller_po_summary.invoice_number
+                    rtv_obj.rtv_number = rtv_number
+                    rtv_obj.return_type = return_type
+                    rtv_obj.status=0
+                    rtv_obj.return_reason = rtv_reason
+                    rtv_obj.save()
+                show_data_invoice = get_debit_note_data(rtv_number, user)
                 if send_rtv_mail:
-                    if not invoice_number:
-                        invoice_number = rtv_obj.seller_po_summary.invoice_number
-                rtv_obj.rtv_number = rtv_number
-                rtv_obj.return_type = return_type
-                rtv_obj.status=0
-                rtv_obj.return_reason = rtv_reason
-                rtv_obj.save()
-            show_data_invoice = get_debit_note_data(rtv_number, user)
-            if send_rtv_mail:
-                supplier_email = show_data_invoice.get('supplier_email', '')
-                supplier_id = show_data_invoice.get('supplier_id', '')
-                owner_email = show_data_invoice.get('owner_email', '')
-                supplier_email_id = []
-                supplier_email_id.insert(0, supplier_email)
-                if supplier_id:
-                    secondary_supplier_email = list(
-                        MasterEmailMapping.objects.filter(master_id=supplier_id, user=user.id,
-                                                      master_type='supplier').values_list(
-                            'email_id', flat=True).distinct())
+                    supplier_email = show_data_invoice.get('supplier_email', '')
+                    supplier_id = show_data_invoice.get('supplier_id', '')
+                    owner_email = show_data_invoice.get('owner_email', '')
+                    supplier_email_id = []
+                    supplier_email_id.insert(0, supplier_email)
+                    if supplier_id:
+                        secondary_supplier_email = list(
+                            MasterEmailMapping.objects.filter(master_id=supplier_id, user=user.id,
+                                                          master_type='supplier').values_list(
+                                'email_id', flat=True).distinct())
 
-                    supplier_email_id.extend(secondary_supplier_email)
-                if owner_email:
-                    supplier_email_id.append(owner_email)
-                data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
-                                'po_reference': show_data_invoice.get('grn_no',''),
-                                'invoice_number': invoice_number,
-                                'supplier_name':show_data_invoice.get('supplier_name',''),
-                                'rtv_number':show_data_invoice.get('rtv_number',''),
-                                 }
+                        supplier_email_id.extend(secondary_supplier_email)
+                    if owner_email:
+                        supplier_email_id.append(owner_email)
+                    data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
+                                    'po_reference': show_data_invoice.get('grn_no',''),
+                                    'invoice_number': invoice_number,
+                                    'supplier_name':show_data_invoice.get('supplier_name',''),
+                                    'rtv_number':show_data_invoice.get('rtv_number',''),
+                                     }
+                    t = loader.get_template('templates/toggle/rtv_mail.html')
+                    rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
+                    supplier_phone_number = show_data_invoice.get('phone_number', '')
+                    company_name = show_data_invoice.get('warehouse_details', '').get('company__company_name', '')
+                    write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
+                                       supplier_email_id, supplier_phone_number, company_name + 'Return to vendor order',
+                                       '', False, False, 'rtv_mail' ,data_dict_po )
+                if user.username in MILKBASKET_USERS:
+                    check_and_update_marketplace_stock(sku_codes, user)
                 t = loader.get_template('templates/toggle/rtv_mail.html')
-                rendered_mail = t.render({'show_data_invoice': [show_data_invoice]})
-                supplier_phone_number = show_data_invoice.get('phone_number', '')
-                company_name = show_data_invoice.get('warehouse_details', '').get('company__company_name', '')
-                write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
-                                   supplier_email_id, supplier_phone_number, company_name + 'Return to vendor order',
-                                   '', False, False, 'rtv_mail' ,data_dict_po )
-            if user.username in MILKBASKET_USERS:
-                check_and_update_marketplace_stock(sku_codes, user)
-            t = loader.get_template('templates/toggle/rtv_mail.html')
-            rendered_data = t.render({'show_data_invoice': [show_data_invoice]})
-            attachments= write_html_to_pdf(show_data_invoice.get('rtv_number',''),rendered_data)
-            if(len(attachments)>0):
-                show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
-            # from api_calls.netsuite import netsuite_update_create_rtv
-            plant = user.userprofile.reference_id
-            subsidary= user.userprofile.company.reference_id
-            department= ""
-            try:
-                intObj = Integrations(user, 'netsuiteIntegration')
-                show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
-                show_data_invoice["po_number"]=request_data["po_number"][0]
+                rendered_data = t.render({'show_data_invoice': [show_data_invoice]})
+                attachments= write_html_to_pdf(show_data_invoice.get('rtv_number',''),rendered_data)
+                if(len(attachments)>0):
+                    show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
+                # from api_calls.netsuite import netsuite_update_create_rtv
+                plant = user.userprofile.reference_id
+                subsidary= user.userprofile.company.reference_id
+                department= ""
+                try:
+                    intObj = Integrations(user, 'netsuiteIntegration')
+                    show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
+                    show_data_invoice["po_number"]=request_data["po_number"][0]
 
-                intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
-            except Exception as e:
-                print(e)
-            try:
+                    intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
+                except Exception as e:
+                    print(e)
+                #try:
                 update_sku_avg_from_rtv(user, rtv_number)
-            except Exception as e:
-                log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
-            return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
+                #except Exception as e:
+                #    import traceback
+                #    log.debug(traceback.format_exc())
+                #    log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
+                return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -15547,6 +15570,7 @@ def grn_extra_fields(user):
 
 @csrf_exempt
 def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
+    sub_user = request.user
     stat = 1
     if filters.get('search_1', '') == 'completed':
         stat = 2
@@ -15557,7 +15581,13 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
     else:
         order_data = '%s' % order_data
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    # users = [user.id]
+    # users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     main_master_data = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user__in=user_ids, credit_status=stat).exclude(status=1)
     master_data = main_master_data.values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
@@ -16499,6 +16529,8 @@ def confirm_mr_request(request, user=''):
     if len(cnf_data) > 0:
         for data in cnf_data:
             try:
+                if check_consumption_configuration([User.objects.get(username=data['source_wh']).id]):
+                    return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
                 all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='mr_doa', reference_id=data['order_id'], wh_user__username=data['dest_dept'])
                 if all_pending_orders.exists():
                     for entry in all_pending_orders:

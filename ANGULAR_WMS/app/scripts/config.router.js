@@ -1020,6 +1020,10 @@ var app = angular.module('urbanApp')
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/pending_pr_enquiries.js'
                   ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/cancelled_rejected.js'
+                  ])
                 });
               }]
           },
@@ -1087,6 +1091,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/pending_po_enquiries.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/cancelled_rejected_pos.js'
                   ])
                 });
               }]
@@ -2071,6 +2079,21 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Create Stock Transfer',
+          }
+        })
+        .state('app.outbound.ClosingStock', {
+          url: '/ClosingStock',
+          permission: 'change_consumptiondata',
+          templateUrl: 'views/outbound/closing_stock_main.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/closing_stock.js',
+                  ])
+              }]
+          },
+          data: {
+            title: 'Closing Stock',
           }
         })
         .state('app.outbound.CreateManualTest', {

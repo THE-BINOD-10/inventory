@@ -30,9 +30,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.dtColumns = [
       DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
       DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
-      DTColumnBuilder.newColumn('SKU Code').withTitle('Material Code'),
+      DTColumnBuilder.newColumn('Material Code').withTitle('Material Code'),
 //        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-      DTColumnBuilder.newColumn('Product Description').withTitle('Material Description'),
+      DTColumnBuilder.newColumn('Material Description').withTitle('Material Description'),
       DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
       DTColumnBuilder.newColumn('Sku Brand').withTitle('Sku Brand'),
       DTColumnBuilder.newColumn('pcf').withTitle('Conversion Factor'),
@@ -41,7 +41,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('Base UOM').withTitle('Base UOM'),
       DTColumnBuilder.newColumn('Base Quantity').withTitle('Base Quantity'),
       DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'),
+      DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'),
+      DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
       DTColumnBuilder.newColumn('Expiry Range').withTitle('Expiry Range'),
+      DTColumnBuilder.newColumn('GRN Number').withTitle('GRN Number'),
+      DTColumnBuilder.newColumn('GRN Date').withTitle('GRN Date'),
     ];
     if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
       vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))

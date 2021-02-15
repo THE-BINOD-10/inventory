@@ -457,11 +457,16 @@ def get_git_current_version_number():
         else:
             git_path= current_path
         repo=git.Repo(git_path)
-        tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
-        git_version_obj = tags[-1]
-        if git_version_obj:
-            version_number= git_version_obj.name[1:]
-    except:
+        git_version_str= subprocess.Popen(["git", "describe", "--tags", "--abbrev=0"], stdout=subprocess.PIPE).communicate()
+        if git_version_str:
+            version_number= git_version_str[0][1:-1]
+        #tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+        #git_version_obj = tags[-1]
+        #git_version_obj = repo.git.tag('--contains')
+        #if git_version_obj:
+        #    version_number= git_version_obj[1:]
+    except Exception as e:
+        log.info(e)
         pass
     return version_number
 
@@ -581,7 +586,8 @@ def get_search_params(request, user=''):
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
-                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number'
+                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number',
+                    'plant_name': 'plant_name', 'year': 'year', 'month_no': 'month_no'
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -715,6 +721,7 @@ data_datatable = {  # masters
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
     'OrderAllocations': 'get_order_allocation_data',
     'ViewManualTest': 'view_manual_test_entries',
+    'ClosingStockUI': 'get_closing_stock_ui_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -3674,6 +3681,33 @@ def search_sku_brands(request, user=''):
     #                 break
     return HttpResponse(json.dumps(list(set(sku_brands))))
 
+
+@login_required
+@get_admin_user
+def search_plants(request, user=''):
+    search_key = request.GET.get('q', '')
+    stype = request.GET.get('type', '')
+    stype_val = stype
+    search_map = {'STORE': 'first_name__icontains', 'DEPT': 'first_name__icontains', 'plant_code': 'userprofile__stockone_code__icontains'}
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    company_user = get_company_admin_user(user)
+    if stype == 'STORE':
+        stype = ['STORE', 'SUB_STORE']
+    elif stype == 'plant_code':
+        stype = ['STORE', 'SUB_STORE']
+    else:
+        stype = [stype]
+    users = get_related_users_filters(company_user.id, warehouse_types=stype)
+    filter_params  = {search_map[stype_val]: search_key}
+    master_data = users.filter(**filter_params)
+
+    for data in master_data[:30]:
+        total_data.append({'plant_name': data.first_name, 'plant_code': data.userprofile.stockone_code})
+    return HttpResponse(json.dumps(total_data))
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -6049,13 +6083,16 @@ def get_sellers_list(request, user=''):
         raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
     else:
         raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    get_ship_add_users = [user]
+    get_ship_add_users = check_and_get_plants(request, get_ship_add_users)
     ship_address_details = []
     ship_address_names = []
-    user_ship_address = UserAddresses.objects.filter(user_id=user.id)
+    user_ship_address = UserAddresses.objects.filter(user_id__in=get_ship_add_users)
     if user_ship_address:
-        shipment_names = list(user_ship_address.values_list('address_name', flat=True))
-        ship_address_names.extend(shipment_names)
+        # shipment_names = list(user_ship_address.values_list('address_name', flat=True))
+    # ship_address_names.extend(shipment_names)
         for data in user_ship_address:
+            ship_address_names.append(data.address_name)
             ship_address_details.append({'title':data.address_name,'addr_name':data.user_name,'mobile_number':data.mobile_number,'pincode':data.pincode,'address':data.address})
     seller_list = []
     seller_supplier = {}
@@ -6818,6 +6855,8 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
                                'weight': weight, 'buy_price': buy_price, 'total_amount': 0})
+        if pcf == 0:
+            pcf = 1
         stock_quantity = stock.quantity/pcf
         zones_data[cond]['total_quantity'] += stock_quantity
         zones_data[cond]['reserved_quantity'] += res_qty
@@ -13726,14 +13765,23 @@ def check_and_get_plants_depts_wo_request(request_user, user, req_users):
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
-        if not users:
+        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        if not plant_users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
             if parent_company_id == staff_obj[0].company_id:
                 company_id = ''
-            users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'],
+            plant_users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'],
                                               company_id=company_id)
+        plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=list(plant_users.values_list('username', flat=True)))
+        dept_users = plant_depts.filter(username__in=list(staff_obj.values_list('department_type__name', flat=True)))
+        if not dept_users:
+            parent_company_id = get_company_id(user)
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
+                company_id = ''
+            dept_users = plant_depts
+        users = plant_users | dept_users
     if users:
         req_users = users
     else:
@@ -13908,13 +13956,13 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
 def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
     dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                            warehouse=[user.username], send_parent=True)
-    dept_user_ids = list(dept_users.values_list('id', flat=True))
+    all_dept_user_ids = list(dept_users.values_list('id', flat=True))
     sku_pending_mr_qty = get_pending_mr_qty_for_avg(user)
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
         pcf = uom_dict['sku_conversion']
-        exist_stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code=sku.sku_code,
+        exist_stocks = StockDetail.objects.filter(sku__user__in=all_dept_user_ids, sku__sku_code=sku.sku_code,
                                                   quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)
@@ -13995,15 +14043,21 @@ def update_sku_avg_from_rtv(user, rtv_number):
     for rtv in rtvs:
         price,tax = [0]*2
         sp = rtv.seller_po_summary
+        pcf = ''
         if sp.batch_detail:
             price = sp.batch_detail.buy_price
             tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+            pcf = sp.batch_detail.pcf
+        pcf = pcf if pcf else skucf
         sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        skucf = uom_dict['sku_conversion']
+        skucf = skucf if skucf else 1
         amt = rtv.quantity * price
         total = amt + ((amt/100)*tax)
         sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
         sku_amt[sku_code]['amount'] += total
-        sku_amt[sku_code]['qty'] += rtv.quantity
+        sku_amt[sku_code]['qty'] += (rtv.quantity * pcf)/skucf
     update_sku_avg_main(sku_amt, user, main_user, dec=True)
 
 @get_admin_user
@@ -14084,3 +14138,12 @@ def display_closing_stock_uploaded(request, user=''):
     urls_list = map(lambda x: 'http://' + request.get_host() + '/static/closing_stock_files/'+ x, files_list)
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
+
+def check_consumption_configuration(users):
+    status = False
+    for user_id in users:
+        if get_misc_value('eom_consumption_configuration_plant', user_id) == 'true':
+            return True
+        else:
+            status = False
+    return status

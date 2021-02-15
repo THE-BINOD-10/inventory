@@ -131,32 +131,31 @@ app.controller('changePassword', function($scope, $modalInstance, items, Service
   vm.changePassword = function(form){
 
     if(form.$valid) {
-
+      var pwd_check =  /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,25}$/;
       if(vm.model_data.new_password != vm.model_data.retype_password){
         Service.showNoty('New Password and Retype New Password Should Be Same', 'warning')
         return false;
       }
-
-      vm.process = true;
-      Service.apiCall('change_user_password/', 'POST', vm.model_data).then(function(data){
-
-        if(data.message) {
-
-          if(!data.data.msg) {
-
-            Service.showNoty(data.data.data, 'warning');
+      if (vm.model_data.new_password.match(pwd_check)) {
+        vm.process = true;
+        Service.apiCall('change_user_password/', 'POST', vm.model_data).then(function(data){
+          if(data.message) {
+            if(!data.data.msg) {
+              Service.showNoty(data.data.data, 'warning');
+            } else {
+              Service.showNoty(data.data.data);
+              vm.close();
+              Session.unset();
+              $state.go('user.signin');
+            }
           } else {
-            Service.showNoty(data.data.data);
-            vm.close();
-            Session.unset();
-            $state.go('user.signin');
+            Service.showNoty('Something went wrong', 'warning');
           }
-        } else {
-
-          Service.showNoty('Something went wrong', 'warning');
-        }
-        vm.process = false;
-      })
+          vm.process = false;
+        })
+      } else {
+        Service.showNoty('Password Requirements Not Matched');
+      } 
     }
   }
 });

@@ -129,6 +129,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
     temp_data['totalAvailableQuantity'] = 0
+    search_params['quantity__gt']=0
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
@@ -304,19 +305,19 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('SKU Conversion', sku_conversion),
                                                 ('sku_packs', sku_packs),
-                                                ('Available Qty', round(pquantity, 3)),
-                                                ('Reserved Qty', round(preserved, 3)), ('Purchase UOM Qty', round(ptotal, 3)),
+                                                ('Available Qty', round(pquantity, 5)),
+                                                ('Reserved Qty', round(preserved, 5)), ('Purchase UOM Qty', round(ptotal, 3)),
                                                 ('Pending Putaway Qty', putaway_pending),
-                                                ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 3)),
-                                                ('Base UOM Qty', round(ptotal * sku_conversion, 3)),
-                                                ('Pending Putaway Base Qty', round(putaway_pending* sku_conversion, 3)),
-                                                ('Total Base UOM Qty', round((ptotal+putaway_pending)* sku_conversion, 3)),
+                                                ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 5)),
+                                                ('Base UOM Qty', round(ptotal * sku_conversion, 5)),
+                                                ('Pending Putaway Base Qty', round(putaway_pending* sku_conversion, 5)),
+                                                ('Total Base UOM Qty', round((ptotal+putaway_pending)* sku_conversion, 5)),
                                                 ('Purchase UOM', measurement_type),
                                                 ('Base UOM', base_uom),
                                                 ('Unit Purchase Qty Price', sku_avg_price),
-                                                ('In Stock Value', round(ptotal*sku_avg_price, 3)),
-                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 3)),
-                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 3)),
+                                                ('In Stock Value', round(ptotal*sku_avg_price, 5)),
+                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 5)),
+                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 5)),
                                                 # ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),
@@ -2821,7 +2822,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                 sub_zone = zone
                 zone = sub_zone_obj.zone.zone
         pquantity = data.quantity/pcf
-        quantity_for_val = data.quantity/pcf_for_val
+        quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
         plant_name = sku_user.first_name
@@ -2853,7 +2854,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Base Uom', uom_dict.get('base_uom', '')),
                                 ('Purchase Uom Quantity', round(pquantity, 5)),
                                 ('Purchase Uom', uom_dict.get('measurement_unit', '')),
-                                ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
+                                ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Pallet', pallet_code), ('Receipt Type', data.receipt_type),
                                 ('Creation Date', get_local_date(user, data.creation_date))))
         if pallet_switch != 'true' and row_data.get('Pallet'):

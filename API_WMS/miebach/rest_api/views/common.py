@@ -3924,7 +3924,8 @@ def get_central_order_id(customer_id):
 
 def get_devices(data_dict={}, user=''):
     from rest_api.views.easyops_api import *
-    integrations = Integrations.objects.filter(user=user.id, status=1)
+    integrations = Integrations.objects.filter(user=user.id, status=1,  name='metropolis')
+    org_id = data_dict.get('org_id', 0)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         today = datetime.date.today().strftime('%Y%m%d')
@@ -3953,11 +3954,11 @@ def update_devices(device_objs, user):
                                     'org_name':device_data.get('OrgName', ''),'instrument_name':device_data.get('DeviceName', ''), 'instrument_id':device_data.get('DeviceID', ''),
                                     'investigation_id':device_data.get('InvestigationID', ''), 'dept_name':device_data.get('DeptName', '')}
                     if machine_code:
-                        machine_obj = MachineMaster.objects.filter(test_code=str(machine_code), user=user.id)
+                        machine_obj = MachineMaster.objects.filter(machine_code=str(machine_code), user=user.id)
                         if machine_obj.exists():
                             data_dict['machine'] = machine_obj[0]
                         else:
-                            machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user.id, 'machine_name': machine_name})
+                            machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user, 'machine_name': machine_name})
                             data_dict['machine'] = machine_obj
                     OrgInstrumentMapping.objects.create(**device_dict)
                 except Exception as e:

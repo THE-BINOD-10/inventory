@@ -1552,7 +1552,6 @@ vm.checkWHSupplierExist  = function (sup_id) {
     vm.service.apiCall("get_staff_plants_list/", "GET", {}).then(function(data) {
       if(data.message) {
         // vm.plants_list = data.data.plants_list;
-        vm.plants_list['None'] = '';
         angular.forEach(Object.keys(data.data.plants_list).sort(), function(dat){
           vm.plants_list[dat] = data.data.plants_list[dat];
         })

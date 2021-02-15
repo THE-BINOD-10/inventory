@@ -65,7 +65,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     angular.copy(data.data.data, vm.report_data);
       vm.report_data['special_key'] = 'MR';
       vm.report_data.filters.pop();
-      vm.report_data.filters[3]['label'] = 'Material Request ID';
+      vm.report_data.filters[2]['label'] = 'MR From Date';
+      vm.report_data.filters[3]['label'] = 'MR To Date';
+      vm.report_data.filters[5]['label'] = 'Material Request ID';
       vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
         vm.empty_data = datam.empty_data;
         angular.copy(vm.empty_data, vm.model_data);

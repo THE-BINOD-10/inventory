@@ -3960,8 +3960,8 @@ def update_devices(device_objs, user):
                             machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user.id, 'machine_name': machine_name})
                             data_dict['machine'] = machine_obj
                     OrgInstrumentMapping.objects.create(**device_dict)
-
-
+                except Exception as e:
+                    log.info("device data creation failed for %s, and data_dict was %s and exception %s" % (str(user.username),str(device_dict), str(e)))
 
 def check_and_update_stock(wms_codes, user):
     stock_sync = get_misc_value('stock_sync', user.id)

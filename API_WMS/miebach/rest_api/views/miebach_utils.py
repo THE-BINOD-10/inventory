@@ -12144,7 +12144,6 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     search_parameters['sku__user__in'] = user_ids
     # if request.POST.get('special_key', ''):
     #     search_parameters['st_type'] = request.POST.get('special_key')
-    import pdb; pdb.set_trace()
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku').distinct()
     temp_data['recordsTotal'] = stock_transfer_data.count()

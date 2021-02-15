@@ -3948,8 +3948,8 @@ def update_devices(device_objs, user):
                 count += 1
                 try:
                     device_data = device_objs[key]
-                    machine_code = device_data.get('DeviceID', '')
-                    machine_name = device_data.get('DeviceName', '')
+                    machine_code = (device_data.get('DeviceID', '')).strip()
+                    machine_name = (device_data.get('DeviceName', '')).strip()
                     device_dict = {'tcode':device_data.get('Tcode', ''), 'attune_id':device_data.get('OrgID', ''), 'tname':device_data.get('Tname', ''),
                                     'org_name':device_data.get('OrgName', ''),'instrument_name':device_data.get('DeviceName', ''), 'instrument_id':device_data.get('DeviceID', ''),
                                     'investigation_id':device_data.get('InvestigationID', ''), 'dept_name':device_data.get('DeptName', '')}

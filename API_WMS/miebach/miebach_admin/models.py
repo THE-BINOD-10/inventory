@@ -4132,7 +4132,7 @@ class OrgInstrumentMapping(models.Model):
     org_name = models.CharField(max_length=128, default='', blank=True, null=True)
     machine = models.ForeignKey(MachineMaster, default=None, blank=True, null=True)
     instrument_name = models.CharField(max_length=128, default='', blank=True, null=True)
-    instrument_id =  models.IntegerField(default=None, blank=True, null=True)
+    instrument_id =  models.CharField(max_length=128, default=None, blank=True, null=True)
     investigation_id =  models.IntegerField(default=None, blank=True, null=True)
     tcode = models.CharField(max_length=128, default='', blank=True, null=True)
     tname = models.CharField(max_length=128, default='', blank=True, null=True)

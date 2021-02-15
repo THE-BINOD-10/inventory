@@ -6083,13 +6083,16 @@ def get_sellers_list(request, user=''):
         raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
     else:
         raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    get_ship_add_users = [user]
+    get_ship_add_users = check_and_get_plants(request, get_ship_add_users)
     ship_address_details = []
     ship_address_names = []
-    user_ship_address = UserAddresses.objects.filter(user_id=user.id)
+    user_ship_address = UserAddresses.objects.filter(user_id__in=get_ship_add_users)
     if user_ship_address:
-        shipment_names = list(user_ship_address.values_list('address_name', flat=True))
-        ship_address_names.extend(shipment_names)
+        # shipment_names = list(user_ship_address.values_list('address_name', flat=True))
+    # ship_address_names.extend(shipment_names)
         for data in user_ship_address:
+            ship_address_names.append(data.address_name)
             ship_address_details.append({'title':data.address_name,'addr_name':data.user_name,'mobile_number':data.mobile_number,'pincode':data.pincode,'address':data.address})
     seller_list = []
     seller_supplier = {}
@@ -6852,6 +6855,8 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
                                'weight': weight, 'buy_price': buy_price, 'total_amount': 0})
+        if pcf == 0:
+            pcf = 1
         stock_quantity = stock.quantity/pcf
         zones_data[cond]['total_quantity'] += stock_quantity
         zones_data[cond]['reserved_quantity'] += res_qty

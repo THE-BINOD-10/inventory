@@ -153,6 +153,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (aData['PR No'] != "None") {
         vm.is_direct_po = false;
       }
+
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
@@ -160,7 +161,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
             "supplier_payment_terms": data.data.supplier_payment_desc,
-            "ship_to": data.data.ship_to,
+            "ship_to": '',
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
             "seller_types": [],
@@ -233,10 +234,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.confirm_disabled = false;
               var seller_data = data.data.sellers;
               vm.model_data.tax = data.data.tax;
+              vm.model_data.ship_addr_names = data.data.shipment_add_names;
+              vm.model_data.shipment_addresses = data.data.shipment_addresses;
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
               vm.model_data["receipt_types"] = data.data.receipt_types;
               vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
-              console.log(vm.model_data.terms_condition)
               vm.model_data.seller_type = vm.dedicated_seller;
               vm.model_data.warehouse_names = data.data.warehouse
               angular.forEach(seller_data, function(seller_single){
@@ -593,12 +595,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             vm.service.showNoty('Please fill required Fields');
           }
-        } else if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
+        } else if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue) {
           vm.confirm_validation(type);
         } else {
           data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
           typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-          if (!vm.permissions.central_admin_level_po) {
+          if (!vm.permissions.central_admin_level_po && typeof(vm.permissions.central_admin_level_po) != 'undefined') {
             vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
           }
         }
@@ -790,6 +792,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.confirm_po();
           }
         }
+      } else {
+        vm.service.showNoty('Please Fill * fields !!');
       }
     }
 

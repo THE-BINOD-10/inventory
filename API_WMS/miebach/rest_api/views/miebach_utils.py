@@ -24,6 +24,8 @@ from django.db.models.functions import ExtractHour, ExtractMinute
 import unicodedata
 from miebach_admin.custom_decorators import get_admin_multi_user
 from django.db import transaction
+import urllib
+import base64
 
 # from inbound import *
 
@@ -1836,8 +1838,12 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Warehouse', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks'],
+    'dt_headers': ['Date', 'Plant Code', 'Plant Name', 'Department', 'Zone Code', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -1847,8 +1853,12 @@ CLOSING_STOCK_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant', 'Plant Code', 'Department', 'Warehouse Username', 'SKU Code', 'SKU Description', 'Base Uom Quantity', 'Purchase Uom Quantity', 'Stock Value', 'Batch Number'],
+    'dt_headers': ['Date', 'Plant', 'Plant Code', 'Zone Code', 'Department', 'Warehouse Username', 'SKU Code', 'SKU Description', 'Base Uom Quantity', 'Purchase Uom Quantity', 'Stock Value', 'Batch Number'],
     'dt_url': 'get_closing_stock_report', 'excel_name': 'get_closing_stock_report',
     'print_url': 'get_closing_stock_report',
 }
@@ -11657,7 +11667,6 @@ def get_expired_stock_data(search_params, user, sub_user):
                                 ('MRP', mrp), ('Weight', weight),
                                 ('Price', price), ('Tax Percent', tax),
                                 ('Manufactured Date', manufactured_date), 
-                                ('Expiry Date', expiry_date),
                                 ('Zone', zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
@@ -11669,6 +11678,7 @@ def get_expired_stock_data(search_params, user, sub_user):
                                 ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Base UOM', uom_dict["base_uom"]), 
                                 ('Base Quantity', get_decimal_limit(user.id, data.quantity)),
+                                ('Expiry Date', expiry_date),
                                 ('Expiry Range', expiry_range),
                                 ('days_to_expired', days_to_expired),
                                 ('Receipt Type', data.receipt_type)))
@@ -16983,7 +16993,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
         get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
-        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -16991,9 +17001,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
-    search_parameters = {'sku__user__in': user_ids}
-    lis = ['creation_date', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+    search_parameters = {}
+    lis = ['creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
             'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks']
 
@@ -17013,6 +17022,36 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__wms_code'] = search_params['sku_code']
+
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['sku__user__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -17040,7 +17079,17 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     for result in results.iterator():
         test_code, mfg_date, exp_date = [''] * 3
         user_obj = User.objects.get(id=result['sku__user'])
-        first_name = user_obj.first_name
+        department = ''
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone_code = user_obj.userprofile.zone
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            department = user_obj.first_name
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+
         if result['consumption__test__test_code']:
             test_code = result['consumption__test__test_code']
         if result['stock_mapping__stock__batch_detail__manufactured_date']:
@@ -17059,7 +17108,10 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         stock_value = pqty * result['price']
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
-            ('Warehouse', first_name),
+            ('Plant Code', plant_code),
+            ('Plant Name', plant_name),
+            ('Department', department),
+            ('Zone Code', zone_code),
             ('Warehouse Username', user_obj.username),
             ('Test Code', test_code),
             ('SKU Code', result['sku__sku_code']),
@@ -17136,10 +17188,10 @@ def get_closing_stock_report_data(search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
-    search_parameters = {'stock__sku__user__in': user_ids}
-    lis = ['creation_date', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__sku_code',
-            'stock__sku__sku_desc', 'quantity', 'quantity', 'sku_avg_price', 'stock_mapping__stock__batch_detail__batch_no']
+    #user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {}
+    lis = ['creation_date', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__sku_code',
+            'stock__sku__sku_desc', 'quantity', 'quantity', 'sku_avg_price', 'stock__batch_detail__batch_no']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17157,6 +17209,35 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['stock__sku__wms_code'] = search_params['sku_code']
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['stock__sku__user__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -17165,7 +17246,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
     model_data = ClosingStock.objects.filter(**search_parameters).values(*values_list)
 
     if order_term:
-        results = model_data.order_by(order_data)
+        model_data = model_data.order_by(order_data)
 
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = model_data.count()
@@ -17187,10 +17268,12 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant = user_obj.first_name
         dept = ''
+        zone_code = user_obj.userprofile.zone
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             plant_code = admin_user.userprofile.stockone_code
             plant = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         pcf = result['sku_pcf']
         pcf = pcf if pcf else 1
@@ -17202,7 +17285,8 @@ def get_closing_stock_report_data(search_params, user, sub_user):
             ('Date', str(closing_date.date())),
             ('Plant', plant),
             ('Plant Code', plant_code),
-            ('Department', dept),
+            ('Department', dept_mapping.get(dept, dept)),
+            ('Zone Code', zone_code),
             ('Warehouse Username', user_obj.username),
             ('SKU Code', result['stock__sku__sku_code']),
             ('SKU Description', result['stock__sku__sku_desc']),

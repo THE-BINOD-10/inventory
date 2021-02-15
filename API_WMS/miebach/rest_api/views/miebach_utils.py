@@ -1484,8 +1484,10 @@ ALLOCATION_REPORT_DICT = {
 
 STOCK_TRANSFER_REPORT_DICT_MAIN = {
     'filters': [
-        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Picklist From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'Picklist To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'From Date', 'name': 'st_from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'st_to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Stock Transfer ID', 'name': 'order_id', 'type': 'input'},
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
@@ -11965,7 +11967,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
-    #search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
     if request.POST.get('special_key', ''):
         search_parameters['st_type'] = request.POST.get('special_key')
@@ -12017,11 +12018,6 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                     'pick_loc__stock__batch_detail__expiry_date',
                     'pick_loc__stock__batch_detail__pcf'
                 )
-                # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                #                                     stock_transfer=data.id).values(
-                #     'picklist__picklistlocation__stock__batch_detail__batch_no',
-                #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
-                #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
                 if batch_data.exists():
                     batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
                     expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
@@ -12111,6 +12107,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     else:
         stop_index = None
     search_parameters = {}
+    seller_po_summary_dates = {}
     order_data = lis[col_num]
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -12126,9 +12123,15 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if 'from_date' in search_params:
-        search_parameters['creation_date__gte'] = search_params['from_date']
+        search_parameters['storder__picklist__creation_date__gte'] = search_params['from_date']
+        seller_po_summary_dates['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['creation_date__lte'] = search_params['to_date']
+        search_parameters['picklist__creation_date__lte'] = search_params['to_date']
+        seller_po_summary_dates['creation_date__lte'] = search_params['to_date']
+    if request.POST.get('st_from_date', ''):
+        search_parameters['creation_date__gte'] = datetime.datetime.strptime(request.POST.get('st_from_date'), '%m/%d/%Y')
+    if request.POST.get('st_to_date', ''):
+        search_parameters['creation_date__lte'] = datetime.datetime.strptime(request.POST.get('st_to_date'), '%m/%d/%Y')
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
@@ -12141,16 +12144,14 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     search_parameters['sku__user__in'] = user_ids
     # if request.POST.get('special_key', ''):
     #     search_parameters['st_type'] = request.POST.get('special_key')
+    import pdb; pdb.set_trace()
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
-        order_by(order_data).select_related('sku', 'st_po__open_st__sku')
+        order_by(order_data).select_related('sku', 'st_po__open_st__sku').distinct()
     temp_data['recordsTotal'] = stock_transfer_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    counter = 0
     for data in (stock_transfer_data[start_index:stop_index]):
-        counter += 1
-        print counter
         send_accepted_user_dest = ''
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
@@ -12181,10 +12182,12 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             invoice_quantity = 0
             invoice_quantity = STOrder.objects.filter(stock_transfer__id=data.id).aggregate(Sum('picklist__picked_quantity'))['picklist__picked_quantity__sum']
             invoice_quantity = invoice_quantity if invoice_quantity else 0
+            if invoice_quantity == 0:
+              continue
             temp_inv_qty = (float(invoice_quantity) / float(qty_conversion))
             invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
             dest_receive_po_status = 'Pending'
-            datums = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id)
+            datums = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id, **seller_po_summary_dates)
             datum = datums.values('quantity')
             dest_received_qty = 0
             if datum.exists():
@@ -12237,7 +12240,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if  batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
             #datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
-            datum = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id).values('quantity')
+            datum = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id, **seller_po_summary_dates).values('quantity')
             dest_received_qty = 0
             if datum.exists():
                 #dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']

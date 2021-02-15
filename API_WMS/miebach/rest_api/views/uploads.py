@@ -12724,11 +12724,11 @@ def validate_opening_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
                         sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
-                        tus = (data_dict['user'].id, cell_data)
-                        if tus in distinct_sku_user_combo:
-                            index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
-                        else:
-                            distinct_sku_user_combo.append(tus)
+                        #tus = (data_dict['user'].id, cell_data)
+                        #if tus in distinct_sku_user_combo:
+                        #    index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
+                        #else:
+                        #    distinct_sku_user_combo.append(tus)
                         if not sku_master.exists():
                             index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                         else:
@@ -12779,6 +12779,11 @@ def validate_opening_stock_form(request, reader, user, no_of_rows, no_of_cols, f
             pcf = uom_dict['sku_conversion']
             pcf = pcf if pcf else 1
             data_dict['uom_dict'] = uom_dict
+            tup = (data_dict['user'].id, data_dict['sku'].sku_code, data_dict.get('batch_no', ''))
+            if tup in distinct_sku_user_combo:
+                index_status.setdefault(row_idx, set()).add('Duplicate SKU User Batch Combination Found')
+            else:
+                distinct_sku_user_combo.append(tup)
 
         data_list.append(data_dict)
     if not index_status:

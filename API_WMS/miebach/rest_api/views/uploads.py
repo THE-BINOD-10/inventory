@@ -12467,7 +12467,7 @@ def update_closing_stock_quantity(data_list, year, month):
             else:
                 pcf = uom_dict['sku_conversion']
                 puom = uom_dict['measurement_unit']
-            pquantity = base_quantity * pcf
+            pquantity = base_quantity/pcf
             adj_dict = {'base_quantity': base_quantity, 'puom': puom,
                         'pquantity': pquantity,
                         'pcf': pcf, 'creation_date': last_change_date.date()}
@@ -12650,6 +12650,7 @@ def validate_opening_stock_form(request, reader, user, no_of_rows, no_of_cols, f
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
     current_date = datetime.datetime.now()
+    stock_user_map = {}
     for row_idx in range(1, no_of_rows):
         dept_users = User.objects.none()
         print 'Validating %s' % str(row_idx)
@@ -12784,6 +12785,13 @@ def validate_opening_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                 index_status.setdefault(row_idx, set()).add('Duplicate SKU User Batch Combination Found')
             else:
                 distinct_sku_user_combo.append(tup)
+            if data_dict['user'] in stock_user_map:
+                if stock_user_map[data_dict['user']] > 0:
+                    index_status.setdefault(row_idx, set()).add('Stock already present in the system')
+            else:
+                stock_user_map[data_dict['user']] = StockDetail.objects.filter(sku__user=data_dict['user'].id, quantity__gt=0).count()
+                if stock_user_map[data_dict['user']] > 0:
+                    index_status.setdefault(row_idx, set()).add('Stock already present in the system')
 
         data_list.append(data_dict)
     if not index_status:
@@ -12843,7 +12851,7 @@ def save_uploaded_opening_stock(data_list, user):
             pcf = uom_dict['sku_conversion']
             pcf = pcf if pcf else 1
             puom = uom_dict['measurement_unit']
-            pquantity = base_quantity * pcf
+            pquantity = base_quantity/pcf
             stock_dict = {}
             sku_stocks = []
             if not sku_stocks:
@@ -12899,7 +12907,7 @@ def opening_stock_upload(request, user=''):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Closing Stock Upload failed for %s and params are %s and error statement is %s' % (
+        log.info('Opening Stock Upload failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Failed")
     return HttpResponse("Success")

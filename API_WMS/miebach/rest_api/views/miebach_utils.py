@@ -2739,7 +2739,7 @@ PERMISSION_DICT = OrderedDict((
 
     # Others
     ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"),
-                      ('Upload Closing Stock', 'change_consumptiondata'),)),
+                      ('Upload Closing Stock', 'change_consumptiondata'), ('Upload Opening Stock', 'change_closingstock'),)),
 
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
@@ -2764,6 +2764,7 @@ PERMISSION_DICT = OrderedDict((
                  ('add_enquirymaster', 'add_enquirymaster'),
                  ('add_clusterskumapping', 'add_clusterskumapping'),
                  ('Upload Adjusted Consumption', 'change_consumptiondata'),
+                 ('Upload Opening Stock', 'change_closingstock'),
                  )),
     ("REPORTS", (('SKU List Report', 'view_skumaster'), ('Location Wise Filter Report', 'view_locationmaster'),
                  ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
@@ -3596,6 +3597,15 @@ CONSUMPTION_FILE_MAPPING = OrderedDict(( ('Date(YYYY-MM-DD)', 'closing_date'), (
                                          ('SKU Code', 'sku_code'), ('Purchase UOM Quantity', 'purchase_uom_quantity'),
                                          ('Amount', 'amount')
                                        ))
+
+OPENING_STOCK_FILE_MAPPING = OrderedDict((('Opening Stock Date(YYYY-MM-DD)', 'opening_date'), ('Plant Code', 'plant_code'),
+                                          ('Department', 'department'),
+                                          ('SKU Code', 'sku_code'), ('Location', 'location'),
+                                          ('Base UOM Quantity', 'base_uom_quantity'), ('Unit Price with Tax', 'unit_price'), ('Batch Number', 'batch_no'),
+                                          ('Expiry Date(YYYY-MM-DD)', 'expiry_date')
+                                          ))
+
+
 
 def fn_timer(function):
     @wraps(function)

@@ -13990,6 +13990,7 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False, excl
         else:
             total_qty = value['qty'] + stock_qty
             total_amount = stock_value + value['amount']
+        total_qty = total_qty if total_qty else 1
         new_avg = float('%.5f' % (abs(total_amount/total_qty)))
         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
         dept_user_ids = list(dept_users.values_list('id', flat=True))

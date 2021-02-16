@@ -12519,7 +12519,7 @@ def update_closing_stock_quantity(data_list, year, month):
 @login_required
 @get_admin_user
 def closing_stock_upload(request, user=''):
-    #return HttpResponse('Closing Stock Uploads Disabled !!')
+    return HttpResponse('Closing Stock Uploads Disabled !!')
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)

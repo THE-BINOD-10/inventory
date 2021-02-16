@@ -122,13 +122,16 @@ class Command(BaseCommand):
         self.stdout.write("Started Consumption call")
         for user in users:
             org_id = user.userprofile.attune_id
-            subsudary_id = user.userprofile.company_id
-            subsudary = User.objects.get(id=subsudary_id)
-            company = subsudary
+            today = datetime.date.today().strftime('%Y%m%d')
+            subsidiary_id = user.userprofile.company_id
+            subsidiary = User.objects.get(id=subsidiary_id)
+            company = subsidiary
             integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
             if not integrations:
-                company = User.objects.get(id=subsudary.userprofile.company_id)
+                company = User.objects.get(id=subsidiary.userprofile.company_id)
                 integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
+            # device_dict = {'date':today, 'org_id':org_id}
+            # get_devices(device_dict, company)
             for integrate in integrations:
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
                 today = datetime.date.today().strftime('%Y%m%d')

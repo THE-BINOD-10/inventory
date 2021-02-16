@@ -10952,8 +10952,10 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
                 mapping_obj.stock_mapping.add(stock_mapping)
             if transact_type == 'consumption':
                 quantity = -1 * quantity
+            if rtv_id == 'NA':
+                rtv_id = stock.id
             save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
-            return
+            return [stock.id]
     for stock in stocks:
         stock.refresh_from_db()
         if inc_type == 'inc':
@@ -10997,6 +10999,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
         if quantity == 0:
             break
 
+    return None
 
 
 def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',price ='',
@@ -13635,10 +13638,13 @@ def get_user_groups_list(request, user=''):
     return HttpResponse(json.dumps({'groups': total_groups}))
 
 
-def update_user_groups(request, sub_user, selected_list):
-    modified_list = [request.user.username + ' ' + s for s in selected_list]
-    user_groups = request.user.groups.filter()
-    exclude_group = AdminGroups.objects.filter(user_id=request.user.id)
+def update_user_groups(request, sub_user, selected_list, user=None):
+    main_user = request.user
+    if user and user.userprofile.warehouse_type == 'ADMIN':
+        main_user = user
+    modified_list = [main_user.username + ' ' + s for s in selected_list]
+    user_groups = main_user.groups.filter()
+    exclude_group = AdminGroups.objects.filter(user_id=main_user.id)
     if exclude_group:
         exclude_name = exclude_group[0].group.name
     for group in user_groups:
@@ -13953,7 +13959,7 @@ def get_pending_putaway_qty_for_avg(user, sku_code, value, pcf):
     return po_pending_qty
 
 
-def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
+def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False, excl_ids=None):
     dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                            warehouse=[user.username], send_parent=True)
     all_dept_user_ids = list(dept_users.values_list('id', flat=True))
@@ -13966,6 +13972,8 @@ def update_sku_avg_main(sku_amt, user, main_user, grn_number='', dec=False):
                                                   quantity__gt=0)
         if grn_number:
             exist_stocks = exist_stocks.exclude(grn_number=grn_number)
+        if excl_ids:
+            exist_stocks = exist_stocks.exclude(id__in=excl_ids)
         stock_qty = exist_stocks.aggregate(total_qty=Sum(F('quantity')/Value(pcf)))['total_qty']
         if not stock_qty:
             stock_qty = 0

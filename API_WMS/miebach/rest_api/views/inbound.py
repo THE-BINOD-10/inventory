@@ -1656,6 +1656,10 @@ def generated_pr_data(request, user=''):
     department = department_mapping.get(department_code, '')
     storeObj = get_admin(dept_user)
     store = storeObj.first_name
+    ship_to = ''
+    user_ship_address = UserAddresses.objects.filter(user_id=storeObj.id, address_type= 'Shipment Address').order_by('-creation_date')
+    if user_ship_address.exists():
+        ship_to = user_ship_address[0].address_name
     total_data = []
     ser_data = []
     levelWiseRemarks = []
@@ -1784,7 +1788,7 @@ def generated_pr_data(request, user=''):
             supplier_payment_desc = "%s:%s" % (record[0].supplier_payment.payment_code, record[0].supplier_payment.payment_description)
 
     return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
-                                    'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
+                                    'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,

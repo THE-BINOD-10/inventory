@@ -161,7 +161,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
             "supplier_payment_terms": data.data.supplier_payment_desc,
-            "ship_to": '',
+            "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
             "seller_types": [],
@@ -237,6 +237,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.model_data.ship_addr_names = data.data.shipment_add_names;
               vm.model_data.shipment_addresses = data.data.shipment_addresses;
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+              vm.ship_addr_change(vm.model_data.ship_to);
               vm.model_data["receipt_types"] = data.data.receipt_types;
               vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
               vm.model_data.seller_type = vm.dedicated_seller;

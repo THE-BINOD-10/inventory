@@ -1921,6 +1921,7 @@ def generated_actual_pr_data(request, user=''):
             temp_cess_tax = ''
 
         temp_store = get_admin(record[0].wh_user)
+        consumption_dict = get_average_consumption_qty(temp_store, sku_code)
         search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,
@@ -2053,6 +2054,7 @@ def generated_actual_pr_data(request, user=''):
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
                                             'intransit_quantity': intransitQty,
+                                            'consumption_dict': consumption_dict,
                                             },
                                     'description': sku_desc,
                                     'description_edited': sku_desc_edited,

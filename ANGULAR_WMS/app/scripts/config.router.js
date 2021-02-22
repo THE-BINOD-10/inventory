@@ -2453,6 +2453,17 @@ var app = angular.module('urbanApp')
           data: {
             title: 'Location Wise Filter',
           }
+        }).state('app.reports.PR_AODReport', {
+          url: '/PR_AODReport',
+          templateUrl: 'views/reports/pr_as_on_date_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/pr_as_on_date_report.js');
+              }]
+          },
+          data: {
+            title: 'Pending PR As on Date',
+          }
         }).state('app.reports.PR_PO_GRNReport', {
           url: '/PR_PO_GRNReport',
           templateUrl: 'views/reports/pr_po_grn_report.html',

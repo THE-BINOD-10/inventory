@@ -28,7 +28,7 @@
         <th>Cess Tax %</th>
         <th>Total(INR)</th>
         <th>OpenPR Qty</th>
-        <!-- <th>Last 3M Avg Consumption</th> -->
+        <th>Last 3M Avg Consumption</th>
         <th>Available Stock</th>
         <th>OpenPO Qty</th>
         <!-- <th>Suggested PR Qty</th> -->
@@ -130,6 +130,7 @@
         </td>
 
         <td class="text-center"> <span class="text_element">{{product.fields.sku.openpr_qty}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.consumption_dict.avg_qty}}</span> </td>
         <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
         <td class="text-center"> <span class="text_element">{{product.fields.sku.capacity}}</span> </td>
         <td class="text-center"> <span class="text_element">{{product.fields.sku.intransit_quantity}}</span> </td>

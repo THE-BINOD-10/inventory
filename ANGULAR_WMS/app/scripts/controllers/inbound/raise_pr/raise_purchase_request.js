@@ -1090,7 +1090,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       return tax;
    }
    vm.update_available_stock = function(sku_data) {
-      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true"}
+      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
@@ -1101,6 +1101,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
             sku_data["openpr_qty"] = data.data.openpr_qty;
+            sku_data["avg_consumption_qty"] = data.data.consumption_dict.avg_qty;
             if (data.data.is_contracted_supplier) {
               vm.is_contracted_supplier = true;
             } else if ((!data.data.is_contracted_supplier) && vm.is_contracted_supplier){

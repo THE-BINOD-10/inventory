@@ -6698,6 +6698,10 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         cur_user = request.GET.get('source', '')
         user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
+    plant = request.GET.get('plant', '')
+    consumption_dict = {'avg_qty': 0, 'base_qty': 0}
+    if plant:
+        consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
     dept_avail_qty = 0
@@ -6733,12 +6737,12 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
-                'is_contracted_supplier': is_contracted_supplier}))
+                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
-                                    'avg_price': avg_price}))
+                                    'avg_price': avg_price, 'consumption_dict': consumption_dict}))
 
 
 def sku_level_stock_data(request, user):
@@ -14147,3 +14151,21 @@ def check_consumption_configuration(users):
         else:
             status = False
     return status
+
+
+def get_average_consumption_qty(user, sku_code):
+    ret_data = {'avg_qty': 0, 'base_qty': 0}
+    plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username], send_parent=True)
+    plant_dept_ids = list(plant_depts.values_list('id', flat=True))
+    end_date = datetime.datetime.today().replace(day=1)
+    start_date = end_date - datetime.timedelta(days=92)
+    start_date = get_utc_start_date(start_date)
+    end_date = get_utc_start_date(end_date)
+    last_three_months = ConsumptionData.objects.filter(sku__user__in=plant_depts, sku__sku_code=sku_code, creation_date__range=[start_date, end_date]).\
+                                aggregate(total=Sum('quantity'), month_count=Count(ExtractMonth('creation_date'), distinct=True))
+    base_qty = last_three_months['total'] if last_three_months['total'] else 0
+    if last_three_months['month_count']:
+        avg_qty = base_qty/last_three_months['month_count']
+        ret_data['avg_qty'] = round(avg_qty, 6)
+        ret_data['base_qty'] = base_qty
+    return ret_data

@@ -12,7 +12,7 @@
           <th>No.Of Base Units</th>
           <th>Base UOM</th>
           <th>OpenPR Qty</th>
-          <!-- <th>Last 3M Avg Consumption</th> -->
+          <th>Last 3M Avg Consumption</th>
           <th>Available Stock</th>
           <th>OpenPO Qty</th>
           <!-- <th>Suggested PR Qty</th> -->
@@ -67,6 +67,7 @@
             <input name="base_uom" ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
           </td>
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
+          <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption_qty}}</span> </td>
           <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>

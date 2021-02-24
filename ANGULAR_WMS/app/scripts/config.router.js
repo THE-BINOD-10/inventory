@@ -609,8 +609,8 @@ var app = angular.module('urbanApp')
                 templateUrl: 'views/masters/toggles/sku_pack_update.html'
               })
 
-              .state('app.masters.Replenushment', {
-                url: '/Replenishment',
+              .state('app.masters.InventoryNorm', {
+                url: '/InventoryNorm',
                 // permission: 'sku_pack_config',
                 templateUrl: 'views/masters/replenushment_datatable.html',
                 resolve: {
@@ -619,10 +619,10 @@ var app = angular.module('urbanApp')
                           }]
                 },
                 data: {
-                  title: 'Replenishment Master',
+                  title: 'Inventory Norm Master',
                 }
               })
-                .state('app.masters.Replenushment.update', {
+                .state('app.masters.InventoryNorm.update', {
                    url: '/replenushmentupdate',
                    templateUrl: 'views/masters/toggles/replenushment_update.html'
                  })

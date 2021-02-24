@@ -3877,11 +3877,12 @@ class TempDeliveryChallan(models.Model):
     class Meta:
         db_table = 'TEMP_DELIVERY_CHALLAN'
 
+@reversion.register()
 class ReplenushmentMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
-    classification = models.CharField(max_length=64, default='')
-    size = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='replenushment_sku')
+    lead_time = models.FloatField(default=0)
     min_days = models.FloatField(default=0)
     max_days = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3889,7 +3890,7 @@ class ReplenushmentMaster(models.Model):
 
     class Meta:
         db_table = 'REPLENUSHMNENT_MASTER'
-        unique_together = ('user', 'classification', 'size')
+        unique_together = ('user', 'sku')
 
 class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)

@@ -630,25 +630,34 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
 
 @csrf_exempt
 def get_replenushment_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['classification', 'size','min_days', 'max_days']
+    lis = ['user__userprofile__stockone_code', 'user__first_name', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'lead_time', 'min_days', 'max_days']
 
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
+    if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants(request, req_users)
+    user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
             master_data = ReplenushmentMaster.objects.filter(
-                Q(classification__icontains=search_term) | Q(size__icontains=search_term) |
+                Q(user__first_name__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
+                Q(sku__sku_desc__icontains=search_term) | Q(sku__sku_category__icontains=search_term) |
                 Q(min_days__icontains=search_term) | Q(max_days__icontains=search_term), user=user.id).order_by(order_data)
     else:
-        master_data = ReplenushmentMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+        master_data = ReplenushmentMaster.objects.filter(user__in=user_ids, **search_params).order_by(order_data)
 
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = master_data.count()
     for data in master_data[start_index: stop_index]:
         temp_data['aaData'].append(
-            OrderedDict((('classification', data.classification), ('size', data.size),
-                          ('min_days', data.min_days),('max_days', data.max_days))))
+            OrderedDict((('plant_code', data.user.userprofile.stockone_code), ('plant_name', data.user.first_name),
+                            ('sku_code', data.sku.sku_code), ('sku_desc', data.sku.sku_desc), ('sku_category', data.sku.sku_category),
+                            ('lead_time', data.lead_time),
+                            ('min_days', data.min_days), ('max_days', data.max_days), ('warehouse', data.user.username))))
 
 
 @csrf_exempt
@@ -2369,25 +2378,34 @@ def insert_sku_pack(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_replenushment(request, user=''):
-    replenushment = copy.deepcopy(REPLENUSHMNENT_DATA)
-    classification = request.POST['classification']
-    size = request.POST['size']
+    reversion.set_user(request.user)
+    reversion.set_comment("insert_replenushment")
+    warehouse = request.POST['warehouse']
+    user = User.objects.get(username=warehouse)
+    sku_code = request.POST['wms_code']
+    lead_time = request.POST['lead_time']
     min_days = request.POST['min_days']
     max_days = request.POST['max_days']
-    if not classification:
-        return HttpResponse('Enter Classification')
-    replenushment_obj = ReplenushmentMaster.objects.filter(classification= classification, size=size, user = user.id)
-    if replenushment_obj.exists() :
+    if not warehouse:
+        return HttpResponse('Please Select Plant')
+    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).first()
+    if not sku_master:
+        return HttpResponse('Invalid SKU Code')
+    replenushment_obj = ReplenushmentMaster.objects.filter(sku__sku_code=sku_code, user = user.id)
+    if replenushment_obj.exists():
         replenushment_obj = replenushment_obj[0]
+        replenushment_obj.lead_time = lead_time
         replenushment_obj.min_days = min_days
         replenushment_obj.max_days = max_days
         replenushment_obj.save()
     else:
-        replenushment['classification'] = classification
-        replenushment ['size'] = size
-        replenushment ['min_days'] = min_days
+        replenushment = {}
+        replenushment['sku_id'] = sku_master.id
+        replenushment['min_days'] = min_days
         replenushment['max_days'] = max_days
+        replenushment['lead_time'] = lead_time
         replenushment['user'] = user
 
         try:

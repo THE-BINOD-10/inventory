@@ -13,7 +13,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "order_upload/",
                    dparam: "download-order-form",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: false,//Session.roles.permissions.is_staff,
                    perm: "add_orderdetail"
                  }, {
                    title: "SKU Download/ Upload",
@@ -83,7 +83,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "inventory_upload/",
                    dparam: "download-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: false,//Session.roles.permissions.is_staff,
                    perm: "add_stockdetail"
                  }, {
 //                   title: "Supplier Download/ Upload",
@@ -113,7 +113,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "supplier_sku_attributes_upload/",
                    dparam: "download-supplier-sku-attributes-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: false,//Session.roles.permissions.is_staff,
                    perm: "add_skusupplier"
                  },{
                    title: "Location Download/ Upload",
@@ -143,7 +143,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "move_inventory_upload/",
                    dparam: "download-move-inventory-file",
                    value: "",
-                   show: true,
+                   show: false,//true,
                    perm: "change_inventoryadjustment"
                  }, {
                    title: "Market Place - SKU Download/ Upload",
@@ -153,7 +153,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "marketplace_sku_upload/",
                    dparam: "download-marketplace-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: false, //Session.roles.permissions.is_staff,
                    perm: "add_skumaster"
                  }, {
                    title: "BOM - SKU Download/ Upload",
@@ -173,7 +173,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "combo_sku_upload/",
                    dparam: "download-combo-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: false,//Session.roles.permissions.is_staff,
                    perm: "add_skumaster"
                  }, {
                    title: "Inventory Adjustment Download/ Upload",
@@ -546,7 +546,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                    perm: "add_netsuiteidmapping",
-                 }, 
+                 },
                  // {
                  //   title: "Closing Adjustment Download/ Upload",
                  //   download: "Download Closing Adjustment Form",
@@ -589,6 +589,18 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    disable: true,
                    show: true,
+                   perm: "change_consumptiondata",
+                 }, {
+                   title: "Opening Stock Download/ Upload",
+                   download: "Download Opening Stock Form",
+                   upload: "Upload Opening Stock Form",
+                   durl: "opening_stock_form/",
+                   uurl: "opening_stock_upload/",
+                   dparam: "download-opening-stock-file",
+                   value: "",
+                   disable: false,
+                   show: true,
+                   perm: "change_closingstock",
                  }
                 ]
 

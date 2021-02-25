@@ -2731,7 +2731,7 @@ PERMISSION_DICT = OrderedDict((
                         ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
                         ("Customer Invoices", "add_sellerordersummary"), ("Manual Orders", "add_manualenquiry"),
                         ("Shipment Info", "add_shipmentinfo"), ("Create Stock Transfer", "add_stocktransfer"),
-                        ('Create Manual Test', 'add_consumptiondata')
+                        ('Create Manual Test', 'add_consumptiondata'), ('Closing Stock', 'change_consumptiondata'),
                         )),
 
     # Shipment Info

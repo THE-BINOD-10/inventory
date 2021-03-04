@@ -227,6 +227,17 @@ label:hover {
                 </accordion>
               </div>
             </div>
+            <div class="row hide" align="center">
+              <h5>GRN BULK UPLOADS</h5>
+              <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="approve_form">
+                <div class="form-group col-md-3" style="padding-top: 30px;">
+                  <span>
+                    <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple/>
+                  </span>
+                </div>
+                <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-click="showCase.bulkUploadfiles()">upload</button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

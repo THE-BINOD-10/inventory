@@ -832,7 +832,7 @@ urlpatterns += [
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
     url(r'^get_sku_uom_list/$', get_sku_uom_list),
     url(r'^display_closing_stock_uploaded/$', display_closing_stock_uploaded),
-
+    url(r'^bulk_grn_files_upload/$', bulk_grn_files_upload),
 
 
     # Retailone

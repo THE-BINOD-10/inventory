@@ -14197,3 +14197,28 @@ def check_consumption_configuration(users):
         else:
             status = False
     return status
+
+@login_required
+@get_admin_user
+def bulk_grn_files_upload(request, user=''):
+    success_data = []
+    for i in request.FILES:
+        file_obj = request.FILES.get(i, '')
+        if file_obj:
+            grn_number = file_obj._name.split('.')[0]
+            print grn_number
+            datum = SellerPOSummary.objects.filter(grn_number='19-27001-ACCES00004').values('purchase_order__po_number', 'receipt_number').distinct()
+            if datum.exists():
+                datum = datum[0]
+                master_docs_obj = MasterDocs.objects.filter(master_type='GRN_PO_NUMBER', master_id=datum['purchase_order__po_number'], extra_flag=datum['receipt_number'])
+                if not master_docs_obj:
+                    print grn_number
+                elif master_docs_obj.count() == 1:
+                    master_docs_obj = master_docs_obj[0]
+                    if os.path.exists(master_docs_obj.uploaded_file.path):
+                        os.remove(master_docs_obj.uploaded_file.path)
+                    master_docs_obj.uploaded_file = file_obj
+                    master_docs_obj.save()
+                    success_data.append(grn_number)
+    print success_data
+    return HttpResponse(json.dumps({'msg': 1, 'data': 'success'}))

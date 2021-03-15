@@ -12,8 +12,19 @@ function Profile($scope, Session, Service, $modal) {
   vm.model_data = {};
   vm.model_shipment_data = {};
   vm.host = Session.host;
+  vm.bulkUploadfiles = function() {
+    var form_data = new FormData();
+    var files = $(".approve_form").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+      form_data.append('files-' + i, file);
+    });
+    Service.apiCall('bulk_grn_files_upload/', 'POST', form_data, true, true).then(function(data){
+      if(data.message){
+        console.log('ok');
+      }
+    })
+  }
   vm.changePassword = function() {
-
     var mod_data = {};
     var modalInstance = $modal.open({
       templateUrl: 'views/profile/change_password.html',

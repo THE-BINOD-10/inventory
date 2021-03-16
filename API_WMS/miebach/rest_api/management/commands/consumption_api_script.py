@@ -99,12 +99,15 @@ def update_consumption(consumption_objss, user, company):
                     consumption_obj = Consumption.objects.filter(user=consumption_user.id, **consumption_filter)
                     if consumption_obj.exists():
                         status = 'Success'
-                        exist_total_test = consumption_obj[0].total_test
-                        if exist_total_test < data_dict['total_test']:
-                            diff_test = data_dict['total_test'] - exist_total_test
-                            status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=diff_test)
-                            if status == 'Success':
-                                consumption_obj.update(**data_dict)
+                        if consumption_obj[0].status == 1:
+                            status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=data_dict['total_test'])
+                        else:
+                            exist_total_test = consumption_obj[0].total_test
+                            if exist_total_test < data_dict['total_test']:
+                                diff_test = data_dict['total_test'] - exist_total_test
+                                status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=diff_test)
+                                if status == 'Success':
+                                    consumption_obj.update(**data_dict)
                     else:
                         consumption_obj = Consumption.objects.create(**data_dict)
                         status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
@@ -118,11 +121,13 @@ class Command(BaseCommand):
     help = "Consumption data"
 
     def handle(self, *args, **options):
-        users = User.objects.filter().exclude(userprofile__attune_id=None)
-        self.stdout.write("Started Consumption call")
+        #users = User.objects.filter().exclude(userprofile__attune_id=None)
+        users = User.objects.filter(userprofile__attune_id=67).exclude(userprofile__attune_id=None)
+        self.stdout.write("Started Consumption call at"+ str(datetime.datetime.now().strftime('%y-%d-%m %H: %M')))
         for user in users:
             org_id = user.userprofile.attune_id
-            today = datetime.date.today().strftime('%Y%m%d')
+            today = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+            #today = 20210312
             subsidiary_id = user.userprofile.company_id
             subsidiary = User.objects.get(id=subsidiary_id)
             company = subsidiary
@@ -130,11 +135,11 @@ class Command(BaseCommand):
             if not integrations:
                 company = User.objects.get(id=subsidiary.userprofile.company_id)
                 integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
-            # device_dict = {'date':today, 'org_id':org_id}
-            # get_devices(device_dict, company)
+            device_dict = {'date':today, 'org_id':org_id}
+            get_devices(device_dict, company)
             for integrate in integrations:
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
-                today = datetime.date.today().strftime('%Y%m%d')
+                #today = datetime.date.today().strftime('%Y%m%d')
                 # for i in range(1,15):
                 servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
                 data = {'fromdate':today, 'todate':today, 'orgid':org_id}
@@ -142,4 +147,4 @@ class Command(BaseCommand):
                     consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
                     update_consumption(consumption_obj, user, company)
             log.info("succesfull Consumption call for %s" % user.username)
-        self.stdout.write("completed Consumption call")
+        self.stdout.write("completed Consumption call at "+ str(datetime.datetime.now().strftime('%y-%d-%m %H: %M')))

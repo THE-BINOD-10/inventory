@@ -3929,7 +3929,8 @@ def get_devices(data_dict={}, user=''):
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         today = datetime.date.today().strftime('%Y%m%d')
-        data_dict['date'] = today
+        if not data_dict.has_key('date'):
+             data_dict['date'] = today
         servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
         for server in servers:
             server = server+'_DEVICE'
@@ -3951,7 +3952,7 @@ def update_devices(device_objs, user):
                     machine_code = (device_data.get('DeviceID', '')).strip()
                     machine_name = (device_data.get('DeviceName', '')).strip()
                     device_dict = {'tcode':device_data.get('Tcode', ''), 'attune_id':device_data.get('OrgID', ''), 'tname':device_data.get('Tname', ''),
-                                    'org_name':device_data.get('OrgName', ''),'instrument_name':device_data.get('DeviceName', ''), 'instrument_id':device_data.get('DeviceID', ''),
+                                    'org_name':device_data.get('OrgName', ''),'instrument_name':machine_name, 'instrument_id':machine_code,
                                     'investigation_id':device_data.get('InvestigationID', ''), 'dept_name':device_data.get('DeptName', '')}
                     if machine_code:
                         machine_obj = MachineMaster.objects.filter(machine_code=str(machine_code), user=user.id)
@@ -3960,7 +3961,7 @@ def update_devices(device_objs, user):
                         else:
                             machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user, 'machine_name': machine_name})
                             data_dict['machine'] = machine_obj
-                    OrgInstrumentMapping.objects.create(**device_dict)
+                    OrgInstrumentMapping.objects.get_or_create(**device_dict)
                 except Exception as e:
                     log.info("device data creation failed for %s, and data_dict was %s and exception %s" % (str(user.username),str(device_dict), str(e)))
 
@@ -13916,11 +13917,11 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             bom_check_dict = {'product_sku__user': main_user.id,
                               'product_sku__sku_code': consumption.test.test_code}
             if consumption.machine:
-                bom_check_dict['machine__machine_code'] = consumption.machine.machine_code
+                bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
             bom_master = BOMMaster.objects.filter(**bom_check_dict)
             if not bom_master.exists():
-                if 'machine__machine_code' in bom_check_dict.keys():
-                    del bom_check_dict['machine__machine_code']
+                if 'machine_master__machine_code' in bom_check_dict.keys():
+                    del bom_check_dict['machine_master__machine_code']
                 bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True

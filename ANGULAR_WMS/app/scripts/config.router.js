@@ -3244,6 +3244,18 @@ var app = angular.module('urbanApp')
             title: 'Credit Note Form (Oracle Upload File)',
           }
         })
+        .state('app.reports.ConsumptionData', {
+          url: '/consumptionData',
+          templateUrl: 'views/reports/consumption_data.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/consumption_data.js');
+              }]
+          },
+          data: {
+            title: 'Consumption Data',
+          }
+        })
         .state('app.reports.ConsumptionReport', {
           url: '/consumptionReport',
           templateUrl: 'views/reports/consumption_report.html',

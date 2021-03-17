@@ -675,6 +675,7 @@ class PendingPR(models.Model):
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='')
     remarks = models.TextField(default='')
+    is_auto_pr = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

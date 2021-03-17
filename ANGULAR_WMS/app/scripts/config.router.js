@@ -19,6 +19,7 @@ var app = angular.module('urbanApp')
      $rootScope.$redirect = '';
      $rootScope.$current_pr ='';
      $rootScope.$current_po = '';
+     $rootScope.$current_raise_pr = '';
      $rootScope.$state = $state;
      $rootScope.$stateParams = $stateParams;
      $rootScope.$on('$stateChangeSuccess', function () {
@@ -1416,6 +1417,25 @@ var app = angular.module('urbanApp')
           url: '/GrnEditPopup',
           templateUrl: 'views/inbound/toggle/grn_edit_popup.html'
         })
+        .state('app.inbound.MaterialPlanning', {
+          url: '/MaterialPlanning',
+          permission: 'change_replenushmentmaster',
+          templateUrl: 'views/inbound/material_planning.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/material_planning.js'
+                  ]);
+              }]
+          },
+          data: {
+            title: 'Material Planning',
+          }
+        })
+        //.state('app.inbound.PrimarySegregation.AddSegregation', {
+        //  url: '/AddSegregation',
+        //  templateUrl: 'views/inbound/toggle/add_segregation.html'
+        //  })
 
       // Production routes
       .state('app.production', {

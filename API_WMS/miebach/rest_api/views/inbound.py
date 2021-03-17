@@ -1820,7 +1820,10 @@ def generated_actual_pr_data(request, user=''):
     department_code = dept_user.userprofile.stockone_code
     department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     department = department_mapping.get(department_code, '')
-    storeObj = get_admin(dept_user)
+    if dept_user.userprofile.warehouse_type == 'DEPT':
+        storeObj = get_admin(dept_user)
+    else:
+        storeObj = dept_user
     store = storeObj.first_name
     total_data = []
     ser_data = []
@@ -2091,7 +2094,8 @@ def generated_actual_pr_data(request, user=''):
                     'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category,
                     'resubmitting_user': resubmitting_user,
                     'approval_remarks': approval_remarks,
-                    'pa_uploaded_file_dict': pa_uploaded_file_dict}
+                    'pa_uploaded_file_dict': pa_uploaded_file_dict,
+                    'is_auto_pr': record[0].is_auto_pr}
     try:
         pr_actual_data.info("requested_user %s for Full PR Number %s Click Time %s generated dict is %s" % (request.user.username, log_full_pr_number, datetime.datetime.now(), str(response_dict)))
     except Exception as e:
@@ -3581,6 +3585,8 @@ def approve_pr(request, user=''):
     levelToBeValidatedFor = request.POST.get('pending_level', '')
     remarks = request.POST.get('approval_remarks', '')
     is_actual_pr = request.POST.get('is_actual_pr', '')
+    is_auto_pr = request.POST.get('is_auto_pr', '')
+    is_auto_pr = 1 if is_auto_pr=="1" else 0
     requested_userName = request.POST.get('requested_user', '')
     central_data_id = request.POST.get('data_id', '')
     requestedUserId = User.objects.get(username=requested_userName).id
@@ -3626,7 +3632,10 @@ def approve_pr(request, user=''):
         pendingPRObj = PRQs[0]
         pr_number = getattr(pendingPRObj, purchase_number)
         if is_purchase_approver and validation_type != 'rejected' and is_actual_pr:
-            supplier_check_user = get_admin(pendingPRObj.wh_user)
+            if pendingPRObj.wh_user.userprofile.warehouse_type == 'DEPT':
+                supplier_check_user = get_admin(pendingPRObj.wh_user)
+            else:
+                supplier_check_user = pendingPRObj.wh_user
             if 'supplier_id' not in myDict.keys():
                 return HttpResponse("Failed ! Supplier Inputs are Missing, Please Refresh the page and try again ! ")
             if 'price' not in myDict.keys():
@@ -3687,7 +3696,10 @@ def approve_pr(request, user=''):
                     pass
                 if is_purchase_approver and validation_type != 'rejected':
                     supplier_id = myDict['supplier_id'][i]
-                    store_user = get_admin(pr_user)
+                    if pr_user.userprofile.warehouse_type == 'DEPT':
+                        store_user = get_admin(pr_user)
+                    else:
+                        store_user = pr_user
                     if supplier_id:
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
@@ -3789,7 +3801,10 @@ def approve_pr(request, user=''):
                     'total': round(total, 3)
                 }
                 pr_user = pendingPRObj.wh_user
-                store_user = get_admin(pr_user)
+                if pr_user.userprofile.warehouse_type == 'DEPT':
+                    store_user = get_admin(pr_user)
+                else:
+                    store_user = pr_user
                 supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=supplier_id)
                 if supplyQs.exists():
                     tax_type = supplyQs[0].tax_type
@@ -3832,7 +3847,7 @@ def approve_pr(request, user=''):
                         os.remove(master_docs_obj.uploaded_file.path)
                     master_docs_obj.uploaded_file = file_obj
                     master_docs_obj.save()
-        if pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted: #In last Level, no need to generate Hashcode, just confirmation mail is enough
+        if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted): #In last Level, no need to generate Hashcode, just confirmation mail is enough
             if purchase_type == 'PR':
                 display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
                 approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
@@ -3908,7 +3923,7 @@ def approve_pr(request, user=''):
 def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_number,
             baseLevel, prefix, full_pr_number, orderStatus='pending',
             prObj=None, is_po_creation=False, skusInPO=[], supplier=None,
-            convertPRtoPO=False, central_po_data=None):
+            convertPRtoPO=False, central_po_data=None, is_auto_pr=0):
     firstEntryValues = all_data.values()[0]
     if not firstEntryValues['pr_delivery_date']:
         pr_delivery_date = datetime.datetime.today()
@@ -3966,6 +3981,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_pr_number'] = full_pr_number
+        purchaseMap['is_auto_pr'] = is_auto_pr
     if myDict.get('purchase_id') and not convertPRtoPO:
         remarks = firstEntryValues['approval_remarks']
         pendingPurchaseObj = model_name.objects.get(id=myDict.get('purchase_id')[0])
@@ -4180,7 +4196,10 @@ def convert_pr_to_po(request, user=''):
             existingPRObj = existingPRObjs[0]
             requested_user = existingPRObj.requested_user
             dept_user = existingPRObj.wh_user
-            pr_user = get_admin(dept_user)
+            if dept_user.userprofile.warehouse_type == 'DEPT':
+                pr_user = get_admin(dept_user)
+            else:
+                pr_user = dept_user
             shipments = pr_user.useraddresses_set.filter(address_type='Shipment Address').values()
             if shipments.exists():
                 shipToAddress = shipments[0]['address']
@@ -4757,6 +4776,8 @@ def add_pr(request, user=''):
         log.info("Raise PR data for request user %s and user %s and request params are %s click time %s" % (request.user.username, user.username, str(myDict), datetime.datetime.now()))
         plant_name = request.POST.get('plant', '')
         department_type = request.POST.get('department_type', '')
+        is_auto_pr = request.POST.get('is_auto_pr', '')
+        is_auto_pr = 1 if is_auto_pr == 'true' else 0
         if plant_name and department_type:
             sister_whs = get_sister_warehouse(User.objects.get(username=plant_name))
             sister_wh_ids = sister_whs.values_list('user_id', flat=True)
@@ -4765,6 +4786,8 @@ def add_pr(request, user=''):
                 user = dept_user_obj[0]
             else:
                 return HttpResponse('Department Login not found')
+        elif plant_name:
+            user = User.objects.get(username=plant_name)
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         product_category = 'Kits&Consumables'
         if myDict.get('product_category'):
@@ -4829,11 +4852,27 @@ def add_pr(request, user=''):
             if is_contract_supplier:
                 break
         if is_actual_pr == 'true':
-            totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                                                                 prefix, full_pr_number)
-            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
-                                                product_category=product_category, approval_type='default',
-                                              sku_category=sku_category)
+            approval_type = 'default'
+            if is_auto_pr:
+                baseLevel = 'level1'
+                totalAmt = 0
+                reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',product_category=product_category,
+                                                    approval_type=approval_type, sku_category=sku_category)
+                if reqConfigName:
+                    mail_list_check = validatePRNextApproval(request, user, reqConfigName, approval_type, baseLevel, admin_user=None)
+                    if mail_list_check:
+                        totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                                                                             prefix, full_pr_number, is_auto_pr=is_auto_pr)
+                    else:
+                        return HttpResponse("Staff not found")
+                else:
+                    return HttpResponse("Purchase Approval Config not found")
+            else:
+                totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                                                                     prefix, full_pr_number, is_auto_pr=is_auto_pr)
+                reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
+                                                    product_category=product_category, approval_type=approval_type,
+                                                    sku_category=sku_category)
             pr_doa_log.info("Approval Config for PR Number %s is %s" % (full_pr_number, reqConfigName))
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
@@ -16580,3 +16619,170 @@ def view_pending_mr_details(request, user=''):
             except Exception as e:
                 return HttpResponse('fail')
     return HttpResponse(json.dumps(sku_grouping))
+
+@csrf_exempt
+def get_material_planning_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, cus_filters={}):
+    headers1, filters, filter_params1 = get_search_params(request)
+    if cus_filters:
+        filters = copy.deepcopy(cus_filters)
+    lis = ['user', 'user', 'sku_code', 'sku_desc', 'sku_category', 'user_id', 'user_id', 'user_id', 'user_id', 'user_id']
+    if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'plant_code' in filters and filters['plant_code']:
+        plant_code = filters['plant_code']
+        users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'plant_name' in filters and filters['plant_name']:
+        plant_name = filters['plant_name']
+        users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in filters and filters['zone_code']:
+        zone_code = filters['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_params = {'user__in': user_ids}
+    if 'sku_code' in filters and filters['sku_code']:
+        search_params['sku_code'] = filters['sku_code']
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    main_user = get_company_admin_user(user)
+    kandc_skus = list(SKUMaster.objects.filter(user=main_user.id).exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
+                                        exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()))
+    search_params['sku_code__in'] = kandc_skus
+    master_data = SKUMaster.objects.filter(**search_params).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    master_data = master_data[start_index:stop_index]
+    res_plants = set()
+    sku_codes = []
+    for dat in master_data:
+        res_plants.add(dat.user)
+        sku_codes.append(dat.sku_code)
+    usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_user_ids = list(dept_users.values_list('id', flat=True))
+    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+                                            values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
+    stock_qtys = {}
+    for stock in stocks:
+        usr = User.objects.get(id=stock['sku__user'])
+        if usr.userprofile.warehouse_type == 'DEPT':
+            usr = get_admin(usr)
+        grp_key = (usr.id, stock['sku__sku_code'])
+        stock_qtys.setdefault(grp_key, 0)
+        stock_qtys[grp_key] += stock['total']
+    consumption_qtys = {}
+    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes, 'quantity__gt': 0})
+    for cons in consumption_lt3:
+        usr = User.objects.get(id=cons.sku.user)
+        if usr.userprofile.warehouse_type == 'DEPT':
+            usr = get_admin(usr)
+        grp_key = (cons.sku.user, cons.sku.sku_code)
+        consumption_qtys.setdefault(grp_key, 0)
+        consumption_qtys[grp_key] += cons.quantity
+    repl_master = ReplenushmentMaster.objects.filter(user__in=dept_user_ids, sku__sku_code__in=sku_codes)
+    repl_dict = {}
+    for dat in repl_master:
+        grp_key = (dat.user.id, dat.sku.sku_code)
+        repl_dict.setdefault(grp_key, {})
+        repl_dict[grp_key]['lead_time'] = dat.lead_time
+        repl_dict[grp_key]['min_days'] = dat.min_days
+        repl_dict[grp_key]['max_days'] = dat.max_days
+    pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status='pending')
+    pending_pr_dict = {}
+    for pr_pend in pr_pending:
+        pr_user = User.objects.get(id=pr_pend.sku.user)
+        if pr_user.userprofile.warehouse_type == 'DEPT':
+            pr_user = get_admin(pr_user)
+        grp_key = (pr_user.id, pr_pend.sku.sku_code)
+        pending_pr_dict.setdefault(grp_key, {'qty': 0})
+        pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
+    po_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_po__final_status__in=['saved', 'pending'])
+    pending_po_dict = {}
+    for po_pend in po_pending:
+        po_user = User.objects.get(id=po_pend.sku.user)
+        if po_user.userprofile.warehouse_type == 'DEPT':
+            po_user = get_admin(po_user)
+        grp_key = (po_user.id, po_pend.sku.sku_code)
+        pending_po_dict.setdefault(grp_key, {'qty': 0})
+        pending_po_dict[grp_key]['qty'] += po_pend.quantity
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=dept_user_ids, open_po__sku__sku_code__in=sku_codes,
+                                                    open_po__order_quantity__gt=F('received_quantity')).\
+                                            exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted'])
+    po_dict = {}
+    for purchase_order in purchase_orders:
+        grp_key = (purchase_order.open_po.sku.user, purchase_order.open_po.sku.sku_code)
+        po_dict.setdefault(grp_key, {'qty': 0})
+        po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
+    sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
+    for data in master_data:
+        uom_dict = sku_uoms.get(data.sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        user = User.objects.get(id=data.user)
+        grp_key = (data.user, data.sku_code)
+        cons_qtyb = consumption_qtys.get(grp_key, 0)/3
+        cons_qty = round(cons_qtyb/sku_pcf, 5)
+        sku_repl = repl_dict.get(grp_key, {})
+        lead_time = cons_qty * sku_repl.get('lead_time', 0)
+        min_days = cons_qty * sku_repl.get('min_days', 0)
+        max_days = cons_qty * sku_repl.get('max_days', 0)
+        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 5)
+        sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
+        sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
+        total_stock = stock_qty + sku_pending_pr + sku_pending_po
+        total_stock = round(total_stock, 5)
+        if (total_stock - lead_time) > min_days:
+            suggested_qty = 0
+        else:
+            suggested_qty = (max_days + lead_time - total_stock)
+            suggested_qty = math.ceil(suggested_qty)
+
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', user.userprofile.stockone_code), ('Plant Name', user.first_name),
+                                  ('SKU Code', data.sku_code), ('SKU Description', data.sku_desc), ('SKU Category', data.sku_category),
+                                  ('Base UOM', uom_dict.get('base_uom', '')), ('Average Monthly Consumption Qty', cons_qty),
+                                  ('Lead Time Base Qty', lead_time), ('Min Days Base Qty', min_days), ('Max Days Base Qty', max_days),
+                                  ('System Stock Qty', stock_qty), ('Pending PR Qty', sku_pending_pr), ('Pending PO Qty', sku_pending_po),
+                                  ('Total Stock Qty', total_stock), ('Suggested Qty', suggested_qty), ('DT_RowAttr', {'data-id': data.id}),
+                                  ('hsn_code', data.hsn_code)
+                                ))
+        temp_data['aaData'].append(data_dict)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def prepare_material_planning_pr_data(request, user=''):
+    request_data = dict(request.POST.iterlists())
+    data_list = []
+    select_all = request_data['select_all'][0]
+    plant_username = ''
+    if select_all == 'true':
+        temp_data = {'aaData': []}
+        cus_filters = {'plant_code': request.POST.get('plant_code', ''), 'zone_code': request.POST.get('zone_code', ''),
+                        'sku_code': request.POST.get('sku_code', ''), 'plant_name': request.POST.get('plant_name', '')}
+        get_material_planning_data(0, None, temp_data, '', 0, 0, request, user, cus_filters=cus_filters)
+        for dat in temp_data['aaData']:
+            if dat['Suggested Qty'] <= 0:
+                continue
+            sku_code = dat['SKU Code']
+            plant_username = User.objects.get(userprofile__stockone_code=dat['Plant Code']).username
+            uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+            suggested_qty = dat['Suggested Qty']
+            data_list.append({'sku_code': sku_code, 'wms_code': sku_code, 'sku_desc': dat['SKU Description'], 'quantity': suggested_qty, 'base_uom': uom_dict.get('base_uom', ''),
+                            'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
+                            'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': dat.get('hsn_code', '')})
+    else:
+        for i in range(len(request_data['id'])):
+            sku = SKUMaster.objects.get(id=request_data['id'][i])
+            plant_username = User.objects.get(id=sku.user).username
+            uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+            suggested_qty = request_data['suggested_qty'][i]
+            data_list.append({'sku_code': sku.sku_code, 'wms_code': sku.wms_code, 'sku_desc': sku.sku_desc, 'quantity': suggested_qty, 'base_uom': uom_dict.get('base_uom', ''),
+                            'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
+                            'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code})
+    return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))

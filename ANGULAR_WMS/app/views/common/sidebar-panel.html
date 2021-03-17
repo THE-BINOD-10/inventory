@@ -307,6 +307,11 @@
             <span>GRN Edit</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+          <a ui-sref="app.inbound.MaterialPlanning">
+            <span>Material Planning</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'admin_sub_user' && permissions.priceband_sync)">
           <a ui-sref="app.inbound.AutoBackOrders">
             <span>Auto Back Orders</span>

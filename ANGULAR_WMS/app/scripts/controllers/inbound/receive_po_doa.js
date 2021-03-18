@@ -26,8 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.parent_username = Session.parent.userName;
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01','GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
     vm.milkbasket_file_check = ['GGN01'];
-
-
+    vm.date = new Date();
     vm.display_approval_button = false;
     // vm.display_approval_button_DOA = false;
     vm.confirm_srn=false;

@@ -2275,7 +2275,7 @@ def picklist_confirmation(request, user=''):
                                                                             update_picked_pack_qty,
                                                                order_typ = order_typ,
                                                                                  grn_number_dict=grn_number_dict, last_change_date=last_change_date)
-                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock, transact_date=last_change_date)
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
                             else:
                                 # SKU Stats
                                 save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)

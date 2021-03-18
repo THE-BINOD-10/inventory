@@ -7186,9 +7186,9 @@ def confirm_grn(request, confirm_returns='', user=''):
     service_doa=request.POST.get('doa_id', '')
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
-    if request.POST.get('product_category') == 'Kits&Consumables' or request.POST.get('order_type', '') == 'Stock Transfer':
-        if check_consumption_configuration([user.id]):
-            return HttpResponse("GRN Disable Due to Closing Stock Updations")
+    # if request.POST.get('product_category') == 'Kits&Consumables' or request.POST.get('order_type', '') == 'Stock Transfer':
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("GRN Disable Due to Closing Stock Updations")
     if(service_doa):
         model_id=request.POST['doa_id']
         doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
@@ -14345,10 +14345,11 @@ def create_rtv(request, user=''):
                 # from api_calls.netsuite import netsuite_update_create_rtv
                 plant = user.userprofile.reference_id
                 subsidary= user.userprofile.company.reference_id
+                location= user.userprofile.location_code
                 department= ""
                 try:
                     intObj = Integrations(user, 'netsuiteIntegration')
-                    show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
+                    show_data_invoice.update({'location': location, 'department': department, "subsidiary":subsidary, "plant":plant})
                     show_data_invoice["po_number"]=request_data["po_number"][0]
 
                     intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)

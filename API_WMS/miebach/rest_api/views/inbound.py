@@ -16676,12 +16676,12 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         stock_qtys.setdefault(grp_key, 0)
         stock_qtys[grp_key] += stock['total']
     consumption_qtys = {}
-    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes, 'quantity__gt': 0})
+    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
     for cons in consumption_lt3:
         usr = User.objects.get(id=cons.sku.user)
         if usr.userprofile.warehouse_type == 'DEPT':
             usr = get_admin(usr)
-        grp_key = (cons.sku.user, cons.sku.sku_code)
+        grp_key = (usr.id, cons.sku.sku_code)
         consumption_qtys.setdefault(grp_key, 0)
         consumption_qtys[grp_key] += cons.quantity
     repl_master = ReplenushmentMaster.objects.filter(user__in=dept_user_ids, sku__sku_code__in=sku_codes)
@@ -16728,9 +16728,9 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         cons_qtyb = consumption_qtys.get(grp_key, 0)/3
         cons_qty = round(cons_qtyb/sku_pcf, 5)
         sku_repl = repl_dict.get(grp_key, {})
-        lead_time = cons_qty * sku_repl.get('lead_time', 0)
-        min_days = cons_qty * sku_repl.get('min_days', 0)
-        max_days = cons_qty * sku_repl.get('max_days', 0)
+        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 5)
+        min_days = round(cons_qty * sku_repl.get('min_days', 0),5)
+        max_days = round(cons_qty * sku_repl.get('max_days', 0), 5)
         stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 5)
         sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
         sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
@@ -16745,7 +16745,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', user.userprofile.stockone_code), ('Plant Name', user.first_name),
                                   ('SKU Code', data.sku_code), ('SKU Description', data.sku_desc), ('SKU Category', data.sku_category),
                                   ('Base UOM', uom_dict.get('base_uom', '')), ('Average Monthly Consumption Qty', cons_qty),
-                                  ('Lead Time Base Qty', lead_time), ('Min Days Base Qty', min_days), ('Max Days Base Qty', max_days),
+                                  ('Lead Time Qty', lead_time), ('Min Days Qty', min_days), ('Max Days Qty', max_days),
                                   ('System Stock Qty', stock_qty), ('Pending PR Qty', sku_pending_pr), ('Pending PO Qty', sku_pending_po),
                                   ('Total Stock Qty', total_stock), ('Suggested Qty', suggested_qty), ('DT_RowAttr', {'data-id': data.id}),
                                   ('hsn_code', data.hsn_code)

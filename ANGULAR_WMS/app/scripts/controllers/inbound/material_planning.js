@@ -57,8 +57,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Base UOM', 'Average Monthly Consumption Qty', 'Lead Time Base Qty',
-                   'Min Days Base Qty', 'Max Days Base Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
+    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Base UOM', 'Average Monthly Consumption Qty', 'Lead Time Qty',
+                   'Min Days Qty', 'Max Days Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -207,7 +207,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
         vm.service.showNoty('Please Select one plant only');
         return false;
       }
-      if(!non_zero_qty) {
+      if(!non_zero_qty && !vm.selectAll) {
         vm.service.showNoty('Suggested Quantity is zero for all selected lines');
         return false;
       }
@@ -226,6 +226,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
                 withCredentials: true
             },
             'success': function(response) {
+              if(!response.data_list){
+                vm.service.showNoty('Suggested Quantity is zero for all selected lines');
+                return false;
+              }
               $rootScope.$current_raise_pr = response;
               $rootScope.process = false;
               $state.go('app.inbound.RaisePr');

@@ -560,7 +560,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.save_raise_pr = function(data, type, is_resubmitted=false) {
       if (data.$valid) {
         var elem = angular.element($('form#raise_pr_request_form'));
-        elem = elem[0];
+        elem = elem[1];
+        /*if(vm.current_raise_pr){
+          elem = elem[1];
+        }
+        else {
+          elem = elem[1];
+        }*/
         elem = $(elem).serializeArray();
         if (is_resubmitted == 'true'){
           elem.push({name:'is_resubmitted', value:true})

@@ -12342,7 +12342,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2 or month != 1:
+                        if len(str(month)) > 2 or month != 3:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')
@@ -12626,3 +12626,157 @@ def closing_stock_upload(request, user=''):
             str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Failed")
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@get_admin_user
+def inventory_norm_form(request, user=''):
+    inventory_file = request.GET['download-inventory-norm-file']
+    if inventory_file:
+        return error_file_download(inventory_file)
+    headers = copy.deepcopy(INVENTORY_NORM_HEADERS)
+    wb, ws = get_work_sheet('Inventory Norm', headers)
+    return xls_to_response(wb, '%s.inventory_norm_form.xls' % str(user.username))
+
+
+@csrf_exempt
+def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    distinct_sku_user_combo = []
+    inv_mapping = copy.deepcopy(INVENTORY_NORM_HEADERS)
+    inv_mapping_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    all_users = get_related_users_filters(user.id)
+    if user.userprofile.warehouse_type == 'ADMIN' and request.user.is_staff:
+        access_users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        access_users = check_and_get_plants_depts(request, users)
+    all_data = OrderedDict()
+    for row_idx in range(1, no_of_rows):
+        dept_users = User.objects.none()
+        print 'Validating %s' % str(row_idx)
+        data_dict = {'user': None, 'row_index': row_idx}
+        main_user = get_company_admin_user(user)
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'plant_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                    data_dict[key] = cell_data
+                    user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                   userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        try:
+                            cell_data = int(float(cell_data))
+                        except:
+                            pass
+                        data_dict[key] = cell_data
+                        user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                       userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        if not all_users.filter(first_name=cell_data).exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
+                        else:
+                            index_status.setdefault(row_idx, set()).add("Does'nt have access for this Plant")
+                    else:
+                        data_dict['user'] = user_obj[0]
+                        user = user_obj[0]
+                        dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                                               warehouse=[user.username])
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+            elif key == 'sku_code':
+                if cell_data:
+                    if data_dict['user']:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        tus = (data_dict['user'].id, cell_data)
+                        if tus in distinct_sku_user_combo:
+                            index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
+                        else:
+                            distinct_sku_user_combo.append(tus)
+                        if not sku_master.exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                        else:
+                            data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key in ['lead_time', 'sa_min_days', 'sa_max_days']:
+                if cell_data != '':
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_mapping_res[key])
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_mapping_res[key])
+
+        data_list.append(data_dict)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def inventory_norm_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_inventory_norm_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        with transaction.atomic('default'):
+            loop_counter = 1
+            for final_data in data_list:
+                sku = final_data['sku']
+                user = final_data['user']
+                replenushment_obj = ReplenushmentMaster.objects.filter(sku__sku_code=sku.sku_code, user = user.id)
+                if replenushment_obj.exists():
+                    replenushment_obj = replenushment_obj[0]
+                    replenushment_obj.lead_time = final_data['lead_time']
+                    replenushment_obj.min_days = final_data['sa_min_days']
+                    replenushment_obj.max_days = final_data['sa_max_days']
+                    replenushment_obj.save()
+                else:
+                    replenushment = {}
+                    replenushment['sku_id'] = sku.id
+                    replenushment['min_days'] = final_data['sa_min_days']
+                    replenushment['max_days'] = final_data['sa_max_days']
+                    replenushment['lead_time'] = final_data['lead_time']
+                    replenushment['user'] = user
+
+                    ReplenushmentMaster.objects.create(**replenushment)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Inventory Norm Master Upload failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")
+

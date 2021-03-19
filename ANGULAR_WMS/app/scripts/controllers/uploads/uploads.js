@@ -587,8 +587,19 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "closing_stock_upload/",
                    dparam: "download-closing-stock-file",
                    value: "",
-                   disable: true,
+                   disable: false,
                    show: true,
+                 },
+                 {
+                   title: "Inventory Norm Master Download/ Upload",
+                   download: "Download Inventory Norm Form",
+                   upload: "Upload Inventory Norm Form",
+                   durl: "inventory_norm_form/",
+                   uurl: "inventory_norm_upload/",
+                   dparam: "download-inventory-norm-file",
+                   value: "",
+                   disable: false,
+                   show: 'change_replenushmentmaster',
                  }
                 ]
 

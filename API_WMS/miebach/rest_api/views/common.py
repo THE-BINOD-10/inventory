@@ -14159,7 +14159,7 @@ def check_consumption_configuration(users):
 
 def get_last_three_months_consumption(filters):
     end_date = datetime.datetime.today().replace(day=1)
-    start_date = end_date - datetime.timedelta(days=92)
+    start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)
     last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
@@ -14169,18 +14169,15 @@ def get_average_consumption_qty(user, sku_code):
     ret_data = {'avg_qty': 0, 'base_qty': 0}
     plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username], send_parent=True)
     plant_dept_ids = list(plant_depts.values_list('id', flat=True))
-    #end_date = datetime.datetime.today().replace(day=1)
-    #start_date = end_date - datetime.timedelta(days=92)
-    #start_date = get_utc_start_date(start_date)
-    #end_date = get_utc_start_date(end_date)
-    #last_three_months = ConsumptionData.objects.filter(sku__user__in=plant_depts, sku__sku_code=sku_code, creation_date__range=[start_date, end_date]).\
     filters = {'sku__user__in': plant_depts, 'sku__sku_code': sku_code}
     last_three_months = get_last_three_months_consumption(filters)
     last_three_months = last_three_months.aggregate(total=Sum('quantity'), month_count=Count(ExtractMonth('creation_date'), distinct=True))
     base_qty = last_three_months['total'] if last_three_months['total'] else 0
     if last_three_months['month_count']:
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
         avg_qty = base_qty/3 #last_three_months['month_count']
-        ret_data['avg_qty'] = round(avg_qty, 6)
+        ret_data['avg_qty'] = round(avg_qty/sku_pcf, 6)
         ret_data['base_qty'] = base_qty
     return ret_data
 

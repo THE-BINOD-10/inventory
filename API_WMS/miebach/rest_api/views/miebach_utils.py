@@ -454,6 +454,12 @@ MARKET_LIST_HEADERS = ['Market Place', 'SKU', 'Description']
 
 MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'HomeShop18', 'Jabong', 'Indiatimes']
 
+INVENTORY_NORM_HEADERS = OrderedDict((
+                                        ('Plant Code', 'plant_code'), ('SKU Code', 'sku_code'),
+                                        ('Lead Time Days', 'lead_time'), ('SA Min Days', 'sa_min_days'),
+                                        ('SA Max Days', 'sa_max_days')
+                                    ))
+
 # User Type Order Formats
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',
                  'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Address', 'State', 'City',
@@ -1869,6 +1875,7 @@ PRAOD_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
@@ -15176,7 +15183,8 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                    'sku__mrp', 'sku__sub_category', 'sku__sku_group','quantity', 'price', 'sku__hsn_code', 'pending_pr_id']
     search_parameters1 = {}
     for spk, spv in search_parameters.items():
-        search_parameters1[spk.replace('pending_pr__', '')] = spv
+        if 'pending_pr__' in spk:
+            search_parameters1[spk.replace('pending_pr__', '')] = spv
     if 'purchase_type' in search_parameters1:
         del search_parameters1['purchase_type']
     pl_main = PendingPR.objects.filter(**search_parameters1)
@@ -17342,8 +17350,8 @@ def get_praod_report_data(search_params, user, sub_user):
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lt'] = search_params['to_date']
-    if 'sku_code' in search_params:
-        search_parameters['stock__sku__wms_code'] = search_params['sku_code']
+    if 'pr_number' in search_params:
+        search_parameters['full_pr_number'] = search_params['pr_number']
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,

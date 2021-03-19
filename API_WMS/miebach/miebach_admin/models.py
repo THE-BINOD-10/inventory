@@ -4020,6 +4020,7 @@ class StockTransferSummary(models.Model):
     stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
+    price = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateTimeField(null=True, blank=True)
     invoice_value = models.FloatField(default=0)

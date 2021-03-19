@@ -754,6 +754,8 @@ urlpatterns += [
     url(r'^closing_stock_upload/$', closing_stock_upload),
     url(r'^closing_stock_in_bulk_form/$', closing_stock_in_bulk_form),
     url(r'^closing_stock_in_bulk_upload/$', closing_stock_in_bulk_upload),
+    url(r'^opening_stock_form/$', opening_stock_form),
+    url(r'^opening_stock_upload/$', opening_stock_upload),
     url(r'^consumption_form/$', consumption_form),
     url(r'^consumption_upload/$', consumption_upload),
     url(r'^inventory_norm_form/$', inventory_norm_form),
@@ -833,7 +835,7 @@ urlpatterns += [
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
     url(r'^get_sku_uom_list/$', get_sku_uom_list),
     url(r'^display_closing_stock_uploaded/$', display_closing_stock_uploaded),
-
+    url(r'^bulk_grn_files_upload/$', bulk_grn_files_upload),
 
 
     # Retailone

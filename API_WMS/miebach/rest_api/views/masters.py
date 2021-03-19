@@ -4951,7 +4951,7 @@ def update_staff_values(request, user=''):
     request_data = dict(request.POST.iterlists())
     if request_data.get('groups', []):
         selected_list = request_data['groups']
-        update_user_groups(request, sub_user, selected_list)
+        update_user_groups(request, sub_user, selected_list, user=user)
     return HttpResponse("Updated Successfully")
 
 

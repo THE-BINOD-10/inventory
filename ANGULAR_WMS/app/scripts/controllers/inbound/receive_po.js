@@ -39,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.passed_serial_number = {};
     vm.firebase_temp_po = ''
     vm.quantity_focused = false;
+    vm.date = new Date();
     vm.months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
@@ -2748,6 +2749,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(data.data[parent_index][index], sku_row_data);
       if(sku_row_data.buy_price == ''){
         sku_row_data.buy_price = 0;
+      }
+      if (parseFloat(sku_row_data.buy_price) > parseFloat(sku_row_data.price)) {
+        data.data[parent_index][index]['buy_price'] = sku_row_data.price;
+        Service.showNoty("Buy Price Should not be Greater than Unit price");
+        return
       }
       if(sku_row_data.value == ''){
         sku_row_data.value = 0;

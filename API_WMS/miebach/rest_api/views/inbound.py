@@ -16567,26 +16567,39 @@ def get_pending_material_request_data(start_index, stop_index, temp_data, search
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def confirm_mr_request(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("confirm_mr_request")
+    log.info('Request params for ' + user.username + ' on ' + str(get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.POST.dict()))
     try:
         cnf_data = json.loads(request.POST.get('selected_orders', ''))
     except Exception as e:
         cnf_data = []
+
     if len(cnf_data) > 0:
         for data in cnf_data:
             try:
                 if check_consumption_configuration([User.objects.get(username=data['source_wh']).id]):
                     return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
-                all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='mr_doa', reference_id=data['order_id'], wh_user__username=data['dest_dept'])
-                if all_pending_orders.exists():
-                    for entry in all_pending_orders:
-                        filter_data= json.loads(entry.json_data)
-                        stock = StockDetail.objects.get(id=filter_data['data'])
-                        po =PurchaseOrder.objects.get(id=filter_data['po'])
-                        destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
-                        auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
-                        MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
+                with transaction.atomic('default'):
+                    all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending',
+                                                                    model_name='mr_doa', reference_id=data['order_id'],
+                                                                    wh_user__username=data['dest_dept'])
+                    all_pending_orders_for_lock = MastersDOA.objects.select_for_update().filter(id__in=list(all_pending_orders.values_list('id', flat=True)))
+                    if all_pending_orders_for_lock.exists():
+                        for entry in all_pending_orders:
+                            filter_data= json.loads(entry.json_data)
+                            stock = StockDetail.objects.get(id=filter_data['data'])
+                            po =PurchaseOrder.objects.get(id=filter_data['po'])
+                            destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
+                            auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
+                            MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
             except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info("Confirm MR Request failed for params " + str(request.POST.dict()) + " on " + \
+                            str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
                 return HttpResponse('fail')
     return HttpResponse('success')
 
@@ -16697,7 +16710,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         repl_dict[grp_key]['lead_time'] = dat.lead_time
         repl_dict[grp_key]['min_days'] = dat.min_days
         repl_dict[grp_key]['max_days'] = dat.max_days
-    pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status='pending')
+    pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
     pending_pr_dict = {}
     for pr_pend in pr_pending:
         pr_user = User.objects.get(id=pr_pend.sku.user)
@@ -16706,7 +16719,9 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         grp_key = (pr_user.id, pr_pend.sku.sku_code)
         pending_pr_dict.setdefault(grp_key, {'qty': 0})
         pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
-    po_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_po__final_status__in=['saved', 'pending'])
+    po_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes,
+                                                pending_po__final_status__in=['saved', 'pending', 'approved'],
+                                                pending_po__open_po__purchaseorder__isnull=True).distinct()
     pending_po_dict = {}
     for po_pend in po_pending:
         po_user = User.objects.get(id=po_pend.sku.user)

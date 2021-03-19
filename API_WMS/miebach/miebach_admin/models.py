@@ -187,7 +187,7 @@ class OtherItemsMaster(SKUMaster):
     class Meta:
         db_table = 'OTHERITEMS_MASTER'
 
-
+@reversion.register()
 class MastersDOA(models.Model):
     id = BigAutoField(primary_key=True)
     requested_user = models.ForeignKey(User, related_name="doa_requested_user")

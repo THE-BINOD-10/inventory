@@ -16615,7 +16615,8 @@ def view_pending_mr_details(request, user=''):
     if not material_id or not warehouse or not source_user_id:
         return HttpResponse('Inputs are Misssing !')
     else:
-        all_pending_orders = MastersDOA.objects.filter(requested_user__username=source_user_id, model_name='mr_doa', reference_id=material_id, wh_user__username=warehouse)
+        all_pending_orders = MastersDOA.objects.filter(requested_user__username=source_user_id, model_name='mr_doa', reference_id=material_id,
+                                                        wh_user__username=warehouse, doa_status='pending')
     if all_pending_orders.exists():
         sku_grouping = {}
         for data in all_pending_orders:

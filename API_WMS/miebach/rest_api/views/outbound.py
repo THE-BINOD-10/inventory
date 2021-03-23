@@ -9706,7 +9706,9 @@ def picklist_delete(request, user=""):
                                                                    aggregate(Sum('picked_quantity'),Sum('reserved_quantity'))
                         st_picked_quantity = st_picklist_objs['picked_quantity__sum']
                         st_reserved_quantity = st_picklist_objs['reserved_quantity__sum']
-                        stock_transfer_obj.picked_quantity = stock_transfer_obj.picked_quantity + st_picked_quantity/pcf
+                        stock_transfer_obj.picked_quantity = stock_transfer_obj.picked_quantity + float(st_picked_quantity/pcf)
+                        if stock_transfer_obj.quantity == stock_transfer_obj.original_quantity:
+                            stock_transfer_obj.quantity = stock_transfer_obj.quantity - float(st_picked_quantity/pcf)
                         if stock_transfer_obj.status == 1:
                             stock_transfer_obj.quantity = stock_transfer_obj.quantity + float(st_reserved_quantity/pcf)
                         stock_transfer_obj.status = 1
@@ -15318,7 +15320,7 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
                                     'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
                                     'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'],
-                                    'Quantity': data['tsum'], 'Pending Qty': (data['toriginal_qty'] - data['tpicked']), 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'Quantity': data['toriginal_qty'], 'Pending Qty': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'warehouse_id': data['sku__user'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})

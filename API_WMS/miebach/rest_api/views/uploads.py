@@ -7848,6 +7848,7 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
     sku_masters_dict = {}
     order_id_order_type = {}
     order_data = {}
+    all_sku_codes = []
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
     source_seller = ''
@@ -7888,6 +7889,10 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                 wms_code = str(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type))
             except:
                 wms_code = str(int(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type)))
+            if wms_code in all_sku_codes:
+                index_status.setdefault(count, set()).add('Duplicate SKU Code')
+            else:
+                all_sku_codes.append(wms_code)
             sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
             if not sku_master:
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
@@ -7906,7 +7911,7 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                             search_params['sku__sku_code'] = wms_code
                             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
                             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, wms_code, search_params, '')
-                            if (avail_qty+st_avail_qty) < float(cell_data):
+                            if (avail_qty+st_avail_qty) < abs(float(cell_data)):
                                 index_status.setdefault(count, set()).add('Quantity Exceeding available quantity')
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
@@ -7950,7 +7955,7 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                 sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
                 price = sku_master[0].average_price
             elif key == 'quantity':
-                 quantity = float(get_cell_data(row_idx, value, reader, file_type))
+                 quantity = abs(float(get_cell_data(row_idx, value, reader, file_type)))
             mrp = 0
             cgst_tax = 0
             sgst_tax = 0

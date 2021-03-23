@@ -1553,10 +1553,16 @@ var app = angular.module('urbanApp')
         })
         .state('app.stockLocator.StockSummary', {
           url: '/StockSummary',
-          templateUrl: 'views/stockLocator/stock_summary.html',
+          templateUrl: 'views/stockLocator/stock_summary_page.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/stock_summary.js');
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/stockLocator/stock_summary/stock_summary.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/stockLocator/stock_summary/stock_summary_plant_sku.js'
+                  ])
+                });
               }]
           },
           data: {

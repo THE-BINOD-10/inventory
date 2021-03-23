@@ -16528,7 +16528,7 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
                                     'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
                                     'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'], 'warehouse_id': data['st_po__open_st__warehouse__id'],
-                                    'Quantity': data['tsum'], 'Pending Qty': (data['toriginal_qty'] - data['tpicked']), 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'Quantity': data['toriginal_qty'], 'Pending Qty': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
         count = count + 1

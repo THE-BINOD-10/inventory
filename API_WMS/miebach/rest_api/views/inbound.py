@@ -16791,19 +16791,30 @@ def prepare_material_planning_pr_data(request, user=''):
             if dat['Suggested Qty'] <= 0:
                 continue
             sku_code = dat['SKU Code']
+            capacity = dat['System Stock Qty']
+            openpr_qty = dat['Pending PR Qty']
+            avg_consumption_qty = dat['Average Monthly Consumption Qty']
             plant_username = User.objects.get(userprofile__stockone_code=dat['Plant Code']).username
             uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
             suggested_qty = dat['Suggested Qty']
+            openpo_qty = dat['Pending PO Qty']
             data_list.append({'sku_code': sku_code, 'wms_code': sku_code, 'sku_desc': dat['SKU Description'], 'quantity': suggested_qty, 'base_uom': uom_dict.get('base_uom', ''),
                             'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
-                            'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': dat.get('hsn_code', '')})
+                            'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': dat.get('hsn_code', ''),
+                            'capacity': capacity, 'openpr_qty': openpr_qty, 'avg_consumption_qty': avg_consumption_qty,
+                            'openpo_qty': openpo_qty})
     else:
         for i in range(len(request_data['id'])):
             sku = SKUMaster.objects.get(id=request_data['id'][i])
             plant_username = User.objects.get(id=sku.user).username
             uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
             suggested_qty = request_data['suggested_qty'][i]
+            capacity = request_data['capacity'][i]
+            openpr_qty = request_data['openpr_qty'][i]
+            avg_consumption_qty = request_data['avg_consumption_qty'][i]
+            openpo_qty = request_data['openpo_qty'][i]
             data_list.append({'sku_code': sku.sku_code, 'wms_code': sku.wms_code, 'sku_desc': sku.sku_desc, 'quantity': suggested_qty, 'base_uom': uom_dict.get('base_uom', ''),
                             'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
-                            'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code})
+                            'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
+                            'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))

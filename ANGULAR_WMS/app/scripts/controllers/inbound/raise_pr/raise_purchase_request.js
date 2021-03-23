@@ -1250,9 +1250,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
           });
         }
-        vm.update_available_stock(product.fields.sku);
         if($rootScope.$current_raise_pr == ''){
           vm.checkResubmit(product.fields);
+          vm.update_available_stock(product.fields.sku);
+        }
+        else {
+          product.fields.sku.capacity = item.capacity;
+          product.fields.sku.openpr_qty = item.openpr_qty;
+          product.fields.sku.avg_consumption_qty = item.avg_consumption_qty;
+          product.fields.sku.intransit_quantity = item.openpo_qty;
         }
       } else {
         vm.service.showNoty('Duplicate SKU Code !!');

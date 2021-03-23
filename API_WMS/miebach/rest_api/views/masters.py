@@ -646,7 +646,7 @@ def get_replenushment_master(start_index, stop_index, temp_data, search_term, or
             master_data = ReplenushmentMaster.objects.filter(
                 Q(user__first_name__icontains=search_term) | Q(sku__sku_code__icontains=search_term) |
                 Q(sku__sku_desc__icontains=search_term) | Q(sku__sku_category__icontains=search_term) |
-                Q(min_days__icontains=search_term) | Q(max_days__icontains=search_term), user=user.id).order_by(order_data)
+                Q(min_days__icontains=search_term) | Q(max_days__icontains=search_term), user__in=user_ids).order_by(order_data)
     else:
         master_data = ReplenushmentMaster.objects.filter(user__in=user_ids, **search_params).order_by(order_data)
 

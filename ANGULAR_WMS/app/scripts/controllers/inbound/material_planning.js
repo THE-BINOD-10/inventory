@@ -196,6 +196,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
             sugg_qty = parseFloat(sugg_qty);
             formData.append('id', vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId);
             formData.append('suggested_qty', sugg_qty);
+            formData.append('capacity', vm.dtInstance.DataTable.context[0].aoData[key]._aData['System Stock Qty']);
+            formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Monthly Consumption Qty']);
+            formData.append('openpr_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PR Qty']);
+            formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
             non_zero_qty = true;
           }
           if(plant_code && plant_code != vm.dtInstance.DataTable.context[0].aoData[key]._aData['Plant Code']){
@@ -226,11 +230,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
                 withCredentials: true
             },
             'success': function(response) {
+              response = JSON.parse(response);
               if(!response.data_list){
                 vm.service.showNoty('Suggested Quantity is zero for all selected lines');
                 return false;
               }
-              $rootScope.$current_raise_pr = response;
+              $rootScope.$current_raise_pr = JSON.stringify(response);
               $rootScope.process = false;
               $state.go('app.inbound.RaisePr');
             }});

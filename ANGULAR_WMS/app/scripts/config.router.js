@@ -19,6 +19,7 @@ var app = angular.module('urbanApp')
      $rootScope.$redirect = '';
      $rootScope.$current_pr ='';
      $rootScope.$current_po = '';
+     $rootScope.$current_raise_pr = '';
      $rootScope.$state = $state;
      $rootScope.$stateParams = $stateParams;
      $rootScope.$on('$stateChangeSuccess', function () {
@@ -609,8 +610,8 @@ var app = angular.module('urbanApp')
                 templateUrl: 'views/masters/toggles/sku_pack_update.html'
               })
 
-              .state('app.masters.Replenushment', {
-                url: '/Replenishment',
+              .state('app.masters.InventoryNorm', {
+                url: '/InventoryNorm',
                 // permission: 'sku_pack_config',
                 templateUrl: 'views/masters/replenushment_datatable.html',
                 resolve: {
@@ -619,10 +620,10 @@ var app = angular.module('urbanApp')
                           }]
                 },
                 data: {
-                  title: 'Replenishment Master',
+                  title: 'Inventory Norm Master',
                 }
               })
-                .state('app.masters.Replenushment.update', {
+                .state('app.masters.InventoryNorm.update', {
                    url: '/replenushmentupdate',
                    templateUrl: 'views/masters/toggles/replenushment_update.html'
                  })
@@ -1416,6 +1417,25 @@ var app = angular.module('urbanApp')
           url: '/GrnEditPopup',
           templateUrl: 'views/inbound/toggle/grn_edit_popup.html'
         })
+        .state('app.inbound.MaterialPlanning', {
+          url: '/MaterialPlanning',
+          permission: 'change_replenushmentmaster',
+          templateUrl: 'views/inbound/material_planning.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/material_planning.js'
+                  ]);
+              }]
+          },
+          data: {
+            title: 'Material Planning',
+          }
+        })
+        //.state('app.inbound.PrimarySegregation.AddSegregation', {
+        //  url: '/AddSegregation',
+        //  templateUrl: 'views/inbound/toggle/add_segregation.html'
+        //  })
 
       // Production routes
       .state('app.production', {
@@ -2458,6 +2478,17 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Location Wise Filter',
+          }
+        }).state('app.reports.PR_AODReport', {
+          url: '/PR_AODReport',
+          templateUrl: 'views/reports/pr_as_on_date_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/pr_as_on_date_report.js');
+              }]
+          },
+          data: {
+            title: 'Pending PR As on Date',
           }
         }).state('app.reports.PR_PO_GRNReport', {
           url: '/PR_PO_GRNReport',

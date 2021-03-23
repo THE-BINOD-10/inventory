@@ -4050,6 +4050,9 @@ def insert_inventory_adjust(request, user=''):
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]
+        price = ''
+        if 'price' in request_data.keys():
+            price = request_data['price'][i]
         if reason in ['Pooling']:
             stock_increase = True
         else:
@@ -4059,7 +4062,7 @@ def insert_inventory_adjust(request, user=''):
         status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
                                                              batch_no=batch_no, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment', stock_increase=stock_increase,
-                                                manufactured_date=manufactured_date, expiry_date=expiry_date)
+                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price)
     #netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)

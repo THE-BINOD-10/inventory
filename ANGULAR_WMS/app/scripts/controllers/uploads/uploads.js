@@ -579,7 +579,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                  //   disable: true,
                  //   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                  // },
-                  {
+                 {
                    title: "Closing Stock Download/ Upload",
                    download: "Download Closing Stock Form",
                    upload: "Upload Closing Stock Form",
@@ -601,6 +601,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    disable: false,
                    show: true,
                    perm: "change_closingstock",
+                 },
+                 {
+                   title: "Inventory Norm Master Download/ Upload",
+                   download: "Download Inventory Norm Form",
+                   upload: "Upload Inventory Norm Form",
+                   durl: "inventory_norm_form/",
+                   uurl: "inventory_norm_upload/",
+                   dparam: "download-inventory-norm-file",
+                   value: "",
+                   disable: false,
+                   show: 'change_replenushmentmaster',
                  }
                 ]
 

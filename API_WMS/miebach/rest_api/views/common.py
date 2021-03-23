@@ -9017,7 +9017,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
 
         uom_dict = get_uom_with_sku_code(user, order.sku.sku_code, uom_type='purchase')
         if not seller_order:
-            order_check_quantity = float(order.quantity) * uom_dict.get('sku_conversion', 1)
+            order_check_quantity = float(order.quantity - order.picked_quantity) * uom_dict.get('sku_conversion', 1)
         else:
             order_check_quantity = float(seller_order.quantity) * uom_dict.get('sku_conversion', 1)
         members = {order.sku: order_check_quantity}
@@ -9069,8 +9069,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
-            if 'st_po' in dir(order) :
-                order_quantity = order_quantity - order.picked_quantity
+            # if 'st_po' in dir(order) :
+            #     order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 #if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):

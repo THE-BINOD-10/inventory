@@ -16456,13 +16456,13 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
         stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR', upload_type='BULK_UPLOAD').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
-                                        distinct().annotate(tsum=Sum('quantity'),
+                                        distinct().annotate(tsum=Sum('quantity'), tpicked=Sum('picked_quantity'),
                                         date_only=Cast('creation_date', DateField()))
     else:
         stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='MR', upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
-                                        distinct().annotate(tsum=Sum('quantity'),
+                                        distinct().annotate(tsum=Sum('quantity'), tpicked=Sum('picked_quantity'),
                                         date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -16470,8 +16470,7 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
     if search_term:
         user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
         master_data = stock_transfer_objs.filter(Q(st_po__open_st__sku__user__in=user_ids) |
-                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term) |
-                                                   Q(creation_date__regex=search_term)).order_by(order_data)
+                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term)).order_by(order_data)
     else:
         master_data = stock_transfer_objs.order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -16482,11 +16481,13 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
         source_name = User.objects.get(id=data['st_po__open_st__warehouse__id'])
         warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
+        if data['tpicked']:
+            data['tpicked'] = float(data['tpicked'])
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
                                     'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
                                     'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'], 'warehouse_id': data['st_po__open_st__warehouse__id'],
-                                    'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'Quantity': data['tsum'], 'Pending Qty': (data['tsum'] - data['tpicked']), 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
         count = count + 1

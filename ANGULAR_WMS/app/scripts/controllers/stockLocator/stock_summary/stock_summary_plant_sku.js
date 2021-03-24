@@ -26,6 +26,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.filters = {'datatable': 'StockSummaryPlantSKU', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': ''};
+    vm.model_data = {}
+    vm.model_data['filters'] = {'datatable': 'StockSummaryPlantSKU'};
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -153,7 +155,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.reset_filters = function(){
 
       vm.model_data['filters'] = {};
-      vm.model_data.filters['datatable'] = 'ReturnToVendor';
+      vm.model_data.filters['datatable'] = 'StockSummaryPlantSK';
     }
 
     vm.empty_filter_fields = function(){
@@ -166,17 +168,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         vm.model_data['filters'] = {};
         vm.model_data.filters['sku_code'] = '';
-        vm.model_data.filters['supplier_id'] = '';
-        vm.model_data.filters['to_date'] = '';
-        vm.model_data.filters['open_po'] = '';
-        vm.model_data.filters['invoice_number'] = '';
-        vm.model_data.filters['datatable'] = 'ReturnToVendor';
+        vm.model_data.filters['datatable'] = 'StockSummaryPlantSK';
       }
     }
 
     vm.saveFilters = function(filters){
       Data.rtv_filters = filters;
-      vm.enable_dc_return = filters.enable_dc_returns;
     }
 
     //RTV Pop Data

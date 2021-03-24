@@ -19,6 +19,8 @@ urlpatterns =  [
 
     #url(r'^grappelli/', include('grappelli.urls')), # grappelli URLS
     url(r'^mieone_panel/',  include(admin.site.urls)), # admin site
+    url('accounts/', include('django.contrib.auth.urls')),
+    url("password_reset", password_reset_request),
 
     # Login and logout
     url(r'^login/$', login),

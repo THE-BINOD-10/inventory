@@ -4261,7 +4261,7 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         stock_value = stock_qty * data['sku__average_price']
         cons_value = cons_dict.get('value', 0)
         avg_per_day_cons = cons_qtyb/30
-        avg_per_day_cons_val = stock_value/30
+        avg_per_day_cons_val = cons_value/30
         days_of_cover_bqty = (stock_qtyb/avg_per_day_cons) if avg_per_day_cons else 0
         days_of_cover_value = (stock_value/avg_per_day_cons_val) if avg_per_day_cons_val else 0
         data_dict = OrderedDict(( ('DT_RowId', data['sku__user']), ('Plant Code', user.userprofile.stockone_code),

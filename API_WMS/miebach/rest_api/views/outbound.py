@@ -9709,8 +9709,8 @@ def picklist_delete(request, user=""):
                         stock_transfer_obj.picked_quantity = stock_transfer_obj.picked_quantity + float(st_picked_quantity/pcf)
                         if stock_transfer_obj.quantity == stock_transfer_obj.original_quantity:
                             stock_transfer_obj.quantity = stock_transfer_obj.quantity - float(st_picked_quantity/pcf)
-                        if stock_transfer_obj.status == 1:
-                            stock_transfer_obj.quantity = stock_transfer_obj.quantity + float(st_reserved_quantity/pcf)
+                        else:
+                            stock_transfer_obj.quantity = float(stock_transfer_obj.original_quantity - stock_transfer_obj.picked_quantity)
                         stock_transfer_obj.status = 1
                         stock_transfer_obj.save()
                         updated_st_ids.append(stock_transfer_obj.id)
@@ -15314,8 +15314,6 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
         source_name = User.objects.get(username=data['st_po__open_st__warehouse__username'])
         warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
-        if data['tpicked']:
-            data['tpicked'] = float(data['tpicked'])
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
                                     'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
                                     'source_label': "%s %s" % (source_name.first_name, source_name.last_name),

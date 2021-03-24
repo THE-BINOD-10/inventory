@@ -225,6 +225,11 @@
             <span>Cluster SKU Mapping</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_replenushmentmaster')">
+          <a ui-sref="app.masters.InventoryNorm">
+            <span>Inventory Norm Master</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -300,6 +305,11 @@
         <li ui-sref-active="active" ng-show="show_tab('delete_sellerposummary')">
           <a ui-sref="app.inbound.GrnEdit">
             <span>GRN Edit</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+          <a ui-sref="app.inbound.MaterialPlanning">
+            <span>Material Planning</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'admin_sub_user' && permissions.priceband_sync)">
@@ -552,6 +562,11 @@
         <li ui-sref-active="active" ng-show="show_tab('view_locationmaster')">
           <a ui-sref="app.reports.LocationWiseFilter">
             <span>Location Wise Filter</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.PR_AODReport">
+            <span>Pending PR as on date</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">

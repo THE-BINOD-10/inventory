@@ -678,6 +678,7 @@ data_datatable = {  # masters
     'CreditNote': 'get_credit_note_data',
     'MaterialRequestOrders': 'get_material_request_orders',
     'PendingMaterialRequest' : 'get_pending_material_request_data',
+    'MaterialPlanning': 'get_material_planning_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -2919,7 +2920,6 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
-    sku_amt = {}
     return_status = 'Added Successfully'
     if wmscode:
         sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
@@ -2966,15 +2966,15 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
+    uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+    remaining_quantity = quantity * uom_dict['sku_conversion']
     data_dict['quantity'] = total_stock_quantity
-    data_dict['seen_quantity'] = quantity
+    data_dict['seen_quantity'] = remaining_quantity
     data_dict['status'] = 0
     data_dict['creation_date'] = now
     data_dict['updation_date'] = now
     with transaction.atomic('default'):
         stocks = StockDetail.objects.using('default').select_for_update().filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
-        uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
-        remaining_quantity = quantity * uom_dict['sku_conversion']
         if not stock_increase:
             stock_qty = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_qty = stock_qty if stock_qty else 0
@@ -3074,6 +3074,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             # else:
             #     stock_dict['unit_price'] = price
             batch_dict['buy_price'] = 0
+            if price != '':
+                batch_dict['buy_price'] = float(price)
             batch_dict['pcf'] = uom_dict['sku_conversion']
             batch_dict['pquantity'] = quantity
             batch_dict['puom'] = uom_dict['measurement_unit']
@@ -3084,8 +3086,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                     batch_dict['buy_price'] = sku[0].average_price
                 add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
-                if price:
-                    batch_dict['buy_price'] = price
+                #if price:
+                #    batch_dict['buy_price'] = price
                 if batch_dict.keys():
                     batch_obj = create_update_batch_data(batch_dict)
                     stock_dict["batch_detail_id"] = batch_obj.id
@@ -3112,10 +3114,13 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if not location:
                 location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone)
             stock_dict['location_id'] = location[0].id
+            sku_amt = {}
+            store_user = user
+            sku_amt[sku[0].sku_code] = {'qty': quantity, 'amount': quantity * batch_dict['buy_price'], 'exclude_po_loc': []}
+            main_user = get_company_admin_user(user)
             if user.userprofile.warehouse_type == 'DEPT':
-                sku_amt[sku[0].sku_code] = {'qty': quantity, 'amount': 0}
-                main_user = get_company_admin_user(user)
                 store_user = get_admin(user)
+            if sku_amt and reason == 'Pooling':
                 update_sku_avg_main(sku_amt, store_user, main_user)
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
@@ -6698,6 +6703,10 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         cur_user = request.GET.get('source', '')
         user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
+    plant = request.GET.get('plant', '')
+    consumption_dict = {'avg_qty': 0, 'base_qty': 0}
+    if plant:
+        consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
     dept_avail_qty = 0
@@ -6733,12 +6742,12 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
-                'is_contracted_supplier': is_contracted_supplier}))
+                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
-                                    'avg_price': avg_price}))
+                                    'avg_price': avg_price, 'consumption_dict': consumption_dict}))
 
 
 def sku_level_stock_data(request, user):
@@ -9069,8 +9078,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
-            if 'st_po' in dir(order) :
-                order_quantity = order_quantity - order.picked_quantity
+            # if 'st_po' in dir(order) :
+            #     order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 #if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
@@ -14156,6 +14165,49 @@ def check_consumption_configuration(users):
         else:
             status = False
     return status
+
+def get_last_three_months_consumption(filters):
+    end_date = datetime.datetime.today().replace(day=1)
+    start_date = end_date - relativedelta(months=3)
+    start_date = get_utc_start_date(start_date)
+    end_date = get_utc_start_date(end_date)
+    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
+    return last_three_months
+
+def get_average_consumption_qty(user, sku_code):
+    ret_data = {'avg_qty': 0, 'base_qty': 0}
+    plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username], send_parent=True)
+    plant_dept_ids = list(plant_depts.values_list('id', flat=True))
+    filters = {'sku__user__in': plant_depts, 'sku__sku_code': sku_code}
+    last_three_months = get_last_three_months_consumption(filters)
+    last_three_months = last_three_months.aggregate(total=Sum('quantity'), month_count=Count(ExtractMonth('creation_date'), distinct=True))
+    base_qty = last_three_months['total'] if last_three_months['total'] else 0
+    if last_three_months['month_count']:
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
+        avg_qty = base_qty/3 #last_three_months['month_count']
+        ret_data['avg_qty'] = round(avg_qty/sku_pcf, 6)
+        ret_data['base_qty'] = base_qty
+    return ret_data
+
+
+def validatePRNextApproval(request, user, reqConfigName, approval_type, level, admin_user=None):
+    mailsList = []
+    company_id = get_company_id(user)
+    pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
+    if admin_user:
+        pacFiltersMap['user'] = admin_user
+    if approval_type:
+        pacFiltersMap['approval_type'] = approval_type
+    apprConfObj = PurchaseApprovalConfig.objects.filter(**pacFiltersMap)
+    if apprConfObj:
+        apprConfObjId = apprConfObj[0].id
+        if isinstance(request, User):
+            mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
+        else:
+            mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
+    return mailsList
+
 
 @login_required
 @get_admin_user

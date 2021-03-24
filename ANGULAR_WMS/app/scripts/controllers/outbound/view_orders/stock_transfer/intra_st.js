@@ -115,6 +115,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
             DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+            DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty'),
         ];
       } else {
 

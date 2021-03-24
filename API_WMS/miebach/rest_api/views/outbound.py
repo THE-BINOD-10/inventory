@@ -9706,9 +9706,11 @@ def picklist_delete(request, user=""):
                                                                    aggregate(Sum('picked_quantity'),Sum('reserved_quantity'))
                         st_picked_quantity = st_picklist_objs['picked_quantity__sum']
                         st_reserved_quantity = st_picklist_objs['reserved_quantity__sum']
-                        stock_transfer_obj.picked_quantity = st_picked_quantity/pcf
-                        if stock_transfer_obj.status == 1:
-                            stock_transfer_obj.quantity = stock_transfer_obj.quantity + float(st_reserved_quantity/pcf)
+                        stock_transfer_obj.picked_quantity = stock_transfer_obj.picked_quantity + float(st_picked_quantity/pcf)
+                        if stock_transfer_obj.quantity == stock_transfer_obj.original_quantity:
+                            stock_transfer_obj.quantity = stock_transfer_obj.quantity - float(st_picked_quantity/pcf)
+                        else:
+                            stock_transfer_obj.quantity = float(stock_transfer_obj.original_quantity - stock_transfer_obj.picked_quantity)
                         stock_transfer_obj.status = 1
                         stock_transfer_obj.save()
                         updated_st_ids.append(stock_transfer_obj.id)
@@ -15287,13 +15289,13 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
         stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type=st_type, upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
-                                        distinct().annotate(tsum=Sum('quantity'),
+                                        distinct().annotate(tsum=Sum('quantity'), tpicked=Sum('picked_quantity'), toriginal_qty=Sum('original_quantity'),
                                         date_only=Cast('creation_date', DateField()))
     else:
         stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type=st_type, upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
-                                        distinct().annotate(tsum=Sum('quantity'),
+                                        distinct().annotate(tsum=Sum('quantity'), tpicked=Sum('picked_quantity'), toriginal_qty=Sum('original_quantity'),
                                         date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -15301,8 +15303,7 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     if search_term:
         user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
         master_data = stock_transfer_objs.filter(Q(st_po__open_st__sku__user__in=user_ids) |
-                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term) |
-                                                   Q(creation_date__regex=search_term)).order_by(order_data)
+                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term)).order_by(order_data)
     else:
         master_data = stock_transfer_objs.order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -15317,7 +15318,7 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
                                     'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
                                     'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'],
-                                    'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'Quantity': data['toriginal_qty'], 'Pending Qty': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'warehouse_id': data['sku__user'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})

@@ -4237,7 +4237,7 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
     consumption_qtys = {}
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
     for cons in consumption_lt3:
-        uom_dict = sku_uoms.get(data['sku__sku_code'], {})
+        uom_dict = sku_uoms.get(cons.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
         usr = User.objects.get(id=cons.sku.user)
@@ -4254,12 +4254,12 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         user = User.objects.get(id=data['sku__user'])
         grp_key = (data['sku__user'], data['sku__sku_code'])
         cons_dict = consumption_qtys.get(grp_key, {})
-        cons_qtyb = cons_dict.get('qty', 0)/3
+        cons_qtyb = round(cons_dict.get('qty', 0)/3, 5)
         cons_qty = round(cons_qtyb/sku_pcf, 5)
         stock_qtyb = stock_qtys.get(grp_key, 0)
         stock_qty = round((stock_qtyb)/sku_pcf, 5)
         stock_value = stock_qty * data['sku__average_price']
-        cons_value = cons_dict.get('value', 0)
+        cons_value = round(cons_dict.get('value', 0), 5)
         avg_per_day_cons = cons_qtyb/30
         avg_per_day_cons_val = cons_value/30
         days_of_cover_bqty = (stock_qtyb/avg_per_day_cons) if avg_per_day_cons else 0

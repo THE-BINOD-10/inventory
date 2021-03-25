@@ -12272,7 +12272,6 @@ def add_inventory_data(request, user=''):
 
 
 def password_reset_request(request):
-    import pdb;pdb.set_trace()
     if request.method == "POST":
         password_reset_form = PasswordResetForm(request.POST)
         if password_reset_form.is_valid():
@@ -12298,5 +12297,5 @@ def password_reset_request(request):
                         return HttpResponse('Invalid header found.')
                     return redirect("/password_reset/done/")
     password_reset_form = PasswordResetForm()
-    return render(request=request, template_name="main/password/password_reset.html",
+    return render(request=request, template_name="templates/password/password_reset.html",
                   context={"password_reset_form": password_reset_form})

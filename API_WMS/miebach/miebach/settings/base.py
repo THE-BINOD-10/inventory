@@ -271,6 +271,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'miebach.validators.UppercaseValidator', },
     {'NAME': 'miebach.validators.LowercaseValidator', },
     {'NAME': 'miebach.validators.SymbolValidator', },
+    {'NAME': 'miebach.validators.PasswordReuseValidator', },
 
 ]
 

@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
@@ -1414,6 +1414,18 @@ class UserProfile(models.Model):
 
     def __unicode__(self):
         return str(self.user)
+
+
+class UserPasswords(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True,related_name='user_passwords')
+    password = models.CharField(max_length=128, default='', blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_PASSWORDS'
+
 
 class UserAddresses(models.Model):
     id = BigAutoField(primary_key=True)
@@ -4013,6 +4025,20 @@ def delete_user_in_reversion(sender, instance, **kwargs):
             User.objects.using('reversion').filter(id=instance.id).delete()
         except:
             pass
+
+
+@receiver(pre_save, sender=User)
+def user_updated(sender, **kwargs):
+    user = kwargs.get('instance', None)
+    if kwargs.get('using') =='default' and user:
+        new_password = user.password
+        try:
+            old_password = User.objects.get(pk=user.pk).password
+        except User.DoesNotExist:
+            old_password = None
+        if new_password != old_password:
+            UserPasswords.objects.create(user=user, password=new_password)
+
 
 class StockTransferSummary(models.Model):
     id = BigAutoField(primary_key=True)

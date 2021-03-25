@@ -4,6 +4,7 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
 
   $scope.process = false;
   $scope.invalid = false;
+  $scope.password_expired = false;
 
   $scope.username = "";
   $scope.password = "";
@@ -20,6 +21,11 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
                   $scope.username = "";
                   $scope.password = "";
                   $scope.invalid = true;
+                } else if(data.message == "Password Expired") {
+                  $scope.process = false;
+                  $scope.username = "";
+                  $scope.password = "";
+                  $scope.password_expired = true;
                 } else {
                   console.log(Session);
                   if(Session.roles.permissions["setup_status"])  {

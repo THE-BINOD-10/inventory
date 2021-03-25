@@ -417,6 +417,10 @@ def wms_login(request):
         user = authenticate(username=username, password=password)
 
         if user and user.is_active:
+            password_expired = check_password_expiry(user)
+            if password_expired:
+                response_data['message'] = 'Password Expired'
+                return HttpResponse(json.dumps(response_data), content_type='application/json')
             login(request, user)
             user_profile = UserProfile.objects.filter(user_id=user.id)
 
@@ -14233,3 +14237,17 @@ def bulk_grn_files_upload(request, user=''):
                     success_data.append(grn_number)
     print success_data
     return HttpResponse(json.dumps({'msg': 1, 'data': 'success'}))
+
+
+def check_password_expiry(user):
+    is_expired = False
+    if user.is_staff:
+        return is_expired
+    try:
+        user_passwords = user.user_passwords.filter().latest('creation_date')
+        password_days = get_utc_start_date(datetime.datetime.now()) - get_utc_start_date(user_passwords.creation_date)
+        if password_days.days > 45:
+            is_expired = True
+    except:
+        is_expired = True
+    return is_expired

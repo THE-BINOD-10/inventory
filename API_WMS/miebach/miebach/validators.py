@@ -66,7 +66,7 @@ class PasswordReuseValidator(object):
     def validate(self, password, user=None):
         from miebach_admin.models import UserPasswords
         from django.contrib.auth.hashers import check_password
-        old_passwords = user.user_passwords.filter().order_by('-creation_date')[:2]
+        old_passwords = user.user_passwords.filter().order_by('-id')[:2]
         match = False
         for old_password in old_passwords:
             match = check_password(password, old_password.password)

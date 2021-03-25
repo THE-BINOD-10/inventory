@@ -9519,7 +9519,7 @@ def change_user_password(request, user=''):
             resp['data'] = 'New Password and Retype Password Should Be Same'
             return HttpResponse(json.dumps(resp))
         if old_password == new_password:
-            resp['data'] = 'Old Password and New Password Should Be Same'
+            resp['data'] = 'Old Password and New Password Should Not Be Same'
             return HttpResponse(json.dumps(resp))
 
         resp['msg'] = 1
@@ -14244,7 +14244,7 @@ def check_password_expiry(user):
     if user.is_staff:
         return is_expired
     try:
-        user_passwords = user.user_passwords.filter().latest('creation_date')
+        user_passwords = user.user_passwords.filter().latest('id')
         password_days = get_utc_start_date(datetime.datetime.now()) - get_utc_start_date(user_passwords.creation_date)
         if password_days.days > 45:
             is_expired = True

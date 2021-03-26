@@ -12274,4 +12274,5 @@ def add_inventory_data(request, user=''):
 
 def password_reset_complete(request):
     lockout.reset_attempts(request)
+    logger.info('Lock Relaeased')
     return render(request, 'templates/password/password_reset_complete.html')

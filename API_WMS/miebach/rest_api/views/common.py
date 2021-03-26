@@ -49,6 +49,7 @@ from miebach.settings import INTEGRATIONS_CFG_FILE
 from miebach.settings import base
 from miebach.celery import app
 import git
+from lockout import LockedOut
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -414,9 +415,18 @@ def wms_login(request):
     status_dict = {1: 'true', 0: 'false'}
 
     if username and password:
-        user = authenticate(username=username, password=password)
+        try:
+            user = auth.authenticate(username=username, password=password)
+        except LockedOut:
+            response_data['message'] = 'Account Locked'
+            return HttpResponse(json.dumps(response_data), content_type='application/json')
+        #user = authenticate(request, username=username, password=password)
 
         if user and user.is_active:
+            password_expired = check_password_expiry(user)
+            if password_expired:
+                response_data['message'] = 'Password Expired'
+                return HttpResponse(json.dumps(response_data), content_type='application/json')
             login(request, user)
             user_profile = UserProfile.objects.filter(user_id=user.id)
 
@@ -699,6 +709,7 @@ data_datatable = {  # masters
     'SerialNumberSKU': 'get_stock_summary_serials_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     'SkuClassification':'get_skuclassification',
+    'StockSummaryPlantSKU': 'get_stock_plant_sku_results',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -9514,7 +9525,11 @@ def change_user_password(request, user=''):
             resp['data'] = 'New Password and Retype Password Should Be Same'
             return HttpResponse(json.dumps(resp))
         if old_password == new_password:
-            resp['data'] = 'Old Password and New Password Should Be Same'
+            resp['data'] = 'Old Password and New Password Should Not Be Same'
+            return HttpResponse(json.dumps(resp))
+        old_pass_match = validate_password_reuse(request.user, new_password)
+        if old_pass_match:
+            resp['data'] = 'Password entered is matching with old password'
             return HttpResponse(json.dumps(resp))
 
         resp['msg'] = 1
@@ -14232,3 +14247,27 @@ def bulk_grn_files_upload(request, user=''):
                     success_data.append(grn_number)
     print success_data
     return HttpResponse(json.dumps({'msg': 1, 'data': 'success'}))
+
+
+def check_password_expiry(user):
+    is_expired = False
+    if user.is_staff:
+        return is_expired
+    try:
+        user_passwords = user.user_passwords.filter().latest('id')
+        password_days = get_utc_start_date(datetime.datetime.now()) - get_utc_start_date(user_passwords.creation_date)
+        if password_days.days > 45:
+            is_expired = True
+    except:
+        is_expired = True
+    return is_expired
+
+def validate_password_reuse(user, password):
+    from django.contrib.auth.hashers import check_password
+    old_passwords = user.user_passwords.filter().order_by('-id')[:2]
+    match = False
+    for old_password in old_passwords:
+        match = check_password(password, old_password.password)
+        if match:
+            break
+    return match

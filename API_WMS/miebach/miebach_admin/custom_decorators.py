@@ -57,6 +57,7 @@ def login_required(f):
     """Login Decorator """
     def wrap(request, *args, **kwargs):
         """ this check the session if userid key exist, if not it will redirect to login page """
+        from rest_api.views.common import check_password_expiry
         response_data = {'data': {}, 'message': 'invalid user', 'status': 401}
         if not request.user.is_authenticated():
             if django_login_required(request):
@@ -78,6 +79,11 @@ def login_required(f):
                     except:
                         return HttpResponse(json.dumps(response_data))
             else:
+                return HttpResponse(json.dumps(response_data))
+        else:
+            password_expired = check_password_expiry(request.user)
+            if password_expired:
+                wms_logout(request)
                 return HttpResponse(json.dumps(response_data))
 
         return f(request, *args, **kwargs)

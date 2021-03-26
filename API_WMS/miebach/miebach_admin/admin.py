@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
 GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster, NetsuiteIdMapping
-from models import PurchaseOrder
+from models import PurchaseOrder, UserPasswords
 # Register your models here.
 
 AdminSite.site_title = ugettext_lazy('Stockone Admin')
@@ -89,3 +89,4 @@ admin.site.register(CompanyRoles, CompanyRolesAdmin)
 admin.site.register(BarcodeSettings, BarcodeSettingsAdmin)
 admin.site.register(CompanyMaster, CompanyMasterAdmin)
 admin.site.register(PaymentTerms)
+admin.site.register(UserPasswords)

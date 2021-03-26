@@ -1251,8 +1251,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           });
         }
         if($rootScope.$current_raise_pr == ''){
-          vm.checkResubmit(product.fields);
+          //vm.checkResubmit(product.fields);
           vm.update_available_stock(product.fields.sku);
+          vm.checkResubmit(product.fields);
         }
         else {
           product.fields.sku.capacity = item.capacity;

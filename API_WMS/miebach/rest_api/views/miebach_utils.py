@@ -2709,7 +2709,7 @@ PERMISSION_DICT = OrderedDict((
                        ('Cluster SKU Mapping', 'add_clusterskumapping'),
                        ("Asset Master Edit", "add_assetmaster"), ("Service Master Edit", "add_servicemaster"),
                        ("Otheritems Master Edit", "add_otheritemsmaster"),
-                       ("Test Master Edit", "add_testmaster"),
+                       ("Test Master Edit", "add_testmaster"), ('Inventory Norm Master', 'add_replenushmentmaster'),
                        )),
 
     # Inbound

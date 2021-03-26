@@ -23,7 +23,8 @@ urlpatterns =  [
     url(r'^mieone_panel/',  include(admin.site.urls)), # admin site
 
     url('accounts/', include('django.contrib.auth.urls')),
-    url('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='password/password_reset_complete.html'), name='password_reset_complete'),
+    #url('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='password/password_reset_complete.html'), name='password_reset_complete'),
+    url('reset/done/', password_reset_complete, name='password_reset_complete'),
 
     # Login and logout
     url(r'^login/$', login),

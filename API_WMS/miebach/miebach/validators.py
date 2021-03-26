@@ -64,14 +64,8 @@ class SymbolValidator(object):
 
 class PasswordReuseValidator(object):
     def validate(self, password, user=None):
-        from miebach_admin.models import UserPasswords
-        from django.contrib.auth.hashers import check_password
-        old_passwords = user.user_passwords.filter().order_by('-id')[:2]
-        match = False
-        for old_password in old_passwords:
-            match = check_password(password, old_password.password)
-            if match:
-                break
+        from rest_api.views.common import validate_password_reuse
+        match = validate_password_reuse(user, password)
         if match:
             raise ValidationError(
                 _("The password entered is matching with old password"),

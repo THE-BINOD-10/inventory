@@ -16,7 +16,7 @@
           </div>
           <div class="alert alert-warning" ng-show="password_expired">
             <span class="close" ng-click="password_expired = false">&times;</span>
-            <strong>Warning!</strong> Password Expired. Please <a href="accounts/password_reset/" style="text-decoration: underline;"><b>Reset here</b></a>
+            <strong>Warning!</strong> {{ error_message }}. Please <a href="accounts/password_reset/" style="text-decoration: underline;"><b>Reset here</b></a>
           </div>
 
           <div class="form-inputs">

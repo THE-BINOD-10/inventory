@@ -48,7 +48,8 @@ INSTALLED_APPS = (
     'rest_api',
     'oauth2_provider',
     'reversion',
-    'stockone_integrations'
+    'stockone_integrations',
+    'lockout',
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
@@ -68,6 +69,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'lockout.middleware.LockoutMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -283,3 +285,9 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 DEFAULT_FROM_EMAIL = 'mhl_mail@stockone.in' # this is the sendgrid email
+
+
+LOCKOUT_MAX_ATTEMPTS = 5
+LOCKOUT_TIME = 86400
+LOCKOUT_ENFORCEMENT_WINDOW = 86400
+LOCKOUT_USE_USER_AGENT = True

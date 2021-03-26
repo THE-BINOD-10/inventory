@@ -49,6 +49,7 @@ from miebach.settings import INTEGRATIONS_CFG_FILE
 from miebach.settings import base
 from miebach.celery import app
 import git
+from lockout import LockedOut
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -414,7 +415,12 @@ def wms_login(request):
     status_dict = {1: 'true', 0: 'false'}
 
     if username and password:
-        user = authenticate(username=username, password=password)
+        try:
+            user = auth.authenticate(username=username, password=password)
+        except LockedOut:
+            response_data['message'] = 'Account Locked'
+            return HttpResponse(json.dumps(response_data), content_type='application/json')
+        #user = authenticate(request, username=username, password=password)
 
         if user and user.is_active:
             password_expired = check_password_expiry(user)
@@ -9521,6 +9527,10 @@ def change_user_password(request, user=''):
         if old_password == new_password:
             resp['data'] = 'Old Password and New Password Should Not Be Same'
             return HttpResponse(json.dumps(resp))
+        old_pass_match = validate_password_reuse(request.user, new_password)
+        if old_pass_match:
+            resp['data'] = 'Password entered is matching with old password'
+            return HttpResponse(json.dumps(resp))
 
         resp['msg'] = 1
         request.user.set_password(new_password)
@@ -14252,3 +14262,12 @@ def check_password_expiry(user):
         is_expired = True
     return is_expired
 
+def validate_password_reuse(user, password):
+    from django.contrib.auth.hashers import check_password
+    old_passwords = user.user_passwords.filter().order_by('-id')[:2]
+    match = False
+    for old_password in old_passwords:
+        match = check_password(password, old_password.password)
+        if match:
+            break
+    return match

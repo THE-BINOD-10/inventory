@@ -15,7 +15,7 @@
           resp = resp.data;
 	  localStorage.clear();
           update_manifest(resp.data);
-          if (resp.message != "Fail") {
+          if ((["Fail", "Password Expired", "Account Locked"]).indexOf(resp.message)  == -1) {
              //setloginStatus(resp);
              Session.set(resp.data);
           }
@@ -85,7 +85,7 @@
           }*/
           resp = resp.data;
           update_manifest(resp.data);
-          if ((resp.message != "Fail") && resp.data.userId) {
+          if (((["Fail", "Password Expired", "Account Locked"]).indexOf(resp.message) == -1) && resp.data.userId) {
              //setloginStatus(resp);
              Session.set(resp.data);
 

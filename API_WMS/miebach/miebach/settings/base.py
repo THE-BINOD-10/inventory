@@ -48,7 +48,8 @@ INSTALLED_APPS = (
     'rest_api',
     'oauth2_provider',
     'reversion',
-    'stockone_integrations'
+    'stockone_integrations',
+    'lockout',
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
@@ -68,6 +69,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'lockout.middleware.LockoutMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -242,3 +244,50 @@ BARCODE_DEFAULT = {
 		}
 
 VERSION_NUMBER= "v1.4.0"
+
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+#EMAIL_HOST = 'smtp.gmail.com'
+#EMAIL_USE_TLS = True
+#EMAIL_PORT = 587
+#EMAIL_HOST_USER = 'mhl_mail@stockone.in'
+#EMAIL_HOST_PASSWORD = "nwbjvpuycpktturg"
+
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {'NAME': 'miebach.validators.UppercaseValidator', },
+    {'NAME': 'miebach.validators.LowercaseValidator', },
+    {'NAME': 'miebach.validators.SymbolValidator', },
+    {'NAME': 'miebach.validators.PasswordReuseValidator', },
+
+]
+
+
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'apikey' # this is exactly the value 'apikey'
+EMAIL_HOST_PASSWORD = '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' # this is your API key
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+DEFAULT_FROM_EMAIL = 'mhl_mail@stockone.in' # this is the sendgrid email
+
+
+LOCKOUT_MAX_ATTEMPTS = 5
+LOCKOUT_TIME = 86400
+LOCKOUT_ENFORCEMENT_WINDOW = 86400
+LOCKOUT_USE_USER_AGENT = True

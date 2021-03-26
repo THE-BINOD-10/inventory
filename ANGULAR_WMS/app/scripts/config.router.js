@@ -72,7 +72,8 @@ var app = angular.module('urbanApp')
       }
      } else {
         var skipAsync = false;
-        var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
+        var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin',
+         'user.Corp Attire', 'user.forgot']
           $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
               var prms = toPrms;
               if(next.name == from.name) {
@@ -1573,10 +1574,16 @@ var app = angular.module('urbanApp')
         })
         .state('app.stockLocator.StockSummary', {
           url: '/StockSummary',
-          templateUrl: 'views/stockLocator/stock_summary.html',
+          templateUrl: 'views/stockLocator/stock_summary_page.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/stock_summary.js');
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/stockLocator/stock_summary/stock_summary.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/stockLocator/stock_summary/stock_summary_plant_sku.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -3587,10 +3594,10 @@ var app = angular.module('urbanApp')
         })
         .state('user.forgot', {
           url: '/forgot',
-          templateUrl: 'views/extras-forgot.html',
+          templateUrl: 'views/forgot.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-              return $ocLazyLoad.load('scripts/controllers/session.js');
+              return $ocLazyLoad.load('scripts/controllers/forgot_password.js');
                     }]
           },
           data: {

@@ -3291,7 +3291,7 @@ class IntransitOrders(models.Model):
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
 
-
+@reversion.register()
 class StaffMaster(models.Model):
     id = BigAutoField(primary_key=True)
     staff_name = models.CharField(max_length=64, default='')
@@ -4028,9 +4028,9 @@ def delete_user_in_reversion(sender, instance, **kwargs):
 
 
 @receiver(pre_save, sender=User)
-def user_updated(sender, **kwargs):
+def user_pre_updated(sender, **kwargs):
     user = kwargs.get('instance', None)
-    if kwargs.get('using') =='default' and user:
+    if kwargs.get('using') =='default' and user.id:
         new_password = user.password
         try:
             old_password = User.objects.get(pk=user.pk).password
@@ -4038,6 +4038,14 @@ def user_updated(sender, **kwargs):
             old_password = None
         if new_password != old_password:
             UserPasswords.objects.create(user=user, password=new_password)
+
+
+@receiver(post_save, sender=User)
+def user_post_updated(sender, **kwargs):
+    user = kwargs.get('instance', None)
+    created = kwargs.get('created', False)
+    if kwargs.get('using') =='default' and user.id and created:
+        UserPasswords.objects.create(user=user, password=user.password)
 
 
 class StockTransferSummary(models.Model):

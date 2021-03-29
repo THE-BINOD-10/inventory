@@ -4836,8 +4836,11 @@ def insert_po_terms(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_staff(request, user=''):
     """ Add New Staff"""
+    reversion.set_user(request.user)
+    reversion.set_comment("insert_staff")
     log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
@@ -4925,8 +4928,11 @@ def insert_staff(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def update_staff_values(request, user=''):
     """ Update Staff values"""
+    reversion.set_user(request.user)
+    reversion.set_comment("update_staff_values")
     log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')

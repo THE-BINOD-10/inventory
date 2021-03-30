@@ -16578,17 +16578,19 @@ def confirm_mr_request(request, user=''):
     except Exception as e:
         cnf_data = []
 
-    if len(cnf_data) > 0:
-        for data in cnf_data:
-            try:
-                if check_consumption_configuration([User.objects.get(username=data['source_wh']).id]):
-                    return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
-                with transaction.atomic('default'):
+    if check_consumption_configuration([User.objects.get(username=cnf_data[0]['source_wh']).id]):
+        return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
+    order_ids = map(lambda x: x['order_id'], cnf_data)
+    try:
+        with transaction.atomic('default'):
+            pending_doas = list(MastersDOA.objects.filter(reference_id__in=order_ids).values_list('id', flat=True))
+            pending_doas_for_lock = MastersDOA.objects.select_for_update().filter(id__in=pending_doas, doa_status='pending')
+            if pending_doas_for_lock:
+                for data in cnf_data:
                     all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending',
                                                                     model_name='mr_doa', reference_id=data['order_id'],
                                                                     wh_user__username=data['dest_dept'])
-                    all_pending_orders_for_lock = MastersDOA.objects.select_for_update().filter(id__in=list(all_pending_orders.values_list('id', flat=True)))
-                    if all_pending_orders_for_lock.exists():
+                    if all_pending_orders.exists():
                         for entry in all_pending_orders:
                             filter_data= json.loads(entry.json_data)
                             stock = StockDetail.objects.get(id=filter_data['data'])
@@ -16596,12 +16598,14 @@ def confirm_mr_request(request, user=''):
                             destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
                             auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
                             MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
-            except Exception as e:
-                import traceback
-                log.debug(traceback.format_exc())
-                log.info("Confirm MR Request failed for params " + str(request.POST.dict()) + " on " + \
-                            str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
-                return HttpResponse('fail')
+            else:
+                return HttpResponse('Already Confirmed')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Confirm MR Request failed for params " + str(request.POST.dict()) + " on " + \
+                    str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
+        return HttpResponse('fail')
     return HttpResponse('success')
 
 

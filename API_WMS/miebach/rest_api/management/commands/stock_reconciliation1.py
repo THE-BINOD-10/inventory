@@ -247,20 +247,16 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
                                 ('Consumption Qty', cons_qty), ('Consumption Value', cons_value),
                                 ('Expected Closing Qty', total_denom_qty), ('Expected Closing Value', total_value),
                         ))
-        #st_ids = stock_transfers.exclude(stock_transfer__st_po__open_st__price=main_avg_price).values_list('stock_transfer_id', flat=True)
-        #print StockTransferSummary.objects.filter(stock_transfer_id__in=st_ids)
-        #st_ids1 = stock_transfers1.exclude(stock_transfer__st_po__open_st__price=main_avg_price).values_list('stock_transfer_id', flat=True)
-        #print StockTransferSummary.objects.filter(stock_transfer_id__in=st_ids1)
-        #print SellerPOSummary.objects.prefetch_related('batch_detail').filter(purchase_order__open_po__sku__user=usr.id, purchase_order__open_po__sku__sku_code=sk, creation_date__gte=dates[1])
-        data_list.append(data_dict)
+        if (total_denom_qty1+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty):
+            data_list.append(data_dict)
     return data_list
 
 class Command(BaseCommand):
-    help = "Stock Reconciliation"
+    help = "Stock Reconciliation for first 100 Plants"
 
     def handle(self, *args, **options):
         main_user = User.objects.get(username='mhl_admin')
-        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])[:100]
         #plant_users = User.objects.filter(userprofile__stockone_code='27001')
         self.stdout.write("Started Reconciliation")
         main_user = User.objects.get(username='mhl_admin')
@@ -281,5 +277,5 @@ class Command(BaseCommand):
             data_list = recon_calc(main_user, user, data_list, opening_date, closing_date, start_day, end_day)
             log.info("Ended Reconciliation for %s and Counter %s" % (user.username, str(counter)))
         df = pd.DataFrame(data_list)
-        df.to_csv('StockReconciliation.csv', index=False)
+        df.to_csv('StockReconciliation1.csv', index=False)
         self.stdout.write("Completed Reconciliation")

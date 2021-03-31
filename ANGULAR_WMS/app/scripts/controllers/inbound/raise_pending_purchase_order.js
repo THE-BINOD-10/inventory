@@ -156,6 +156,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
+          if (typeof(data.data) == 'string') {
+            vm.service.showNoty(data.data);
+            return;
+          }
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,

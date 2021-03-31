@@ -14181,6 +14181,14 @@ def check_consumption_configuration(users):
             status = False
     return status
 
+def check_block_pr_po_configuration():
+    status = False
+    users = User.objects.filter(username='mhl_admin')
+    for user in users:
+        if get_misc_value('block_pr_po_transactions', user.id) == 'true':
+            return True
+    return status
+
 def get_last_three_months_consumption(filters):
     end_date = datetime.datetime.today().replace(day=1)
     start_date = end_date - relativedelta(months=3)

@@ -1642,6 +1642,8 @@ def generated_po_data(request, user=''):
 @login_required
 @get_admin_user
 def generated_pr_data(request, user=''):
+    if check_block_pr_po_configuration():
+        return HttpResponse("PO disabled due to MHL Audit Purpose !")
     pr_id = request.POST.get('id', '')
     pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
@@ -1806,6 +1808,8 @@ def generated_pr_data(request, user=''):
 @login_required
 @get_admin_user
 def generated_actual_pr_data(request, user=''):
+    if check_block_pr_po_configuration():
+        return HttpResponse("PR disabled due to MHL Audit Purpose !")
     pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
     current_approval = request.POST.get('current_approval', '')
@@ -2582,6 +2586,7 @@ def switches(request, user=''):
                        'pending_pr_prefix': 'pending_pr_prefix',
                        'auto_putaway_grn': 'auto_putaway_grn',
                        'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
+                       'block_pr_po_transactions': 'block_pr_po_transactions',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -4581,6 +4586,8 @@ def send_pr_to_parent_store(request, user=''):
 @login_required
 @get_admin_user
 def get_pr_preview_data(request, user=''):
+    if check_block_pr_po_configuration():
+        return HttpResponse("PR disabled due to MHL Audit Purpose !")
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds, quantity__gt=0)

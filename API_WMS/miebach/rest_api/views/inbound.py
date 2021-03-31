@@ -4778,6 +4778,8 @@ def send_back_po_to_pr(request, user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def add_pr(request, user=''):
+    if check_block_pr_po_configuration():
+        return HttpResponse("Add PR disabled due to MHL Audit")
     urlPath = request.META.get('HTTP_ORIGIN')
     try:
         reversion.set_user(request.user)
@@ -4971,6 +4973,8 @@ def add_pr(request, user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def save_pr(request, user=''):
+    if check_block_pr_po_configuration():
+        return HttpResponse("Save PR disabled due to MHL Audit")
     try:
         reversion.set_user(request.user)
         log.info("Save PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))

@@ -3363,6 +3363,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                         'auto_putaway_grn': 'auto_putaway_grn',
                         'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
+                        'block_pr_po_transactions': 'block_pr_po_transactions',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

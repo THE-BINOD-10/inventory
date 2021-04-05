@@ -12392,8 +12392,8 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
 def load_month_end_closing_stock(updating_users, year, month, opening_date=None):
     if not opening_date:
         first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
-        first_date = get_utc_start_date(first_date)
         last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
+        last_date = get_utc_start_date(last_date)
     else:
         opening_date = get_utc_start_date(opening_date)
         last_date = opening_date - datetime.timedelta(1)
@@ -12435,8 +12435,8 @@ def update_closing_stock_quantity(data_list, year, month):
     last_change_date = datetime.datetime.now()
     updating_users = {}
     first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
-    first_date = get_utc_start_date(first_date)
     last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
+    last_date = get_utc_start_date(last_date)
     last_change_date = get_utc_start_date(last_change_date)
     if last_date < last_change_date:
         last_change_date = last_date
@@ -12524,7 +12524,7 @@ def update_closing_stock_quantity(data_list, year, month):
 @login_required
 @get_admin_user
 def closing_stock_upload(request, user=''):
-    return HttpResponse('Closing Stock Uploads Disabled !!')
+    #return HttpResponse('Closing Stock Uploads Disabled !!')
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)

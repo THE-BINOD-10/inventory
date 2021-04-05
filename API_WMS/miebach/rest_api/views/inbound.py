@@ -984,12 +984,12 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters, request)
     # Stock Transfer Purchase Records
     stock_results_objs = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway',
-                                                                         'stock-transfer']).filter(
+                                                                         'stock-transfer']).exclude(stocktransfer__st_type='MR').filter(
         open_st__sku_id__in=sku_master_ids). \
         filter(st_search_query, po__open_po__isnull=True,
                open_st__sku__user__in=user, **search_params1)
     st_result_order_ids = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids,
-                                                       po__order_id__in=stock_results_objs.values_list('po__order_id', flat=True))
+                                                       po__order_id__in=stock_results_objs.values_list('po__order_id', flat=True)).exclude(stocktransfer__st_type='MR')
     stock_trs_ord_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix', 'po__po_number').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
     stock_trs_recv_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix', 'po__po_number').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
     if stock_trs_ord_qty.exists():

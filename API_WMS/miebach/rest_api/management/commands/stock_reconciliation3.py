@@ -258,12 +258,12 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
     return data_list
 
 class Command(BaseCommand):
-    help = "Stock Reconciliation for remaining"
+    help = "Stock Reconciliation for first 100 Plants"
 
     def handle(self, *args, **options):
         main_user = User.objects.get(username='mhl_admin')
-        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])[70:140]
-        #plant_users = User.objects.filter(userprofile__stockone_code='27001')
+        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])[140:]
+        #plant_users = User.objects.filter(userprofile__stockone_code='27115')
         self.stdout.write("Started Reconciliation")
         main_user = User.objects.get(username='mhl_admin')
         current_date = datetime.datetime.now()
@@ -283,5 +283,5 @@ class Command(BaseCommand):
             data_list = recon_calc(main_user, user, data_list, opening_date, closing_date, start_day, end_day)
             log.info("Ended Reconciliation for %s and Counter %s" % (user.username, str(counter)))
         df = pd.DataFrame(data_list)
-        df.to_csv('StockReconciliation2.csv', index=False)
+        df.to_csv('StockReconciliation3.csv', index=False)
         self.stdout.write("Completed Reconciliation")

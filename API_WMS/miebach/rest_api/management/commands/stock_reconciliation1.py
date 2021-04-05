@@ -61,7 +61,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
             opening_dict[sku_code]['opening_qty'] += cls.quantity/cls.sku_pcf
             opening_dict[sku_code]['opening_value'] += cls.sku_avg_price*(cls.quantity/cls.sku_pcf)
     poss = SellerPOSummary.objects.prefetch_related('batch_detail').filter(purchase_order__open_po__sku__user=usr.id, creation_date__range=dates).\
-                                    only('quantity', 'batch_detail__pcf', 'batch_detail__tax_percent', 'batch_detail__cess_percent')
+                                    only('purchase_order__open_po__sku__sku_code', 'quantity', 'batch_detail__pcf', 'batch_detail__tax_percent', 'batch_detail__cess_percent')
     for psp in poss:
         sku_code = psp.purchase_order.open_po.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
@@ -90,7 +90,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         else:
             st_grn_dict[sku_code]['st_grn_qty'] += sps.quantity
             st_grn_dict[sku_code]['st_grn_value'] += open_st_price * sps.quantity
-    spss_mr = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=usr.id, creation_date__range=dates,
+    spss_mr = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user__in=dept_user_ids, creation_date__range=dates,
                                             purchase_order__stpurchaseorder__stocktransfer__st_type='MR')
     for sps in spss_mr:
         st_obj = sps.purchase_order.stpurchaseorder_set.filter()[0].stocktransfer_set.filter()[0]
@@ -146,10 +146,12 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
     cons = ConsumptionData.objects.filter(creation_date__range=dates, sku__user__in=dept_user_ids).only('quantity', 'price')
     for con in cons:
         sku_code = con.sku.sku_code
+        uom_dict = sku_uoms.get(sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
         cons_dict.setdefault(sku_code, {'cons_qty': 0, 'cons_value': 0})
         cons_dict[sku_code]['cons_qty'] += con.quantity/sku_pcf
         cons_dict[sku_code]['cons_value'] += (con.quantity/sku_pcf) * con.price
-    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, quantity__gt=0, creation_date__lte=closing_date).only('quantity')
+    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, quantity__gt=0, creation_date__lte=closing_date+datetime.timedelta(days=1)).only('quantity')
     for stock in stocks:
         sku_code = stock.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
@@ -159,7 +161,9 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         stock_dict[sku_code]['stock_value'] += ((stock.quantity/sku_pcf)*stock.sku.average_price)
     mclosing_st = ClosingStock.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__date=closing_date).only('quantity', 'sku_avg_price', 'sku_pcf')
     for mcls in mclosing_st:
-        sku_code = mcls.sku.sku_code
+        sku_code = mcls.stock.sku.sku_code
+        uom_dict = sku_uoms.get(sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
         closing_dict.setdefault(sku_code, {'mclosing_qty': 0, 'mclosing_value': 0})
         closing_dict[sku_code]['mclosing_qty'] += mcls.quantity/mcls.sku_pcf
         closing_dict[sku_code]['mclosing_value'] += mcls.sku_avg_price*(mcls.quantity/mcls.sku_pcf)
@@ -232,43 +236,45 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
             #print "Price Issue"
             #print user.username, sk, main_avg_price, current_avg
             pass
+        exp_closing_qty = opening_qty + po_grn_qty + st_grn_qty + mr_grn_qty - st_out_qty - rtv_qty - cons_qty - mr_out_qty
+        exp_closing_val = opening_value + po_grn_value + st_grn_value + mr_grn_value - st_out_value - rtv_value - cons_value - mr_out_value
         data_dict =  OrderedDict((
                                 ('Plant Code', user.userprofile.stockone_code), ('SKU Code', sk),
                                 ('Opening Qty', opening_qty), ('Opening Value', opening_value),
                                 ('GRN Qty', po_grn_qty), ('GRN Value', po_grn_value),
                                 ('RTV Qty', rtv_qty), ('RTV Value', rtv_value),
                                 ('Stock Transfer In Qty', st_grn_qty), ('Stock Transfer In Value', st_grn_value),
-                                ('Stock Transfer Out Qty', st_out_qty), ('Stock Transfer Out Qty', st_out_value),
+                                ('Stock Transfer Out Qty', st_out_qty), ('Stock Transfer Out Value', st_out_value),
                                 ('MR In Qty', mr_grn_qty), ('MR In Value', mr_grn_value),
                                 ('MR Out Qty', mr_out_qty), ('MR Out Value', mr_out_value),
                                 ('MR Pending Qty', mr_pending_qty), ('MR Pending Value', mr_pending_value),
                                 ('Closing Qty', mclosing_qty), ('Closing Value', mclosing_value),
                                 ('Stock Qty', stock_qty), ('Stock Value', stock_value),
                                 ('Consumption Qty', cons_qty), ('Consumption Value', cons_value),
-                                ('Expected Closing Qty', total_denom_qty), ('Expected Closing Value', total_value),
+                                ('Expected Closing Qty', exp_closing_qty), ('Expected Closing Value', exp_closing_val),
                         ))
-        if (total_denom_qty1+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty):
+        if (total_denom_qty+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty):
             data_list.append(data_dict)
     return data_list
 
 class Command(BaseCommand):
-    help = "Stock Reconciliation for first 100 Plants"
+    help = "Stock Reconciliation for first 70 Plants"
 
     def handle(self, *args, **options):
         main_user = User.objects.get(username='mhl_admin')
-        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])[:100]
-        #plant_users = User.objects.filter(userprofile__stockone_code='27001')
+        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])[:70]
+        #plant_users = User.objects.filter(userprofile__stockone_code__in=['27001', '27007', '32012'])
         self.stdout.write("Started Reconciliation")
         main_user = User.objects.get(username='mhl_admin')
         current_date = datetime.datetime.now()
-        if current_date.day < 5:
+        if current_date.day < 7:
             start_day = (current_date-relativedelta(months=1)).replace(day=1).date()
-            end_day = (current_date.replace(day=1) + relativedelta(months=1)).date()
+            end_day = (start_day.replace(day=1) + relativedelta(months=1))
         else:
             start_day = current_date.replace(day=1).date()
             end_day = (current_date.replace(day=1) + relativedelta(months=1)).date()
         opening_date = start_day - datetime.timedelta(days=1)
-        closing_date = end_day - datetime.timedelta(days=1)
+        closing_date = start_day + relativedelta(months=1) - datetime.timedelta(days=1)
         data_list = []
         counter = 0
         log.info("Started Reconciliation for %s Plants" % str(plant_users.count()))

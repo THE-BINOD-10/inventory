@@ -119,7 +119,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         else:
             price = stock_transfer.stock_transfer.st_po.open_st.price
         st_out_dict[sku_code]['st_out_value'] += ((stock_transfer.quantity/sku_pcf) * price)
-    stock_transfers1 = StockTransferSummary.objects.filter(creation_date__range=dates, stock_transfer__st_type='MR', stock_transfer__sku__user=usr.id)
+    stock_transfers1 = StockTransferSummary.objects.filter(creation_date__range=dates, stock_transfer__st_type='MR', stock_transfer__sku__user__in=dept_user_ids)
     for stock_transfer1 in stock_transfers1:
         sku_code = stock_transfer1.stock_transfer.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
@@ -253,7 +253,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
                                 ('Consumption Qty', cons_qty), ('Consumption Value', cons_value),
                                 ('Expected Closing Qty', exp_closing_qty), ('Expected Closing Value', exp_closing_val),
                         ))
-        if (total_denom_qty+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty):
+        if (opening_qty+po_grn_qty+st_grn_qty+mr_grn_qty+mr_out_qty+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty+mr_pending_value):
             data_list.append(data_dict)
     return data_list
 

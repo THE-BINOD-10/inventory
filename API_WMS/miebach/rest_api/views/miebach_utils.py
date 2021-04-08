@@ -1987,7 +1987,7 @@ SKU_HEADERS = ['SKU Code', 'SKU Description', 'SKU Group', 'SKU Type(Options: FG
                'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
                'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Batch Based',
-               'GL Code', 'Status']
+               'GL Code', 'Status', 'Creation Date', 'Updation Date']
 
 MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -2002,7 +2002,7 @@ RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Un
 ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
                  'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone',
                  'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-                 'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID', 'GL Code']
+                 'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID', 'GL Code', 'Creation Date', 'Updation Date']
 
 TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type', 'Status']
 
@@ -2011,12 +2011,12 @@ MACHINE_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Numbe
 SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group',
                    'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                    'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-                   'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
+                   'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)', 'Creation Date', 'Updation Date']
 
 OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group',
                       'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
                       'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code',
-                      'GL Code', 'Status'
+                      'GL Code', 'Status', 'Creation Date', 'Updation Date'
                       ]
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
@@ -2414,7 +2414,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('sku_group', 2),
                              ('hsn_code', 24),
                              ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28),
                              ('block_options', 29),
-                             ('batch_based', 30), ('gl_code', 31), ('status', 32)
+                             ('batch_based', 30), ('gl_code', 31), ('status', 32), ('creation_date', 33), ('updation_date', 34)
                              ))
 
 ASSET_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3),
@@ -2423,7 +2423,7 @@ ASSET_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 
                                ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
                                ('ean_number', 13), ('hsn_code', 14), ('status', 15),
                                ('parent_asset_code', 16), ('asset_number', 17), ('vendor', 18),
-                               ('store_id', 19), ('gl_code', 20)
+                               ('store_id', 19), ('gl_code', 20), ('creation_date', 21), ('updation_date', 22)
                                ))
 
 SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_type', 2), ('sku_group', 3),
@@ -2431,14 +2431,14 @@ SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_typ
                                  ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
                                  ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
                                  ('ean_number', 13), ('hsn_code', 14), ('status', 15),
-                                 ('gl_code', 16), ('service_start_date', 17), ('service_end_date', 18),
+                                 ('gl_code', 16), ('service_start_date', 17), ('service_end_date', 18), ('creation_date', 19), ('updation_date', 20)
                                  ))
 
 OTHER_ITEM_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3),
                                     ('sku_category', 4), ('sub_category', 5),
                                     ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
                                     ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
-                                    ('ean_number', 13), ('hsn_code', 14), ('gl_code', 15), ('status', 16)
+                                    ('ean_number', 13), ('hsn_code', 14), ('gl_code', 15), ('status', 16), ('creation_date', 17), ('updation_date', 18)
                                     ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -3158,8 +3158,7 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Qua
 WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                    'Invoice Date&Time', 'Total Amount']
 
-STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time',
-                                  'Invoice Number', 'Total Amount']
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Pick Receipt Number', 'Source Warehouse', 'Destination Warehouse', 'Order Quantity', 'Picked Quantity', 'Total Amount', 'Stock Transfer Date&Time']
 
 STOCK_TRANSFER_INTER_INVOICE_HEADERS = ['Sale Order ID', 'Warehouse Name', 'Picked Quantity', 'Sale Order Date&Time',
                                   'Invoice Number', 'Total Amount']

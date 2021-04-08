@@ -12056,6 +12056,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     mr_doa_obj['data'] = stock.id
                     mr_doa_obj['order_typ'] = order_typ
                     mr_doa_obj['sku_code'] = open_st.sku.sku_code
+                    mr_doa_obj['price'] = stock.sku.average_price
                     doa_dict = {
                         'requested_user': user,
                         'wh_user': destination_warehouse,
@@ -12085,8 +12086,8 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     temp_json['id'] = po.id
                     temp_json['unit'] = open_st.sku.measurement_type
                     temp_json['supplier_id'] = open_st.warehouse_id
-                    temp_json['buy_price'] = open_st.price
-                    temp_json['price'] = open_st.price
+                    temp_json['buy_price'] = stock.sku.average_price
+                    temp_json['price'] = stock.sku.average_price
                     temp_json['po_quantity'] = open_st.order_quantity
                     temp_json['quantity'] = update_picked
                     temp_json['wms_code'] = open_st.sku.wms_code
@@ -12789,7 +12790,7 @@ def get_stocktransfer_picknumber(user , picklist):
 
 def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number,
                               batch_detail='', order_typ='', last_change_date='', sps_created_obj='',
-                              grn_number=''):
+                              grn_number='', picking_price=0):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     conv_value = ''
@@ -12826,11 +12827,13 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         exist_batch_dict = {}
         if batch_detail:
             exist_batch_dict = copy.deepcopy(batch_detail.__dict__)
-        if order_typ in ['MR', 'ST_INTRA', 'ST_INTER'] or not batch_detail:
+        if order_typ in ['MR', 'ST_INTER'] or not batch_detail:
             exist_batch_dict['buy_price'] = purchase_data['price']
             exist_batch_dict['tax_percent'] = float(purchase_data['cgst_tax']) + float(purchase_data['sgst_tax']) + \
                                               float(purchase_data['igst_tax'])
             exist_batch_dict['cess_percent'] = float(purchase_data['cess_tax'])
+        if picking_price:
+            exist_batch_dict['buy_price'] = picking_price
         if po_location:
             uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
             batch_dict = {
@@ -12905,7 +12908,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type=''):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type='', picking_price=0):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     batch_data = ''
     if data.batch_detail:
@@ -12943,7 +12946,8 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
     if last_change_date:
         SellerPOSummary.objects.filter(id=seller_po_summary.id).update(creation_date=last_change_date)
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id,
-                              batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary)
+                              batch_detail=batch_data, order_typ=order_typ, last_change_date=last_change_date, sps_created_obj=seller_po_summary,
+                              picking_price=picking_price)
     po_data.received_quantity += quantity
     if float(purchase_data['order_quantity']) <= float(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'

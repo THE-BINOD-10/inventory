@@ -16607,7 +16607,9 @@ def confirm_mr_request(request, user=''):
                             stock = StockDetail.objects.get(id=filter_data['data'])
                             po =PurchaseOrder.objects.get(id=filter_data['po'])
                             destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
-                            auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
+                            picking_price = filter_data.get('price', 0)
+                            auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock,
+                                                order_typ=filter_data['order_typ'], upload_type='UI', picking_price=picking_price)
                             MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
             else:
                 return HttpResponse('Already Confirmed')

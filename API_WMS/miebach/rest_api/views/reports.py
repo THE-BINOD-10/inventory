@@ -2312,7 +2312,11 @@ def print_purchase_order_form(request, user=''):
     for order in purchase_orders:
         open_po = order.open_po
         total_qty += open_po.order_quantity
-        amount = open_po.order_quantity * open_po.price
+        if order.currency_rate > 1:
+            currency_rate = round(open_po.price / order.currency_rate, 2)
+        else:
+            currency_rate = open_po.price
+        amount = open_po.order_quantity * currency_rate
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax + open_po.apmc_tax
         total += amount + ((amount / 100) * float(tax))
         if user.userprofile.industry_type == 'FMCG':
@@ -2333,7 +2337,7 @@ def print_purchase_order_form(request, user=''):
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [open_po.sku.sku_code, open_po.sku.hsn_code,open_po.supplier_code, open_po.sku.sku_desc, '',
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp, amount,
+                            open_po.order_quantity, open_po.measurement_unit, currency_rate, round(open_po.mrp/order.currency_rate, 2), amount,
                             open_po.sgst_tax, total_sgst, open_po.cgst_tax, total_cgst, open_po.igst_tax, total_igst, total_sku_amt]
                 po_data.append(po_temp_data)
 
@@ -2346,7 +2350,7 @@ def print_purchase_order_form(request, user=''):
             total_tax_amt = float("%.2f" % total_tax_amt)
             total_sku_amt = total_tax_amt + amount
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, '',
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
+                            open_po.order_quantity, open_po.measurement_unit, currency_rate, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
                             open_po.utgst_tax, total_sku_amt]
 

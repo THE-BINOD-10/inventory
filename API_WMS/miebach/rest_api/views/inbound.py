@@ -1783,14 +1783,16 @@ def generated_pr_data(request, user=''):
     supplier_id = ''
     supplier_name = ''
     supplier_payment_desc = ''
+    supplier_currency = ''
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
+        supplier_currency = record[0].supplier.currency_code
         if record[0].supplier_payment:
             supplier_payment_desc = "%s:%s" % (record[0].supplier_payment.payment_code, record[0].supplier_payment.payment_description)
 
     return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
-                                    'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date,
+                                    'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date, 'supplier_currency': supplier_currency,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,
@@ -9664,6 +9666,7 @@ def confirm_add_po(request, sales_data='', user=''):
     suggestion, ship_to_address = '', ''
     pending_po_line_entries = ''
     terms_condition = request.POST.get('terms_condition', '')
+    supplier_currency_value = request.POST.get('supplier_currency_rate', 1)
     supplier_payment_terms = request.POST.get('supplier_payment_terms', '')
     if not request.POST.get('ship_to'):
         return HttpResponse('Ship to address mandatory !')
@@ -9822,6 +9825,10 @@ def confirm_add_po(request, sales_data='', user=''):
             data['order_id'] = int(po_id)
             data['prefix'] = prefix
             data['po_number'] = full_po_number
+            if purchase_order.supplier.currency_code:
+                data['currency'] = purchase_order.supplier.currency_code
+                data['currency_internal_id'] = purchase_order.supplier.netsuite_currency_internal_id
+            data['currency_rate'] = supplier_currency_value
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
@@ -9837,8 +9844,11 @@ def confirm_add_po(request, sales_data='', user=''):
                     SellerPO.objects.create(seller_id=seller, open_po_id=data1.id, seller_quantity=seller_quan[0],
                                             creation_date=datetime.datetime.now(), status=1,
                                             receipt_type=value['receipt_type'])
-
-            amount = float(purchase_order.order_quantity) * float(purchase_order.price)
+            if order.currency_rate > 1:
+                current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+            else:
+                current_price = float(purchase_order.price)
+            amount = float(purchase_order.order_quantity) * current_price
             amount = float("%.2f" % amount)
             tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax'] + \
                   value['apmc_tax'] + value['cess_tax']
@@ -9851,7 +9861,6 @@ def confirm_add_po(request, sales_data='', user=''):
                 wms_code = purchase_order.wms_code
             else:
                 wms_code = purchase_order.sku.wms_code
-
             if industry_type == 'FMCG':
                 po_temp_data = []
                 if pending_po_line_entries:
@@ -9870,7 +9879,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     total_sku_amt = total_tax_amt + amount
                     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, '', purchase_order.order_quantity,
                                 po_suggestions['measurement_unit'],
-                                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                                 purchase_order.igst_tax, total_igst,
                                 # purchase_order.utgst_tax,
                                 total_sku_amt
@@ -9891,7 +9900,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, '', purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                            current_price, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                             purchase_order.igst_tax, total_igst,
                             # purchase_order.utgst_tax,
                             total_sku_amt

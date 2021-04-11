@@ -165,6 +165,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
             "supplier_payment_terms": data.data.supplier_payment_desc,
+            "supplier_currency": data.data.supplier_currency,
+            "supplier_currency_rate": '',
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,

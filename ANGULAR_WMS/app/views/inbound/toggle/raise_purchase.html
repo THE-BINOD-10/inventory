@@ -36,7 +36,7 @@
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
             </div>
           </div>
-          <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
+          <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span></button>
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
           <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
@@ -55,7 +55,7 @@
                 </label>
               </div>
             </div>
-            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'" ng-if="!showCase.model_data.is_approval">
+            <div class="hide" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'" ng-if="!showCase.model_data.is_approval">
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <p align="right">Vendor Receipt</p>
               </div>
@@ -197,6 +197,18 @@
               <div class="form-group">
                 <label class="control-label">Supplier Payment Terms</label>
                 <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
+              <div class="form-group">
+                <label class="control-label">Supplier Currency</label>
+                <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
+              <div class="form-group">
+                <label class="control-label">Please Enter Conv.rate (<span>{{showCase.model_data.supplier_currency}}</span>) *</label>
+                <input type="text" ng-model="showCase.model_data.supplier_currency_rate" name="supplier_currency_rate" class="form-control" ng-class="service.get_decimal_perm()" required>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin' && !showCase.permissions.central_admin_level_po">

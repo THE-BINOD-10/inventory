@@ -1715,7 +1715,8 @@ def excel_reports(request, user=''):
                     report_data['New_aaData'].append(v[0])
             report_data['aaData'] = report_data['New_aaData']
             headers = report_data['aaData'][0].keys()
-
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
@@ -2424,7 +2425,7 @@ def print_purchase_order_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     po_number = order.po_number #'%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     po_reference = order.open_po.po_name
-    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    total_amt_in_words = str(supplier_currency) + ' '+ number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name

@@ -2153,7 +2153,6 @@ def print_pending_po_form(request, user=''):
     values_list = ['quantity', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
         'sku__sku_code', 'sku__sku_desc', 'measurement_unit']
     for order in lineItems.values(*values_list):
-        # open_po = order.open_po
         total_qty += order['quantity']
         amount = order['quantity'] * order['price']
         tax = order['cgst_tax'] + order['sgst_tax'] + order['igst_tax'] + order['utgst_tax']
@@ -9988,7 +9987,7 @@ def confirm_add_po(request, sales_data='', user=''):
         company_name = profile.company.company_name
         title = 'Purchase Order'
         receipt_type = request.GET.get('receipt_type', '')
-        total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+        total_amt_in_words = str(purchase_order.supplier.currency_code) + ' ' + number_in_words(round(total)) + ' ONLY'
         round_value = float(round(total) - float(total))
         company_details = {}
         company_logo=""

@@ -710,6 +710,7 @@ data_datatable = {  # masters
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     'SkuClassification':'get_skuclassification',
     'StockSummaryPlantSKU': 'get_stock_plant_sku_results',
+    'StockSummaryPlant': 'get_stock_plant_results',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \

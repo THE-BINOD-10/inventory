@@ -1713,7 +1713,8 @@ def excel_reports(request, user=''):
                     report_data['New_aaData'].append(v[0])
             report_data['aaData'] = report_data['New_aaData']
             headers = report_data['aaData'][0].keys()
-
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 

@@ -9623,10 +9623,14 @@ def order_status(request):
                                      user=user.id).update(status=status)
     return HttpResponse(json.dumps({'Status': 'Success', 'Message': 'Updated Successfully'}))
 
-def format_printing_data(datum, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
+def format_printing_data(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    amount = float(datum.quantity) * float(purchase_order.price)
+    if order.currency_rate > 1:
+        current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+    else:
+        current_price = float(purchase_order.price)
+    amount = float(datum.quantity) * current_price
     amount = float("%.2f" % amount)
     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
     total_sgst = purchase_order.sgst_tax * (amount/100)
@@ -9640,7 +9644,7 @@ def format_printing_data(datum, purchase_order, wms_code, supplier_code, measure
         pass
     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, delivery_date, float(datum.quantity),
                 measurement_unit,
-                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                 purchase_order.igst_tax, total_igst,
                 total_sku_amt
                 ]
@@ -9868,7 +9872,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     if sku_pending_line.exists():
                         delivery_schedule_data = sku_pending_line[0].purchasedeliveryschedule_set.filter(status=1)
                         for delivery_data in delivery_schedule_data:
-                            po_temp_data = format_printing_data(delivery_data, purchase_order, wms_code, supplier_code, po_suggestions['measurement_unit'], table_headers, display_remarks, show_cess_tax, show_apmc_tax)
+                            po_temp_data = format_printing_data(delivery_data, order, purchase_order, wms_code, supplier_code, po_suggestions['measurement_unit'], table_headers, display_remarks, show_cess_tax, show_apmc_tax)
                             po_data.append(po_temp_data)
                 if not po_temp_data:
                     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
@@ -10139,6 +10143,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         _purchase_order = purchase_objs[0]
         po_date = _purchase_order.creation_date
         po_date = po_date.isoformat()
+        currency_internal_id= _purchase_order.currency_internal_id
+        exchangerate= _purchase_order.currency_rate
+        currency_code=  _purchase_order.currency
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
         if _purchase_order.open_po.supplier.tin_number:
@@ -10158,7 +10165,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
-        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
+        po_data = { 'currency_internal_id': currency_internal_id, 'exchangerate': exchangerate, 'currency_code': currency_code,
+                    'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,

@@ -2217,10 +2217,14 @@ def print_stock_cover_report(request, user=''):
     return HttpResponse(html_data)
 
 
-def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
+def format_printing_datam(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    amount = float(datum.quantity) * float(purchase_order.price)
+    if order.currency_rate > 1:
+        current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+    else:
+        current_price = float(purchase_order.price)
+    amount = float(datum.quantity) * current_price
     amount = float("%.2f" % amount)
     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
     total_sgst = purchase_order.sgst_tax * (amount/100)
@@ -2234,7 +2238,7 @@ def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measur
         pass
     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, delivery_date, float(datum.quantity),
                 measurement_unit,
-                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                 purchase_order.igst_tax, total_igst,
                 total_sku_amt
                 ]
@@ -2326,7 +2330,7 @@ def print_purchase_order_form(request, user=''):
                 if sku_pending_line.exists():
                     delivery_schedule_data = sku_pending_line[0].purchasedeliveryschedule_set.filter(status=1)
                     for delivery_data in delivery_schedule_data:
-                        po_temp_data = format_printing_datam(delivery_data, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
+                        po_temp_data = format_printing_datam(delivery_data, order, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
                         po_data.append(po_temp_data)
             if not po_temp_data:
                 total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax

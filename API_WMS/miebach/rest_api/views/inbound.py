@@ -10091,7 +10091,10 @@ def confirm_add_po(request, sales_data='', user=''):
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
-        if get_misc_value('raise_po', user.id) == 'true':
+        supplier_notify = ''
+        if myDict.get('supplier_notify', ''):
+            supplier_notify = myDict.get('supplier_notify', '')[0]
+        if get_misc_value('raise_po', user.id) == 'true' and supplier_notify == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
                             'billing_address': profile.address, 'shipping_address': ship_to_address,

@@ -421,6 +421,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
                                                 ('currency_code', data.currency_code),
+                                                ('netsuit_internal_id', data.netsuite_currency_internal_id),
                                                 ('is_contracted', data.is_contracted),
                                                 ('payment_terms', payment_terms),
                                                 )))
@@ -6667,7 +6668,6 @@ def get_hlight_values(data_dict, check_dict, sku_code):
 # @reversion.create_revision(atomic=False, using='reversion')
 # def common_update_sku_doa(request, user=''):
 #     """ Update SKU Details"""
-#     import pdb;pdb.set_trace()
 #     reversion.set_user(request.user)
 #     reversion.set_comment("update_sku")
 #     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))

@@ -1684,6 +1684,8 @@ def excel_reports(request, user=''):
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
             squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number',
                 'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ',

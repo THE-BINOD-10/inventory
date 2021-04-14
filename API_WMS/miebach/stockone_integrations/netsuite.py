@@ -381,6 +381,12 @@ class netsuiteIntegration(object):
             if (po_data.get("address_id", None)):
                 purorder.billAddressList = ns.ListOrRecordRef(internalId=po_data.get("address_id"))
 
+            if (po_data.get('currency_internal_id', None)):
+                purorder.currency = ns.ListOrRecordRef(internalId=po_data.get("currency_internal_id"))
+
+            if (po_data.get('exchangerate', None)):
+                purorder.exchangerate = po_data.get('exchangerate')
+
             po_custom_field_list =  []
             if po_data.get('nexus', None):
                 purorder.nexus=ns.ListOrRecordRef(internalId=po_data["nexus"])

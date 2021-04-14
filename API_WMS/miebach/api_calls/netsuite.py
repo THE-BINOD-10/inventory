@@ -594,6 +594,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
 		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
+                                 'currency_code': 'currency_code', 'netsuite_currency_internal_id': 'currency_internal_id',
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
@@ -631,6 +632,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         value = 0
                 if key == 'subsidiary':
                     value = str(value)
+                if key == 'netsuite_currency_internal_id':
+                    value= int(str(value))
                 if key == 'account_number':
                     value = str(value)
                 if key == 'address':

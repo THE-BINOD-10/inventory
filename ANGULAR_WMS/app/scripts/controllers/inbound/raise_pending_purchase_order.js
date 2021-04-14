@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.send_sku_dict = {};
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
+    vm.supplier_mail_flag = true;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -700,10 +701,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
   }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id, {withCredential: true})
-      .success(function(data, status, headers, config) {
+      if (form.$valid) {
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select, {withCredential: true})
+        .success(function(data, status, headers, config) {
           vm.service.print_data(data, vm.model_data.purchase_id);
-      });      
+        });
+      } else {
+        vm.service.showNoty('Please Fill * fields !!');
+      }
     }
 
     vm.barcode = function() {
@@ -803,7 +808,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.service.showNoty('Please Fill * fields !!');
       }
     }
-
+    vm.supplier_notify = function (elems){
+      vm.supplier_mail_flag = elems;
+    }
     vm.confirm_add_po = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
@@ -812,6 +819,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:"data_id", value: vm.data_id})
         vm.common_confirm('confirm_central_add_po/', elem);
       } else {
+        elem.push({'name':'supplier_notify', 'value':vm.supplier_mail_flag})
         vm.common_confirm('confirm_add_po/', elem);
       }
     }

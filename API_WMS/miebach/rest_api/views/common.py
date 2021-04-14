@@ -14240,12 +14240,14 @@ def bulk_grn_files_upload(request, user=''):
         file_obj = request.FILES.get(i, '')
         if file_obj:
             grn_number = file_obj._name.split('.')[0]
-            datum = SellerPOSummary.objects.filter(grn_number=grn_number).values('purchase_order__po_number', 'receipt_number').distinct()
+            datum = SellerPOSummary.objects.filter(grn_number=grn_number).values('purchase_order__po_number', 'receipt_number', 'purchase_order__id').distinct()
             if datum.exists():
                 datum = datum[0]
                 master_docs_obj = MasterDocs.objects.filter(master_type='GRN_PO_NUMBER', master_id=datum['purchase_order__po_number'], extra_flag=datum['receipt_number'])
                 if not master_docs_obj:
-                    print grn_number
+                    user_id = PurchaseOrder.objects.filter(id=datum['purchase_order__id']).values('open_po__sku__user')[0]['open_po__sku__user']
+                    user = User.objects.get(id=user_id)
+                    upload_master_file(request, user, datum['purchase_order__po_number'], 'GRN_PO_NUMBER', master_file=file_obj, extra_flag=datum['receipt_number'])
                 elif master_docs_obj.count() == 1:
                     master_docs_obj = master_docs_obj[0]
                     if os.path.exists(master_docs_obj.uploaded_file.path):

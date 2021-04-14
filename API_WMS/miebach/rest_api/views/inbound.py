@@ -2120,6 +2120,12 @@ def print_pending_po_form(request, user=''):
     purchase_id = request.GET.get('purchase_id', '')
     is_actual_pr = request.GET.get('is_actual_pr', '')
     warehouse = request.GET.get('warehouse', '')
+    currency_rate = request.GET.get('currency_rate', 1)
+    if not currency_rate:
+        currency_rate = 1
+    supplier_payment_terms = request.GET.get('supplier_payment_terms', '')
+    ship_to = request.GET.get('ship_to', '')
+    supplier_currency = 'INR'
     purchase_number = int(purchase_id)
     filtersMap = {}
     if warehouse:
@@ -2153,14 +2159,18 @@ def print_pending_po_form(request, user=''):
     values_list = ['quantity', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
         'sku__sku_code', 'sku__sku_desc', 'measurement_unit']
     for order in lineItems.values(*values_list):
+        if currency_rate > 1:
+            current_price = round((float(order['price']) / float(currency_rate)), 2)
+        else:
+            current_price = order['price']
         total_qty += order['quantity']
-        amount = order['quantity'] * order['price']
+        amount = order['quantity'] * current_price
         tax = order['cgst_tax'] + order['sgst_tax'] + order['igst_tax'] + order['utgst_tax']
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (tax) * (amount / 100)
         total_sku_amt = total_tax_amt + amount
         po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'],'',
-                        order['quantity'], order['measurement_unit'], order['price'], amount,
+                        order['quantity'], order['measurement_unit'], current_price, amount,
                         order['sgst_tax'], order['cgst_tax'], order['igst_tax'],
                         order['utgst_tax'], total_sku_amt]
 
@@ -2171,13 +2181,13 @@ def print_pending_po_form(request, user=''):
         title = 'Purchase Order (DRAFT)'
         order_id = order.po_number
         address = order.supplier.address
+
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         name = order.supplier.name
+        supplier_currency = order.supplier.currency_code
         code = order.supplier.supplier_id
         gstin_no = order.supplier.tin_number
-        address = order.supplier.address
-        address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         supplier_email = order.supplier.email_id
         gstin_no = order.supplier.tin_number
@@ -2198,21 +2208,33 @@ def print_pending_po_form(request, user=''):
         name = ''
         supplier_email = ''
         gstin_no = ''
+    user = order.wh_user
+    ship_to_address = ''
     if order.ship_to:
-        ship_to_address = order.ship_to
-        company_address = user.userprofile.address
+        if get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < order.creation_date:
+            ship_to_address = order.ship_to
+        if user.userprofile.wh_address:
+            company_address = user.userprofile.address
+        else:
+            company_address = user.userprofile.address
     else:
         ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+    if not ship_to_address:
+        try:
+            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', address_name=ship_to)
+            if wh_ship_to.exists():
+                wh_ship_to = wh_ship_to[0]
+                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+        except Exception as e:
+            pass
     ship_to_address = '\n'.join(ship_to_address.split(','))
     terms_condition = ''
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
-    # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    # po_number = order.full_po_number
     po_number = getattr(order, full_purchase_number)
     remarks = order.remarks
-    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    total_amt_in_words = str(supplier_currency) + ' ' +number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name
@@ -2222,7 +2244,25 @@ def print_pending_po_form(request, user=''):
     tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
-
+    company_details = {}
+    company_logo=""
+    if profile.company.logo:
+        try:
+            _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+            _logo_url =  urllib.url2pathname(_logo_url)
+            with open(_logo_url, "rb") as image_file:
+                company_logo = base64.b64encode(image_file.read())
+        except Exception as e:
+            company_logo = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
+    if profile.company:
+        company_details['company_address'] = ''
+        if profile.company.address:
+            company_details['company_address'] = profile.company.address.encode('ascii', 'ignore')
+        company_details['phone'] = profile.company.phone_number
+        company_details['email'] = profile.company.email_id
+        company_details['gstin_number'] = profile.company.gstin_number
+        company_details['cin_number'] = profile.company.cin_number
+        company_details['pan_number'] = profile.company.pan_number
     data_dict = {
         'table_headers': table_headers,
         'data': po_data,
@@ -2238,8 +2278,10 @@ def print_pending_po_form(request, user=''):
         'vendor_name': 'vendor_name',
         'vendor_address': 'vendor_address',
         'vendor_telephone': 'vendor_telephone',
+        'supplier_payment_terms': supplier_payment_terms,
+        'supplier_currency': supplier_currency,
         'gstin_no': gstin_no,
-        'w_address': ship_to_address,  # get_purchase_company_address(profile),
+        'w_address': ship_to_address.encode('ascii', 'ignore'),# get_purchase_company_address(profile)
         'ship_to_address': ship_to_address,
         'wh_telephone': wh_telephone,
         'wh_gstin': profile.gst_number,
@@ -2251,8 +2293,10 @@ def print_pending_po_form(request, user=''):
         'location': profile.location,
         'po_number': po_number,
         'industry_type': profile.industry_type,
-        'left_side_logo': left_side_logo,
-        'company_address': company_address,
+        'company_logo': company_logo,
+        'left_side_logo':left_side_logo,
+        'company_address': company_address.encode('ascii', 'ignore'),
+        'company_details': company_details,
         'is_draft': 1,
         'title': title,
         'is_actual_pr': is_actual_pr,
@@ -10047,7 +10091,10 @@ def confirm_add_po(request, sales_data='', user=''):
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
-        if get_misc_value('raise_po', user.id) == 'true':
+        supplier_notify = ''
+        if myDict.get('supplier_notify', ''):
+            supplier_notify = myDict.get('supplier_notify', '')[0]
+        if get_misc_value('raise_po', user.id) == 'true' and supplier_notify == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
                             'billing_address': profile.address, 'shipping_address': ship_to_address,

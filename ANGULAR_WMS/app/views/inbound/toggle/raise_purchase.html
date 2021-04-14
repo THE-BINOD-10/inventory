@@ -436,6 +436,16 @@
           <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="terms_condition" ng-model="showCase.model_data.terms_condition" placeholder="Enter Terms and Condition"></textarea>
         </div>
       </div>
+      <div class="col-md-12 col-sm-12 col-xs-12" ng-init="showCase.supplier_mail_flag == 'true'" style="padding-top: 12px;">
+        <div class="form-group">
+          <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
+            <strong>Send Mail To Supplier :</strong>
+          </div>
+          <div class="col-md-9 col-sm-9 col-xs-9">
+            <toggle ng-model="showCase.supplier_mail_flag" name="supplier_notify" ng-change="showCase.supplier_notify(showCase.supplier_mail_flag)" onstyle="btn-success" offstyle="btn-default" size="btn-sm"></toggle>
+          </div>
+        </div>
+      </div>
       <!-- <div class="row">
         <div class="col-md-10">
           <strong class="pull-left" style="margin-left: 10px;">
@@ -483,12 +493,14 @@
         </div>
 		</div>
         <div class="modal-footer" ng-if="!(showCase.is_purchase_request)">
+          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PREVIEW PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
         <div class="modal-footer" ng-if="(showCase.is_purchase_request)">
+          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PREVIEW PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_pendingpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>

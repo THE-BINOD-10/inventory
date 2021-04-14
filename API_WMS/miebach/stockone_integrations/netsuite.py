@@ -165,8 +165,13 @@ class netsuiteIntegration(object):
             rtvitem.tranId = rtv_data['rtv_number']
             rtvitem.orderStatus = ns.RecordRef(internalId='B')
             # rtvitem.location = ns.RecordRef(internalId=297) #UAT Location Internal id
-            rtvitem.location = ns.RecordRef(internalId=327) # Prod Internal Id
+            #rtvitem.location = ns.RecordRef(internalId=327) # Prod Internal Id
             # rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
+            if rtv_data.get('location', None):
+                location =rtv_data["location"]
+            else:
+                location = 327
+            rtvitem.location = ns.RecordRef(internalId=location) # Prod Internal Id
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
             rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
             # rtvitem.location = ns.RecordRef(internalId=108)
@@ -196,7 +201,7 @@ class netsuiteIntegration(object):
                 'rate': data['price'],
                 'quantity': data['order_qty'],
                 # 'location': ns.RecordRef(internalId=297),  #UAT Location Internal ID
-                'location': ns.RecordRef(internalId=327),  #Prod Internal ID
+                'location': ns.RecordRef(internalId=location),  #Prod Internal ID
                 # 'itemReceive': True
                 'description': data['sku_desc'],
                 "customFieldList": ns.CustomFieldList(rtv_custom_field_list)
@@ -463,10 +468,10 @@ class netsuiteIntegration(object):
                         line_item.update({'rate': data['unit_price']})
                     if(data.get('quantity',None)):
                         line_item.update({'quantity':data['quantity']})
-                    if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    '''if data.get('uom_name', None) and data.get('unitypeexid', None):
                         internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                         if internId:
-                            line_item.update({'units': ns.RecordRef(internalId=internId)})
+                            line_item.update({'units': ns.RecordRef(internalId=internId)})'''
                     item.append(line_item)
                 item_list= { 'item': item}
                 if po_data.get('replaceAll_1', ''):
@@ -537,10 +542,10 @@ class netsuiteIntegration(object):
                 }
                 if(item_custom_list):
                     line_item.update({'customFieldList':  ns.CustomFieldList(item_custom_list)})
-                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                '''if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
-                        line_item.update({'units': ns.RecordRef(internalId=internId)})
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})'''
                 item.append(line_item)
             purreq.itemList = { 'purchaseRequisitionItem': item }
             purreq.externalId = pr_data['full_pr_number']

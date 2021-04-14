@@ -635,6 +635,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 if key == 'netsuite_currency_internal_id':
                     value= int(str(value))
                 if key == 'account_number':
+                    if type(value) is str:
+                        value = value.strip()
                     value = str(value)
                 if key == 'address':
                     value = address.get('address', '')

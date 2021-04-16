@@ -70,6 +70,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Average Monthly Consumption Value').withTitle('Average Monthly Consumption Value'),
         DTColumnBuilder.newColumn('Days of Cover Base Qty').withTitle('Days of Cover Base Qty'),
         DTColumnBuilder.newColumn('Days of Cover Value').withTitle('Days of Cover Value'),
+        DTColumnBuilder.newColumn('Max Norm Qty').withTitle('Max Norm Qty'),
+        DTColumnBuilder.newColumn('Max Norm Value').withTitle('Max Norm Value'),
+        DTColumnBuilder.newColumn('Excess Stock Qty').withTitle('Excess Stock Qty'),
+        DTColumnBuilder.newColumn('Excess Stock Value').withTitle('Excess Stock Value'),
     ];
 
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')

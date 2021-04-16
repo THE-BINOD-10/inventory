@@ -4247,7 +4247,11 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         consumption_qtys.setdefault(grp_key, {'qty': 0, 'value': 0})
         consumption_qtys[grp_key]['qty'] += cons.quantity
         consumption_qtys[grp_key]['value'] += (cons.quantity/sku_pcf) * cons.price
+    all_usrs = list(master_data.values_list('sku__user', flat=True))
+    all_usrs_skus = list(master_data.values_list('sku__sku_code', flat=True))
+    replenushment_data = ReplenushmentMaster.objects.filter(user_id__in = all_usrs, sku__sku_code__in = all_usrs_skus)
     for data in master_data:
+        max_norm_qty, max_norm_value, excess_stock_qty, excess_stock_value = [0]*4
         uom_dict = sku_uoms.get(data['sku__sku_code'], {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
@@ -4264,16 +4268,26 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         avg_per_day_cons_val = cons_value/30
         days_of_cover_bqty = (stock_qtyb/avg_per_day_cons) if avg_per_day_cons else 0
         days_of_cover_value = (stock_value/avg_per_day_cons_val) if avg_per_day_cons_val else 0
+        excess_data = replenushment_data.filter(user_id= data['sku__user'], sku__sku_code=data['sku__sku_code'])
+        if excess_data.exists():
+            max_norm_qty = avg_per_day_cons * excess_data[0].max_days
+            max_norm_value = avg_per_day_cons_val * excess_data[0].max_days
+        excess_stock_qty = days_of_cover_bqty - max_norm_qty
+        excess_stock_value = days_of_cover_value - max_norm_value
         data_dict = OrderedDict(( ('DT_RowId', data['sku__user']), ('Plant Code', user.userprofile.stockone_code),
                                   ('Plant Name', user.first_name),
                                   ('SKU Code', data['sku__sku_code']), ('SKU Description', data['sku__sku_desc']),
                                   ('SKU Brand', data['sku__sku_brand']), ('SKU Category', data['sku__sku_category']),
                                   ('Base UOM', uom_dict.get('base_uom', '')),
-                                  ('Current Stock Base UOM', stock_qtyb), ('Current Stock Value', stock_value),
-                                  ('Average Monthly Consumption Base Qty', cons_qtyb),
-                                  ('Average Monthly Consumption Value', cons_value),
-                                  ('Days of Cover Base Qty', round(days_of_cover_bqty,5)),
-                                  ('Days of Cover Value', round(days_of_cover_value,5)),
+                                  ('Current Stock Base UOM', round(stock_qtyb, 1)), ('Current Stock Value', round(stock_value, 1)),
+                                  ('Average Monthly Consumption Base Qty', round(cons_qtyb, 1)),
+                                  ('Average Monthly Consumption Value', round(cons_value, 1)),
+                                  ('Days of Cover Base Qty', round(days_of_cover_bqty,1)),
+                                  ('Days of Cover Value', round(days_of_cover_value,1)),
+                                  ('Max Norm Qty', round(max_norm_qty, 1)),
+                                  ('Max Norm Value', round(max_norm_value, 1)),
+                                  ('Excess Stock Qty', round(excess_stock_qty, 1)),
+                                  ('Excess Stock Value', round(excess_stock_value, 1)),
                                   ('DT_RowAttr', {'data-id': data['sku__user']}),
                                 ))
         temp_data['aaData'].append(data_dict)
@@ -4364,6 +4378,20 @@ def get_stock_plant_results(start_index, stop_index, temp_data, search_term, ord
         grp_key = (usr.id, stock['sku__sku_code'])
         stock_qtys.setdefault(grp_key, 0)
         stock_qtys[grp_key] += stock['total']
+    replenushment_dict = {}
+    relenushment_data = ReplenushmentMaster.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes).\
+                                            values('sku__user', 'sku__sku_code', 'max_days').distinct()
+    for rep_data in relenushment_data:
+        if rep_data['sku__user'] in user_id_mapping:
+           usr = user_id_mapping[stock['sku__user']]
+        else:
+            usr = User.objects.get(id=rep_data['sku__user'])
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[stock['sku__user']] = usr
+        grp_key = (usr.id, rep_data['sku__sku_code'])
+        replenushment_dict.setdefault(grp_key, 0)
+        replenushment_dict[grp_key] = rep_data['max_days']
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     consumption_qtys = {}
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
@@ -4395,26 +4423,33 @@ def get_stock_plant_results(start_index, stop_index, temp_data, search_term, ord
             final_user_mapping[data['sku__user']] = user
         grp_key = (data['sku__user'], data['sku__sku_code'])
         cons_dict = consumption_qtys.get(grp_key, {})
+        rpl_max_days = replenushment_dict.get(grp_key, 0)
         cons_qtyb = round(cons_dict.get('qty', 0)/3, 5)
         cons_qty = round(cons_qtyb/sku_pcf, 5)
         stock_qtyb = stock_qtys.get(grp_key, 0)
         stock_qty = round((stock_qtyb)/sku_pcf, 5)
         stock_value = stock_qty * data['sku__average_price']
-        cons_value = round(cons_dict.get('value', 0), 5)
-        final_data.setdefault(data['sku__user'], {'stock_value': 0, 'cons_value': 0})
+        cons_value = round(cons_dict.get('value', 0)/3, 5)
+        cons_value_per_day = round(cons_value/30, 5)
+        excess_val = cons_value_per_day * rpl_max_days
+        final_data.setdefault(data['sku__user'], {'stock_value': 0, 'cons_value': 0, 'excess_value': 0})
         final_data[data['sku__user']]['stock_value'] += stock_value
         final_data[data['sku__user']]['cons_value'] += cons_value
+        final_data[data['sku__user']]['excess_value'] += excess_val
     for data in master_data:
         user = User.objects.get(id=data['sku__user'])
         stock_value = final_data[data['sku__user']]['stock_value']
         cons_value = final_data[data['sku__user']]['cons_value']
+        excess_value = final_data[data['sku__user']]['excess_value']
         avg_per_day_cons_val = cons_value/30
         days_of_cover_value = (stock_value/avg_per_day_cons_val) if avg_per_day_cons_val else 0
+        excess_stock_value = round(days_of_cover_value - excess_value, 0)
         data_dict = OrderedDict(( ('DT_RowId', data['sku__user']), ('Plant Code', user.userprofile.stockone_code),
                                   ('Plant Name', user.first_name),
-                                  ('Total Stock Value', round(stock_value,5)),
-                                  ('Average Monthly Consumption Value', round(cons_value,5)),
-                                  ('Days of Cover Value', round(days_of_cover_value,5)),
+                                  ('Total Stock Value', round(stock_value,1)),
+                                  ('Average Monthly Consumption Value', round(cons_value,1)),
+                                  ('Days of Cover Value', round(days_of_cover_value,1)),
+                                  ('Excess Stock Value', round(excess_stock_value, 1)),
                                   ('DT_RowAttr', {'data-id': data['sku__user']}),
                                 ))
         temp_data['aaData'].append(data_dict)

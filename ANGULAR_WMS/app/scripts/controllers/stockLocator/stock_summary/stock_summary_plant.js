@@ -63,6 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Total Stock Value').withTitle('Total Stock Value'),
         DTColumnBuilder.newColumn('Average Monthly Consumption Value').withTitle('Average Monthly Consumption Value'),
         DTColumnBuilder.newColumn('Days of Cover Value').withTitle('Days of Cover Value'),
+        DTColumnBuilder.newColumn('Excess Stock Value').withTitle('Excess Stock Value')
     ];
 
 

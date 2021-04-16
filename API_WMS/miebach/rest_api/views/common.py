@@ -50,6 +50,7 @@ from miebach.settings import base
 from miebach.celery import app
 import git
 from lockout import LockedOut
+from ipware import get_client_ip
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -14284,3 +14285,12 @@ def validate_password_reuse(user, password):
         if match:
             break
     return match
+
+def get_user_ip(request):
+    ip_address = ''
+    try:
+        ip, is_routable = get_client_ip(request)
+        ip_address = ip
+    except Exception as e:
+        log.info("Error getting IP %s" % str(e))
+    return ip_address

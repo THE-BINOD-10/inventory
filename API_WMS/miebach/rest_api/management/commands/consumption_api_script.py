@@ -41,8 +41,11 @@ def update_consumption(consumption_objss, user, company):
                     department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
                     consumption_dict = consumption_objss[key]
                     data_dict = {'user':user}
-                    test_code = consumption_dict.get('TCODE', '')
-                    test_name = consumption_dict.get('TNAME', '')
+                    try:
+                        test_code = (str(re.sub(r'[^\x00-\x7F]+', '', consumption_dict.get('TCODE', ''))))
+                        test_name = (str(re.sub(r'[^\x00-\x7F]+', '', consumption_dict.get('TNAME', ''))))
+                    except:
+                        test_code, test_name = '', ''
                     consumption_filter = {}
                     if test_code:
                         test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
@@ -79,7 +82,12 @@ def update_consumption(consumption_objss, user, company):
                     if diff and data_dict['n_time_process']:
                         n_time_process_val = diff/data_dict['n_time_process']
                     data_dict['n_time_process_val'] = n_time_process_val
-                    org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
+                    instrument_objs = OrgInstrumentMapping.objects.filter(attune_id=orgid, investigation_id=investigation_id)
+                    if instrument_objs:
+                        consumption_filter['machine'] = instrument_objs[0].machine
+                        data_dict['machine'] = instrument_objs[0].machine
+                        machine_name = instrument_objs[0].instrument_name
+                    org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code, instrument_name=machine_name)
                     consumption_user = user
                     if org_objs:
                         org_dept = org_objs[0].dept_name
@@ -88,18 +96,15 @@ def update_consumption(consumption_objss, user, company):
                             department = department[0]
                         if department:
                             user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=department)
-                            if not user_groups:
-                                continue
-                            consumption_user = User.objects.get(id = user_groups[0].user.id)
-                            data_dict['user'] = consumption_user
-                    instrument_objs = OrgInstrumentMapping.objects.filter(attune_id=orgid, investigation_id=investigation_id)
-                    if instrument_objs:
-                        consumption_filter['machine'] = instrument_objs[0].machine
-                        data_dict['machine'] = instrument_objs[0].machine
+                            # if not user_groups:
+                            #     continue
+                            if user_groups:
+                                consumption_user = User.objects.get(id = user_groups[0].user.id)
+                                data_dict['user'] = consumption_user
                     consumption_obj = Consumption.objects.filter(user=consumption_user.id, **consumption_filter)
                     if consumption_obj.exists():
                         status = 'Success'
-                        if consumption_obj[0].status == 1:
+                        if consumption_obj[0].status == 1 and department and user_groups:
                             status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=data_dict['total_test'])
                         else:
                             exist_total_test = consumption_obj[0].total_test
@@ -110,7 +115,8 @@ def update_consumption(consumption_objss, user, company):
                                     consumption_obj.update(**data_dict)
                     else:
                         consumption_obj = Consumption.objects.create(**data_dict)
-                        status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
+                        if department and user_groups:
+                            status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
                     if status == 'Success':
                         log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
                 except Exception as e:

@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   	// if (vm.toggle_sku_wise) {
    //    name = 'sku_wise_consumption_report';
    //  } else {
-    name = 'consumption_data';
+    name = 'get_consumption_data';
     // }
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
   	if(data.message) {
@@ -66,7 +66,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.dtInstance = {};
           vm.report_data['excel2'] = true;
   		    vm.report_data['row_click'] = true;
-          vm.report_data['excel_name'] = 'consumption_data'
+          vm.report_data['excel_name'] = 'get_consumption_data'
           // if (vm.toggle_sku_wise) {
           //     vm.report_data['excel_name'] = 'get_sku_wise_consumption_report'
           // } else {

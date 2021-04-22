@@ -4133,10 +4133,13 @@ class OrgInstrumentMapping(models.Model):
     machine = models.ForeignKey(MachineMaster, default=None, blank=True, null=True)
     instrument_name = models.CharField(max_length=128, default='', blank=True, null=True)
     instrument_id =  models.CharField(max_length=128, default=None, blank=True, null=True)
+    instrument_mapping_id =  models.CharField(max_length=128, default=None, blank=True, null=True)
     investigation_id =  models.IntegerField(default=None, blank=True, null=True)
     tcode = models.CharField(max_length=128, default='', blank=True, null=True)
     tname = models.CharField(max_length=128, default='', blank=True, null=True)
     dept_name = models.CharField(max_length=128, default='', blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ORG_INSTRUMENT_MAPPING'

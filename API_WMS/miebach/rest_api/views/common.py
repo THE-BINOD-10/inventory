@@ -14281,3 +14281,62 @@ def validate_password_reuse(user, password):
         if match:
             break
     return match
+
+def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_type='', tally_report=0,automated_emails=False):
+    excel_headers = ''
+    if temp_data['aaData']:
+        excel_headers = temp_data['aaData'][0].keys()
+    if '' in headers:
+        headers = filter(lambda a: a != '', headers)
+    if not excel_headers:
+        excel_headers = headers
+    for i in set(excel_headers) - set(headers):
+        excel_headers.remove(i)
+    if tally_report ==1:
+        excel_headers = headers
+    excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
+    if excel_name:
+        file_name = "%s.%s_%s" % (user.username, excel_name.split('=')[-1], str(creation_date))
+    if not file_type:
+        file_type = 'xls'
+    if len(temp_data['aaData']) > 65535:
+        file_type = 'csv'
+    if automated_emails:
+        file_name = "{}{}".format(user.username,excel_name)
+    path = ('static/excel_files/%s.%s') % (file_name, file_type)
+    if not os.path.exists('static/excel_files/'):
+        os.makedirs('static/excel_files/')
+    path_to_file = '../' + path
+    if automated_emails:
+        path_to_file = path
+    if file_type == 'csv':
+        with open(path, 'w') as mycsvfile:
+            thedatawriter = csv.writer(mycsvfile, delimiter=',')
+            counter = 0
+            try:
+                thedatawriter.writerow(itemgetter(*excel_headers)(headers))
+            except:
+                thedatawriter.writerow(excel_headers)
+            for data in temp_data['aaData']:
+                temp_csv_list = []
+                for key, value in data.iteritems():
+                    if key in excel_headers:
+                        temp_csv_list.append(str(xcode(value)))
+                thedatawriter.writerow(temp_csv_list)
+                counter += 1
+    else:
+        try:
+            wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
+        except:
+            wb, ws = get_work_sheet('skus', excel_headers)
+        data_count = 0
+        data = temp_data['aaData']
+        for i in range(0, len(data)):
+            index = i + 1
+            try:
+                for ind, header_name in enumerate(excel_headers):
+                    ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
+            except:
+                pass
+        wb.save(path)
+    return path_to_file

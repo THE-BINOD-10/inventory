@@ -5836,7 +5836,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     # pr_search_params= {}
     search_parameters[pr_field_mapping['user']] = user_ids
     start_time = time.time()
-    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values)
+    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values).order_by('-id')
     po_numbers_sku =[]
     temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

@@ -11297,7 +11297,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     st_list=['order_id','order_id','order_id','quantity','order_id', 'order_id', 'order_id', 'stocktransfersummary__invoice_number','quantity']
-    summary_params = {'status':2, 'upload_type':'UI'}
+    summary_params = {'status':2}
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
@@ -11398,7 +11398,7 @@ def get_stock_transfer_inter_invoice_data(start_index, stop_index, temp_data, se
 @csrf_exempt
 def get_material_request_challan_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
-    summary_params = {'status':2, 'upload_type':'UI'}
+    summary_params = {'status':2}
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))

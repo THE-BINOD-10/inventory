@@ -4188,6 +4188,7 @@ class ConsumptionData(models.Model):
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
+    is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

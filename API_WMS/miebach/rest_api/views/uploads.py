@@ -12505,7 +12505,8 @@ def update_closing_stock_quantity(data_list, year, month):
                 sku_id=sku.id,
                 quantity=closing_adj,
                 price=unit_price,
-                remarks=remarks
+                remarks=remarks,
+                is_valid=1,
             )
             consumption_data.creation_date = last_change_date
             consumption_data.save()

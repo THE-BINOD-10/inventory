@@ -12347,7 +12347,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2 or month != 4:
+                        if len(str(month)) > 2 or month != 3:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')
@@ -12355,7 +12355,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     index_status.setdefault(row_idx, set()).add('Month is Mandatory')
         if data_dict.get('sku', ''):
             stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
-                location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
+                location__zone__zone='DAMAGED_ZONE').order_by('id')
             stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_quantity = stock_quantity if stock_quantity else 0
             uom_dict = get_uom_with_sku_code(data_dict['user'], data_dict['sku'].sku_code,
@@ -12505,7 +12505,8 @@ def update_closing_stock_quantity(data_list, year, month):
                 sku_id=sku.id,
                 quantity=closing_adj,
                 price=unit_price,
-                remarks=remarks
+                remarks='Consumption booked on:29thApril2021 for March 31st Stock-Ref-Required Approval for AMIN to ACE manual Invoice qty to be deduct',
+                is_valid=1,
             )
             consumption_data.creation_date = last_change_date
             consumption_data.save()

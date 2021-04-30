@@ -2682,11 +2682,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
                         'closing_stock_report': 'get_closing_stock_report_data',
                         'supplier_wise_po_report': 'get_supplier_details_data',
-<<<<<<< HEAD
                         'get_consumption_data': 'get_consumption_data_',
-=======
                         'PRAOD_report': 'get_praod_report_data',
->>>>>>> e684cf6cee0e8b662016f0b19eadcaaf404f7379
                         }
 # End of Download Excel Report Mapping
 

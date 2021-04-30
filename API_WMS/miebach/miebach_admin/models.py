@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
@@ -187,7 +187,7 @@ class OtherItemsMaster(SKUMaster):
     class Meta:
         db_table = 'OTHERITEMS_MASTER'
 
-
+@reversion.register()
 class MastersDOA(models.Model):
     id = BigAutoField(primary_key=True)
     requested_user = models.ForeignKey(User, related_name="doa_requested_user")
@@ -324,6 +324,7 @@ class SupplierMaster(models.Model):
     subsidiary = models.CharField(max_length=512, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
+    netsuite_currency_internal_id = models.IntegerField(default=1)
     is_contracted = models.BooleanField(default=False)
 
     class Meta:
@@ -675,6 +676,7 @@ class PendingPR(models.Model):
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='')
     remarks = models.TextField(default='')
+    is_auto_pr = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -834,6 +836,9 @@ class PurchaseOrder(models.Model):
     payment_received = models.FloatField(default=0)
     priority = models.IntegerField(default=0)
     pcf = models.FloatField(default=0)
+    currency = models.TextField(default='INR')
+    currency_internal_id = models.IntegerField(default=1)
+    currency_rate = models.FloatField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1413,6 +1418,18 @@ class UserProfile(models.Model):
 
     def __unicode__(self):
         return str(self.user)
+
+
+class UserPasswords(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True,related_name='user_passwords')
+    password = models.CharField(max_length=128, default='', blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_PASSWORDS'
+
 
 class UserAddresses(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3278,7 +3295,7 @@ class IntransitOrders(models.Model):
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
 
-
+@reversion.register()
 class StaffMaster(models.Model):
     id = BigAutoField(primary_key=True)
     staff_name = models.CharField(max_length=64, default='')
@@ -3877,11 +3894,12 @@ class TempDeliveryChallan(models.Model):
     class Meta:
         db_table = 'TEMP_DELIVERY_CHALLAN'
 
+@reversion.register()
 class ReplenushmentMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
-    classification = models.CharField(max_length=64, default='')
-    size = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='replenushment_sku')
+    lead_time = models.FloatField(default=0)
     min_days = models.FloatField(default=0)
     max_days = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3889,7 +3907,7 @@ class ReplenushmentMaster(models.Model):
 
     class Meta:
         db_table = 'REPLENUSHMNENT_MASTER'
-        unique_together = ('user', 'classification', 'size')
+        unique_together = ('user', 'sku')
 
 class SkuClassification(models.Model):
     id = BigAutoField(primary_key=True)
@@ -4012,12 +4030,35 @@ def delete_user_in_reversion(sender, instance, **kwargs):
         except:
             pass
 
+
+@receiver(pre_save, sender=User)
+def user_pre_updated(sender, **kwargs):
+    user = kwargs.get('instance', None)
+    if kwargs.get('using') =='default' and user.id:
+        new_password = user.password
+        try:
+            old_password = User.objects.get(pk=user.pk).password
+        except User.DoesNotExist:
+            old_password = None
+        if new_password != old_password:
+            UserPasswords.objects.create(user=user, password=new_password)
+
+
+@receiver(post_save, sender=User)
+def user_post_updated(sender, **kwargs):
+    user = kwargs.get('instance', None)
+    created = kwargs.get('created', False)
+    if kwargs.get('using') =='default' and user.id and created:
+        UserPasswords.objects.create(user=user, password=user.password)
+
+
 class StockTransferSummary(models.Model):
     id = BigAutoField(primary_key=True)
     pick_number = models.PositiveIntegerField(default=1)
     stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
+    price = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateTimeField(null=True, blank=True)
     invoice_value = models.FloatField(default=0)
@@ -4180,6 +4221,7 @@ class ConsumptionData(models.Model):
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
+    is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

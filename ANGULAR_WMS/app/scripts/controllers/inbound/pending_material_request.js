@@ -131,6 +131,10 @@ var vm = this;
             vm.service.showNoty(resp.data)
             vm.dtInstance.reloadData();
           }
+          else {
+            vm.service.showNoty(resp.data);
+            vm.dtInstance.reloadData();
+          }
         })
       }
       else {

@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.send_sku_dict = {};
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
+    vm.supplier_mail_flag = true;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -156,11 +157,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
+          if (typeof(data.data) == 'string') {
+            vm.service.showNoty(data.data);
+            return;
+          }
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
             "supplier_payment_terms": data.data.supplier_payment_desc,
+            "supplier_currency": data.data.supplier_currency,
+            "supplier_currency_rate": '',
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -694,10 +701,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
   }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id, {withCredential: true})
-      .success(function(data, status, headers, config) {
+      if (form.$valid) {
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select, {withCredential: true})
+        .success(function(data, status, headers, config) {
           vm.service.print_data(data, vm.model_data.purchase_id);
-      });      
+        });
+      } else {
+        vm.service.showNoty('Please Fill * fields !!');
+      }
     }
 
     vm.barcode = function() {
@@ -797,7 +808,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.service.showNoty('Please Fill * fields !!');
       }
     }
-
+    vm.supplier_notify = function (elems){
+      vm.supplier_mail_flag = elems;
+    }
     vm.confirm_add_po = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
@@ -806,6 +819,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:"data_id", value: vm.data_id})
         vm.common_confirm('confirm_central_add_po/', elem);
       } else {
+        elem.push({'name':'supplier_notify', 'value':vm.supplier_mail_flag})
         vm.common_confirm('confirm_add_po/', elem);
       }
     }

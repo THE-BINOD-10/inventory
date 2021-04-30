@@ -258,7 +258,7 @@ urlpatterns = [
     url(r'^grn_upload_preview/$', grn_upload_preview),
     url(r'^confirm_mr_request/$', confirm_mr_request),
     url(r'^view_pending_mr_details/$', view_pending_mr_details),
-
+    url(r'^prepare_material_planning_pr_data/$', prepare_material_planning_pr_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -635,6 +635,7 @@ urlpatterns = [
     url(r'^get_consumption_data/$', get_consumption_data),
     url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
+    url(r'^get_praod_report/$', get_praod_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -758,6 +759,8 @@ urlpatterns += [
     url(r'^opening_stock_upload/$', opening_stock_upload),
     url(r'^consumption_form/$', consumption_form),
     url(r'^consumption_upload/$', consumption_upload),
+    url(r'^inventory_norm_form/$', inventory_norm_form),
+    url(r'^inventory_norm_upload/$', inventory_norm_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

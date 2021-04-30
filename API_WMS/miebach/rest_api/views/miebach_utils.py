@@ -20,7 +20,7 @@ from django.db.models import Value
 from utils import init_logger, get_currency_format
 from miebach_admin.choices import SELLABLE_CHOICES
 from dateutil.relativedelta import *
-from django.db.models.functions import ExtractHour, ExtractMinute
+from django.db.models.functions import ExtractHour, ExtractMinute, ExtractMonth
 import unicodedata
 from miebach_admin.custom_decorators import get_admin_multi_user
 from django.db import transaction
@@ -453,6 +453,12 @@ MARKETPLACE_SKU_FIELDS = {'marketplace_code': '', 'sku_id': '', 'description': '
 MARKET_LIST_HEADERS = ['Market Place', 'SKU', 'Description']
 
 MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'HomeShop18', 'Jabong', 'Indiatimes']
+
+INVENTORY_NORM_HEADERS = OrderedDict((
+                                        ('Plant Code', 'plant_code'), ('SKU Code', 'sku_code'),
+                                        ('Lead Time Days', 'lead_time'), ('SA Min Days', 'sa_min_days'),
+                                        ('SA Max Days', 'sa_max_days')
+                                    ))
 
 # User Type Order Formats
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',
@@ -1878,6 +1884,22 @@ CLOSING_STOCK_REPORT_DICT = {
     'print_url': 'get_closing_stock_report',
 }
 
+PRAOD_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+    ],
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'Product Category', 'SKU Category',
+        'Pending with Email Id', 'Pending Since from PR Raised(Days)'],
+    'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
+    'print_url': 'get_praod_report',
+}
+
 SUPPLIER_WISE_PO_REPORT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1949,6 +1971,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'closing_stock_report': CLOSING_STOCK_REPORT_DICT,
                      'supplier_wise_po_report': SUPPLIER_WISE_PO_REPORT,
                      'get_consumption_data': CONSUMPTION_DATA_DICT
+                     'PRAOD_report': PRAOD_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1978,7 +2001,7 @@ SKU_HEADERS = ['SKU Code', 'SKU Description', 'SKU Group', 'SKU Type(Options: FG
                'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
                'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Batch Based',
-               'GL Code', 'Status']
+               'GL Code', 'Status', 'Creation Date', 'Updation Date']
 
 MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1993,7 +2016,7 @@ RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Un
 ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
                  'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone',
                  'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-                 'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID', 'GL Code']
+                 'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID', 'GL Code', 'Creation Date', 'Updation Date']
 
 TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type', 'Status']
 
@@ -2002,12 +2025,12 @@ MACHINE_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Numbe
 SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group',
                    'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                    'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-                   'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
+                   'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)', 'Creation Date', 'Updation Date']
 
 OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group',
                       'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
                       'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code',
-                      'GL Code', 'Status'
+                      'GL Code', 'Status', 'Creation Date', 'Updation Date'
                       ]
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
@@ -2405,7 +2428,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('sku_group', 2),
                              ('hsn_code', 24),
                              ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28),
                              ('block_options', 29),
-                             ('batch_based', 30), ('gl_code', 31), ('status', 32)
+                             ('batch_based', 30), ('gl_code', 31), ('status', 32), ('creation_date', 33), ('updation_date', 34)
                              ))
 
 ASSET_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3),
@@ -2414,7 +2437,7 @@ ASSET_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 
                                ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
                                ('ean_number', 13), ('hsn_code', 14), ('status', 15),
                                ('parent_asset_code', 16), ('asset_number', 17), ('vendor', 18),
-                               ('store_id', 19), ('gl_code', 20)
+                               ('store_id', 19), ('gl_code', 20), ('creation_date', 21), ('updation_date', 22)
                                ))
 
 SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_type', 2), ('sku_group', 3),
@@ -2422,14 +2445,14 @@ SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_typ
                                  ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
                                  ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
                                  ('ean_number', 13), ('hsn_code', 14), ('status', 15),
-                                 ('gl_code', 16), ('service_start_date', 17), ('service_end_date', 18),
+                                 ('gl_code', 16), ('service_start_date', 17), ('service_end_date', 18), ('creation_date', 19), ('updation_date', 20)
                                  ))
 
 OTHER_ITEM_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3),
                                     ('sku_category', 4), ('sub_category', 5),
                                     ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
                                     ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
-                                    ('ean_number', 13), ('hsn_code', 14), ('gl_code', 15), ('status', 16)
+                                    ('ean_number', 13), ('hsn_code', 14), ('gl_code', 15), ('status', 16), ('creation_date', 17), ('updation_date', 18)
                                     ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -2659,7 +2682,11 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
                         'closing_stock_report': 'get_closing_stock_report_data',
                         'supplier_wise_po_report': 'get_supplier_details_data',
+<<<<<<< HEAD
                         'get_consumption_data': 'get_consumption_data_',
+=======
+                        'PRAOD_report': 'get_praod_report_data',
+>>>>>>> e684cf6cee0e8b662016f0b19eadcaaf404f7379
                         }
 # End of Download Excel Report Mapping
 
@@ -2700,7 +2727,7 @@ PERMISSION_DICT = OrderedDict((
                        ('Cluster SKU Mapping', 'add_clusterskumapping'),
                        ("Asset Master Edit", "add_assetmaster"), ("Service Master Edit", "add_servicemaster"),
                        ("Otheritems Master Edit", "add_otheritemsmaster"),
-                       ("Test Master Edit", "add_testmaster"),
+                       ("Test Master Edit", "add_testmaster"), ('Inventory Norm Master', 'add_replenushmentmaster'),
                        )),
 
     # Inbound
@@ -2725,6 +2752,7 @@ PERMISSION_DICT = OrderedDict((
                        ("Approve Inventory Adjustment", "approve_inventory_adjustment"),
                        ("Approve Manual Test", "approve_manual_test"),
                        ("View Manual Test Approval", "view_manual_test_approval"),
+                       ("Material Planning", "change_replenushmentmaster"),
                        )),
 
     # Production
@@ -3148,8 +3176,7 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Qua
 WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                    'Invoice Date&Time', 'Total Amount']
 
-STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time',
-                                  'Invoice Number', 'Total Amount']
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Pick Receipt Number', 'Source Warehouse', 'Destination Warehouse', 'Order Quantity', 'Picked Quantity', 'Total Amount', 'Stock Transfer Date&Time']
 
 STOCK_TRANSFER_INTER_INVOICE_HEADERS = ['Sale Order ID', 'Warehouse Name', 'Picked Quantity', 'Sale Order Date&Time',
                                   'Invoice Number', 'Total Amount']
@@ -3353,6 +3380,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                         'auto_putaway_grn': 'auto_putaway_grn',
                         'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
+                        'block_pr_po_transactions': 'block_pr_po_transactions',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -5826,7 +5854,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     # pr_search_params= {}
     search_parameters[pr_field_mapping['user']] = user_ids
     start_time = time.time()
-    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values)
+    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values).order_by('-id')
     po_numbers_sku =[]
     temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -15183,7 +15211,8 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                    'sku__mrp', 'sku__sub_category', 'sku__sku_group','quantity', 'price', 'sku__hsn_code', 'pending_pr_id']
     search_parameters1 = {}
     for spk, spv in search_parameters.items():
-        search_parameters1[spk.replace('pending_pr__', '')] = spv
+        if 'pending_pr__' in spk:
+            search_parameters1[spk.replace('pending_pr__', '')] = spv
     if 'purchase_type' in search_parameters1:
         del search_parameters1['purchase_type']
     pl_main = PendingPR.objects.filter(**search_parameters1)
@@ -17076,7 +17105,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks']
-    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, **search_parameters).values(*values_list).distinct().\
+    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).order_by(order_data)
 
     #if order_term:
@@ -17429,6 +17458,133 @@ def get_closing_stock_report_data(search_params, user, sub_user):
             ('Purchase Uom Quantity', pqty),
             ('Stock Value', stock_value),
             ('Batch Number', result['stock__batch_detail__batch_no']),
+        ))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
+
+
+def get_praod_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
+                                    get_admin, get_utc_start_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    #user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {}
+    lis = ['creation_date', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'full_pr_number', 'product_category',
+            'sku_category', 'creation_date', 'creation_date']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'pr_number' in search_params:
+        search_parameters['full_pr_number'] = search_params['pr_number']
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['wh_user_id__in'] = user_ids
+    search_parameters['final_status'] = 'pending'
+    search_parameters['pending_prApprovals__status'] = ''
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number']
+    model_data = PendingPR.objects.filter(**search_parameters).values(*values_list).distinct()
+
+    if order_term:
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    pr_ids = map(lambda x: x['id'], results)
+    pas_dict = {}
+    pas_objs = PurchaseApprovals.objects.filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by')
+    for pas in pas_objs:
+        pas_dict[pas.pending_pr_id] = pas.validated_by
+    count = 0
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    counter = 0
+    for result in results:
+        counter += 1
+        print counter
+        user_obj = User.objects.get(id=result['wh_user'])
+        plant_code = user_obj.userprofile.stockone_code
+        plant = user_obj.first_name
+        dept = ''
+        zone_code = user_obj.userprofile.zone
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            plant_code = admin_user.userprofile.stockone_code
+            plant = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+            dept = user_obj.userprofile.stockone_code
+        raised_date = get_local_date(user, result['creation_date'])
+        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+        pa_emails = pas_dict.get(result['id'], '')
+        ord_dict = OrderedDict((
+            ('Raised Date', raised_date),
+            ('Plant', plant),
+            ('Plant Code', plant_code),
+            ('Department', dept_mapping.get(dept, dept)),
+            ('Plant Code', plant_code),
+            ('Zone Code', zone_code),
+            ('PR Number', result['full_pr_number']),
+            ('Product Category', result['product_category']),
+            ('SKU Category', result['sku_category']),
+            ('Pending with Email Id', pa_emails),
+            ('Pending Since from PR Raised(Days)', pending_since),
         ))
         temp_data['aaData'].append(ord_dict)
 

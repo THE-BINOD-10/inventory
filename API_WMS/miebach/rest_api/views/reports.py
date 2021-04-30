@@ -1684,6 +1684,8 @@ def excel_reports(request, user=''):
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
             squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number',
                 'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ',
@@ -1713,7 +1715,8 @@ def excel_reports(request, user=''):
                     report_data['New_aaData'].append(v[0])
             report_data['aaData'] = report_data['New_aaData']
             headers = report_data['aaData'][0].keys()
-
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
@@ -2217,10 +2220,14 @@ def print_stock_cover_report(request, user=''):
     return HttpResponse(html_data)
 
 
-def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
+def format_printing_datam(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    amount = float(datum.quantity) * float(purchase_order.price)
+    if order.currency_rate > 1:
+        current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+    else:
+        current_price = float(purchase_order.price)
+    amount = float(datum.quantity) * current_price
     amount = float("%.2f" % amount)
     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
     total_sgst = purchase_order.sgst_tax * (amount/100)
@@ -2234,7 +2241,7 @@ def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measur
         pass
     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, delivery_date, float(datum.quantity),
                 measurement_unit,
-                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                 purchase_order.igst_tax, total_igst,
                 total_sku_amt
                 ]
@@ -2312,7 +2319,11 @@ def print_purchase_order_form(request, user=''):
     for order in purchase_orders:
         open_po = order.open_po
         total_qty += open_po.order_quantity
-        amount = open_po.order_quantity * open_po.price
+        if order.currency_rate > 1:
+            currency_rate = round(open_po.price / order.currency_rate, 2)
+        else:
+            currency_rate = open_po.price
+        amount = open_po.order_quantity * currency_rate
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax + open_po.apmc_tax
         total += amount + ((amount / 100) * float(tax))
         if user.userprofile.industry_type == 'FMCG':
@@ -2322,7 +2333,7 @@ def print_purchase_order_form(request, user=''):
                 if sku_pending_line.exists():
                     delivery_schedule_data = sku_pending_line[0].purchasedeliveryschedule_set.filter(status=1)
                     for delivery_data in delivery_schedule_data:
-                        po_temp_data = format_printing_datam(delivery_data, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
+                        po_temp_data = format_printing_datam(delivery_data, order, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
                         po_data.append(po_temp_data)
             if not po_temp_data:
                 total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
@@ -2333,7 +2344,7 @@ def print_purchase_order_form(request, user=''):
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [open_po.sku.sku_code, open_po.sku.hsn_code,open_po.supplier_code, open_po.sku.sku_desc, '',
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp, amount,
+                            open_po.order_quantity, open_po.measurement_unit, currency_rate, round(open_po.mrp/order.currency_rate, 2), amount,
                             open_po.sgst_tax, total_sgst, open_po.cgst_tax, total_cgst, open_po.igst_tax, total_igst, total_sku_amt]
                 po_data.append(po_temp_data)
 
@@ -2346,7 +2357,7 @@ def print_purchase_order_form(request, user=''):
             total_tax_amt = float("%.2f" % total_tax_amt)
             total_sku_amt = total_tax_amt + amount
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, '',
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
+                            open_po.order_quantity, open_po.measurement_unit, currency_rate, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
                             open_po.utgst_tax, total_sku_amt]
 
@@ -2414,7 +2425,7 @@ def print_purchase_order_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     po_number = order.po_number #'%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     po_reference = order.open_po.po_name
-    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    total_amt_in_words = str(supplier_currency) + ' '+ number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name
@@ -2911,6 +2922,17 @@ def get_closing_stock_report(request, user=''):
     temp_data = get_closing_stock_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_praod_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_praod_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 def download_invoice_file(request, user=''):
     receipt_type, http_data = '', ''

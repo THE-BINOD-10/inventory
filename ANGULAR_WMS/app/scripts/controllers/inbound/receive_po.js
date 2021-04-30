@@ -39,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.passed_serial_number = {};
     vm.firebase_temp_po = ''
     vm.quantity_focused = false;
+    vm.date = new Date();
     vm.months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {

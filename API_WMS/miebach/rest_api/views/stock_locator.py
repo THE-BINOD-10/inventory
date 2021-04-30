@@ -4050,6 +4050,9 @@ def insert_inventory_adjust(request, user=''):
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]
+        price = ''
+        if 'price' in request_data.keys():
+            price = request_data['price'][i]
         if reason in ['Pooling']:
             stock_increase = True
         else:
@@ -4059,7 +4062,7 @@ def insert_inventory_adjust(request, user=''):
         status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
                                                              batch_no=batch_no, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment', stock_increase=stock_increase,
-                                                manufactured_date=manufactured_date, expiry_date=expiry_date)
+                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price)
     #netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
@@ -4170,6 +4173,110 @@ def get_inventory_adjustment_doa_record(request, user=''):
                                         'data': data_dict}))
     return HttpResponse("No Data Found")
 
+@csrf_exempt
+def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, cus_filters={}):
+    from rest_api.views.common import get_last_three_months_consumption
+    headers1, filters, filter_params1 = get_search_params(request)
+    if cus_filters:
+        filters = copy.deepcopy(cus_filters)
+    lis = ['sku__user', 'sku__sku_code', 'sku_code', 'sku_desc', 'sku_category', 'user_id', 'user_id', 'user_id', 'user_id', 'user_id']
+    if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'plant_code' in filters and filters['plant_code']:
+        plant_code = filters['plant_code']
+        users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'plant_name' in filters and filters['plant_name']:
+        plant_name = filters['plant_name']
+        users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in filters and filters['zone_code']:
+        zone_code = filters['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_params = {'sku__user__in': user_ids}
+    if 'sku_code' in filters and filters['sku_code']:
+        search_params['sku__sku_code'] = filters['sku_code']
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    main_user = get_company_admin_user(user)
+    search_params['quantity__gt'] = 0
+    master_data = StockDetail.objects.filter(**search_params).exclude(sku_id__in=AssetMaster.objects.all()).\
+        exclude(sku_id__in=ServiceMaster.objects.all()).\
+        exclude(sku_id__in=OtherItemsMaster.objects.all()).\
+        exclude(sku_id__in=TestMaster.objects.all()).values('sku__user', 'sku__sku_code', 'sku__sku_brand',
+                                                            'sku__sku_category', 'sku__sku_desc',
+                                                            'sku__average_price').distinct().order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    master_data = master_data[start_index:stop_index]
+    res_plants = set()
+    sku_codes = []
+    for dat in master_data:
+        res_plants.add(dat['sku__user'])
+        sku_codes.append(dat['sku__sku_code'])
+    usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_user_ids = list(dept_users.values_list('id', flat=True))
+    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+                                            values('sku__user', 'sku__sku_code').distinct().\
+                annotate(total=Sum('quantity'))
+    stock_qtys = {}
+    for stock in stocks:
+        usr = User.objects.get(id=stock['sku__user'])
+        if usr.userprofile.warehouse_type == 'DEPT':
+            usr = get_admin(usr)
+        grp_key = (usr.id, stock['sku__sku_code'])
+        stock_qtys.setdefault(grp_key, 0)
+        stock_qtys[grp_key] += stock['total']
+    sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
+    consumption_qtys = {}
+    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
+    for cons in consumption_lt3:
+        uom_dict = sku_uoms.get(cons.sku.sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        usr = User.objects.get(id=cons.sku.user)
+        if usr.userprofile.warehouse_type == 'DEPT':
+            usr = get_admin(usr)
+        grp_key = (usr.id, cons.sku.sku_code)
+        consumption_qtys.setdefault(grp_key, {'qty': 0, 'value': 0})
+        consumption_qtys[grp_key]['qty'] += cons.quantity
+        consumption_qtys[grp_key]['value'] += (cons.quantity/sku_pcf) * cons.price
+    for data in master_data:
+        uom_dict = sku_uoms.get(data['sku__sku_code'], {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        user = User.objects.get(id=data['sku__user'])
+        grp_key = (data['sku__user'], data['sku__sku_code'])
+        cons_dict = consumption_qtys.get(grp_key, {})
+        cons_qtyb = round(cons_dict.get('qty', 0)/3, 5)
+        cons_qty = round(cons_qtyb/sku_pcf, 5)
+        stock_qtyb = stock_qtys.get(grp_key, 0)
+        stock_qty = round((stock_qtyb)/sku_pcf, 5)
+        stock_value = stock_qty * data['sku__average_price']
+        cons_value = round(cons_dict.get('value', 0), 5)
+        avg_per_day_cons = cons_qtyb/30
+        avg_per_day_cons_val = cons_value/30
+        days_of_cover_bqty = (stock_qtyb/avg_per_day_cons) if avg_per_day_cons else 0
+        days_of_cover_value = (stock_value/avg_per_day_cons_val) if avg_per_day_cons_val else 0
+        data_dict = OrderedDict(( ('DT_RowId', data['sku__user']), ('Plant Code', user.userprofile.stockone_code),
+                                  ('Plant Name', user.first_name),
+                                  ('SKU Code', data['sku__sku_code']), ('SKU Description', data['sku__sku_desc']),
+                                  ('SKU Brand', data['sku__sku_brand']), ('SKU Category', data['sku__sku_category']),
+                                  ('Base UOM', uom_dict.get('base_uom', '')),
+                                  ('Current Stock Base UOM', stock_qtyb), ('Current Stock Value', stock_value),
+                                  ('Average Monthly Consumption Base Qty', cons_qtyb),
+                                  ('Average Monthly Consumption Value', cons_value),
+                                  ('Days of Cover Base Qty', round(days_of_cover_bqty,5)),
+                                  ('Days of Cover Value', round(days_of_cover_value,5)),
+                                  ('DT_RowAttr', {'data-id': data['sku__user']}),
+                                ))
+        temp_data['aaData'].append(data_dict)
 
 @csrf_exempt
 @login_required

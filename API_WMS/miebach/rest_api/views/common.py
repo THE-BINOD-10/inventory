@@ -49,6 +49,7 @@ from miebach.settings import INTEGRATIONS_CFG_FILE
 from miebach.settings import base
 from miebach.celery import app
 import git
+from lockout import LockedOut
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -414,9 +415,18 @@ def wms_login(request):
     status_dict = {1: 'true', 0: 'false'}
 
     if username and password:
-        user = authenticate(username=username, password=password)
+        try:
+            user = auth.authenticate(username=username, password=password)
+        except LockedOut:
+            response_data['message'] = 'Account Locked'
+            return HttpResponse(json.dumps(response_data), content_type='application/json')
+        #user = authenticate(request, username=username, password=password)
 
         if user and user.is_active:
+            password_expired = check_password_expiry(user)
+            if password_expired:
+                response_data['message'] = 'Password Expired'
+                return HttpResponse(json.dumps(response_data), content_type='application/json')
             login(request, user)
             user_profile = UserProfile.objects.filter(user_id=user.id)
 
@@ -678,6 +688,7 @@ data_datatable = {  # masters
     'CreditNote': 'get_credit_note_data',
     'MaterialRequestOrders': 'get_material_request_orders',
     'PendingMaterialRequest' : 'get_pending_material_request_data',
+    'MaterialPlanning': 'get_material_planning_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -698,6 +709,7 @@ data_datatable = {  # masters
     'SerialNumberSKU': 'get_stock_summary_serials_excel',
     'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     'SkuClassification':'get_skuclassification',
+    'StockSummaryPlantSKU': 'get_stock_plant_sku_results',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -2919,7 +2931,6 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
-    sku_amt = {}
     return_status = 'Added Successfully'
     if wmscode:
         sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
@@ -2966,15 +2977,15 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
+    uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+    remaining_quantity = quantity * uom_dict['sku_conversion']
     data_dict['quantity'] = total_stock_quantity
-    data_dict['seen_quantity'] = quantity
+    data_dict['seen_quantity'] = remaining_quantity
     data_dict['status'] = 0
     data_dict['creation_date'] = now
     data_dict['updation_date'] = now
     with transaction.atomic('default'):
         stocks = StockDetail.objects.using('default').select_for_update().filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
-        uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
-        remaining_quantity = quantity * uom_dict['sku_conversion']
         if not stock_increase:
             stock_qty = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_qty = stock_qty if stock_qty else 0
@@ -3074,6 +3085,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             # else:
             #     stock_dict['unit_price'] = price
             batch_dict['buy_price'] = 0
+            if price != '':
+                batch_dict['buy_price'] = float(price)
             batch_dict['pcf'] = uom_dict['sku_conversion']
             batch_dict['pquantity'] = quantity
             batch_dict['puom'] = uom_dict['measurement_unit']
@@ -3084,8 +3097,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                     batch_dict['buy_price'] = sku[0].average_price
                 add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
-                if price:
-                    batch_dict['buy_price'] = price
+                #if price:
+                #    batch_dict['buy_price'] = price
                 if batch_dict.keys():
                     batch_obj = create_update_batch_data(batch_dict)
                     stock_dict["batch_detail_id"] = batch_obj.id
@@ -3112,10 +3125,13 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if not location:
                 location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone)
             stock_dict['location_id'] = location[0].id
+            sku_amt = {}
+            store_user = user
+            sku_amt[sku[0].sku_code] = {'qty': quantity, 'amount': quantity * batch_dict['buy_price'], 'exclude_po_loc': []}
+            main_user = get_company_admin_user(user)
             if user.userprofile.warehouse_type == 'DEPT':
-                sku_amt[sku[0].sku_code] = {'qty': quantity, 'amount': 0}
-                main_user = get_company_admin_user(user)
                 store_user = get_admin(user)
+            if sku_amt and reason == 'Pooling':
                 update_sku_avg_main(sku_amt, store_user, main_user)
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
@@ -6740,6 +6756,10 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         cur_user = request.GET.get('source', '')
         user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
+    plant = request.GET.get('plant', '')
+    consumption_dict = {'avg_qty': 0, 'base_qty': 0}
+    if plant:
+        consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
     dept_avail_qty = 0
@@ -6775,12 +6795,12 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
-                'is_contracted_supplier': is_contracted_supplier}))
+                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
-                                    'avg_price': avg_price}))
+                                    'avg_price': avg_price, 'consumption_dict': consumption_dict}))
 
 
 def sku_level_stock_data(request, user):
@@ -9111,8 +9131,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             #     order_quantity = float(order.quantity)
             # else:
             #     order_quantity = float(seller_order.quantity)
-            if 'st_po' in dir(order) :
-                order_quantity = order_quantity - order.picked_quantity
+            # if 'st_po' in dir(order) :
+            #     order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
                 #if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
@@ -9547,7 +9567,11 @@ def change_user_password(request, user=''):
             resp['data'] = 'New Password and Retype Password Should Be Same'
             return HttpResponse(json.dumps(resp))
         if old_password == new_password:
-            resp['data'] = 'Old Password and New Password Should Be Same'
+            resp['data'] = 'Old Password and New Password Should Not Be Same'
+            return HttpResponse(json.dumps(resp))
+        old_pass_match = validate_password_reuse(request.user, new_password)
+        if old_pass_match:
+            resp['data'] = 'Password entered is matching with old password'
             return HttpResponse(json.dumps(resp))
 
         resp['msg'] = 1
@@ -14199,6 +14223,57 @@ def check_consumption_configuration(users):
             status = False
     return status
 
+def check_block_pr_po_configuration():
+    status = False
+    users = User.objects.filter(username='mhl_admin')
+    for user in users:
+        if get_misc_value('block_pr_po_transactions', user.id) == 'true':
+            return True
+    return status
+
+def get_last_three_months_consumption(filters):
+    end_date = datetime.datetime.today().replace(day=1)
+    start_date = end_date - relativedelta(months=3)
+    start_date = get_utc_start_date(start_date)
+    end_date = get_utc_start_date(end_date)
+    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
+    return last_three_months
+
+def get_average_consumption_qty(user, sku_code):
+    ret_data = {'avg_qty': 0, 'base_qty': 0}
+    plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username], send_parent=True)
+    plant_dept_ids = list(plant_depts.values_list('id', flat=True))
+    filters = {'sku__user__in': plant_depts, 'sku__sku_code': sku_code}
+    last_three_months = get_last_three_months_consumption(filters)
+    last_three_months = last_three_months.aggregate(total=Sum('quantity'), month_count=Count(ExtractMonth('creation_date'), distinct=True))
+    base_qty = last_three_months['total'] if last_three_months['total'] else 0
+    if last_three_months['month_count']:
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
+        avg_qty = base_qty/3 #last_three_months['month_count']
+        ret_data['avg_qty'] = round(avg_qty/sku_pcf, 6)
+        ret_data['base_qty'] = base_qty
+    return ret_data
+
+
+def validatePRNextApproval(request, user, reqConfigName, approval_type, level, admin_user=None):
+    mailsList = []
+    company_id = get_company_id(user)
+    pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
+    if admin_user:
+        pacFiltersMap['user'] = admin_user
+    if approval_type:
+        pacFiltersMap['approval_type'] = approval_type
+    apprConfObj = PurchaseApprovalConfig.objects.filter(**pacFiltersMap)
+    if apprConfObj:
+        apprConfObjId = apprConfObj[0].id
+        if isinstance(request, User):
+            mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
+        else:
+            mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
+    return mailsList
+
+
 @login_required
 @get_admin_user
 def bulk_grn_files_upload(request, user=''):
@@ -14207,13 +14282,14 @@ def bulk_grn_files_upload(request, user=''):
         file_obj = request.FILES.get(i, '')
         if file_obj:
             grn_number = file_obj._name.split('.')[0]
-            print grn_number
-            datum = SellerPOSummary.objects.filter(grn_number='19-27001-ACCES00004').values('purchase_order__po_number', 'receipt_number').distinct()
+            datum = SellerPOSummary.objects.filter(grn_number=grn_number).values('purchase_order__po_number', 'receipt_number', 'purchase_order__id').distinct()
             if datum.exists():
                 datum = datum[0]
                 master_docs_obj = MasterDocs.objects.filter(master_type='GRN_PO_NUMBER', master_id=datum['purchase_order__po_number'], extra_flag=datum['receipt_number'])
                 if not master_docs_obj:
-                    print grn_number
+                    user_id = PurchaseOrder.objects.filter(id=datum['purchase_order__id']).values('open_po__sku__user')[0]['open_po__sku__user']
+                    user = User.objects.get(id=user_id)
+                    upload_master_file(request, user, datum['purchase_order__po_number'], 'GRN_PO_NUMBER', master_file=file_obj, extra_flag=datum['receipt_number'])
                 elif master_docs_obj.count() == 1:
                     master_docs_obj = master_docs_obj[0]
                     if os.path.exists(master_docs_obj.uploaded_file.path):
@@ -14223,3 +14299,86 @@ def bulk_grn_files_upload(request, user=''):
                     success_data.append(grn_number)
     print success_data
     return HttpResponse(json.dumps({'msg': 1, 'data': 'success'}))
+
+
+def check_password_expiry(user):
+    is_expired = False
+    if user.is_staff:
+        return is_expired
+    try:
+        user_passwords = user.user_passwords.filter().latest('id')
+        password_days = get_utc_start_date(datetime.datetime.now()) - get_utc_start_date(user_passwords.creation_date)
+        if password_days.days > 45:
+            is_expired = True
+    except:
+        is_expired = True
+    return is_expired
+
+def validate_password_reuse(user, password):
+    from django.contrib.auth.hashers import check_password
+    old_passwords = user.user_passwords.filter().order_by('-id')[:2]
+    match = False
+    for old_password in old_passwords:
+        match = check_password(password, old_password.password)
+        if match:
+            break
+    return match
+
+def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_type='', tally_report=0,automated_emails=False):
+    excel_headers = ''
+    if temp_data['aaData']:
+        excel_headers = temp_data['aaData'][0].keys()
+    if '' in headers:
+        headers = filter(lambda a: a != '', headers)
+    if not excel_headers:
+        excel_headers = headers
+    for i in set(excel_headers) - set(headers):
+        excel_headers.remove(i)
+    if tally_report ==1:
+        excel_headers = headers
+    excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
+    if excel_name:
+        file_name = "%s.%s_%s" % (user.username, excel_name.split('=')[-1], str(creation_date))
+    if not file_type:
+        file_type = 'xls'
+    if len(temp_data['aaData']) > 65535:
+        file_type = 'csv'
+    if automated_emails:
+        file_name = "{}{}".format(user.username,excel_name)
+    path = ('static/excel_files/%s.%s') % (file_name, file_type)
+    if not os.path.exists('static/excel_files/'):
+        os.makedirs('static/excel_files/')
+    path_to_file = '../' + path
+    if automated_emails:
+        path_to_file = path
+    if file_type == 'csv':
+        with open(path, 'w') as mycsvfile:
+            thedatawriter = csv.writer(mycsvfile, delimiter=',')
+            counter = 0
+            try:
+                thedatawriter.writerow(itemgetter(*excel_headers)(headers))
+            except:
+                thedatawriter.writerow(excel_headers)
+            for data in temp_data['aaData']:
+                temp_csv_list = []
+                for key, value in data.iteritems():
+                    if key in excel_headers:
+                        temp_csv_list.append(str(xcode(value)))
+                thedatawriter.writerow(temp_csv_list)
+                counter += 1
+    else:
+        try:
+            wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
+        except:
+            wb, ws = get_work_sheet('skus', excel_headers)
+        data_count = 0
+        data = temp_data['aaData']
+        for i in range(0, len(data)):
+            index = i + 1
+            try:
+                for ind, header_name in enumerate(excel_headers):
+                    ws.write(index, excel_headers.index(header_name), data[i].get(header_name, ''))
+            except:
+                pass
+        wb.save(path)
+    return path_to_file

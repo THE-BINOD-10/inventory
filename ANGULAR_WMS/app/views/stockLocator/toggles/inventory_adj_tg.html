@@ -172,6 +172,7 @@
                       <th>UOM</th>
                       <th>Available Stock</th>
                       <th>Final Stock</th>
+                      <th ng-if="showCase.model_data.reason=='Pooling'">Price</th>
                       <th class="plus"></th>
                     </tr>
                   </thead>
@@ -194,7 +195,7 @@
                         <input type="text" class="form-control" ng-model="data.expiry_date" name="expiry_date" ng-if="data.mfg_readonly" readonly>
                       </td>
                       <td>
-                        <input type="number" class="form-control" ng-model="data.quantity" name="quantity" autocomplete="off" ng-change="[showCase.check_quantity(data), showCase.update_final_stock(data)]">
+                        <input type="text" class="form-control decimal" ng-model="data.quantity" name="quantity" autocomplete="off" ng-change="[showCase.check_quantity(data), showCase.update_final_stock(data)]">
                       </td>
                       <td>
                         <input type="text" class="form-control" ng-model="data.uom" name="uom" readonly>
@@ -204,6 +205,9 @@
                       </td>
                       <td>
                         <input type="text" class="form-control" ng-model="data.final_stock" name="final_stock" ng-blur="showCase.update_final_stock(data, 'final_stock')">
+                      </td>
+                      <td ng-if="showCase.model_data.reason=='Pooling'">
+                        <input type="text" class="form-control decimal" ng-model="data.price" ng-init="data.price=0" name="price" required>
                       </td>
                       <td>
                         <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="showCase.model_data.data.splice($index, 1);" ng-if="!$first"></i>

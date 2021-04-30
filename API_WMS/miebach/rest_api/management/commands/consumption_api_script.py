@@ -88,12 +88,18 @@ def update_consumption(consumption_objss, user, company):
                         if diff and data_dict['n_time_process']:
                             n_time_process_val = diff/data_dict['n_time_process']
                         data_dict['n_time_process_val'] = n_time_process_val
+                        org_objs = None
+                        user_groups = None
+                        department = ''
                         # instrument_objs = OrgInstrumentMapping.objects.filter(attune_id=orgid, investigation_id=investigation_id)
                         # if instrument_objs:
                         #     consumption_filter['machine'] = instrument_objs[0].machine
                         #     data_dict['machine'] = instrument_objs[0].machine
                         #     machine_name = instrument_objs[0].instrument_name
-                        org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code, instrument_name=machine_name)
+                        if machine_name:
+                            org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code, instrument_name=machine_name)
+                        else:
+                            org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
                         consumption_user = user
                         if org_objs:
                             org_dept = org_objs[0].dept_name
@@ -107,28 +113,30 @@ def update_consumption(consumption_objss, user, company):
                                 if user_groups:
                                     consumption_user = User.objects.get(id = user_groups[0].user.id)
                                     data_dict['user'] = consumption_user
-                        consumption_obj = Consumption.objects.filter(user=consumption_user.id, **consumption_filter)
-                        if consumption_obj.exists():
+                        filter_date = datetime.date.today().strftime('%Y-%m-%d')
+                        status = ''
+                        consumption_obj_ = Consumption.objects.filter(user=consumption_user.id, creation_date__gt=filter_date, **consumption_filter)
+                        if consumption_obj_.exists():
                             status = 'Success'
-                            if consumption_obj[0].status == 1 and department and user_groups:
-                                status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=data_dict['total_test'])
+                            if consumption_obj_[0].status == 1 and department and user_groups:
+                                status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=data_dict['total_test'])
                             else:
-                                exist_total_test = consumption_obj[0].total_test
+                                exist_total_test = consumption_obj_[0].total_test
                                 if exist_total_test < data_dict['total_test']:
                                     diff_test = data_dict['total_test'] - exist_total_test
-                                    status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=diff_test)
+                                    status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=diff_test)
                                     if status == 'Success':
                                         consumption_obj.update(**data_dict)
                         else:
-                            consumption_obj = Consumption.objects.create(**data_dict)
+                            consumption_obj_ = Consumption.objects.create(**data_dict)
                             if department and user_groups:
-                                status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
+                                status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['total_test'])
                         if status == 'Success':
                             log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
                     else:
                        log.info("Empty test code for %s,plant %s and data_dict was %s " % (str(consumption_user.username), str(user.username),str(data_dict))) 
                 except Exception as e:
-                    log.info("Consumption creation/updation failed for %s,plant %s and data_dict was %s and exception %s" % (str(consumption_user.username), str(user.username),str(data_dict), str(e)))
+                    log.info("Consumption creation/updation failed for %s,plant %s,consumption object %s and data_dict was %s and exception %s" % (str(consumption_user.username), str(user.username), str(consumption_dict), str(data_dict), str(e)))
                     log_err.info("Consumption creation/updation failed for %s,plant %s and data_dict was %s and exception %s" % (str(consumption_user.username), str(user.username),str(data_dict), str(e)))
 
 class Command(BaseCommand):

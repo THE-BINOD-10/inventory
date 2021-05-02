@@ -11444,16 +11444,21 @@ def get_ageing_data(search_params, user, sub_user):
         sku_codes.append(model_dat.sku.sku_code)
     grn_model_data={}
     po_sps = list(SellerPOSummary.objects.filter(purchase_order__open_po__sku__sku_code__in=sku_codes, grn_number__in=grn_numbers).values_list('id', flat=True))
-    st_sps = list(SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__sku_code__in=sku_codes, grn_number__in=grn_numbers).values_list('id', flat=True))
-    po_sps.extend(st_sps)
+    st_sps = dict(SellerPOSummary.objects.select_related('purchase_order__stpurchaseorder__stocktransfer').\
+                                            filter(purchase_order__stpurchaseorder__stocktransfer__isnull=False,grn_number__in=grn_numbers).\
+                    values_list('id', 'purchase_order__stpurchaseorder__stocktransfer__st_type'))
+    po_sps.extend(st_sps.keys())
     seller_summary_objs= SellerPOSummary.objects.filter(id__in=po_sps).\
-                        values("grn_number", "creation_date", "purchase_order__open_po__sku__sku_code", "purchase_order__stpurchaseorder__open_st__sku__sku_code")
+                        values("grn_number", "creation_date", "purchase_order__open_po__sku__sku_code", "purchase_order__stpurchaseorder__open_st__sku__sku_code", "id")
     for grn_dat in seller_summary_objs:
         sku_code = grn_dat['purchase_order__open_po__sku__sku_code']
+        grn_type = 'GRN'
         if not sku_code:
             sku_code = grn_dat['purchase_order__stpurchaseorder__open_st__sku__sku_code']
+            #grn_type = grn_dat['purchase_order__stpurchaseorder__stocktransfer__st_type']
+            grn_type = st_sps.get(grn_dat['id'], '')
         grn_sku_key = (grn_dat["grn_number"], sku_code)
-        grn_model_data.setdefault(grn_sku_key, {"creation_date": grn_dat["creation_date"]})
+        grn_model_data.setdefault(grn_sku_key, {"creation_date": grn_dat["creation_date"], "grn_type": grn_type})
 
     skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     for data in master_data:
@@ -11523,10 +11528,15 @@ def get_ageing_data(search_params, user, sub_user):
         else:
             expiry_range = "  > 90"
         grn_number, grn_date= "", ""
+        remarks = "Stock Adjustment"
+        if data.receipt_type.lower() in ["closing stock", "opening stock"]:
+            remarks = "Opening Stock"
         if grn_sku_key in grn_model_data:
             grn_number= data.grn_number
             temp_grn_date= get_local_date(user, grn_model_data[grn_sku_key]["creation_date"]).split(' ')
             grn_date= ' '.join(temp_grn_date[0:3])
+            remarks = grn_model_data[grn_sku_key]["grn_type"]
+        stock_creation_date = get_local_date(user, data.creation_date)
         row_data = OrderedDict((
                                 ('Material Code', data.sku.sku_code),
                                 ('WMS Code', data.sku.wms_code),
@@ -11537,7 +11547,7 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Batch ID', batch_id), ('mfg_date', mfg_date),
                                 ('MRP', mrp), ('Weight', weight),
                                 ('Price', price), ('Tax Percent', tax),
-                                ('Manufactured Date', manufactured_date), 
+                                ('Manufactured Date', manufactured_date),
                                 ('Expiry Date', expiry_date),
                                 ('Zone', zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
@@ -11548,13 +11558,15 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('dept_type', dept_type),
                                 ('Purchase UOM', uom_dict["measurement_unit"]),
                                 ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
-                                ('Base UOM', uom_dict["base_uom"]), 
+                                ('Base UOM', uom_dict["base_uom"]),
                                 ('Base Quantity', get_decimal_limit(user.id, data.quantity)),
                                 ('Expiry Range', expiry_range),
                                 ('GRN Number', grn_number),
                                 ('GRN Date', grn_date),
                                 ('days_to_expired', days_to_expired),
-                                ('Receipt Type', data.receipt_type)))
+                                ('Receipt Type', data.receipt_type),
+                                ('Remarks', remarks),
+                                ('Creation Date', stock_creation_date)))
         temp_data['aaData'].append(row_data)
     return temp_data
 

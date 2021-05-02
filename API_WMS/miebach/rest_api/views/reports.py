@@ -2282,7 +2282,7 @@ def print_purchase_order_form(request, user=''):
             user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
-            remarks = pending_po_data.remarks
+            #remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
@@ -2318,6 +2318,7 @@ def print_purchase_order_form(request, user=''):
         table_headers.insert(table_headers.index('Total'), 'APMC (%)')
     for order in purchase_orders:
         open_po = order.open_po
+        remarks = order.remarks
         total_qty += open_po.order_quantity
         if order.currency_rate > 1:
             currency_rate = round(open_po.price / order.currency_rate, 2)

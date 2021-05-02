@@ -1673,10 +1673,10 @@ def generated_pr_data(request, user=''):
     validateFlag = 0
     uploaded_file_dict = {}
     if len(record) > 0:
-        if record[0].remarks:
-            pr_remarks = record[0].remarks
-        else:
+        if record[0].pending_prs.filter():
             pr_remarks = record[0].pending_prs.filter()[0].remarks
+        else:
+            pr_remarks = record[0].remarks
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
@@ -2121,6 +2121,7 @@ def print_pending_po_form(request, user=''):
     is_actual_pr = request.GET.get('is_actual_pr', '')
     warehouse = request.GET.get('warehouse', '')
     currency_rate = request.GET.get('currency_rate', 1)
+    remarks = request.GET.get('remarks', '')
     if not currency_rate:
         currency_rate = 1
     supplier_payment_terms = request.GET.get('supplier_payment_terms', '')
@@ -2233,7 +2234,6 @@ def print_pending_po_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
     po_number = getattr(order, full_purchase_number)
-    remarks = order.remarks
     total_amt_in_words = str(supplier_currency) + ' ' +number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -9733,7 +9733,7 @@ def confirm_add_po(request, sales_data='', user=''):
     po_id = ''
     prQs = ''
     check_prefix = ''
-    po_remarks = ''
+    po_remarks = request.POST.get('po_remarks', '')
     try:
         if is_purchase_request == 'true':
             # pr_number = int(request.POST.get('pr_number'))
@@ -9746,7 +9746,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 po_creation_date = prObj.creation_date
                 po_id = prObj.po_number
                 full_po_number = prObj.full_po_number
-                po_remarks = prObj.remarks
+                #po_remarks = prObj.remarks
                 prefix = prObj.prefix
                 delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
                 product_category = prObj.product_category
@@ -9872,6 +9872,7 @@ def confirm_add_po(request, sales_data='', user=''):
             data['order_id'] = int(po_id)
             data['prefix'] = prefix
             data['po_number'] = full_po_number
+            data['remarks'] = po_remarks
             if purchase_order.supplier.currency_code:
                 data['currency'] = purchase_order.supplier.currency_code
                 data['currency_internal_id'] = purchase_order.supplier.netsuite_currency_internal_id

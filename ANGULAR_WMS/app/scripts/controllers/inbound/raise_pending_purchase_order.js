@@ -191,6 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "uploaded_file_dict": data.data.uploaded_file_dict,
             "pr_uploaded_file_dict": data.data.pr_uploaded_file_dict,
             "pa_uploaded_file_dict": data.data.pa_uploaded_file_dict,
+            "remarks": data.data.approval_remarks,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
@@ -702,7 +703,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.print_pending_po = function(form, validation_type) {
       if (form.$valid) {
-        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select, {withCredential: true})
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.remarks, {withCredential: true})
         .success(function(data, status, headers, config) {
           vm.service.print_data(data, vm.model_data.purchase_id);
         });

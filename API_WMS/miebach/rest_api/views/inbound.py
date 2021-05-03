@@ -16613,7 +16613,12 @@ def get_pending_material_request_data(start_index, stop_index, temp_data, search
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    stock_transfer_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='mr_doa').\
+    if user.username == 'mhl_admin':
+        stock_transfer_objs = MastersDOA.objects.filter(doa_status='pending', model_name='mr_doa').\
+                                values('requested_user__username', 'reference_id', 'wh_user__username').\
+                                distinct().annotate(date_only=Cast('creation_date', DateField()))
+    else:
+        stock_transfer_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='mr_doa').\
                                         values('requested_user__username', 'reference_id', 'wh_user__username').\
                                         distinct().annotate(date_only=Cast('creation_date', DateField()))
     order_data = 'date_only'

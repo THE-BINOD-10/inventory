@@ -162,7 +162,7 @@ class Command(BaseCommand):
             if not integrations:
                 company = User.objects.get(id=subsidiary.userprofile.company_id)
                 integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
-            device_dict = {'date':today, 'org_id':org_id}
+            #device_dict = {'date':today, 'org_id':org_id}
             # get_devices(device_dict, company)
             for integrate in integrations:
                 obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)

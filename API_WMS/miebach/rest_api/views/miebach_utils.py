@@ -1864,7 +1864,7 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'total_test', 'Warehouse Username', 'Test Date'],
+    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Warehouse Username', 'Status','Test Date'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -1970,7 +1970,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'sku_wise_consumption_report': CONSUMPTION_REPORT_DICT,
                      'closing_stock_report': CLOSING_STOCK_REPORT_DICT,
                      'supplier_wise_po_report': SUPPLIER_WISE_PO_REPORT,
-                     'get_consumption_data': CONSUMPTION_DATA_DICT
+                     'get_consumption_data': CONSUMPTION_DATA_DICT,
                      'PRAOD_report': PRAOD_REPORT_DICT,
                      }
 
@@ -17186,7 +17186,7 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'Department', 'user__username', 'run_date']
+    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'test__sku_code', 'user__username', 'status','run_date']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17269,12 +17269,13 @@ def get_consumption_data_(search_params, user, sub_user):
 
         if result.test:
             test_code = result.test.sku_code
-        if result.test.test_name:
             test_name = str(result.test.test_name)
-        if result.machine.machine_name:
+        if result.machine:
             machine_name = str(result.machine.machine_name)
-        if result.machine.machine_code:
             machine_code = str(result.machine.machine_code)
+        status = 'Pending'
+        if not result.status:
+            status = 'Consumption Booked'
         
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result.creation_date)),
@@ -17285,7 +17286,8 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Test Name', test_name),
             ('Machine Code', machine_code),
             ('Machine Name', machine_name),
-            ('Test Date', get_local_date(user, result.run_date))
+            ('Status', status),
+            ('Test Date', get_local_date(user, result.run_date)),
             ('Total Test', result.total_test)))
         temp_data['aaData'].append(ord_dict)
 

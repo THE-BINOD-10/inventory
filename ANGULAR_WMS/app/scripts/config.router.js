@@ -3291,7 +3291,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Consumption Data',
+            title: 'Test Data',
           }
         })
         .state('app.reports.ConsumptionReport', {

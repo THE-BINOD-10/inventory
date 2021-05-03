@@ -1851,7 +1851,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant Code', 'Plant Name', 'Department', 'Zone Code', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks'],
+    'dt_headers': ['Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -1864,7 +1864,7 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant Name', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'total_test', 'Department', 'Warehouse Username'],
+    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'total_test', 'Warehouse Username', 'Test Date'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17186,7 +17186,7 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'Department', 'user__username']
+    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'Department', 'user__username', 'run_date']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17285,6 +17285,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Test Name', test_name),
             ('Machine Code', machine_code),
             ('Machine Name', machine_name),
+            ('Test Date', get_local_date(user, result.run_date))
             ('Total Test', result.total_test)))
         temp_data['aaData'].append(ord_dict)
 

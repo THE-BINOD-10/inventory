@@ -4206,6 +4206,7 @@ class Consumption(models.Model):
     consumption_type = models.CharField(max_length=32, default='auto')
     remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
+    run_date = models.DateTimeField(auto_now_add=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -39,6 +39,7 @@ def update_consumption(consumption_objss, user, company):
             for key in consumption_lis:
                 count += 1
                 try:
+                    consumption_user = user
                     department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
                     consumption_dict = consumption_objss[key]
                     data_dict = {'user':user}
@@ -63,11 +64,13 @@ def update_consumption(consumption_objss, user, company):
                             data_dict['test'] = test_obj[0]
                         consumption_filter = {'test_id': str(test_obj[0].id)}
                         machine_code = consumption_dict.get('DEVICEID', '')
+                        machine_name = consumption_dict.get('DEVICEName', '')
                         if machine_code:
                             machine_obj = MachineMaster.objects.filter(user=company.id, machine_code=str(machine_code))
                             consumption_filter['machine__machine_code'] = str(machine_code)
-                            machine_name = str(machine_code)
+                            machine_name = str(machine_obj.machine_name)
                             if machine_obj.exists():
+                                machine_name = str(machine_obj[0].machine_name)
                                 data_dict['machine'] = machine_obj[0]
                             else:
                                 machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user, 'machine_name': machine_name})
@@ -128,6 +131,8 @@ def update_consumption(consumption_objss, user, company):
                                     if status == 'Success':
                                         consumption_obj.update(**data_dict)
                         else:
+                            run_date = (datetime.date.today() - datetime.timedelta(days=1))
+                            data_dict['run_date'] = run_date
                             consumption_obj_ = Consumption.objects.create(**data_dict)
                             if department and user_groups:
                                 status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['total_test'])
@@ -164,7 +169,7 @@ class Command(BaseCommand):
                 #today = datetime.date.today().strftime('%Y%m%d')
                 # for i in range(1,15):
                 servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
-                data = {'fromdate':today, 'todate':today, 'orgid':org_id}
+                data = {'FromDate':today, 'ToDate':today, 'OrgId':org_id}
                 for server in servers:
                     consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
                     update_consumption(consumption_obj, user, company)

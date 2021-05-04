@@ -202,6 +202,8 @@ PURCHASE_ORDER_REPORT_STATUS = ['Yet To Receive', 'Partially Received', 'Receive
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
+CONSUMPTION_TYPE = ['Auto', 'ClosingStock', 'Manul']
+
 RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '',
                'damaged_quantity': 0}
 

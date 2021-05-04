@@ -156,6 +156,10 @@ def get_report_data(request, user=''):
         if 'zone_code' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'zone_code' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ZONE_CODES
+        if 'consumption_type' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'consumption_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = CONSUMPTION_TYPE
 
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',

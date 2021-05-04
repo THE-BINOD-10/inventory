@@ -13972,10 +13972,20 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
                          (str(consumption.id), str(consumption.test.test_code)))
-                return
+                return "Stock not found"
             for key, value in bom_dict.items():
+                consumption_number = ''
+                consumption_id = 0
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
+                if inc_status:
+                    log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
+                         (str(consumption.id), str(consumption.test.test_code)))
+                    continue
+
                 consumption_data = ConsumptionData.objects.create(
+                    order_id=consumption_id,
+                    consumption_number=consumption_number,
                     consumption_id=consumption.id,
                     sku_id=sku.id,
                     quantity=value['consumption_qty'],

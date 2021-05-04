@@ -1673,10 +1673,10 @@ def generated_pr_data(request, user=''):
     validateFlag = 0
     uploaded_file_dict = {}
     if len(record) > 0:
-        if record[0].pending_prs.filter():
-            pr_remarks = record[0].pending_prs.filter()[0].remarks
-        else:
+        if record[0].remarks:
             pr_remarks = record[0].remarks
+        else:
+            pr_remarks = record[0].pending_prs.filter()[0].remarks
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')

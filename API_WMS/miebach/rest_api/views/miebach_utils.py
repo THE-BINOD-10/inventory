@@ -11536,7 +11536,7 @@ def get_ageing_data(search_params, user, sub_user):
             temp_grn_date= get_local_date(user, grn_model_data[grn_sku_key]["creation_date"]).split(' ')
             grn_date= ' '.join(temp_grn_date[0:3])
             remarks = grn_model_data[grn_sku_key]["grn_type"]
-        stock_creation_date = get_local_date(user, data.creation_date)
+        stock_creation_date = ' '.join(get_local_date(user, data.creation_date).split(' ')[0:3])
         row_data = OrderedDict((
                                 ('Material Code', data.sku.sku_code),
                                 ('WMS Code', data.sku.wms_code),

@@ -10854,6 +10854,8 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
         store_code = userprofile.stockone_code
         if not dept_code:
             dept_code = '0000'
+        if not store_code:
+            store_code = 'MHL'
         if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
             admin_user = get_admin(user)
             store_code = admin_user.userprofile.stockone_code
@@ -13989,6 +13991,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     consumption_id=consumption.id,
                     sku_id=sku.id,
                     quantity=value['consumption_qty'],
+                    consumption_type = 2
                 )
                 update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
                                     consumption_data.id, transact_type='consumption',

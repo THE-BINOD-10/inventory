@@ -4216,7 +4216,7 @@ class Consumption(models.Model):
 
 class ConsumptionData(models.Model):
     id = BigAutoField(primary_key=True)
-    order_id = models.PositiveIntegerField(db_index=True)
+    order_id = models.PositiveIntegerField(db_index=True, default=0)
     consumption_number = models.CharField(max_length=64, default='')
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')

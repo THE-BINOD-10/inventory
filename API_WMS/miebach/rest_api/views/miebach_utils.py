@@ -1852,9 +1852,10 @@ CONSUMPTION_REPORT_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
-        {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'}
+        {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'},
+        {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
     ],
-    'dt_headers': ['Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
+    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -1867,7 +1868,7 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Warehouse Username', 'Status','Test Date'],
+    'dt_headers': [,'Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Warehouse Username', 'Status','Test Date', 'Consumption ID'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17048,7 +17049,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+    lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
             'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks', 'consumption_type']
 
@@ -17096,6 +17097,14 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     if 'zone_code' in search_params:
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
+    if 'consumption_type' in search_params:
+        search_parameters['consumption_type'] = 0
+        if search_params['consumption_type'] == 'Auto':
+            search_parameters['consumption_type'] = 2
+        if search_params['consumption_type'] == 'ClosingStock':
+            search_parameters['consumption_type'] = 1
+    if 'order_id' in search_params:
+        search_parameters['consumption_number'] = search_params['order_id']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['sku__user__in'] = user_ids
     start_index = search_params.get('start', 0)
@@ -17104,7 +17113,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type']
+                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type', 'consumption_number']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).order_by(order_data)
 
@@ -17171,6 +17180,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('Quantity', quantity),
             ('Purchase Uom Quantity', pqty),
             ('Stock Value', stock_value),
+            ('Consumption ID', result['consumption_number']),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),
@@ -17195,7 +17205,7 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'test__sku_code', 'user__username', 'status','run_date']
+    lis = ['updation_date','creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'test__sku_code', 'user__username', 'status','run_date']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17263,6 +17273,10 @@ def get_consumption_data_(search_params, user, sub_user):
         results = model_data
     count = 0
     for result in results.iterator():
+        order_id = ''
+        consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
+        if consumption_data:
+            order_id = consumption_data[0].consumption_number
         test_code, machine_code, machine_name, test_name = [''] * 4
         user_obj = result.user
         department = ''
@@ -17296,6 +17310,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Machine Code', machine_code),
             ('Machine Name', machine_name),
             ('Status', status),
+            ('Consumption ID', order_id),
             ('Test Date', get_local_date(user, result.run_date)),
             ('Total Test', result.total_test)))
         temp_data['aaData'].append(ord_dict)

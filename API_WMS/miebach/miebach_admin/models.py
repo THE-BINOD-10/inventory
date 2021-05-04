@@ -4224,6 +4224,7 @@ class ConsumptionData(models.Model):
     stock_mapping = models.ManyToManyField(StockMapping)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    consumption_type = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

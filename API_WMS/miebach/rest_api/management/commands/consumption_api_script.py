@@ -68,7 +68,6 @@ def update_consumption(consumption_objss, user, company):
                         if machine_code:
                             machine_obj = MachineMaster.objects.filter(user=company.id, machine_code=str(machine_code))
                             consumption_filter['machine__machine_code'] = str(machine_code)
-                            machine_name = str(machine_obj.machine_name)
                             if machine_obj.exists():
                                 machine_name = str(machine_obj[0].machine_name)
                                 data_dict['machine'] = machine_obj[0]
@@ -154,7 +153,7 @@ class Command(BaseCommand):
         for user in users:
             org_id = user.userprofile.attune_id
             today = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y%m%d')
-            #today = 20210312
+            #today = 20210502
             subsidiary_id = user.userprofile.company_id
             subsidiary = User.objects.get(id=subsidiary_id)
             company = subsidiary

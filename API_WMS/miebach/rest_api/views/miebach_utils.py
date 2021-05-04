@@ -1850,8 +1850,9 @@ CONSUMPTION_REPORT_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'}
     ],
-    'dt_headers': ['Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks'],
+    'dt_headers': ['Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -17047,7 +17048,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     search_parameters = {}
     lis = ['creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
             'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
-            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks']
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks', 'consumption_type']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17101,7 +17102,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
-                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks']
+                    'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).order_by(order_data)
 
@@ -17126,6 +17127,11 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone_code = user_obj.userprofile.zone
+        consumption_type = ''
+        if result['consumption_type'] == 2:
+            consumption_type = 'Auto Consumption'
+        if result['consumption_type'] == 1:
+            consumption_type = 'Closing stock'
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             department = user_obj.first_name
@@ -17167,6 +17173,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),
             ('Expiry Date', exp_date),
+            ('Type', consumption_type),
             ('Remarks', result['remarks'])))
         temp_data['aaData'].append(ord_dict)
 

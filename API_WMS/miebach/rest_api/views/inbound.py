@@ -1059,8 +1059,10 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     if supplier_status:
         request.user = User.objects.get(id=supplier.user)
         # user.id = supplier.user
-        filters['search_9'] = supplier.supplier_id
-        users = [supplier.user]
+        filters['search_10'] = supplier.supplier_id
+        user_ids = list(SupplierMaster.objects.filter(supplier_id=supplier.supplier_id).values_list('user',flat=True).distinct())
+        users = User.objects.filter(id__in=user_ids)
+        #users = [supplier.user]
     # if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
     #     warehouses = get_sister_warehouse(user)
     #     wh_details = dict(warehouses.values_list('user_id','user__username'))
@@ -1075,6 +1077,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
         if result['open_po__sku__user']:
+            wh_user = result['open_po__sku__user']
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user=result['open_po__sku__user'], prefix=result['prefix'], po_number=result['po_number'])
             if supplier.exists():
                 supplier = supplier[0]
@@ -1088,10 +1091,17 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
                                                 rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'], prefix=result['prefix'])[0]
             order_type = 'Returnable Work Order'
+            wh_user = result['rwpurchase__rwo__vendor__user']
         else:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
                                 stpurchaseorder__open_st__sku__user=result['stpurchaseorder__open_st__sku__user'], prefix=result['prefix'])[0]
             order_type = 'Stock Transfer'
+            wh_user = result['stpurchaseorder__open_st__sku__user']
+        storeObj = User.objects.filter(id=wh_user)
+        if storeObj:
+            store = storeObj[0].first_name
+        else:
+            store = ''
         order_data = get_purchase_order_data(supplier)
         po_reference = supplier.po_number
         _date = get_local_date(user, supplier.creation_date, True)
@@ -1183,7 +1193,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Store', warehouse.first_name),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
-                                      ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
+                                      ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),('Store', store),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
                                       ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to), ('service_doa', services_doa)
                                       )))

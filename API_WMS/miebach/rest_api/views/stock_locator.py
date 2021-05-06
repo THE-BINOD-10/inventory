@@ -2703,13 +2703,13 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
-           'sku__user', 'sku__user', 'sku__user', 'batch_detail__batch_no',
+           'sku__user', 'sku__user', 'sku__user', 'sku__user', 'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent', 'sku__average_price',
            'batch_detail__manufactured_date', 'batch_detail__expiry_date',
            'location__zone__zone', 'location__location', 'sku__sku_code',
            'quantity', 'quantity', 'quantity', 'quantity', 'quantity', 'receipt_type', 'creation_date', 'pallet_detail__pallet_code']
     filt_lis = copy.deepcopy(lis)
-    filt_lis[5:8] = ['plant_code', 'plant_name', 'dept_type']
+    filt_lis[5:9] = ['plant_code', 'plant_name', 'zone_code', 'dept_type']
     sub_zone_perm = get_permission(user, 'add_subzonemapping')
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
@@ -2749,6 +2749,10 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
             users = users.filter(userprofile__stockone_code__in=dept_mapping.keys())
         else:
             users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code__icontains' in search_params.keys():
+        zone_code = search_params['zone_code__icontains']
+        del search_params['zone_code__icontains']
+        users = users.filter(userprofile__zone=zone_code)
 
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
@@ -2825,12 +2829,14 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
+        plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
         dept_type = ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
             plant_name = admin_user.first_name
+            plant_zone = admin_user.userprofile.zone
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         row_data = OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
@@ -2840,6 +2846,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('SKU Category', data.sku.sku_category),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Zone Code', plant_zone),
                                 ('dept_type', dept_type),
                                 ('Batch Number', batch_no), ('exp_date', exp_date),
                                 ('Batch ID', batch_id), ('mfg_date', mfg_date),

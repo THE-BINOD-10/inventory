@@ -9,7 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    
+
+
     vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': '',
                   'search9': '', 'search10': '', 'search11': '', 'search12': '', 'search13': '', 'search14': '', 'search15': '', 'search16': '', 'search17': '',
                   'search18': '', 'search19': '', 'search20': '', 'search21': '', 'search22': '', 'search23': '', 'search24': '', 'search25': '', 'search26': ''}
@@ -40,6 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
         DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
         DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
+        DTColumnBuilder.newColumn('Zone Code').withTitle('Zone Code'),
         DTColumnBuilder.newColumn('dept_type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'),
         DTColumnBuilder.newColumn('MRP').withTitle('MRP'),

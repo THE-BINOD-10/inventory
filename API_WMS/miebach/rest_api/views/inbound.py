@@ -1783,14 +1783,16 @@ def generated_pr_data(request, user=''):
     supplier_id = ''
     supplier_name = ''
     supplier_payment_desc = ''
+    supplier_currency = ''
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
+        supplier_currency = record[0].supplier.currency_code
         if record[0].supplier_payment:
             supplier_payment_desc = "%s:%s" % (record[0].supplier_payment.payment_code, record[0].supplier_payment.payment_description)
 
     return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
-                                    'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date,
+                                    'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date, 'supplier_currency': supplier_currency,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,
@@ -2118,6 +2120,12 @@ def print_pending_po_form(request, user=''):
     purchase_id = request.GET.get('purchase_id', '')
     is_actual_pr = request.GET.get('is_actual_pr', '')
     warehouse = request.GET.get('warehouse', '')
+    currency_rate = request.GET.get('currency_rate', 1)
+    if not currency_rate:
+        currency_rate = 1
+    supplier_payment_terms = request.GET.get('supplier_payment_terms', '')
+    ship_to = request.GET.get('ship_to', '')
+    supplier_currency = 'INR'
     purchase_number = int(purchase_id)
     filtersMap = {}
     if warehouse:
@@ -2151,15 +2159,18 @@ def print_pending_po_form(request, user=''):
     values_list = ['quantity', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
         'sku__sku_code', 'sku__sku_desc', 'measurement_unit']
     for order in lineItems.values(*values_list):
-        # open_po = order.open_po
+        if currency_rate > 1:
+            current_price = round((float(order['price']) / float(currency_rate)), 2)
+        else:
+            current_price = order['price']
         total_qty += order['quantity']
-        amount = order['quantity'] * order['price']
+        amount = order['quantity'] * current_price
         tax = order['cgst_tax'] + order['sgst_tax'] + order['igst_tax'] + order['utgst_tax']
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (tax) * (amount / 100)
         total_sku_amt = total_tax_amt + amount
         po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'],'',
-                        order['quantity'], order['measurement_unit'], order['price'], amount,
+                        order['quantity'], order['measurement_unit'], current_price, amount,
                         order['sgst_tax'], order['cgst_tax'], order['igst_tax'],
                         order['utgst_tax'], total_sku_amt]
 
@@ -2170,13 +2181,13 @@ def print_pending_po_form(request, user=''):
         title = 'Purchase Order (DRAFT)'
         order_id = order.po_number
         address = order.supplier.address
+
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         name = order.supplier.name
+        supplier_currency = order.supplier.currency_code
         code = order.supplier.supplier_id
         gstin_no = order.supplier.tin_number
-        address = order.supplier.address
-        address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         supplier_email = order.supplier.email_id
         gstin_no = order.supplier.tin_number
@@ -2197,21 +2208,33 @@ def print_pending_po_form(request, user=''):
         name = ''
         supplier_email = ''
         gstin_no = ''
+    user = order.wh_user
+    ship_to_address = ''
     if order.ship_to:
-        ship_to_address = order.ship_to
-        company_address = user.userprofile.address
+        if get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < order.creation_date:
+            ship_to_address = order.ship_to
+        if user.userprofile.wh_address:
+            company_address = user.userprofile.address
+        else:
+            company_address = user.userprofile.address
     else:
         ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+    if not ship_to_address:
+        try:
+            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', address_name=ship_to)
+            if wh_ship_to.exists():
+                wh_ship_to = wh_ship_to[0]
+                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+        except Exception as e:
+            pass
     ship_to_address = '\n'.join(ship_to_address.split(','))
     terms_condition = ''
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
-    # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    # po_number = order.full_po_number
     po_number = getattr(order, full_purchase_number)
     remarks = order.remarks
-    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    total_amt_in_words = str(supplier_currency) + ' ' +number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name
@@ -2221,7 +2244,25 @@ def print_pending_po_form(request, user=''):
     tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
-
+    company_details = {}
+    company_logo=""
+    if profile.company.logo:
+        try:
+            _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+            _logo_url =  urllib.url2pathname(_logo_url)
+            with open(_logo_url, "rb") as image_file:
+                company_logo = base64.b64encode(image_file.read())
+        except Exception as e:
+            company_logo = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
+    if profile.company:
+        company_details['company_address'] = ''
+        if profile.company.address:
+            company_details['company_address'] = profile.company.address.encode('ascii', 'ignore')
+        company_details['phone'] = profile.company.phone_number
+        company_details['email'] = profile.company.email_id
+        company_details['gstin_number'] = profile.company.gstin_number
+        company_details['cin_number'] = profile.company.cin_number
+        company_details['pan_number'] = profile.company.pan_number
     data_dict = {
         'table_headers': table_headers,
         'data': po_data,
@@ -2237,8 +2278,10 @@ def print_pending_po_form(request, user=''):
         'vendor_name': 'vendor_name',
         'vendor_address': 'vendor_address',
         'vendor_telephone': 'vendor_telephone',
+        'supplier_payment_terms': supplier_payment_terms,
+        'supplier_currency': supplier_currency,
         'gstin_no': gstin_no,
-        'w_address': ship_to_address,  # get_purchase_company_address(profile),
+        'w_address': ship_to_address.encode('ascii', 'ignore'),# get_purchase_company_address(profile)
         'ship_to_address': ship_to_address,
         'wh_telephone': wh_telephone,
         'wh_gstin': profile.gst_number,
@@ -2250,8 +2293,10 @@ def print_pending_po_form(request, user=''):
         'location': profile.location,
         'po_number': po_number,
         'industry_type': profile.industry_type,
-        'left_side_logo': left_side_logo,
-        'company_address': company_address,
+        'company_logo': company_logo,
+        'left_side_logo':left_side_logo,
+        'company_address': company_address.encode('ascii', 'ignore'),
+        'company_details': company_details,
         'is_draft': 1,
         'title': title,
         'is_actual_pr': is_actual_pr,
@@ -9621,10 +9666,14 @@ def order_status(request):
                                      user=user.id).update(status=status)
     return HttpResponse(json.dumps({'Status': 'Success', 'Message': 'Updated Successfully'}))
 
-def format_printing_data(datum, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
+def format_printing_data(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    amount = float(datum.quantity) * float(purchase_order.price)
+    if order.currency_rate > 1:
+        current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+    else:
+        current_price = float(purchase_order.price)
+    amount = float(datum.quantity) * current_price
     amount = float("%.2f" % amount)
     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
     total_sgst = purchase_order.sgst_tax * (amount/100)
@@ -9638,7 +9687,7 @@ def format_printing_data(datum, purchase_order, wms_code, supplier_code, measure
         pass
     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, delivery_date, float(datum.quantity),
                 measurement_unit,
-                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                 purchase_order.igst_tax, total_igst,
                 total_sku_amt
                 ]
@@ -9664,6 +9713,7 @@ def confirm_add_po(request, sales_data='', user=''):
     suggestion, ship_to_address = '', ''
     pending_po_line_entries = ''
     terms_condition = request.POST.get('terms_condition', '')
+    supplier_currency_value = request.POST.get('supplier_currency_rate', 1)
     supplier_payment_terms = request.POST.get('supplier_payment_terms', '')
     if not request.POST.get('ship_to'):
         return HttpResponse('Ship to address mandatory !')
@@ -9822,6 +9872,10 @@ def confirm_add_po(request, sales_data='', user=''):
             data['order_id'] = int(po_id)
             data['prefix'] = prefix
             data['po_number'] = full_po_number
+            if purchase_order.supplier.currency_code:
+                data['currency'] = purchase_order.supplier.currency_code
+                data['currency_internal_id'] = purchase_order.supplier.netsuite_currency_internal_id
+            data['currency_rate'] = supplier_currency_value
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
@@ -9837,8 +9891,11 @@ def confirm_add_po(request, sales_data='', user=''):
                     SellerPO.objects.create(seller_id=seller, open_po_id=data1.id, seller_quantity=seller_quan[0],
                                             creation_date=datetime.datetime.now(), status=1,
                                             receipt_type=value['receipt_type'])
-
-            amount = float(purchase_order.order_quantity) * float(purchase_order.price)
+            if order.currency_rate > 1:
+                current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+            else:
+                current_price = float(purchase_order.price)
+            amount = float(purchase_order.order_quantity) * current_price
             amount = float("%.2f" % amount)
             tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax'] + \
                   value['apmc_tax'] + value['cess_tax']
@@ -9851,7 +9908,6 @@ def confirm_add_po(request, sales_data='', user=''):
                 wms_code = purchase_order.wms_code
             else:
                 wms_code = purchase_order.sku.wms_code
-
             if industry_type == 'FMCG':
                 po_temp_data = []
                 if pending_po_line_entries:
@@ -9859,7 +9915,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     if sku_pending_line.exists():
                         delivery_schedule_data = sku_pending_line[0].purchasedeliveryschedule_set.filter(status=1)
                         for delivery_data in delivery_schedule_data:
-                            po_temp_data = format_printing_data(delivery_data, purchase_order, wms_code, supplier_code, po_suggestions['measurement_unit'], table_headers, display_remarks, show_cess_tax, show_apmc_tax)
+                            po_temp_data = format_printing_data(delivery_data, order, purchase_order, wms_code, supplier_code, po_suggestions['measurement_unit'], table_headers, display_remarks, show_cess_tax, show_apmc_tax)
                             po_data.append(po_temp_data)
                 if not po_temp_data:
                     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
@@ -9870,7 +9926,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     total_sku_amt = total_tax_amt + amount
                     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, '', purchase_order.order_quantity,
                                 po_suggestions['measurement_unit'],
-                                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                                 purchase_order.igst_tax, total_igst,
                                 # purchase_order.utgst_tax,
                                 total_sku_amt
@@ -9891,7 +9947,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, '', purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                            current_price, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                             purchase_order.igst_tax, total_igst,
                             # purchase_order.utgst_tax,
                             total_sku_amt
@@ -9975,7 +10031,7 @@ def confirm_add_po(request, sales_data='', user=''):
         company_name = profile.company.company_name
         title = 'Purchase Order'
         receipt_type = request.GET.get('receipt_type', '')
-        total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+        total_amt_in_words = str(purchase_order.supplier.currency_code) + ' ' + number_in_words(round(total)) + ' ONLY'
         round_value = float(round(total) - float(total))
         company_details = {}
         company_logo=""
@@ -10035,7 +10091,10 @@ def confirm_add_po(request, sales_data='', user=''):
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
-        if get_misc_value('raise_po', user.id) == 'true':
+        supplier_notify = ''
+        if myDict.get('supplier_notify', ''):
+            supplier_notify = myDict.get('supplier_notify', '')[0]
+        if get_misc_value('raise_po', user.id) == 'true' and supplier_notify == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
                             'billing_address': profile.address, 'shipping_address': ship_to_address,
@@ -10130,6 +10189,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         _purchase_order = purchase_objs[0]
         po_date = _purchase_order.creation_date
         po_date = po_date.isoformat()
+        currency_internal_id= _purchase_order.currency_internal_id
+        exchangerate= _purchase_order.currency_rate
+        currency_code=  _purchase_order.currency
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
         if _purchase_order.open_po.supplier.tin_number:
@@ -10149,7 +10211,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
-        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
+        po_data = { 'currency_internal_id': currency_internal_id, 'exchangerate': exchangerate, 'currency_code': currency_code,
+                    'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
@@ -16550,7 +16613,12 @@ def get_pending_material_request_data(start_index, stop_index, temp_data, search
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    stock_transfer_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='mr_doa').\
+    if user.username == 'mhl_admin':
+        stock_transfer_objs = MastersDOA.objects.filter(doa_status='pending', model_name='mr_doa').\
+                                values('requested_user__username', 'reference_id', 'wh_user__username').\
+                                distinct().annotate(date_only=Cast('creation_date', DateField()))
+    else:
+        stock_transfer_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='mr_doa').\
                                         values('requested_user__username', 'reference_id', 'wh_user__username').\
                                         distinct().annotate(date_only=Cast('creation_date', DateField()))
     order_data = 'date_only'

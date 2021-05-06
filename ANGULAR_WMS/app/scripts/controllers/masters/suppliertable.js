@@ -132,6 +132,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   if (vm.model_data.is_contracted) {
     elem.push({name: "is_contracted", value:true})
   }
+  if (vm.model_data.netsuit_internal_id) {
+    elem.push({name: "netsuite_currency_internal_id", value:vm.model_data.netsuit_internal_id})
+  }
 	var send = vm.uploadFile(elem);
     //var send = $("form").serializeArray();
     vm.service.apiCall(url, 'POST', send, true, true).then(function(data){

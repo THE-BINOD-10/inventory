@@ -324,6 +324,7 @@ class SupplierMaster(models.Model):
     subsidiary = models.CharField(max_length=512, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
+    netsuite_currency_internal_id = models.IntegerField(default=1)
     is_contracted = models.BooleanField(default=False)
 
     class Meta:
@@ -835,6 +836,9 @@ class PurchaseOrder(models.Model):
     payment_received = models.FloatField(default=0)
     priority = models.IntegerField(default=0)
     pcf = models.FloatField(default=0)
+    currency = models.TextField(default='INR')
+    currency_internal_id = models.IntegerField(default=1)
+    currency_rate = models.FloatField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -4184,6 +4188,7 @@ class ConsumptionData(models.Model):
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
+    is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

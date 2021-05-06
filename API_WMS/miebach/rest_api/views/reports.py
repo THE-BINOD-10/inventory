@@ -97,7 +97,7 @@ def get_report_data(request, user=''):
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
-                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data']:
+                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)

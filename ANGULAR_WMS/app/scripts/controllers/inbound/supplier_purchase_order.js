@@ -42,7 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+    var columns = ['PO No', 'Store', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                    return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                  })
     row_click_bind = 'td:not(td:first)';
-    vm.dtColumns.unshift(toggle);
+    //vm.dtColumns.unshift(toggle);
 
     vm.dtInstance = {};
     vm.poDataNotFound = function() {

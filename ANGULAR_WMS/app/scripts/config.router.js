@@ -3507,6 +3507,10 @@ var app = angular.module('urbanApp')
             title: 'Purchase Order'
           }
         })
+      .state('app.PurchaseOrder.SKUDetails', {
+            url: '/SKUDetails',
+            templateUrl: 'views/inbound/toggle/supplier_po_sku_data.html'
+          })
 
       //register
       .state('app.Register', {

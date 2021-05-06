@@ -38,6 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         })
        .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
@@ -100,6 +101,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.service.refresh(vm.dtInstance);
     });
+    vm.rowCallback = function(aData) {
+      var dataDict = {
+          'supplier_id': aData['DT_RowId'],
+          'warehouse': aData['Warehouse'] ,
+          'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
+          'prefix': aData['prefix'],
+          'po_number': aData['PO No'],
+          'warehouse_id': aData['warehouse_id']
+        }
+        vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
+          if(data.message) {
+            angular.copy(data.data, vm.model_data);
+            $state.go('app.PurchaseOrder.SKUDetails');
+          }
+        });
+  }
 
 }
 

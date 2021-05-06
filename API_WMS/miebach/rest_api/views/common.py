@@ -13957,10 +13957,10 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
-                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'consumption',
+                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'purchase',
                                                  uom=bom.unit_of_measurement)
                 pcf = uom_dict['sku_conversion']
-                pcf = pcf if pcf else 0
+                pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
                 needed_quantity = consumption_qty * pcf
                 stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']

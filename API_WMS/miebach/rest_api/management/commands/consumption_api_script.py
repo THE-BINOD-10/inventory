@@ -137,6 +137,8 @@ def update_consumption(consumption_objss, user, company):
                                 status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['total_test'])
                         if status == 'Success':
                             log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
+                        else:
+                            log.info("%s for user %s and data %s" % (status, str(consumption_user.username), str(data_dict)))
                     else:
                        log.info("Empty test code for %s,plant %s and data_dict was %s " % (str(consumption_user.username), str(user.username),str(data_dict))) 
                 except Exception as e:

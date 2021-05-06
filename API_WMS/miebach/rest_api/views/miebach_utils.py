@@ -11603,6 +11603,21 @@ def get_ageing_data(search_params, user, sub_user):
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
             users = User.objects.none()
+
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        # plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+        # if plant_obj:
+        #     search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list = True)
     search_parameters['sku_id__in'] = sku_master_ids
@@ -11698,12 +11713,14 @@ def get_ageing_data(search_params, user, sub_user):
         quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
+        plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
         dept_type = ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
             plant_name = admin_user.first_name
+            plant_zone = admin_user.userprofile.zone
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         expiry_range = ""
@@ -11741,6 +11758,7 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Zone Code', plant_zone),
                                 ('pcf', pcf),
                                 ('dept_type', dept_type),
                                 ('Purchase UOM', uom_dict["measurement_unit"]),

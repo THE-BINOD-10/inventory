@@ -101,7 +101,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.service.refresh(vm.dtInstance);
     });
-    vm.rowCallback = function(aData) {
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+    $(row_click_bind, nRow).unbind('click');
+    $(row_click_bind, nRow).bind('click', function() {
+     $scope.$apply(function() {
       var dataDict = {
           'supplier_id': aData['DT_RowId'],
           'warehouse': aData['Warehouse'] ,
@@ -116,6 +119,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $state.go('app.PurchaseOrder.SKUDetails');
           }
         });
+        });
+    });
+    return nRow;
   }
 
 }

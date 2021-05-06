@@ -2469,6 +2469,18 @@ var app = angular.module('urbanApp')
             title: 'SKU List',
           }
         })
+        .state('app.reports.IntegrationReport', {
+          url: '/IntegrationReport',
+          templateUrl: 'views/reports/integration_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/integration_report.js');
+              }]
+          },
+          data: {
+            title: 'Netsuite Integration Report',
+          }
+        })
         .state('app.reports.LocationWiseFilter', {
           url: '/LocationWiseFilter',
           templateUrl: 'views/reports/location_wise_filter.html',

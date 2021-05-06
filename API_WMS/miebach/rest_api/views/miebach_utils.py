@@ -11769,7 +11769,7 @@ def get_expired_stock_data(search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
+    
     user_profile = UserProfile.objects.get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -11788,9 +11788,30 @@ def get_expired_stock_data(search_params, user, sub_user):
     if "sku_brand" in search_params:
         search_parameters['sku__%s__%s' % ("sku_brand", 'icontains')] = search_params["sku_brand"]
     if 'plant_code' in search_params:
-        plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
-        if plant_obj:
-            search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        # plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+        # if plant_obj:
+        #     search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+
+    user_ids = list(users.values_list('id', flat=True))
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     lis = ['sku_id__wms_code', 'sku_id__sku_desc',
@@ -11863,11 +11884,13 @@ def get_expired_stock_data(search_params, user, sub_user):
         quantity_for_val = data.quantity/pcf_for_val
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
+        plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
         dept_type = ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
+            plant_zone = admin_user.userprofile.zone
             plant_name = admin_user.first_name
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
@@ -11896,6 +11919,7 @@ def get_expired_stock_data(search_params, user, sub_user):
                                 ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Zone Code', plant_zone),
                                 ('pcf', pcf),
                                 ('dept_type', dept_type),
                                 ('Purchase UOM', uom_dict["measurement_unit"]),
@@ -11908,70 +11932,6 @@ def get_expired_stock_data(search_params, user, sub_user):
                                 ('Receipt Type', data.receipt_type)))
         temp_data['aaData'].append(row_data)
     return temp_data
-
-    # from rest_api.views.common import get_sku_master
-    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    # temp_data = copy.deepcopy(AJAX_DATA)
-    # search_parameters = {}
-    # cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class', 'sub_category', 'sku_brand')
-    # for data in cmp_data:
-    #     if data in search_params:
-    #         search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
-    # if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-    #     if 'manufacturer' in search_params:
-    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
-    #     if 'searchable' in search_params:
-    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['searchable']
-    #     if 'bundle' in search_params:
-    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['bundle']
-    # start_index = search_params.get('start', 0)
-    # stop_index = start_index + search_params.get('length', 0)
-    # search_parameters['user'] = user.id
-
-    # sku_master = sku_master.filter(**search_parameters)
-    # temp_data['recordsTotal'] = sku_master.count()
-    # temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-    # if stop_index:
-    #     sku_master = sku_master[start_index:stop_index]
-
-    # stock_dict = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id). \
-    #                   values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
-    # attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    # for data in sku_master:
-    #     total_quantity = stock_dict.get(data.id, 0)
-    #     # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
-    #     # for stock in stock_data:
-    #     #     total_quantity += int(stock.quantity)
-    #     manufacturer, searchable, bundle = '', '', ''
-    #     attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in=attributes_list)
-    #     if attributes_obj.exists():
-    #         for attribute in attributes_obj:
-    #             if attribute.attribute_name == 'Manufacturer':
-    #                 manufacturer = attribute.attribute_value
-    #             if attribute.attribute_name == 'Searchable':
-    #                 searchable = attribute.attribute_value
-    #             if attribute.attribute_name == 'Bundle':
-    #                 bundle = attribute.attribute_value
-    #     ord_dict = OrderedDict((
-    #             ('Plant Code', ''), ('Plant Name', ''),
-    #             ('SKU Code', data.sku_code), ('SKU Code', data.wms_code),
-    #                             ('Product Description', data.sku_desc),
-    #                             ('SKU Category', data.sku_category),
-    #                             ('SKU Sub Category', data.sub_category),
-    #                             ('Sku Brand', data.sku_brand),
-    #                             ('Purchase UOM', ''),
-    #                             ('Purchase Quantity', 0),
-    #                             ('Base UOM', ''), ('Base Quantity', 0),
-    #                             ('Batch Number', ''),('Materials Expired on', ''),
-    #                             ('Total Quantity', total_quantity)))
-    #     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-    #         ord_dict['Manufacturer'] = manufacturer
-    #         ord_dict['Searchable'] = searchable
-    #         ord_dict['Bundle'] = bundle
-    #     temp_data['aaData'].append(ord_dict)
-    # return temp_data
-
 
 def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
     status = ''

@@ -11743,7 +11743,7 @@ def get_ageing_data(search_params, user, sub_user):
             grn_date= ' '.join(temp_grn_date[0:3])
         row_data = OrderedDict((
                                 ('Material Code', data.sku.sku_code),
-                                ('WMS Code', data.sku.wms_code),
+                                # ('WMS Code', data.sku.wms_code),
                                 ('Sku Brand', data.sku.sku_brand),
                                 ('Material Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
@@ -11753,13 +11753,14 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Price', price), ('Tax Percent', tax),
                                 ('Manufactured Date', manufactured_date), 
                                 ('Expiry Date', expiry_date),
-                                ('Zone', zone),
+                                ('Zone', plant_zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
                                 ('Zone Code', plant_zone),
                                 ('pcf', pcf),
+                                ('Conversion Factor', pcf),
                                 ('dept_type', dept_type),
                                 ('Purchase UOM', uom_dict["measurement_unit"]),
                                 ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
@@ -11923,16 +11924,18 @@ def get_expired_stock_data(search_params, user, sub_user):
             expiry_range = "  > 90"
         row_data = OrderedDict((
                                 ('SKU Code', data.sku.sku_code),
-                                ('WMS Code', data.sku.wms_code),
+                                # ('WMS Code', data.sku.wms_code),
                                 ('Sku Brand', data.sku.sku_brand),
                                 ('Product Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
-                                ('Batch Number', batch_no), ('exp_date', exp_date),
-                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
+                                ('Batch Number', batch_no), 
+                                # ('exp_date', exp_date),
+                                # ('Batch ID', batch_id),
+                                 # ('mfg_date', mfg_date),
                                 ('MRP', mrp), ('Weight', weight),
                                 ('Price', price), ('Tax Percent', tax),
                                 ('Manufactured Date', manufactured_date), 
-                                ('Zone', zone),
+                                # ('Zone', plant_zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Plant Code', plant_code),
@@ -11947,7 +11950,8 @@ def get_expired_stock_data(search_params, user, sub_user):
                                 ('Expiry Date', expiry_date),
                                 ('Expiry Range', expiry_range),
                                 ('days_to_expired', days_to_expired),
-                                ('Receipt Type', data.receipt_type)))
+                                # ('Receipt Type', data.receipt_type)
+                                ))
         temp_data['aaData'].append(row_data)
     return temp_data
 

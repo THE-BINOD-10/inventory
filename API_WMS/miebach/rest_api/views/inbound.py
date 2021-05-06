@@ -4527,6 +4527,8 @@ def netsuite_pr(user, PRQs, full_pr_number, request):
             }
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
+        if plant_obj:
+            user= plant_obj.userprofile.user
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseRequizition(pr_datas , "full_pr_number", is_multiple=True)
@@ -7617,6 +7619,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                     if data.batch_detail.expiry_date:
                         temp_exp_date = (data.batch_detail.expiry_date).strftime('%d-%m-%Y')
                         exp_date = datetime.strptime(temp_exp_date, '%d-%m-%Y').isoformat()
+                        temp_exp_date = datetime.strptime(temp_exp_date, '%d-%m-%Y')
                 if _open.sku.sku_code in check_batch_dict:
                     if not check_batch_dict[_open.sku.sku_code] == batch_number:
                         for row_line in grn_data['items']:

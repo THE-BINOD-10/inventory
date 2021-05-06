@@ -202,6 +202,11 @@ PURCHASE_ORDER_REPORT_STATUS = ['Yet To Receive', 'Partially Received', 'Receive
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
+INTEGRATION_STATUS= ['SUCCESS', 'FAILED', 'PENDING']
+
+INTEGRATION_TYPES = ['PurchaseRequizition', 'PurchaseOrder', 'GRN', 'InventoryAdjustment', 'RTV']
+
+
 RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '',
                'damaged_quantity': 0}
 
@@ -637,6 +642,40 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
             }
 
 
+
+INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'Integrtion To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'Stockone ID', 'name': 'stockone_reference', 'type': 'input'},
+                        {'label': 'Integration Type', 'name': 'integration_type', 'type': 'select'},
+                        {'label': 'Integration Status', 'name': 'integration_status', 'type': 'select'},
+                        # {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
+                        # {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
+                        # {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
+                        # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        # {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+                        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+                        # {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+                        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+
+                    ],
+
+            'dt_headers': [
+              "Stockone Id",  "Plant Code", "Plant" , "Zone", "Module type", "Action Type", ""
+              "Integration Date", "Integration Status", "Integration Error"
+             ],
+            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
+            # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
+            #                   'SKU Code',
+            #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
+            #                   'Received Qty', 'Unit Rate',
+            #                   'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
+            #                   'Post-Tax Received Value',
+            #                   'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
+            'dt_url': 'get_integration_report', 'excel_name': 'integration_report', 'print_url': '',
+            }
+
 PR_PO_GRN_DICT = {'filters': [
                         # {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
                         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
@@ -654,17 +693,21 @@ PR_PO_GRN_DICT = {'filters': [
             'dt_headers': [
             "PR No", "PR date", "Plant Name", "Plant Code", "Zone", "Department Name", "PR Category",
             "Materials Code" , "Material Desp",  "Material Category",
-            "PR Purchase UOM" , "PR Purchase Qty" ,  "PR raised By", "PR Approval Pending at",  "PR Status",
-            # "PR Base UOM", "PR Base Qty",
+            "Conversion Factor", 
+            "PR Purchase UOM" , "PR Purchase Qty" , 
+            "PR Base UOM", "PR Base UOM Qty",
+             "PR raised By", "PR Approval Pending at",  "PR Status",
+            
 
             "PO No", "PO Date", "Vendor Name", "Vendor Code",
+            "PO Base UOM", "PO Base UOM Qty",
             "PO Purchase UOM" , "PO Purchase Qty" ,
-            # "PO Base UOM", "PO Base UOM Qty",
             "PO Basic Price",  "PO IGST", "PO CGST", "PO SGST", "PO CESS", "PO amt(without Tax)", "PO total tax Amt",
             "PO Total amount (with Tax)", "PO Status", "Expected Delivery Date",
 
-            "GRN No", "GRN Date", "GRN Purchase UOM" , "GRN Purchase Qty" ,
-             # "GRN Base UOM", "GRN Base UOM Qty",
+            "GRN No", "GRN Date",  "GRN Base UOM", "GRN Base UOM Qty",
+            "GRN Purchase UOM" , "GRN Purchase Qty" ,
+            
             "Batch No", "Expiry date",  "GRN Basic Price", "GRN amount( without Tax )",
             "GRN IGST", "GRN CGST", "GRN SGST", "GRN CESS", "GRN TCS",
             "GRN total tax Amount",  "GRN Total amount(with Tax)", "GRN Status" ],
@@ -1907,6 +1950,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
                      'grn_report': GRN_DICT, 'pr_po_grn_dict': PR_PO_GRN_DICT, 'sku_wise_grn_report': SKU_WISE_GRN_DICT,
+                     'integration_report': INTEGRATION_REPORT_DICT,
                      'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
@@ -2599,6 +2643,7 @@ SKU_PACK_EXCEL = OrderedDict((('sku_code', 0), ('pack_id', 1), ('pack_quantity',
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data',
                         'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data',
+                        'integration_report': 'get_integration_report_data',
                         'pr_po_grn_dict': 'get_pr_po_grn_filter_data',
                         'st_goods_receipt': 'get_st_po_filter_data',
                         'receipt_summary': 'get_receipt_filter_data',
@@ -3799,6 +3844,162 @@ def get_sku_filter_data(search_params, user, sub_user):
 
     return temp_data
 
+def get_integration_report_data(request, search_params, user, sub_user):
+    from stockone_integrations.models import IntegrationMaster
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request,\
+        get_related_users_filters,get_admin
+    users = [user.id]
+    admin_user_id= user.id
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ["stockone_reference", "stockone_reference","stockone_reference", "stockone_reference", "module_type", "action_type", "creation_date",  "status", "integration_error"]
+    unsorted_dict = {}
+    model_name = IntegrationMaster
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'stockone_reference': 'stockone_reference',
+                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact', 'user': 'user_id__in',
+                    }
+    result_values = ["user_id", "stockone_reference", 'module_type', "action_type", "integration_error", "status", "integration_type"
+                 ]
+    excl_status = {'module_type__in': ["uom", "InventoryItem"]}
+    # ord_quan = 'purchase_order__open_po__order_quantity'
+    # rec_quan = 'purchase_order__received_quantity'
+    # rec_quan1 = 'sellerposummary__quantity'
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    if 'from_date' in search_params:
+        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'grn_from_date' in search_params:
+        search_parameters['creation_date__gte'] = search_params['grn_from_date']
+        if field_mapping['from_date'] + '__gte' in search_parameters.keys():
+            del search_parameters[field_mapping['from_date'] + '__gte']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+
+    if 'grn_to_date' in search_params:
+        search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
+                                                                 datetime.time())
+        search_parameters['creation_date__lte'] = search_params['grn_to_date']
+        if field_mapping['to_date'] + '__lte' in search_parameters.keys():
+            del search_parameters[field_mapping['to_date'] + '__lte']
+    if 'stockone_reference' in search_params:
+        search_parameters['stockone_reference'] = search_params['stockone_reference']
+    # if 'grn_number' in search_params:
+    #     search_parameters[field_mapping['grn_number']] = search_params['grn_number']
+    if 'integration_status' in search_params:
+        integration_status_keys= {"SUCCESS": True, "FAILED": False, "PENDING": None}
+        search_parameters['status'] = integration_status_keys[search_params['integration_status']]
+    if 'integration_type' in search_params:
+        search_parameters['module_type__iexact'] = search_params['integration_type']
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
+            search_params['supplier'].split(':')[0]
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    # if 'sister_warehouse' in search_params:
+    #     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    #     dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    #     dept_type = search_params['sister_warehouse']
+    #     if dept_type.lower() != 'na':
+    #         users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+    #     else:
+    #         users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    if 'zone_code' not in search_params and 'plant_name' not in search_params.keys() and 'plant_code' not in search_params:
+        user_ids.append(admin_user_id)
+    search_parameters[field_mapping['user']] = user_ids
+    model_data = model_name.objects.filter(**search_parameters).exclude(**excl_status)
+    # model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
+    #                                                                    total_received=Sum(rec_quan))
+    # grn_rec=Sum(rec_quan1))
+    col_num = search_params.get('order_index', 6)
+    order_term = search_params.get('order_term', 'asc')
+    if order_term:
+        if col_num==0:
+            col_num = 6
+            order_term = 'desc'
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = "-%s" % order_data
+        if order_data:
+            model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        model_data = model_data[start_index:stop_index]
+    for data in model_data:
+        user = data.user
+        if user:
+            if user.userprofile.warehouse_type.lower() == 'dept':
+                admin_user = get_admin(user)
+                plant_code = admin_user.userprofile.stockone_code
+                plant = admin_user.userprofile.user.first_name
+                plant_zone = admin_user.userprofile.zone
+            else:
+                plant_code = user.userprofile.stockone_code
+                plant = user.first_name
+                plant_zone = user.userprofile.zone
+    
+        integration_error , integration_status= '', ''
+        if data.status == 1:
+            integration_status = 'Success'
+        elif data.status == 0:
+            integration_status = 'Failed'
+        else:
+            integration_status = 'Pending'
+            # if not final_status.title() == "Something":
+            #     integration_status = 'GRN -NA- queue'
+        if integration_status == 'Failed':
+            integration_error = data.integration_error
+        integration_date = data.creation_date.strftime("%d %b, %Y")
+        temp_data['aaData'].append(OrderedDict((('Stockone Id', data.stockone_reference),
+                                                ('Module type', data.module_type),
+                                                ('Action Type', data.action_type),
+                                                ("Integration Date", integration_date),
+                                                ("Integration Status", integration_status), 
+                                                ("Integration Error", integration_error),
+                                                ("Plant Code", plant_code),
+                                                ("Plant", plant),
+                                                ("Zone", plant_zone),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowAttr', {'data-id': data.stockone_reference }),
+                                                ('key', 'Stockone Id'), ('receipt_type', 'Integration Report')
+                                                )))
+    if stop_index and custom_search:
+        if temp_data['aaData']:
+            temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '',
+                                                    col_num, exact=False)
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
 
 def get_location_stock_data(search_params, user, sub_user):
     from miebach_admin.models import *
@@ -5872,6 +6073,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 'supplier_id': po_dat["pending_po__supplier__supplier_id"], 'supplier__name': po_dat["pending_po__supplier__name"],
                 'price': po_dat["price"], 'po_final_status': po_dat["pending_po__final_status"]})
     po_grn_results= PurchaseOrder.objects.filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     for record in model_data:
         pending_po_key= (record.get("pendingpo__full_po_number", ""), record.get("pending_prlineItems__sku__sku_code", ""))
         vendor_code, vendor_name, po_final_status, po_date = [""]*4
@@ -5909,6 +6111,8 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             next_approver_mail = pending_approval["validated_by"]
             pending_level = pending_approval["level"]
             approval_type = pending_approval["approval_type"]
+        uom_dict = skus_uom_dict.get(record.get("pending_prlineItems__sku__sku_code", ""))
+        pcf = uom_dict.get('sku_conversion', 1)
         for po_grn_dat in po_grn_results:
             if pending_po_key and record.get("pendingpo__full_po_number")== po_grn_dat["po_number"] and record.get("pending_prlineItems__sku__sku_code")==po_grn_dat["open_po__sku__sku_code"]:
                 vendor_code = po_grn_dat.get("open_po__supplier__supplier_id", "")
@@ -5940,7 +6144,6 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                     grn_number = po_grn_dat.get("sellerposummary__grn_number", "")
                     grn_status= "Cancelled" if po_grn_dat.get("sellerposummary__status", 0)==1 else "Received"
 
-
                 ord_dict = OrderedDict((
                 ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
                 ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
@@ -5949,12 +6152,13 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ('Zone', pr_plant_zone), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
                 ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
                 ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
-                ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
+                ("Conversion Factor", uom_dict.get('sku_conversion', 1)),
+                ("PR Base UOM", uom_dict["base_uom"]), ("PR Base UOM Qty", record.get('pending_prlineItems__quantity', 0) * pcf ), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
 
-                ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date" , po_date), ("Vendor Name", vendor_name),
+                ("PO No", record.get("pendingpo__full_po_number", "") if vendor_code else ""), ("PO Date" , po_date if vendor_code else ""), ("Vendor Name", vendor_name),
                 ("Vendor Code", vendor_code),
                 ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
-                ("PO Purchase Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+                ("PO Purchase Qty", po_quantity if vendor_code else "") , ("PO Base UOM",  uom_dict["base_uom"] if vendor_code else ""), ("PO Base UOM Qty", po_quantity* pcf if vendor_code else ""),
                 ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
                 ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
                 ("PO CESS", po_cess_tax),
@@ -5964,7 +6168,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 ("GRN No",  grn_number),
                 ("GRN Date", grn_date), ("GRN Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
                 ("GRN Purchase Qty", grn_quantity) ,
-                ("GRN Base UOM", ""), ("GRN Base UOM Qty", ""),
+                ("GRN Base UOM", uom_dict["base_uom"] if grn_number else ""), ("GRN Base UOM Qty", grn_quantity* pcf if grn_number else ""),
                 ("Batch No", po_grn_dat.get("sellerposummary__batch_detail__batch_no", "")),
                 ("Expiry date", expiry_date),
                 ("GRN Basic Price", grn_price),
@@ -5988,11 +6192,12 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ('Zone', pr_plant_zone), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
             ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
             ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
-            ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
+            ("Conversion Factor", uom_dict.get('sku_conversion', 1)),
+            ("PR Base UOM", uom_dict["base_uom"]), ("PR Base UOM Qty", record.get('pending_prlineItems__quantity', 0) * pcf ), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
 
-            ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date", po_date), ("Vendor Name", vendor_name),
+            ("PO No", record.get("pendingpo__full_po_number", "") if vendor_code else ""), ("PO Date", po_date if vendor_code else ""), ("Vendor Name", vendor_name),
             ("Vendor Code", vendor_code),
-            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) , ("PO Purchase Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "") if vendor_code else "") , ("PO Purchase Qty", po_quantity) , ("PO Base UOM",uom_dict["base_uom"] if vendor_code else ""), ("PO Base UOM Qty", po_quantity* pcf if vendor_code else ""),
             ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
             ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
             ("PO CESS", po_cess_tax),
@@ -11406,6 +11611,21 @@ def get_ageing_data(search_params, user, sub_user):
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
             users = User.objects.none()
+
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        # plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+        # if plant_obj:
+        #     search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list = True)
     search_parameters['sku_id__in'] = sku_master_ids
@@ -11501,12 +11721,14 @@ def get_ageing_data(search_params, user, sub_user):
         quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
+        plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
         dept_type = ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
             plant_name = admin_user.first_name
+            plant_zone = admin_user.userprofile.zone
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         expiry_range = ""
@@ -11529,7 +11751,7 @@ def get_ageing_data(search_params, user, sub_user):
             grn_date= ' '.join(temp_grn_date[0:3])
         row_data = OrderedDict((
                                 ('Material Code', data.sku.sku_code),
-                                ('WMS Code', data.sku.wms_code),
+                                # ('WMS Code', data.sku.wms_code),
                                 ('Sku Brand', data.sku.sku_brand),
                                 ('Material Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
@@ -11539,12 +11761,14 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Price', price), ('Tax Percent', tax),
                                 ('Manufactured Date', manufactured_date), 
                                 ('Expiry Date', expiry_date),
-                                ('Zone', zone),
+                                ('Zone', plant_zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Zone Code', plant_zone),
                                 ('pcf', pcf),
+                                ('Conversion Factor', pcf),
                                 ('dept_type', dept_type),
                                 ('Purchase UOM', uom_dict["measurement_unit"]),
                                 ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
@@ -11572,7 +11796,7 @@ def get_expired_stock_data(search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
+    
     user_profile = UserProfile.objects.get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -11591,9 +11815,30 @@ def get_expired_stock_data(search_params, user, sub_user):
     if "sku_brand" in search_params:
         search_parameters['sku__%s__%s' % ("sku_brand", 'icontains')] = search_params["sku_brand"]
     if 'plant_code' in search_params:
-        plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
-        if plant_obj:
-            search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        # plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+        # if plant_obj:
+        #     search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+
+    user_ids = list(users.values_list('id', flat=True))
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     lis = ['sku_id__wms_code', 'sku_id__sku_desc',
@@ -11666,11 +11911,13 @@ def get_expired_stock_data(search_params, user, sub_user):
         quantity_for_val = data.quantity/pcf_for_val
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
+        plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
         dept_type = ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
+            plant_zone = admin_user.userprofile.zone
             plant_name = admin_user.first_name
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
@@ -11685,20 +11932,23 @@ def get_expired_stock_data(search_params, user, sub_user):
             expiry_range = "  > 90"
         row_data = OrderedDict((
                                 ('SKU Code', data.sku.sku_code),
-                                ('WMS Code', data.sku.wms_code),
+                                # ('WMS Code', data.sku.wms_code),
                                 ('Sku Brand', data.sku.sku_brand),
                                 ('Product Description', data.sku.sku_desc),
                                 ('SKU Category', data.sku.sku_category),
-                                ('Batch Number', batch_no), ('exp_date', exp_date),
-                                ('Batch ID', batch_id), ('mfg_date', mfg_date),
+                                ('Batch Number', batch_no), 
+                                # ('exp_date', exp_date),
+                                # ('Batch ID', batch_id),
+                                 # ('mfg_date', mfg_date),
                                 ('MRP', mrp), ('Weight', weight),
                                 ('Price', price), ('Tax Percent', tax),
                                 ('Manufactured Date', manufactured_date), 
-                                ('Zone', zone),
+                                # ('Zone', plant_zone),
                                 ('Total Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Stock Value', '%.2f' % float(quantity_for_val * price_with_tax)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Zone Code', plant_zone),
                                 ('pcf', pcf),
                                 ('dept_type', dept_type),
                                 ('Purchase UOM', uom_dict["measurement_unit"]),
@@ -11708,73 +11958,10 @@ def get_expired_stock_data(search_params, user, sub_user):
                                 ('Expiry Date', expiry_date),
                                 ('Expiry Range', expiry_range),
                                 ('days_to_expired', days_to_expired),
-                                ('Receipt Type', data.receipt_type)))
+                                # ('Receipt Type', data.receipt_type)
+                                ))
         temp_data['aaData'].append(row_data)
     return temp_data
-
-    # from rest_api.views.common import get_sku_master
-    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    # temp_data = copy.deepcopy(AJAX_DATA)
-    # search_parameters = {}
-    # cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class', 'sub_category', 'sku_brand')
-    # for data in cmp_data:
-    #     if data in search_params:
-    #         search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
-    # if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-    #     if 'manufacturer' in search_params:
-    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['manufacturer']
-    #     if 'searchable' in search_params:
-    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['searchable']
-    #     if 'bundle' in search_params:
-    #         search_parameters['skuattributes__attribute_value__iexact'] = search_params['bundle']
-    # start_index = search_params.get('start', 0)
-    # stop_index = start_index + search_params.get('length', 0)
-    # search_parameters['user'] = user.id
-
-    # sku_master = sku_master.filter(**search_parameters)
-    # temp_data['recordsTotal'] = sku_master.count()
-    # temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-    # if stop_index:
-    #     sku_master = sku_master[start_index:stop_index]
-
-    # stock_dict = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id). \
-    #                   values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
-    # attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    # for data in sku_master:
-    #     total_quantity = stock_dict.get(data.id, 0)
-    #     # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
-    #     # for stock in stock_data:
-    #     #     total_quantity += int(stock.quantity)
-    #     manufacturer, searchable, bundle = '', '', ''
-    #     attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in=attributes_list)
-    #     if attributes_obj.exists():
-    #         for attribute in attributes_obj:
-    #             if attribute.attribute_name == 'Manufacturer':
-    #                 manufacturer = attribute.attribute_value
-    #             if attribute.attribute_name == 'Searchable':
-    #                 searchable = attribute.attribute_value
-    #             if attribute.attribute_name == 'Bundle':
-    #                 bundle = attribute.attribute_value
-    #     ord_dict = OrderedDict((
-    #             ('Plant Code', ''), ('Plant Name', ''),
-    #             ('SKU Code', data.sku_code), ('SKU Code', data.wms_code),
-    #                             ('Product Description', data.sku_desc),
-    #                             ('SKU Category', data.sku_category),
-    #                             ('SKU Sub Category', data.sub_category),
-    #                             ('Sku Brand', data.sku_brand),
-    #                             ('Purchase UOM', ''),
-    #                             ('Purchase Quantity', 0),
-    #                             ('Base UOM', ''), ('Base Quantity', 0),
-    #                             ('Batch Number', ''),('Materials Expired on', ''),
-    #                             ('Total Quantity', total_quantity)))
-    #     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-    #         ord_dict['Manufacturer'] = manufacturer
-    #         ord_dict['Searchable'] = searchable
-    #         ord_dict['Bundle'] = bundle
-    #     temp_data['aaData'].append(ord_dict)
-    # return temp_data
-
 
 def get_mr_status(user, data_id, total_qty, all_data, conversion=''):
     status = ''

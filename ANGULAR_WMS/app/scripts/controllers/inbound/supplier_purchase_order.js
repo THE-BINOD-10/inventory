@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.model_data = {};
 
     vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
                   'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': true}

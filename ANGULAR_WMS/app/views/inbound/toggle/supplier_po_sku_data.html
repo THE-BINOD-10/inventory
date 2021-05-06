@@ -41,20 +41,13 @@
                 <div class="col-xs-8">: {{showCase.store}}</div>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-12">
-              <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-success pull-right"
-                ng-click="showCase.gen_barcode()">Generate Barcodes</button>
-            </div>
       <div class="col-md-offset-1 col-md-3 col-sm-4 col-xs-4">
-        <p style="float:right">DC Level GRN :
-        <label class="switch switch-sm square mt5">
-          <input type="checkbox" name="dc_level_grn" ng-model="showCase.model_data.dc_level_grn" ng-disabled="showCase.selected_order_type == 'Stock Transfer'">
           <span style="margin-top: 28%;">
         <i class="handle"></i>
           </span>
         </label></p>
       </div>
-      <div class="row">
+      <!-- <div class="row">
         <div class=" col-md-offset-10 col-md-2 col-sm-6 col-xs-6">
           <p align="left">Show Ean Number
           <label class="switch switch-sm square">
@@ -182,7 +175,7 @@
                   <option value="{{showCase.current_month}}" ng-selected="showCase.current_month==showCase.model_data.grn_date">{{showCase.current_month}}</option>
                   <option ng-repeat="item in showCase.last_two_months" value="{{item}}" ng-selected="item==showCase.model_data.grn_date">{{item}}</option>
                 </select>
-                <!-- <input name="grn_date" ui-jq="datepicker" ng-model="showCase.model_data.grn_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true"> -->
+                <input name="grn_date" ui-jq="datepicker" ng-model="showCase.model_data.grn_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true"> 
               </div>
             </div>
             <div class="col-md-3 col-sm-6 col-xs-6">
@@ -197,7 +190,7 @@
                 <input type="text" ng-model="showCase.model_data.payment_received" class="form-control" readonly>
               </div>
             </div>
-          </div>
+          </div> -->
           <div class="row">
             <div class="col-md-12">
               <hr>
@@ -446,11 +439,11 @@
               </table>
             </div>
           </div>
-          <div class="row" ng-hide="showCase.permissions.use_imei || showCase.product_type">
+          <!-- <div class="row" ng-hide="showCase.permissions.use_imei || showCase.product_type">
             <center>
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>
-          </div>
+          </div> -->
           <div class="row mr10 ml10 mb10">
             <div class="col-md-12 hide">
               <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: 0})">Add Other Charges(+)</a>
@@ -492,31 +485,31 @@
               </div>
             </div>
           </div>
-          <div class="row" style="padding-top: 35px;" ng-if="showCase.selected_order_type != 'Stock Transfer'">
+          <!-- <div class="row" style="padding-top: 35px;" ng-if="showCase.selected_order_type != 'Stock Transfer'"> -->
               <!-- ng-show="!showCase.model_data.dc_level_grn" -->
-              <div class="form-group col-md-3" ng-if="!showCase.existing_file_name">
+              <!--<div class="form-group col-md-3" ng-if="!showCase.existing_file_name">
                 <div ng-if="!showCase.model_data.dc_level_grn || showCase.model_data.dc_number">File Upload *</div>
                 <div ng-if="showCase.model_data.dc_level_grn && !showCase.model_data.dc_number">File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 300px;">
                    <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" file-uploadd single style="position: relative;overflow: hidden;cursor: pointer;" ng-disabled="showCase.upload_enable"/>
-                 </span><br>
+                 </span><br>-->
                 <!-- <input type="file" id="image-upload" name="files" file-upload multiple=""> -->
-              </div>
+             <!-- </div>
               <div class="col-lg-3 col-md-3" ng-if="showCase.existing_file_name" style="background: linear-gradient(45deg, #07ddff1a, #c1c1c124);margin-top: 15px;height: 48px;padding-top: 11px;">
                 <div class="col-lg-11 col-md-11">
                   <button type="button" class="btn btn-success btn-xs btn-outline btn-icon mr5" style="margin-left: -15px;" ng-click="showCase.grn_upload_file_download()"><i class="fa fa-cloud-download"></i><span>{{showCase.existing_file_name}}</span></button>
                 </div>
                 <div class="col-lg-1 col-md-1">
                   <a class="btn btn-danger btn-xs btn-round" ng-click="showCase.unmap_grn_file(showCase.model_data.uploaded_file_dict.id)">X</a>
-                </div>
-                <!-- <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" class="btn btn-success btn-xs btn-outline"></a> -->
+                </div> -->
+                <!-- <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" class="btn btn-success btn-xs btn-outline"></a> 
               </div>
-              <!-- <div class="col-md-6"></div>
+              <div class="col-md-6"></div>
               <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
                 <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;"><i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
                 </a>
-              </div> -->
-          </div>
+              </div> 
+          </div> -->
 
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
       </div>

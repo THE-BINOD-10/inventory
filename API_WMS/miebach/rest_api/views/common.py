@@ -14356,4 +14356,4 @@ def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_
                 pass
         wb.save(path)
     return path_to_file
->>>>>>> 0d4a300faf70b3228803bbb2ad380f28e60eab42
+

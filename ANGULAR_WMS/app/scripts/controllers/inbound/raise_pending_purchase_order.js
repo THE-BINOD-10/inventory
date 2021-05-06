@@ -179,6 +179,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "cess_tax": 0,
             "sub_total": "",
             "pr_delivery_date": data.data.pr_delivery_date,
+            "full_pr_number": data.data.full_pr_number,
             "pr_created_date": data.data.pr_created_date,
             "product_category": data.data.product_category,
             "store": data.data.store,

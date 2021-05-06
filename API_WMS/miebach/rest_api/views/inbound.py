@@ -1667,6 +1667,7 @@ def generated_pr_data(request, user=''):
     levelWiseRemarks = []
     enquiryRemarks = []
     pr_delivery_date = ''
+    full_pr_number = ''
     pr_created_date = ''
     central_po_data = ''
     pr_remarks = ''
@@ -1675,8 +1676,10 @@ def generated_pr_data(request, user=''):
     if len(record) > 0:
         if record[0].remarks:
             pr_remarks = record[0].remarks
-        else:
-            pr_remarks = record[0].pending_prs.filter()[0].remarks
+        elif record[0].pending_prs.filter():
+            pr_rec = record[0].pending_prs.filter()[0]
+            pr_remarks = pr_rec.remarks
+            full_pr_number = pr_rec.full_pr_number
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
@@ -1803,7 +1806,8 @@ def generated_pr_data(request, user=''):
                                     'product_category': record[0].product_category,
                                     'store': store, 'department': department,
                                     'approval_remarks': pr_remarks,
-                                    'pa_uploaded_file_dict':pa_uploaded_file_dict}))
+                                    'pa_uploaded_file_dict':pa_uploaded_file_dict,
+                                    'full_pr_number': full_pr_number}))
 
 
 @csrf_exempt

@@ -123,6 +123,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
     return nRow;
   }
+  vm.close = close;
+  function close() {
+    vm.title = "Purchase Order";
+    $state.go('app.PurchaseOrder');
+  }
+
 
 }
 

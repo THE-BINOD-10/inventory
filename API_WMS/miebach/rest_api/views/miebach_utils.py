@@ -1868,7 +1868,7 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': [,'Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Warehouse Username', 'Status','Test Date', 'Consumption ID'],
+    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Warehouse Username', 'Status','Test Date', 'Consumption ID'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17205,7 +17205,7 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['updation_date','creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'test__sku_code', 'user__username', 'status','run_date']
+    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'test__sku_code', 'user__username', 'status','run_date', 'updation_date']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')

@@ -202,7 +202,7 @@ PURCHASE_ORDER_REPORT_STATUS = ['Yet To Receive', 'Partially Received', 'Receive
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
-CONSUMPTION_TYPE = ['Auto', 'ClosingStock', 'Manul']
+CONSUMPTION_TYPE = ['Auto Consumption', 'ClosingStock', 'Mannul Consumption']
 
 RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '',
                'damaged_quantity': 0}
@@ -1855,7 +1855,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'},
         {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
     ],
-    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
+    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Base Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -1864,11 +1864,13 @@ CONSUMPTION_DATA_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Test Code', 'name': 'test_code', 'type': 'search'},
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Warehouse Username', 'Status','Test Date', 'Consumption ID'],
+    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Status','Test Date', 'Consumption ID'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17302,7 +17304,8 @@ def get_consumption_data_(search_params, user, sub_user):
         
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result.creation_date)),
-            ('Plant Name', 'Metropolis Vidyavihar'),
+            ('Plant Code', plant_code),
+            ('Plant Name', plant_name),
             ('Department', department),
             ('Warehouse Username', user_obj.username),
             ('Test Code', test_code),

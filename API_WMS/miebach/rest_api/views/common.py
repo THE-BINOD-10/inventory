@@ -598,7 +598,7 @@ def get_search_params(request, user=''):
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
                     'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number',
                     'plant_name': 'plant_name', 'year': 'year', 'month_no': 'month_no', 'consumption_type': 'consumption_type', 'machine_code': 'machine_code',
-                    'test_code': 'test_code'
+                    'test_code': 'test_code', 'machine_code':'machine_code'
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',

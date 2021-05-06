@@ -693,17 +693,21 @@ PR_PO_GRN_DICT = {'filters': [
             'dt_headers': [
             "PR No", "PR date", "Plant Name", "Plant Code", "Zone", "Department Name", "PR Category",
             "Materials Code" , "Material Desp",  "Material Category",
-            "PR Purchase UOM" , "PR Purchase Qty" ,  "PR raised By", "PR Approval Pending at",  "PR Status",
-            # "PR Base UOM", "PR Base Qty",
+            "Conversion Factor", 
+            "PR Purchase UOM" , "PR Purchase Qty" , 
+            "PR Base UOM", "PR Base UOM Qty",
+             "PR raised By", "PR Approval Pending at",  "PR Status",
+            
 
             "PO No", "PO Date", "Vendor Name", "Vendor Code",
+            "PO Base UOM", "PO Base UOM Qty",
             "PO Purchase UOM" , "PO Purchase Qty" ,
-            # "PO Base UOM", "PO Base UOM Qty",
             "PO Basic Price",  "PO IGST", "PO CGST", "PO SGST", "PO CESS", "PO amt(without Tax)", "PO total tax Amt",
             "PO Total amount (with Tax)", "PO Status", "Expected Delivery Date",
 
-            "GRN No", "GRN Date", "GRN Purchase UOM" , "GRN Purchase Qty" ,
-             # "GRN Base UOM", "GRN Base UOM Qty",
+            "GRN No", "GRN Date",  "GRN Base UOM", "GRN Base UOM Qty",
+            "GRN Purchase UOM" , "GRN Purchase Qty" ,
+            
             "Batch No", "Expiry date",  "GRN Basic Price", "GRN amount( without Tax )",
             "GRN IGST", "GRN CGST", "GRN SGST", "GRN CESS", "GRN TCS",
             "GRN total tax Amount",  "GRN Total amount(with Tax)", "GRN Status" ],
@@ -3964,7 +3968,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
                 plant_code = user.userprofile.stockone_code
                 plant = user.first_name
                 plant_zone = user.userprofile.zone
-
+    
         integration_error , integration_status= '', ''
         if data.status == 1:
             integration_status = 'Success'
@@ -6069,6 +6073,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 'supplier_id': po_dat["pending_po__supplier__supplier_id"], 'supplier__name': po_dat["pending_po__supplier__name"],
                 'price': po_dat["price"], 'po_final_status': po_dat["pending_po__final_status"]})
     po_grn_results= PurchaseOrder.objects.filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     for record in model_data:
         pending_po_key= (record.get("pendingpo__full_po_number", ""), record.get("pending_prlineItems__sku__sku_code", ""))
         vendor_code, vendor_name, po_final_status, po_date = [""]*4
@@ -6106,6 +6111,8 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             next_approver_mail = pending_approval["validated_by"]
             pending_level = pending_approval["level"]
             approval_type = pending_approval["approval_type"]
+        uom_dict = skus_uom_dict.get(record.get("pending_prlineItems__sku__sku_code", ""))
+        pcf = uom_dict.get('sku_conversion', 1)
         for po_grn_dat in po_grn_results:
             if pending_po_key and record.get("pendingpo__full_po_number")== po_grn_dat["po_number"] and record.get("pending_prlineItems__sku__sku_code")==po_grn_dat["open_po__sku__sku_code"]:
                 vendor_code = po_grn_dat.get("open_po__supplier__supplier_id", "")
@@ -6137,7 +6144,6 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                     grn_number = po_grn_dat.get("sellerposummary__grn_number", "")
                     grn_status= "Cancelled" if po_grn_dat.get("sellerposummary__status", 0)==1 else "Received"
 
-
                 ord_dict = OrderedDict((
                 ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
                 ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
@@ -6146,12 +6152,13 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ('Zone', pr_plant_zone), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
                 ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
                 ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
-                ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
+                ("Conversion Factor", uom_dict.get('sku_conversion', 1)),
+                ("PR Base UOM", uom_dict["base_uom"]), ("PR Base UOM Qty", record.get('pending_prlineItems__quantity', 0) * pcf ), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
 
-                ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date" , po_date), ("Vendor Name", vendor_name),
+                ("PO No", record.get("pendingpo__full_po_number", "") if vendor_code else ""), ("PO Date" , po_date if vendor_code else ""), ("Vendor Name", vendor_name),
                 ("Vendor Code", vendor_code),
                 ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
-                ("PO Purchase Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+                ("PO Purchase Qty", po_quantity if vendor_code else "") , ("PO Base UOM",  uom_dict["base_uom"] if vendor_code else ""), ("PO Base UOM Qty", po_quantity* pcf if vendor_code else ""),
                 ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
                 ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
                 ("PO CESS", po_cess_tax),
@@ -6161,7 +6168,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 ("GRN No",  grn_number),
                 ("GRN Date", grn_date), ("GRN Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
                 ("GRN Purchase Qty", grn_quantity) ,
-                ("GRN Base UOM", ""), ("GRN Base UOM Qty", ""),
+                ("GRN Base UOM", uom_dict["base_uom"] if grn_number else ""), ("GRN Base UOM Qty", grn_quantity* pcf if grn_number else ""),
                 ("Batch No", po_grn_dat.get("sellerposummary__batch_detail__batch_no", "")),
                 ("Expiry date", expiry_date),
                 ("GRN Basic Price", grn_price),
@@ -6185,11 +6192,12 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ('Zone', pr_plant_zone), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
             ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
             ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
-            ("PR Base UOM", ""), ("PR Base UOM Qty", ""), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
+            ("Conversion Factor", uom_dict.get('sku_conversion', 1)),
+            ("PR Base UOM", uom_dict["base_uom"]), ("PR Base UOM Qty", record.get('pending_prlineItems__quantity', 0) * pcf ), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
 
-            ("PO No", record.get("pendingpo__full_po_number", "")), ("PO Date", po_date), ("Vendor Name", vendor_name),
+            ("PO No", record.get("pendingpo__full_po_number", "") if vendor_code else ""), ("PO Date", po_date if vendor_code else ""), ("Vendor Name", vendor_name),
             ("Vendor Code", vendor_code),
-            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) , ("PO Purchase Qty", po_quantity) , ("PO Base UOM", ""), ("PO Base UOM Qty", ""),
+            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "") if vendor_code else "") , ("PO Purchase Qty", po_quantity) , ("PO Base UOM",uom_dict["base_uom"] if vendor_code else ""), ("PO Base UOM Qty", po_quantity* pcf if vendor_code else ""),
             ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
             ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
             ("PO CESS", po_cess_tax),

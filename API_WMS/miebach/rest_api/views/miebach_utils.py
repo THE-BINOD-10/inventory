@@ -202,6 +202,11 @@ PURCHASE_ORDER_REPORT_STATUS = ['Yet To Receive', 'Partially Received', 'Receive
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
+INTEGRATION_STATUS= ['SUCCESS', 'FAILED', 'PENDING']
+
+INTEGRATION_TYPES = ['PurchaseRequizition', 'PurchaseOrder', 'GRN', 'InventoryAdjustment', 'RTV']
+
+
 RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '',
                'damaged_quantity': 0}
 
@@ -636,6 +641,40 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
+
+
+INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'Integrtion To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'Stockone ID', 'name': 'stockone_reference', 'type': 'input'},
+                        {'label': 'Integration Type', 'name': 'integration_type', 'type': 'select'},
+                        {'label': 'Integration Status', 'name': 'integration_status', 'type': 'select'},
+                        # {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
+                        # {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
+                        # {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
+                        # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        # {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+                        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+                        # {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+                        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+
+                    ],
+
+            'dt_headers': [
+              "Stockone Id",  "Plant Code", "Plant" , "Zone", "Module type", "Action Type", ""
+              "Integration Date", "Integration Status", "Integration Error"
+             ],
+            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
+            # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
+            #                   'SKU Code',
+            #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
+            #                   'Received Qty', 'Unit Rate',
+            #                   'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
+            #                   'Post-Tax Received Value',
+            #                   'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
+            'dt_url': 'get_integration_report', 'excel_name': 'integration_report', 'print_url': '',
+            }
 
 PR_PO_GRN_DICT = {'filters': [
                         # {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
@@ -1907,6 +1946,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
                      'grn_report': GRN_DICT, 'pr_po_grn_dict': PR_PO_GRN_DICT, 'sku_wise_grn_report': SKU_WISE_GRN_DICT,
+                     'integration_report': INTEGRATION_REPORT_DICT,
                      'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
@@ -2599,6 +2639,7 @@ SKU_PACK_EXCEL = OrderedDict((('sku_code', 0), ('pack_id', 1), ('pack_quantity',
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data',
                         'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data',
+                        'integration_report': 'get_integration_report_data',
                         'pr_po_grn_dict': 'get_pr_po_grn_filter_data',
                         'st_goods_receipt': 'get_st_po_filter_data',
                         'receipt_summary': 'get_receipt_filter_data',
@@ -3799,6 +3840,162 @@ def get_sku_filter_data(search_params, user, sub_user):
 
     return temp_data
 
+def get_integration_report_data(request, search_params, user, sub_user):
+    from stockone_integrations.models import IntegrationMaster
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request,\
+        get_related_users_filters,get_admin
+    users = [user.id]
+    admin_user_id= user.id
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ["stockone_reference", "stockone_reference","stockone_reference", "stockone_reference", "module_type", "action_type", "creation_date",  "status", "integration_error"]
+    unsorted_dict = {}
+    model_name = IntegrationMaster
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'stockone_reference': 'stockone_reference',
+                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact', 'user': 'user_id__in',
+                    }
+    result_values = ["user_id", "stockone_reference", 'module_type', "action_type", "integration_error", "status", "integration_type"
+                 ]
+    excl_status = {'module_type__in': ["uom", "InventoryItem"]}
+    # ord_quan = 'purchase_order__open_po__order_quantity'
+    # rec_quan = 'purchase_order__received_quantity'
+    # rec_quan1 = 'sellerposummary__quantity'
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    if 'from_date' in search_params:
+        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'grn_from_date' in search_params:
+        search_parameters['creation_date__gte'] = search_params['grn_from_date']
+        if field_mapping['from_date'] + '__gte' in search_parameters.keys():
+            del search_parameters[field_mapping['from_date'] + '__gte']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+
+    if 'grn_to_date' in search_params:
+        search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
+                                                                 datetime.time())
+        search_parameters['creation_date__lte'] = search_params['grn_to_date']
+        if field_mapping['to_date'] + '__lte' in search_parameters.keys():
+            del search_parameters[field_mapping['to_date'] + '__lte']
+    if 'stockone_reference' in search_params:
+        search_parameters['stockone_reference'] = search_params['stockone_reference']
+    # if 'grn_number' in search_params:
+    #     search_parameters[field_mapping['grn_number']] = search_params['grn_number']
+    if 'integration_status' in search_params:
+        integration_status_keys= {"SUCCESS": True, "FAILED": False, "PENDING": None}
+        search_parameters['status'] = integration_status_keys[search_params['integration_status']]
+    if 'integration_type' in search_params:
+        search_parameters['module_type__iexact'] = search_params['integration_type']
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
+            search_params['supplier'].split(':')[0]
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    # if 'sister_warehouse' in search_params:
+    #     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    #     dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    #     dept_type = search_params['sister_warehouse']
+    #     if dept_type.lower() != 'na':
+    #         users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+    #     else:
+    #         users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    if 'zone_code' not in search_params and 'plant_name' not in search_params.keys() and 'plant_code' not in search_params:
+        user_ids.append(admin_user_id)
+    search_parameters[field_mapping['user']] = user_ids
+    model_data = model_name.objects.filter(**search_parameters).exclude(**excl_status)
+    # model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
+    #                                                                    total_received=Sum(rec_quan))
+    # grn_rec=Sum(rec_quan1))
+    col_num = search_params.get('order_index', 6)
+    order_term = search_params.get('order_term', 'asc')
+    if order_term:
+        if col_num==0:
+            col_num = 6
+            order_term = 'desc'
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = "-%s" % order_data
+        if order_data:
+            model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        model_data = model_data[start_index:stop_index]
+    for data in model_data:
+        user = data.user
+        if user:
+            if user.userprofile.warehouse_type.lower() == 'dept':
+                admin_user = get_admin(user)
+                plant_code = admin_user.userprofile.stockone_code
+                plant = admin_user.userprofile.user.first_name
+                plant_zone = admin_user.userprofile.zone
+            else:
+                plant_code = user.userprofile.stockone_code
+                plant = user.first_name
+                plant_zone = user.userprofile.zone
+
+        integration_error , integration_status= '', ''
+        if data.status == 1:
+            integration_status = 'Success'
+        elif data.status == 0:
+            integration_status = 'Failed'
+        else:
+            integration_status = 'Pending'
+            # if not final_status.title() == "Something":
+            #     integration_status = 'GRN -NA- queue'
+        if integration_status == 'Failed':
+            integration_error = data.integration_error
+        integration_date = data.creation_date.strftime("%d %b, %Y")
+        temp_data['aaData'].append(OrderedDict((('Stockone Id', data.stockone_reference),
+                                                ('Module type', data.module_type),
+                                                ('Action Type', data.action_type),
+                                                ("Integration Date", integration_date),
+                                                ("Integration Status", integration_status), 
+                                                ("Integration Error", integration_error),
+                                                ("Plant Code", plant_code),
+                                                ("Plant", plant),
+                                                ("Zone", plant_zone),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowAttr', {'data-id': data.stockone_reference }),
+                                                ('key', 'Stockone Id'), ('receipt_type', 'Integration Report')
+                                                )))
+    if stop_index and custom_search:
+        if temp_data['aaData']:
+            temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '',
+                                                    col_num, exact=False)
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
 
 def get_location_stock_data(search_params, user, sub_user):
     from miebach_admin.models import *

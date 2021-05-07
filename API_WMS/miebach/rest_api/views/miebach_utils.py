@@ -1077,10 +1077,10 @@ METROPOLIS_PO_DETAIL_REPORT_DICT = {
 
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
+    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'Plant Code', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
-                   'Final Approver date','PO Number', 'PO Quantity', 'PO Received Qty', 'PO Receivable Qty', 'PO Received Amt', 'PO Receivable Amt', 'PO Raised Date','Material Code',
-                   'Material Description', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
+                   'Final Approver date','PO Number', 'PO Quantity', 'PO Base UOM Qty', 'PO Base UOM', 'PO Received Qty', 'PO Receivable Qty', 'Pending PO Base UOM Qty', 'Pending PO Base UOM', 'PO Received Amt', 'PO Receivable Amt', 'PO Raised Date','Material Code',
+                   'Material Description', 'Conversion Factor', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
                    'SKU Group', 'SKU Class', 'UOM', 'HSN Code', 'PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
                    'Supplier ID', 'Supplier Name'],
@@ -16676,8 +16676,39 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         po_int_status.setdefault(po_int.stockone_reference, po_int.status)
         po_int_err.setdefault(po_int.stockone_reference, po_int.integration_error)
         po_int_date.setdefault(po_int.stockone_reference, po_int.updation_date)
+
+    open_po_data = PurchaseOrder.objects.filter(po_number__in=po_numbers,open_po__isnull=False).exclude(status='deleted').\
+                                            values('po_number','open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
+                                            'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
+                                            'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
+                                            'open_po__sku__user', 'updation_date' , 'open_po__cess_tax')
+    open_po_data_dict= {}
+    for open_po_row in open_po_data:
+        if open_po_row["po_number"] in open_po_data_dict:
+            open_po_data_dict[open_po_row["po_number"]]["po_quantity"]+= open_po_row['open_po__order_quantity']
+            temp_tax = open_po_row['open_po__cgst_tax'] + open_po_row['open_po__sgst_tax'] + open_po_row['open_po__igst_tax'] + open_po_row['open_po__cess_tax']
+            temp_amt = (open_po_row['open_po__order_quantity']* open_po_row['open_po__price'])
+            open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] += (temp_amt/100) * temp_tax
+            open_po_data_dict[open_po_row["po_number"]]["po_amount"] += open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] + temp_amt
+        else:
+            po_quantity = open_po_row['open_po__order_quantity']
+            temp_tax = open_po_row['open_po__cgst_tax'] + open_po_row['open_po__sgst_tax'] + open_po_row['open_po__igst_tax'] + open_po_row['open_po__cess_tax']
+            temp_amt = (open_po_row['open_po__order_quantity']*open_po_row['open_po__price'])
+            po_tax_amount = (temp_amt/100) * temp_tax
+            po_amount = po_tax_amount + temp_amt
+            temp_dict = {"po_amount": po_amount, 
+                   "po_tax_amount": po_tax_amount,
+                   "po_quantity": po_quantity,
+                   "sku_user": open_po_row["open_po__sku__user"],
+                   "supplier_name": open_po_row["open_po__supplier__name"],
+                   "supplier_id": open_po_row["open_po__supplier__supplier_id"],
+                   "po_date": open_po_row["po_date"],
+                   "updation_date": open_po_row["updation_date"],
+                   "sku_category": open_po_row["open_po__sku__sku_category"],
+                  } 
+            open_po_data_dict[open_po_row["po_number"]] = temp_dict
     for result in results:
-        pr_plant, pr_department, pr_number, pr_date, pr_user, po_date, supplier_id, supplier_name, po_update_date= '', '', '', '', '', '', '', '', ''
+        pr_plant, pr_plant_code, pr_department, pr_number, pr_date, pr_user, po_date, supplier_id, supplier_name, po_update_date= '', '', '', '', '', '', '', '', '', ''
         product_category, category, final_status, plant_zone = '', '', '', ''
         pr_quantity = ''
         user_id= ''
@@ -16686,25 +16717,38 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
                                             'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
                                             'open_po__sku__user', 'updation_date' , 'open_po__cess_tax')
-        po_quantity,po_tax_amount, po_amount = 0,0,0
-        if open_po_data:
-            open_po_row = open_po_data[0]
-            supplier_id = open_po_row['open_po__supplier__supplier_id']
-            supplier_name = open_po_row['open_po__supplier__name']
-            category = open_po_row['open_po__sku__sku_category']
-            user_id = open_po_row['open_po__sku__user']
-            po_date = open_po_row['po_date']
-            po_update_date = open_po_row['updation_date']
-            if po_update_date:
-                po_update_date = get_local_date(user, po_update_date)
-            if po_date:
-                po_date = get_local_date(user, po_date)
-            for open_po in open_po_data:
-                po_quantity += open_po['open_po__order_quantity']
-                temp_tax = open_po['open_po__cgst_tax'] + open_po['open_po__sgst_tax'] + open_po['open_po__igst_tax'] + open_po['open_po__cess_tax']
-                temp_amt = (open_po['open_po__order_quantity']*open_po['open_po__price'])
-                po_tax_amount += (temp_amt/100) * temp_tax
-                po_amount += po_tax_amount + temp_amt
+        # po_quantity,po_tax_amount, po_amount = 0,0,0
+        supplier_id = open_po_data_dict.get(result['po_number'], {}).get("supplier_id", "")
+        supplier_name = open_po_data_dict.get(result['po_number'], {}).get("supplier_name", "")
+        po_date = open_po_data_dict.get(result['po_number'], {}).get("po_date", "")
+        user_id = open_po_data_dict.get(result['po_number'], {}).get("sku_user", "")
+        category = open_po_data_dict.get(result['po_number'], {}).get("sku_category", "")
+        po_update_date = open_po_data_dict.get(result['po_number'], {}).get("updation_date", "")
+        if po_update_date:
+          po_update_date = get_local_date(user, po_update_date)
+        if po_date:
+            po_date = get_local_date(user, po_date)
+        po_quantity = open_po_data_dict.get(result['po_number'], {}).get("po_quantity", 0)
+        po_tax_amount =  open_po_data_dict.get(result['po_number'], {}).get("po_tax_amount", 0)
+        po_amount = open_po_data_dict.get(result['po_number'], {}).get("po_amount", 0)
+        # if open_po_data:
+        #     open_po_row = open_po_data[0]
+        #     supplier_id = open_po_row['open_po__supplier__supplier_id']
+        #     supplier_name = open_po_row['open_po__supplier__name']
+        #     category = open_po_row['open_po__sku__sku_category']
+        #     user_id = open_po_row['open_po__sku__user']
+        #     po_date = open_po_row['po_date']
+        #     po_update_date = open_po_row['updation_date']
+        #     if po_update_date:
+        #         po_update_date = get_local_date(user, po_update_date)
+        #     if po_date:
+        #         po_date = get_local_date(user, po_date)
+        #     for open_po in open_po_data:
+        #         po_quantity += open_po['open_po__order_quantity']
+        #         temp_tax = open_po['open_po__cgst_tax'] + open_po['open_po__sgst_tax'] + open_po['open_po__igst_tax'] + open_po['open_po__cess_tax']
+        #         temp_amt = (open_po['open_po__order_quantity']*open_po['open_po__price'])
+        #         po_tax_amount += (temp_amt/100) * temp_tax
+        #         po_amount += po_tax_amount + temp_amt
         '''if open_po_data:
             if open_po_data.open_po:
                 supplier_id = open_po_data.open_po.supplier.supplier_id
@@ -16735,7 +16779,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                 pr_user = pr_data['pending_po__pending_prs__requested_user__first_name']
                 pr_date = pr_data['pending_po__pending_prs__creation_date']
                 pr_creation_date = pr_data['pending_po__pending_prs__creation_date']
-                plant_zone = pr_data['pending_po__wh_user__userprofile__zone']
+                # plant_zone = pr_data['pending_po__wh_user__userprofile__zone']
                 if pr_creation_date:
                     pr_date = get_local_date(user, pr_creation_date)
                 pr_request_user = pr_data['pending_po__pending_prs__requested_user__first_name']
@@ -16747,7 +16791,18 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                 req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])
                 if req_user:
                     req_user=req_user[0]
-                    pr_department, pr_plant = get_plant_and_department(req_user)
+                    if req_user.userprofile.warehouse_type.lower() == 'dept':
+                        department= req_user.first_name
+                        admin_user = get_admin(req_user)
+                        pr_plant_code = admin_user.userprofile.stockone_code
+                        pr_plant = admin_user.userprofile.user.first_name
+                        plant_zone = admin_user.userprofile.zone
+                    else:
+                        pr_plant_code = req_user.userprofile.stockone_code
+                        pr_plant = req_user.first_name
+                        plant_zone = req_user.userprofile.zone
+                    # 
+                    # pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
         prApprQs = PurchaseApprovals.objects.filter(
             pending_pr__full_pr_number=pr_number)
@@ -16801,6 +16856,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('PR raised By ( User Name)', pr_user),
             ('PR raised By ( User department name)', pr_department),
             ('PR Plant', pr_plant),
+            ('Plant Code', pr_plant_code),
             ('Zone', plant_zone),
             ('Product Category', product_category),
             ('Category', category),
@@ -16824,13 +16880,12 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('Integration Reason', integration_error),
             ('Integration Date', integration_date),
             ('Last Updated by', updated_user_name),
-            ('Integration Status', integration_status),
-            ('Integration Reason', integration_error),
-            ('Integration Date', integration_date),
+            # ('Integration Status', integration_status),
+            # ('Integration Reason', integration_error),
+            # ('Integration Date', integration_date),
             ('Last Updated Date', po_update_date),
             ('Expected delivery date', delivery_date)))
         temp_data['aaData'].append(ord_dict)
-
     return temp_data
 
 
@@ -16840,7 +16895,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
     from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
-        get_related_users_filters, check_and_get_plants_wo_request
+        get_related_users_filters, check_and_get_plants_wo_request, get_uom_with_multi_skus
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     users = [user.id]
@@ -16852,12 +16907,12 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
     #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['po_number', 'order_id','creation_date','po_number', 'creation_date', 'po_number', 'po_number',
+    lis = ['po_number', 'order_id','creation_date','po_number', 'po_number', 'creation_date', 'po_number', 'po_number',
            'order_id', 'po_number',
            'open_po__sku__sku_category', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number',
            'po_number', 'po_number',
            'po_number', 'po_number', 'po_number', 'creation_date', 'open_po__sku__user',
-           'po_number', 'po_number',
+           'po_number', 'po_number', 'po_number', 'po_number', 'po_number', 'po_number', 'po_number',
            'open_po__sku__user__username', 'po_number', 'po_number',
            'open_po__sku__user__username', 'po_number', 'po_number',
            'open_po__sku__user__username', 'po_number', 'po_number',
@@ -16939,7 +16994,11 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         results = model_data[start_index:stop_index]
     else:
         results = model_data
+    sku_codes_list= []
+    for each_row in results:
+        sku_codes_list.append(each_row["open_po__sku__sku_code"])
 
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes_list, uom_type='purchase')
     for result in results:
         sku_code, sku_desc,  sku_class, sku_group, sku_style_name,sku_brand, sub_category = '', '', '','', '', '', ''
         sku_category, product_category, po_date, plant_zone = '', '', '', ''
@@ -16965,6 +17024,8 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         po_update_date = result['updation_date']
         po_date = result['po_date']
         final_status = result['status']
+        uom_dict = skus_uom_dict.get(sku_code)
+        pcf = uom_dict.get('sku_conversion', 1)
         if result['received_quantity'] == result['open_po__order_quantity']:
             final_status = 'Received'
         elif result['status'] == 'location-assigned' and result['reason'] and result['received_quantity'] == 0:
@@ -17009,6 +17070,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                        'updation_date', 'pending_prs__requested_user__id','pending_prs__wh_user__id',
                        'pending_prs__id', 'product_category', 'sku_category', 'id', 'pending_prs__wh_user__userprofile__zone']
         pr_data = PendingPO.objects.filter(full_po_number = result['po_number']).values(*pr_values_list)
+        pr_plant_code = ""
         if pr_data:
             pr_data = pr_data[0]
             product_category = pr_data['product_category']
@@ -17020,7 +17082,17 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             req_user = User.objects.filter(id=pr_data['pending_prs__wh_user__id'])
             if req_user:
                 req_user = req_user[0]
-                pr_department, pr_plant = get_plant_and_department(req_user)
+                if req_user.userprofile.warehouse_type.lower() == 'dept':
+                    department= req_user.first_name
+                    admin_user = get_admin(req_user)
+                    pr_plant_code = admin_user.userprofile.stockone_code
+                    pr_plant = admin_user.userprofile.user.first_name
+                    plant_zone = admin_user.userprofile.zone
+                else:
+                    pr_plant_code = req_user.userprofile.stockone_code
+                    pr_plant = req_user.first_name
+                    plant_zone = req_user.userprofile.zone
+                # pr_department, pr_plant = get_plant_and_department(req_user)
             last_approvals_date = ''
             prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=pr_data['pending_prs__id'])
             all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
@@ -17074,6 +17146,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('PR raised By ( User Name)',pr_request_user ),
             ('PR raised By ( User department name)', pr_department),
             ('PR Plant', pr_plant),
+            ('Plant Code', pr_plant_code),
             ('Zone', plant_zone),
             ('Product Category', product_category),
             ('Category', sku_category),
@@ -17093,6 +17166,11 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('Supplier ID', supplier_id),
             ('Supplier Name', supplier_name),
             ('Material Code', sku_code),
+            ('Conversion Factor', pcf),
+            ('PO Base UOM Qty', po_quantity * pcf),
+            ('Pending PO Base UOM Qty', po_receivable_qty * pcf),
+            ('Pending PO Base UOM', uom_dict["base_uom"]),
+            ('PO Base UOM', uom_dict["base_uom"]),
             ('Material Description', sku_desc),
             ('SKU Class', sku_class),
             ('SKU Group', sku_group),

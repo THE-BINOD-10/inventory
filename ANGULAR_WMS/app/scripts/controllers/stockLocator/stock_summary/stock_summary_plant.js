@@ -60,10 +60,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
         DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
-        DTColumnBuilder.newColumn('Total Stock Value').withTitle('Total Stock Value'),
-        DTColumnBuilder.newColumn('Average Monthly Consumption Value').withTitle('Average Monthly Consumption Value'),
-        DTColumnBuilder.newColumn('Days of Cover Value').withTitle('Days of Cover Value'),
-        DTColumnBuilder.newColumn('Excess Stock Value').withTitle('Excess Stock Value')
+        DTColumnBuilder.newColumn('Total Stock Value').withTitle('Total Stock Value').notSortable(),
+        DTColumnBuilder.newColumn('Average Monthly Consumption Value').withTitle('Average Monthly Consumption Value').notSortable(),
+        DTColumnBuilder.newColumn('Days of Cover Value').withTitle('Days of Cover Value').notSortable(),
+        DTColumnBuilder.newColumn('Excess Stock Value').withTitle('Excess Stock Value').notSortable()
     ];
 
 

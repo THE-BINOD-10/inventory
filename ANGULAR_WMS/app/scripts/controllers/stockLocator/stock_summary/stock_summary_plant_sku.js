@@ -44,7 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      })
      .withOption('processing', true)
      .withOption('serverSide', true)
-     .withOption('createdRow', function(row, data, dataIndex) {
+     /*.withOption('createdRow', function(row, data, dataIndex) {
           $compile(angular.element(row).contents())($scope);
       })
       .withOption('headerCallback', function(header) {
@@ -52,11 +52,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.headerCompiled = true;
               $compile(angular.element(header).contents())($scope);
           }
-      })
+      })*/
      .withPaginationType('full_numbers')
-     .withOption('initComplete', function( settings ) {
+     /*.withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-     });
+     });*/
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
         DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
@@ -64,26 +64,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
-        DTColumnBuilder.newColumn('Current Stock Base UOM').withTitle('Current Stock Base UOM'),
-        DTColumnBuilder.newColumn('Current Stock Value').withTitle('Current Stock Value'),
-        DTColumnBuilder.newColumn('Average Monthly Consumption Base Qty').withTitle('Average Monthly Consumption Base Qty'),
-        DTColumnBuilder.newColumn('Average Monthly Consumption Value').withTitle('Average Monthly Consumption Value'),
-        DTColumnBuilder.newColumn('Days of Cover Base Qty').withTitle('Days of Cover Base Qty'),
-        DTColumnBuilder.newColumn('Days of Cover Value').withTitle('Days of Cover Value'),
-        DTColumnBuilder.newColumn('Max Norm Qty').withTitle('Max Norm Qty'),
-        DTColumnBuilder.newColumn('Max Norm Value').withTitle('Max Norm Value'),
-        DTColumnBuilder.newColumn('Excess Stock Qty').withTitle('Excess Stock Qty'),
-        DTColumnBuilder.newColumn('Excess Stock Value').withTitle('Excess Stock Value'),
+        DTColumnBuilder.newColumn('Current Stock Base UOM').withTitle('Current Stock Base UOM').notSortable(),
+        DTColumnBuilder.newColumn('Current Stock Value').withTitle('Current Stock Value').notSortable(),
+        DTColumnBuilder.newColumn('Average Monthly Consumption Base Qty').withTitle('Average Monthly Consumption Base Qty').notSortable(),
+        DTColumnBuilder.newColumn('Average Monthly Consumption Value').withTitle('Average Monthly Consumption Value').notSortable(),
+        DTColumnBuilder.newColumn('Days of Cover Base Qty').withTitle('Days of Cover').notSortable(),
+        //DTColumnBuilder.newColumn('Days of Cover Value').withTitle('Days of Cover Value'),
+        DTColumnBuilder.newColumn('Max Norm Qty').withTitle('Max Norm Qty').notSortable(),
+       //DTColumnBuilder.newColumn('Max Norm Value').withTitle('Max Norm Value'),
+        DTColumnBuilder.newColumn('Excess Stock Qty').withTitle('Excess Stock Qty').notSortable(),
+        //DTColumnBuilder.newColumn('Excess Stock Value').withTitle('Excess Stock Value'),
     ];
 
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+    /*vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
                   if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
                     vm.selected = {};
                   }
                   vm.selected[meta.row] = vm.selectAll;
                   return vm.service.frontHtml + meta.row + vm.service.endHtml;
-                }))
+                }))*/
 
     vm.dtInstance = {};
 

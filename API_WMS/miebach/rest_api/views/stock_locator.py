@@ -302,11 +302,18 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         if sku_conversion == 0:
             sku_conversion = 1
         sku_avg_price = SKUMaster.objects.get(user=data[4], sku_code=data[0]).average_price
+        cons_qty, monthly_cons_qty, days_cover_qty, day_cons_qty = [0]*4
+        consumption_user_data = get_last_three_months_consumption(filters={'sku__user__in':[sku_user.id], 'sku__sku_code__in': [data[0]]})
+        if consumption_user_data.exists():
+            cons_qty = consumption_user_data.aggregate(Sum('quantity'))['quantity__sum']
+            monthly_cons_qty = cons_qty/3
+            day_cons_qty = monthly_cons_qty/30
+            days_cover_qty = round((ptotal+putaway_pending)* sku_conversion, 5)/day_cons_qty
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('SKU Conversion', sku_conversion),
                                                 ('sku_packs', sku_packs),
-                                                ('Available Qty', round(pquantity, 5)),
-                                                ('Reserved Qty', round(preserved, 5)), ('Purchase UOM Qty', round(ptotal, 3)),
+                                                ('Available Qty', round(pquantity, 2)),
+                                                ('Reserved Qty', round(preserved, 2)), ('Purchase UOM Qty', round(ptotal, 2)),
                                                 ('Pending Putaway Qty', putaway_pending),
                                                 ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 5)),
                                                 ('Base UOM Qty', round(ptotal * sku_conversion, 5)),
@@ -315,9 +322,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Purchase UOM', measurement_type),
                                                 ('Base UOM', base_uom),
                                                 ('Unit Purchase Qty Price', sku_avg_price),
-                                                ('In Stock Value', round(ptotal*sku_avg_price, 5)),
-                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 5)),
-                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 5)),
+                                                ('In Stock Value', round(ptotal*sku_avg_price, 2)),
+                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 2)),
+                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 2)),
                                                 # ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),
@@ -325,6 +332,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Dept Name', dept_type),
                                                 ('Intransit Qty', intransit_qty),
                                                 ('Intransit Value', float('%.2f' % intransit_amt)),
+                                                ('Avg Monthly Consumption Qty', round(monthly_cons_qty, 2)),
+                                                ('Days of Cover', round(days_cover_qty, 2)),
                                                 ('DT_RowId', data[0]))))
         # temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
         #                                         ('SKU Category', data[2]), ('SKU Brand', data[3]),
@@ -4283,11 +4292,11 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
                                   ('Average Monthly Consumption Base Qty', round(cons_qtyb, 1)),
                                   ('Average Monthly Consumption Value', round(cons_value, 1)),
                                   ('Days of Cover Base Qty', round(days_of_cover_bqty,1)),
-                                  ('Days of Cover Value', round(days_of_cover_value,1)),
+                                  # ('Days of Cover Value', round(days_of_cover_value,1)),
                                   ('Max Norm Qty', round(max_norm_qty, 1)),
-                                  ('Max Norm Value', round(max_norm_value, 1)),
+                                  # ('Max Norm Value', round(max_norm_value, 1)),
                                   ('Excess Stock Qty', round(excess_stock_qty, 1)),
-                                  ('Excess Stock Value', round(excess_stock_value, 1)),
+                                  # ('Excess Stock Value', round(excess_stock_value, 1)),
                                   ('DT_RowAttr', {'data-id': data['sku__user']}),
                                 ))
         temp_data['aaData'].append(data_dict)

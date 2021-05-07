@@ -97,7 +97,7 @@ def get_report_data(request, user=''):
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
-                         'sku_wise_consumption_report', 'closing_stock_report']:
+                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -156,6 +156,11 @@ def get_report_data(request, user=''):
         if 'zone_code' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'zone_code' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ZONE_CODES
+        if 'consumption_type' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'consumption_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = CONSUMPTION_TYPE
+
         if 'integration_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'integration_status' in person['name'], data['filters'])[0])
@@ -2298,7 +2303,7 @@ def print_purchase_order_form(request, user=''):
             user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
-            remarks = pending_po_data.remarks
+            #remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
@@ -2334,6 +2339,7 @@ def print_purchase_order_form(request, user=''):
         table_headers.insert(table_headers.index('Total'), 'APMC (%)')
     for order in purchase_orders:
         open_po = order.open_po
+        remarks = order.remarks
         total_qty += open_po.order_quantity
         if order.currency_rate > 1:
             currency_rate = round(open_po.price / order.currency_rate, 2)
@@ -2917,6 +2923,15 @@ def get_sku_wise_cancel_grn_report(request, user=''):
 def get_sku_wise_consumption_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_consumption_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_consumption_data(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_consumption_data_(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

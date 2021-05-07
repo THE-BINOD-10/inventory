@@ -633,6 +633,7 @@ urlpatterns = [
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
     url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
+    url(r'^get_consumption_data/$', get_consumption_data),
     url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
     url(r'^get_praod_report/$', get_praod_report),

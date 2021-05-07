@@ -598,7 +598,8 @@ def get_search_params(request, user=''):
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
                     'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number',
-                    'plant_name': 'plant_name', 'year': 'year', 'month_no': 'month_no'
+                    'plant_name': 'plant_name', 'year': 'year', 'month_no': 'month_no', 'consumption_type': 'consumption_type', 'machine_code': 'machine_code',
+                    'test_code': 'test_code', 'machine_code':'machine_code'
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -3939,6 +3940,48 @@ def get_central_order_id(customer_id):
         interm_id = 10001
     return interm_id
 
+def get_devices(data_dict={}, user=''):
+    from rest_api.views.easyops_api import *
+    integrations = Integrations.objects.filter(user=user.id, status=1,  name='metropolis')
+    org_id = data_dict.get('org_id', 0)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        today = datetime.date.today().strftime('%Y%m%d')
+        if not data_dict.has_key('date'):
+             data_dict['date'] = today
+        servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
+        for server in servers:
+            server = server+'_DEVICE'
+            device_objs = obj.get_device_data(data=data_dict,user=user,server=server)
+            update_devices(device_objs, user)
+
+def update_devices(device_objs, user):
+    if device_objs and device_objs.get('STATUS_CODE', 0) == 200:
+        status_time = device_objs.get('TIME', 0)
+        if device_objs.keys() > 2:
+            devices_lis = device_objs.keys()
+            devices_lis.remove('STATUS_CODE')
+            devices_lis.remove('TIME')
+            count = 0
+            for key in devices_lis:
+                count += 1
+                try:
+                    device_data = device_objs[key]
+                    machine_code = (device_data.get('DeviceID', '')).strip()
+                    machine_name = (device_data.get('DeviceName', '')).strip()
+                    device_dict = {'tcode':device_data.get('Tcode', ''), 'attune_id':device_data.get('OrgID', ''), 'tname':device_data.get('Tname', ''),
+                                    'org_name':device_data.get('OrgName', ''),'instrument_name':machine_name, 'instrument_id':machine_code,
+                                    'investigation_id':device_data.get('InvestigationID', ''), 'dept_name':device_data.get('DeptName', '')}
+                    if machine_code:
+                        machine_obj = MachineMaster.objects.filter(machine_code=str(machine_code), user=user.id)
+                        if machine_obj.exists():
+                            data_dict['machine'] = machine_obj[0]
+                        else:
+                            machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user, 'machine_name': machine_name})
+                            data_dict['machine'] = machine_obj
+                    OrgInstrumentMapping.objects.get_or_create(**device_dict)
+                except Exception as e:
+                    log.info("device data creation failed for %s, and data_dict was %s and exception %s" % (str(user.username),str(device_dict), str(e)))
 
 def check_and_update_stock(wms_codes, user):
     stock_sync = get_misc_value('stock_sync', user.id)
@@ -10812,6 +10855,8 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
         store_code = userprofile.stockone_code
         if not dept_code:
             dept_code = '0000'
+        if not store_code:
+            store_code = 'MHL'
         if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
             admin_user = get_admin(user)
             store_code = admin_user.userprofile.stockone_code
@@ -13900,11 +13945,11 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             bom_check_dict = {'product_sku__user': main_user.id,
                               'product_sku__sku_code': consumption.test.test_code}
             if consumption.machine:
-                bom_check_dict['machine__machine_code'] = consumption.machine.machine_code
+                bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
             bom_master = BOMMaster.objects.filter(**bom_check_dict)
             if not bom_master.exists():
-                if 'machine__machine_code' in bom_check_dict.keys():
-                    del bom_check_dict['machine__machine_code']
+                if 'machine_master__machine_code' in bom_check_dict.keys():
+                    del bom_check_dict['machine_master__machine_code']
                 bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True
@@ -13913,12 +13958,13 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
-                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'consumption',
-                                                 uom=bom.unit_of_measurement)
-                pcf = uom_dict['sku_conversion']
-                pcf = pcf if pcf else 0
+                # uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'purchase',
+                #                                  uom=bom.unit_of_measurement)
+                # pcf = uom_dict['sku_conversion']
+                # pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
-                needed_quantity = consumption_qty * pcf
+                # needed_quantity = consumption_qty * pcf
+                needed_quantity = total_test * bom.material_quantity
                 stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 stock_quantity = stock_quantity if stock_quantity else 0
                 if needed_quantity > stock_quantity:
@@ -13930,13 +13976,24 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
                          (str(consumption.id), str(consumption.test.test_code)))
-                return
+                return "Stock not found"
             for key, value in bom_dict.items():
+                consumption_number = ''
+                consumption_id = 0
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
+                if inc_status:
+                    log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
+                         (str(consumption.id), str(consumption.test.test_code)))
+                    continue
+
                 consumption_data = ConsumptionData.objects.create(
+                    order_id=consumption_id,
+                    consumption_number=consumption_number,
                     consumption_id=consumption.id,
                     sku_id=sku.id,
                     quantity=value['consumption_qty'],
+                    consumption_type = 2
                 )
                 update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
                                     consumption_data.id, transact_type='consumption',

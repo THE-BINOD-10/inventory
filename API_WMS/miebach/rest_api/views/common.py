@@ -14340,3 +14340,8 @@ def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_
                 pass
         wb.save(path)
     return path_to_file
+
+
+def get_pr_number_from_po(pend_po):
+    pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
+    return pr_numbers

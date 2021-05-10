@@ -1912,7 +1912,7 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'input'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Month', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
+    'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
                    'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
                    'UOM', 'Remarks','Status','Test Date', 'Consumption ID'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
@@ -17488,8 +17488,11 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['consumptionmaterial__sku__sku_code','creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code',
-           'machine__machine_name', 'total_test', 'test__sku_code', 'status','run_date', 'updation_date']
+    lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
+          'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
+          'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
+          'total_test','qnp','total_patients', 'consumptiondata__quantity','total_test', 'creation_date', 'creation_date',
+          'status','run_date', 'consumptiondata__consumption_number']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')

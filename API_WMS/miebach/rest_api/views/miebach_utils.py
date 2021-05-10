@@ -17535,8 +17535,11 @@ def get_consumption_data_(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    # values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'Department', 'user']
-    model_data = Consumption.objects.filter(**search_parameters).distinct().order_by(order_data)
+    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_name', 'total_test', 
+    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
+    'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date']
+    model_data = Consumption.objects.filter(**search_parameters).values().distinct().order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -17554,11 +17557,13 @@ def get_consumption_data_(search_params, user, sub_user):
     count = 0
     for result in results.iterator():
         order_id = ''
-        consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
-        if consumption_data:
-            order_id = consumption_data[0].consumption_number
+        # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
+        # if consumption_data:
+        #     order_id = consumption_data[0].consumption_number
+        if result['consumptiondata__consumption_number']:
+            order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
-        user_obj = result.user
+        user_obj = User.objects.get(id=result['user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
@@ -17570,18 +17575,19 @@ def get_consumption_data_(search_params, user, sub_user):
             plant_name = admin_user.first_name
             zone_code = admin_user.userprofile.zone
 
-        if result.test:
-            test_code = result.test.sku_code
-            test_name = str(result.test.test_name)
-        if result.machine:
-            machine_name = str(result.machine.machine_name)
-            machine_code = str(result.machine.machine_code)
+        if result['test__sku_code']:
+            test_code = result['test__sku_code']
+            test_name = result['test__sku_desc']
+        if result['machine__machine_code']:
+            machine_code = str(result['machine__machine_code'])
+            machine_name = result['machine__machine_name']
         status = 'Pending'
-        if not result.status:
+        if not result['status']:
             status = 'Consumption Booked'
+        run_date = get_local_date(user, result['run_date'], send_date=True)
         
         ord_dict = OrderedDict((
-            ('Date', get_local_date(user, result.creation_date)),
+            ('Date', get_local_date(user, result['creation_date'])),
             ('Plant Code', plant_code),
             ('Plant Name', plant_name),
             ('Department', department),
@@ -17592,8 +17598,8 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Machine Name', machine_name),
             ('Status', status),
             ('Consumption ID', order_id),
-            ('Test Date', get_local_date(user, result.run_date)),
-            ('Total Test', result.total_test)))
+            ('Test Date', get_local_date(user, result['run_date'])),
+            ('Total Test', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

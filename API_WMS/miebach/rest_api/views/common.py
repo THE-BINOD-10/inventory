@@ -13940,10 +13940,14 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
 def create_consumption_material(consumption, material_sku, qty_dict):
     pending_qty = qty_dict['pending_qty']
     data_dict = {'consumption': consumption, 'sku': material_sku, 'pending_quantity':pending_qty,
-                'consumed_quantity': qty_dict['consumable_qty'], 'consumption_quantity':consumption_qty}
+                'consumed_quantity': qty_dict['consumable_qty'], 'consumption_quantity':qty_dict['consumption_qty']}
     if pending_qty:
         data_dict['status'] = 2
-    ConsumptionMaterial.objects.create(**data_dict)
+    obj = ConsumptionMaterial.objects.filter(consumption_id=Consumption.id, sku=material_sku.id)
+    if obj:
+        obj.update(**data_dict)
+    else:
+        ConsumptionMaterial.objects.create(**data_dict)
 
 
 def reduce_consumption_stock(consumption_obj, total_test=0):

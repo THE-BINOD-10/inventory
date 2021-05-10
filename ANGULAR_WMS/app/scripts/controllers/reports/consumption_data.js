@@ -64,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.dtColumns = datam.dtColumns;
           vm.datatable = true;
           vm.dtInstance = {};
-          vm.report_data['excel2'] = true;
+          vm.report_data['excel2'] = false;
   		    vm.report_data['row_click'] = true;
           vm.report_data['excel_name'] = 'get_consumption_data'
           // if (vm.toggle_sku_wise) {

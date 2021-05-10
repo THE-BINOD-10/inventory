@@ -1897,7 +1897,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'},
         {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
     ],
-    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Base Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
+    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -17454,8 +17454,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('Test Code', test_code),
             ('SKU Code', result['sku__sku_code']),
             ('SKU Description', result['sku__sku_desc']),
+            ('SKU Conversion', pcf),
             ('Location', result['stock_mapping__stock__location__location']),
-            ('Quantity', quantity),
+            ('Base Quantity', quantity),
             ('Purchase Uom Quantity', pqty),
             ('Stock Value', stock_value),
             ('Consumption ID', result['consumption_number']),
@@ -17483,7 +17484,8 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code', 'machine__machine_name', 'total_test', 'test__sku_code', 'user__username', 'status','run_date', 'updation_date']
+    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code',
+           'machine__machine_name', 'total_test', 'test__sku_code', 'status','run_date', 'updation_date']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')

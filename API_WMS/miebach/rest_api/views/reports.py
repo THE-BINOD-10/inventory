@@ -2261,6 +2261,7 @@ def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_prefix = request.GET.get('prefix', '')
     po_num= request.GET.get('po_number', '')
+    for_mail = request.GET.get('for_mail', '')
     total_qty = 0
     total = 0
     remarks = ''
@@ -2512,6 +2513,8 @@ def print_purchase_order_form(request, user=''):
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
+    if for_mail:
+        return render(request, 'templates/toggle/po_download.html', data_dict)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 

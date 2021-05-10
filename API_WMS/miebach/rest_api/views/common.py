@@ -14007,7 +14007,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 consumption.status = 2
                 consumption.save()
                 return "Stock not found"
-            consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', None)
+            consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
             for key, value in bom_dict.items():
                 consumption_number = ''
                 consumption_id = 0

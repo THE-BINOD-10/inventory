@@ -10779,6 +10779,10 @@ def get_gen_wh_ids(request, user, delivery_date):
     return gen_whs
 
 def get_product_category_from_sku(user, sku_code):
+    if not sku_code:
+        sku = None
+        product_category = ''
+        return sku, product_category
     sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
     product_category = 'Kits&Consumables'
     try:
@@ -10831,8 +10835,10 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     full_number = ''
     inc_status = ''
     incr_type_name = ''
+    sku_category = ''
     sku, product_category = get_product_category_from_sku(user, sku_code)
-    sku_category = sku.sku_category
+    if sku:
+        sku_category = sku.sku_category
     if not sku_category:
         sku_category = 'Default'
     user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category=product_category,
@@ -13931,6 +13937,14 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
                                             'base_uom': sku_uom.base_uom}
     return sku_uom_dict
 
+def create_consumption_material(consumption, material_sku, qty_dict):
+    pending_qty = qty_dict['pending_qty']
+    data_dict = {'consumption': consumption, 'sku': material_sku, 'pending_quantity':pending_qty,
+                'consumed_quantity': qty_dict['consumable_qty'], 'consumption_quantity':consumption_qty}
+    if pending_qty:
+        data_dict['status'] = 2
+    ConsumptionMaterial.objects.create(**data_dict)
+
 
 def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
@@ -13953,6 +13967,10 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True
+            pending_qty = 0
+            if not bom_master:
+                consumption.status = 3
+                consumption.save()
             for bom in bom_master:
                 stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
                                                     sku__sku_code=bom.material_sku.sku_code,
@@ -13967,25 +13985,30 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 needed_quantity = total_test * bom.material_quantity
                 stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 stock_quantity = stock_quantity if stock_quantity else 0
-                if needed_quantity > stock_quantity:
+                if not stock_quantity:
                     stock_found = False
                     break
+                consumable_qty = needed_quantity
+                if needed_quantity > stock_quantity:
+                    consumable_qty = needed_quantity - stock_quantity
+                    pending_qty = needed_quantity - consumable_qty
+                qty_dict = {'consumption_qty': consumption_qty, 'consumable_qty': consumable_qty, 'pending_qty':pending_qty}
+                create_consumption_material(consumption, bom.material_sku, qty_dict)
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
                                               'needed_quantity': needed_quantity,
                                               'stocks': stocks}
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
                          (str(consumption.id), str(consumption.test.test_code)))
+                consumption.status = 2
+                consumption.save()
                 return "Stock not found"
+            consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', None)
             for key, value in bom_dict.items():
                 consumption_number = ''
                 consumption_id = 0
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
-                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
-                if inc_status:
-                    log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
-                         (str(consumption.id), str(consumption.test.test_code)))
-                    continue
+                # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
 
                 consumption_data = ConsumptionData.objects.create(
                     order_id=consumption_id,
@@ -14000,6 +14023,9 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                                     mapping_obj=consumption_data)
             if bom_master:
                 consumption.status = 0
+                cons_material = ConsumptionMaterial.objects.filter(consumption_id=consumption.id)
+                if cons_material:
+                    cons_material.update(status=0)
             consumption.save()
     return "Success"
 

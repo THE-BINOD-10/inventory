@@ -1912,7 +1912,9 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'input'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Plant Name', 'Department', 'Test Code', 'Test Name','Machine Code', 'Machine Name', 'Total Test', 'Status','Test Date', 'Consumption ID'],
+    'dt_headers': ['Date', 'Month', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
+                   'Patient Sample', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
+                   'UOM', 'Remarks','Status','Test Date', 'Consumption ID'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17437,6 +17439,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         pcf = pcf if pcf else 1
+        if result['consumption_type']:
+            pcf = 1
         if result['sku_pcf']:
             pcf = result['sku_pcf']
         quantity = result['stock_mapping__quantity']
@@ -17535,17 +17539,17 @@ def get_consumption_data_(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_name', 'total_test', 
+    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
     'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
-    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date']
-    model_data = Consumption.objects.filter(**search_parameters).values().distinct().order_by(order_data)
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date', 'consumptiondata__quantity']
+    model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
 
-    temp_data['recordsTotal'] = model_data.count()
-    temp_data['recordsFiltered'] = model_data.count()
+    temp_data['recordsTotal'] = len(model_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -17555,7 +17559,7 @@ def get_consumption_data_(search_params, user, sub_user):
     else:
         results = model_data
     count = 0
-    for result in results.iterator():
+    for result in results:
         order_id = ''
         # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
         # if consumption_data:
@@ -17584,7 +17588,7 @@ def get_consumption_data_(search_params, user, sub_user):
         status = 'Pending'
         if not result['status']:
             status = 'Consumption Booked'
-        run_date = get_local_date(user, result['run_date'], send_date=True)
+        month = result['creation_date'].strftime('%b-%Y')
         
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
@@ -17592,14 +17596,19 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Plant Name', plant_name),
             ('Department', department),
             ('Warehouse Username', user_obj.username),
-            ('Test Code', test_code),
-            ('Test Name', test_name),
-            ('Machine Code', machine_code),
-            ('Machine Name', machine_name),
-            ('Status', status),
+            ('TCode', test_code),
+            ('TName', test_name),
+            ('Device ID', machine_code),
+            ('Device Name', machine_name),
+            ('Status', status),('Consumption Booked Qty', result['consumptiondata__quantity']),
+            ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),
             ('Consumption ID', order_id),
+            ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN': result['n_time_process']),
+            ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
+            ('Month': month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Code', result['consumptionmaterial__sku__sku_desc']),
+            ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
             ('Test Date', get_local_date(user, result['run_date'])),
-            ('Total Test', result['total_test'])))
+            ('TT', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

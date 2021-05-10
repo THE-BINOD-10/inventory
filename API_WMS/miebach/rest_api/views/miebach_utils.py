@@ -1913,7 +1913,7 @@ CONSUMPTION_DATA_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
     'dt_headers': ['Date', 'Month', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
-                   'Patient Sample', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
+                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
                    'UOM', 'Remarks','Status','Test Date', 'Consumption ID'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
@@ -17488,7 +17488,7 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code',
+    lis = ['consumptionmaterial__sku__sku_code','creation_date', 'user', 'test__sku_code', 'test__sku_desc', 'machine__machine_code',
            'machine__machine_name', 'total_test', 'test__sku_code', 'status','run_date', 'updation_date']
 
     col_num = search_params.get('order_index', 0)
@@ -17602,10 +17602,10 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Device Name', machine_name),
             ('Status', status),('Consumption Booked Qty', result['consumptiondata__quantity']),
             ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),
-            ('Consumption ID', order_id),
-            ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN': result['n_time_process']),
+            ('Consumption ID', order_id),('Current Available Stock', ''),
+            ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
-            ('Month': month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Code', result['consumptionmaterial__sku__sku_desc']),
+            ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
             ('Test Date', get_local_date(user, result['run_date'])),
             ('TT', result['total_test'])))

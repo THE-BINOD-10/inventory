@@ -1,60 +1,10 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ConsumptionReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('ConsumptionDataCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
-    /*var vm = this;
-    vm.colFilters = colFilters;
-    vm.service = Service;
-    vm.service.print_enable = false;
-
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'get_po_filter/',
-              type: 'GET',
-              data: vm.model_data,
-              xhrFields: {
-                withCredentials: true
-              },
-              data: vm.model_data
-           })
-       .withDataProp('data')
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
-
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
-        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-                $http.get(Session.url+'print_po_reports/?data='+aData.DT_RowAttr["data-id"], {withCredential: true}).success(function(data, status, headers, config) {
-
-                  console.log(data);
-                  var html = $(data);
-                  vm.print_page = $(html).clone();
-                  html = $(html).find(".modal-body > .form-group");
-                  $(html).find(".modal-footer").remove()
-                  $(".modal-body").html(html);
-                });
-                $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
-            });
-        });
-        return nRow;
-    }
-
-  */
   var vm = this;
   vm.service = Service;
   vm.datatable = false;
@@ -93,11 +43,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.toggle_grn = function() {
     var send = {};
   	var name;
-  	if (vm.toggle_sku_wise) {
-      name = 'sku_wise_consumption_report';
-    } else {
-      name = 'consumption_report';
-    }
+  	// if (vm.toggle_sku_wise) {
+   //    name = 'sku_wise_consumption_report';
+   //  } else {
+    name = 'get_consumption_data';
+    // }
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
   	if(data.message) {
   	  if ($.isEmptyObject(data.data.data)) {
@@ -116,11 +66,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.dtInstance = {};
           vm.report_data['excel2'] = false;
   		    vm.report_data['row_click'] = true;
-          if (vm.toggle_sku_wise) {
-              vm.report_data['excel_name'] = 'get_sku_wise_consumption_report'
-          } else {
-              vm.report_data['excel_name'] = 'consumption_report'
-          }
+          vm.report_data['excel_name'] = 'get_consumption_data'
+          // if (vm.toggle_sku_wise) {
+          //     vm.report_data['excel_name'] = 'get_sku_wise_consumption_report'
+          // } else {
+          // vm.report_data['excel_name'] = 'consumption_data'
+          // }
         })
   	  }
   	}

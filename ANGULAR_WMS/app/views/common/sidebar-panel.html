@@ -104,7 +104,7 @@
             <span>SKU Pack Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user' &&  user.user_profile['industry_type'] == 'FMCG'">
+        <li ui-sref-active="active" ng-if="user.user_profile['industry_type'] == 'FMCG'">
           <a ui-sref="app.masters.Replenushment">
             <span>Replenishment Master</span>
           </a>
@@ -870,6 +870,11 @@
             <span>Approval PO Report</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.ConsumptionData">
+            <span>Test Data</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-if="show_tab('view_consumption')">
           <a ui-sref="app.reports.ConsumptionReport">
             <span>Consumption Report</span>
@@ -878,6 +883,11 @@
         <li ui-sref-active="active" ng-if="show_tab('view_closingstock')">
           <a ui-sref="app.reports.ClosingStockReport">
             <span>Closing Stock Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.IntegrationReport">
+            <span>Netsuite Integration Report</span>
           </a>
         </li>
       </ul>

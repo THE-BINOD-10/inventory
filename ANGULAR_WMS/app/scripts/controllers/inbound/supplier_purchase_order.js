@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.model_data = {};
 
     vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
                   'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': true}
@@ -38,11 +39,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         })
        .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+    var columns = ['PO No', 'Store', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
@@ -52,7 +54,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                    return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                  })
     row_click_bind = 'td:not(td:first)';
-    vm.dtColumns.unshift(toggle);
+    //vm.dtColumns.unshift(toggle);
 
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -100,6 +102,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.service.refresh(vm.dtInstance);
     });
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+    $(row_click_bind, nRow).unbind('click');
+    $(row_click_bind, nRow).bind('click', function() {
+     $scope.$apply(function() {
+      var dataDict = {
+          'supplier_id': aData['DT_RowId'],
+          'warehouse': aData['Warehouse'] ,
+          'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
+          'prefix': aData['prefix'],
+          'po_number': aData['PO No'],
+          'warehouse_id': aData['warehouse_id']
+        }
+        vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
+          if(data.message) {
+            angular.copy(data.data, vm.model_data);
+            $state.go('app.PurchaseOrder.SKUDetails');
+          }
+        });
+        });
+    });
+    return nRow;
+  }
+  vm.close = close;
+  function close() {
+    vm.title = "Purchase Order";
+    $state.go('app.PurchaseOrder');
+  }
+
 
 }
 

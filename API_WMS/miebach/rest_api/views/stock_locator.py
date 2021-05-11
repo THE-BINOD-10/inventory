@@ -263,7 +263,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
             batch_pcf = sku_conversion
             if po_batch_st.exists():
-                batch_pcf = po_batch[0].pcf
+                batch_pcf = po_batch_st[0].pcf
             putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
         if total:

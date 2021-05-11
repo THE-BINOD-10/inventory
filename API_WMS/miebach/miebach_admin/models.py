@@ -4146,7 +4146,7 @@ class TestMaster(SKUMaster):
 
 class StockMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    stock = models.ForeignKey(StockDetail)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
 
     class Meta:
@@ -4210,3 +4210,25 @@ class AdjustmentData(models.Model):
 
     class Meta:
         db_table = 'ADJUSTMENT_DATA'
+
+
+class MRP(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
+    user = models.ForeignKey(User, related_name='mrp_user')
+    avg_monthly_consumption = models.FloatField(default=0)
+    lead_time_qty = models.FloatField(default=0)
+    min_days_qty = models.FloatField(default=0)
+    max_days_qty = models.FloatField(default=0)
+    system_stock_qty = models.FloatField(default=0)
+    pending_pr_qty = models.FloatField(default=0)
+    pending_po_qty = models.FloatField(default=0)
+    total_stock_qty = models.FloatField(default=0)
+    suggested_qty = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MRP'
+        unique_together = ('user', 'sku')
+        index_together = ('user', 'sku')

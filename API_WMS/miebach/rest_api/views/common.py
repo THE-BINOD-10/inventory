@@ -10849,8 +10849,11 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     if not user_prefix:
         if type_name == 'consumption_prefix':
             store_user = get_admin(user)
-            user = get_admin(store_user)
-        user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category='',
+            subsidiary = get_admin(store_user)
+            user_prefix = UserPrefixes.objects.filter(user=subsidiary.id, type_name=type_name, product_category='',
+                                                  sku_category='')
+        else:
+            user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category='',
                                                   sku_category='')
     if not user_prefix:
         inc_status = 'Prefix not defined'

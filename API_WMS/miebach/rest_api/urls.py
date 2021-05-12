@@ -167,6 +167,7 @@ urlpatterns = [
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
     url(r'^search_machine_codes/$', search_machine_codes),
+    url(r'^search_machine_code_name_brand/$', search_machine_code_name_brand),
     url(r'^search_sku_brands/$', search_sku_brands),
     url(r'^search_sku_categorys/$', search_sku_categorys),
     url(r'^search_corporate_names/$', search_corporate_names),

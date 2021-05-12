@@ -17630,6 +17630,7 @@ def create_manual_test(request, user=''):
             uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, 'consumption',
                                              uom=request_data['uom'][i])
             pcf = uom_dict['sku_conversion']
+            pcf = 1
             if data_dict.get('sku_quantity', 0):
                 sku_stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE'). \
                     filter(sku_id=sku[0].id, quantity__gt=0).order_by('batch_detail__expiry_date')
@@ -17650,6 +17651,7 @@ def create_manual_test(request, user=''):
                 consumption = Consumption.objects.create(**consumption_dict)
                 # TempJson.objects.create(model_id=consumption.id, model_json=json.dumps(value),
                 #                         model_name='manual_test_sku_data')
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
                 for val in value:
                     sku = SKUMaster.objects.get(id=val['sku_id'])
                     quantity = val['needed_quantity']
@@ -17657,9 +17659,12 @@ def create_manual_test(request, user=''):
                         exclude(location__zone__zone='DAMAGED_ZONE').\
                         filter(sku_id=sku.id, quantity__gt=0).order_by('batch_detail__expiry_date')
                     consumption_data = ConsumptionData.objects.create(
+                        order_id=consumption_id,
+                        consumption_number=consumption_number,
                         sku_id=sku.id,
                         quantity=quantity,
-                        consumption_id=consumption.id
+                        consumption_id=consumption.id,
+                        consumption_type=1
                     )
                     update_stock_detail(sku_stocks, quantity, user,
                                         consumption_data.id, transact_type='consumption',

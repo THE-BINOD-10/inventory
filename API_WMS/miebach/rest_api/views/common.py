@@ -14033,20 +14033,20 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             consumption.save()
     return "Success"
 
-def get_consumption_data(consumption_type='',from_date='',to_date=''):
+def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
     search_parameters = {}
     temp_data = []
     if consumption_type:
         search_parameters['consumption_type'] = consumption_type
     if from_date:
-        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
-        search_parameters['creation_date__gte'] = search_params['from_date']
+        from_date = datetime.datetime.combine(from_date, datetime.time())
+        from_date = get_utc_start_date(from_date)
+        search_parameters['creation_date__gte'] = from_date
     if to_date:
-        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+        to_date = datetime.datetime.combine(to_date + datetime.timedelta(1),
                                                              datetime.time())
-        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
-        search_parameters['creation_date__lt'] = search_params['to_date']
+        to_date = get_utc_start_date(to_date)
+        search_parameters['creation_date__lt'] = to_date
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
     'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
@@ -14088,7 +14088,7 @@ def get_consumption_data(consumption_type='',from_date='',to_date=''):
                     order_by('batch_detail__expiry_date', 'receipt_date')
         stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         ord_dict = OrderedDict((
-            ('Date', get_local_date(user, result['creation_date'])),('Month', month),
+            ('Date', get_local_date(user_obj, result['creation_date'])),('Month', month),
             ('Plant Code', plant_code),
             ('Plant Name', plant_name),
             ('Department Name', department),
@@ -14103,7 +14103,7 @@ def get_consumption_data(consumption_type='',from_date='',to_date=''):
             ('Consumption Booked Qty', result['consumptiondata__quantity']),('Current Available Stock', stock_quantity),
             ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),('Status', status),
             ('Consumption ID', order_id),
-            ('Test Date', get_local_date(user, result['run_date']))))
+            ('Test Date', get_local_date(user_obj, result['run_date']))))
         temp_data.append(ord_dict)
 
     return temp_data

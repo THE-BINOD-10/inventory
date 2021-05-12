@@ -17330,6 +17330,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
+    status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
     lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
            'stock_mapping__stock__location__location','quantity', 'sku__measurement_type', 'quantity', 'price', 'sku__measurement_type', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks', 'consumption_type']
@@ -17379,7 +17380,6 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
     if 'consumption_type' in search_params:
-        status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
         search_parameters['consumption_type'] = status_keys[search_params['consumption_type']]
     if 'order_id' in search_params:
         search_parameters['consumption_number'] = search_params['order_id']
@@ -17416,11 +17416,11 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone_code = user_obj.userprofile.zone
-        consumption_type = ''
-        if result['consumption_type'] == 2:
-            consumption_type = 'Auto Consumption'
-        if result['consumption_type'] == 1:
-            consumption_type = 'Closing stock'
+        consumption_type = status_keys[result['consumption_type']]
+        # if result['consumption_type'] == 2:
+        #     consumption_type = 'Auto Consumption'
+        # if result['consumption_type'] == 1:
+        #     consumption_type = 'Closing stock'
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             department = user_obj.first_name

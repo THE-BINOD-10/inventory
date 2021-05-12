@@ -4146,7 +4146,7 @@ class TestMaster(SKUMaster):
 
 class StockMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    stock = models.ForeignKey(StockDetail, blank=True, null=True)
+    stock = models.ForeignKey(StockDetail)
     quantity = models.FloatField(default=0)
 
     class Meta:

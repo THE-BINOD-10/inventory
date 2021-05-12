@@ -16971,7 +16971,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
            'open_po__sku__user__username', 'po_number', 'po_number',
            'open_po__sku__user__username', 'po_number', 'po_number',
            'open_po__sku__user__username', 'updation_date', 'updation_date',
-           'po_number', 'open_po__delivery_date', 'po_number', 'po_number']
+           'po_number', 'open_po__delivery_date', 'po_number', 'po_number', 'creation_date']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     results = ''

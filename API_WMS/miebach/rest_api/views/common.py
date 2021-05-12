@@ -10869,7 +10869,7 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
             dept_code = '0000'
         if not store_code:
             store_code = 'MHL'
-        if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
+        if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix', 'consumption_prefix']:
             admin_user = get_admin(user)
             store_code = admin_user.userprofile.stockone_code
             dept_code = userprofile.stockone_code
@@ -13949,7 +13949,7 @@ def create_consumption_material(consumption, material_sku, qty_dict):
                 'consumed_quantity': qty_dict['consumable_qty'], 'consumption_quantity':qty_dict['consumption_qty']}
     if pending_qty:
         data_dict['status'] = 2
-    obj = ConsumptionMaterial.objects.filter(consumption_id=Consumption.id, sku=material_sku.id)
+    obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=material_sku.id)
     if obj:
         obj.update(**data_dict)
     else:
@@ -14015,8 +14015,6 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 return "Stock not found"
             consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
             for key, value in bom_dict.items():
-                consumption_number = ''
-                consumption_id = 0
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
 

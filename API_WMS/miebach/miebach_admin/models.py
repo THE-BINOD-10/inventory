@@ -4217,9 +4217,9 @@ class ConsumptionMaterial(models.Model):
     id = BigAutoField(primary_key=True)
     consumption = models.ForeignKey(Consumption)
     sku = models.ForeignKey(SKUMaster, related_name='material_sku')
-    consumption_quantity = models.IntegerField(default=0)
-    consumed_quantity = models.IntegerField(default=0)
-    pending_quantity = models.IntegerField(default=0)
+    consumption_quantity = models.FloatField(default=0)
+    consumed_quantity = models.FloatField(default=0)
+    pending_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
 
     class Meta:

@@ -14033,6 +14033,80 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             consumption.save()
     return "Success"
 
+def get_consumption_data(consumption_type='',from_date='',to_date=''):
+    search_parameters = {}
+    temp_data = []
+    if consumption_type:
+        search_parameters['consumption_type'] = consumption_type
+    if from_date:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if to_date:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
+    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
+    'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date', 'consumptiondata__quantity']
+    model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct()
+    for result in model_data:
+        order_id = ''
+        # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
+        # if consumption_data:
+        #     order_id = consumption_data[0].consumption_number
+        if result['consumptiondata__consumption_number']:
+            order_id = result['consumptiondata__consumption_number']
+        test_code, machine_code, machine_name, test_name = [''] * 4
+        user_obj = User.objects.get(id=result['user'])
+        department = ''
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone_code = user_obj.userprofile.zone
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            department = user_obj.first_name
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+
+        if result['test__sku_code']:
+            test_code = result['test__sku_code']
+            test_name = result['test__sku_desc']
+        if result['machine__machine_code']:
+            machine_code = str(result['machine__machine_code'])
+            machine_name = result['machine__machine_name']
+        status = 'Pending'
+        if not result['status']:
+            status = 'Consumption Booked'
+        month = result['creation_date'].strftime('%b-%Y')
+        stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+                                                    sku__sku_code=result['consumptionmaterial__sku__sku_code'],
+                                                    quantity__gt=0).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+        stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        ord_dict = OrderedDict((
+            ('Date', get_local_date(user, result['creation_date'])),('Month', month),
+            ('Plant Code', plant_code),
+            ('Plant Name', plant_name),
+            ('Department Name', department),
+            ('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
+            ('TCode', test_code),
+            ('TName', test_name),
+            ('Device ID', machine_code),
+            ('Device Name', machine_name),
+            ('Patient Samples',result['patient_samples']),('RR', result['rerun']),
+            ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),('PN',result['n_time_process']),
+            ('Q', result['quality_check']), ('NP', result['no_patient']),('TT', result['total_test']),('QNP', result['qnp']), ('TP', result['total_patients']),
+            ('Consumption Booked Qty', result['consumptiondata__quantity']),('Current Available Stock', stock_quantity),
+            ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),('Status', status),
+            ('Consumption ID', order_id),
+            ('Test Date', get_local_date(user, result['run_date']))))
+        temp_data.append(ord_dict)
+
+    return temp_data
 
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0

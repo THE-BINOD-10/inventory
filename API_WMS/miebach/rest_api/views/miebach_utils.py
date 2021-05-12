@@ -17596,6 +17596,11 @@ def get_consumption_data_(search_params, user, sub_user):
         if not result['status']:
             status = 'Consumption Booked'
         month = result['creation_date'].strftime('%b-%Y')
+        stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+                                                    sku__sku_code=result['consumptionmaterial__sku__sku_code'],
+                                                    quantity__gt=0).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+        stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
@@ -17609,7 +17614,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Device Name', machine_name),
             ('Status', status),('Consumption Booked Qty', result['consumptiondata__quantity']),
             ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),
-            ('Consumption ID', order_id),('Current Available Stock', ''),
+            ('Consumption ID', order_id),('Current Available Stock', stock_quantity),
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),

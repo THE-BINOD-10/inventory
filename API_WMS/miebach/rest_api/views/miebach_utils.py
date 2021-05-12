@@ -653,7 +653,7 @@ INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name':
                         # {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
                         # {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
                         # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
-                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         # {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
                         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
@@ -662,8 +662,8 @@ INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name':
 
                     ],
 
-            'dt_headers': [
-              "Stockone Id",  "Plant Code", "Plant" , "Zone", "Module type", "Action Type", ""
+            'dt_headers': [ "Zone", "Plant Code", "Plant" ,
+              "Stockone Id",   "Module type", "Action Type", ""
               "Integration Date", "Integration Status", "Integration Error"
              ],
             'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
@@ -1078,13 +1078,13 @@ METROPOLIS_PO_DETAIL_REPORT_DICT = {
 
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'Plant Code', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
+    'dt_headers': ['Zone', 'Plant Code', 'Plant Name', 'PR Number', 'PR Date',   'PR raised By ( User Name)', 'PR raised By ( User department name)', 
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Base UOM Qty', 'PO Base UOM', 'PO Received Qty', 'PO Receivable Qty', 'Pending PO Base UOM Qty', 'Pending PO Base UOM', 'PO Received Amt', 'PO Receivable Amt', 'PO Raised Date','Material Code',
                    'Material Description', 'Conversion Factor', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
                    'SKU Group', 'SKU Class', 'UOM', 'HSN Code', 'PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
-                   'Supplier ID', 'Supplier Name'],
+                   'Supplier ID', 'Supplier Name',  'Pending Status From(Days)'],
 
     'dt_url': 'get_metropolis_po_detail_report', 'excel_name': 'get_metropolis_po_detail_report',
     'print_url': 'get_metropolis_po_detail_report',
@@ -3895,6 +3895,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
+    po_grn_numbers_list = []
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
@@ -3923,8 +3924,12 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if 'integration_type' in search_params:
         search_parameters['module_type__iexact'] = search_params['integration_type']
     if 'supplier' in search_params and ':' in search_params['supplier']:
-        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
-            search_params['supplier'].split(':')[0]
+        # search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
+        #     search_params['supplier'].split(':')[0]
+        grn_results= SellerPOSummary.objects.filter(purchase_order__open_po__supplier__supplier_id__iexact=search_params['supplier'].split(':')[0]).values("purchase_order__po_number", "grn_number").distinct()
+        for e_row in grn_results:
+            po_grn_numbers_list.append(e_row["purchase_order__po_number"])
+            po_grn_numbers_list.append(e_row["grn_number"])
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
@@ -3956,6 +3961,8 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if 'zone_code' not in search_params and 'plant_name' not in search_params.keys() and 'plant_code' not in search_params:
         user_ids.append(admin_user_id)
     search_parameters[field_mapping['user']] = user_ids
+    if po_grn_numbers_list:
+        search_parameters['stockone_reference__in']= po_grn_numbers_list
     model_data = model_name.objects.filter(**search_parameters).exclude(**excl_status)
     # model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
     #                                                                    total_received=Sum(rec_quan))
@@ -3979,6 +3986,11 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
     for data in model_data:
+        # json_data = json.loads(data.integration_data)
+        # date_format = "%Y-%m-%dT%H:%M:%SZ"
+        # grn_date, po_date, po_value, grn_value, invoice_number = "", "", "", "", ""
+        # datetime.datetime.strptime() 
+        # grn_date = 
         user = data.user
         if user:
             if user.userprofile.warehouse_type.lower() == 'dept':
@@ -4003,15 +4015,21 @@ def get_integration_report_data(request, search_params, user, sub_user):
         if integration_status == 'Failed':
             integration_error = data.integration_error
         integration_date = data.creation_date.strftime("%d %b, %Y")
-        temp_data['aaData'].append(OrderedDict((('Stockone Id', data.stockone_reference),
+        temp_data['aaData'].append(OrderedDict((
+                                                ("Zone", plant_zone),
+                                                ("Plant Code", plant_code),
+                                                ("Plant", plant),
+                                                ('Stockone Id', data.stockone_reference),
                                                 ('Module type', data.module_type),
+                                                # ('PO Date', ''),
+                                                # ('PO Value', ''),
+                                                # ('GRN Date', ''),
+                                                # ('GRN Value', ''),
+                                                # ('Invoice Number', ''),
                                                 ('Action Type', data.action_type),
                                                 ("Integration Date", integration_date),
                                                 ("Integration Status", integration_status), 
                                                 ("Integration Error", integration_error),
-                                                ("Plant Code", plant_code),
-                                                ("Plant", plant),
-                                                ("Zone", plant_zone),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': data.stockone_reference }),
                                                 ('key', 'Stockone Id'), ('receipt_type', 'Integration Report')
@@ -14892,8 +14910,8 @@ def get_pr_report_data(search_params, user, sub_user):
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks','pending_pr__remarks',
-           'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number']
-    col_num = search_params.get('order_index', 0)
+           'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__updation_date']
+    col_num = search_params.get('order_index', -1)
     order_term = search_params.get('order_term')
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -14995,7 +15013,8 @@ def get_pr_report_data(search_params, user, sub_user):
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
     if order_term:
         pending_data = pending_data.order_by(order_data)
-
+    else:
+        pending_data = pending_data.order_by('-pending_pr__updation_date')
     resultsWithDate = dict(pl_main.values_list('pending_pr__pr_number', 'creation_date'))
     temp_data['recordsTotal'] = pending_data.count()
     temp_data['recordsFiltered'] = pending_data.count()
@@ -16924,6 +16943,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
 
 
 def get_metropolis_po_detail_report_data(search_params, user, sub_user):
+    from django.utils import timezone
     from miebach_admin.models import *
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin, get_warehouses_data
@@ -16941,7 +16961,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
     #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['po_number', 'order_id','creation_date','po_number', 'po_number', 'creation_date', 'po_number', 'po_number',
+    lis = ['po_number', 'po_number', 'po_number', 'order_id','creation_date', 'creation_date', 'po_number', 'po_number',
            'order_id', 'po_number',
            'open_po__sku__sku_category', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number',
            'po_number', 'po_number',
@@ -17057,6 +17077,8 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         delivery_date = result['open_po__delivery_date']
         po_update_date = result['updation_date']
         po_date = result['po_date']
+        delta_po_date = timezone.now() - po_date
+        po_delta_days = delta_po_date.days
         final_status = result['status']
         uom_dict = skus_uom_dict.get(sku_code)
         pcf = uom_dict.get('sku_conversion', 1)
@@ -17179,11 +17201,12 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('PR Date', pr_date),
             ('PR raised By ( User Name)',pr_request_user ),
             ('PR raised By ( User department name)', pr_department),
-            ('PR Plant', pr_plant),
+            ('Plant Name', pr_plant),
             ('Plant Code', pr_plant_code),
             ('Zone', plant_zone),
             ('Product Category', product_category),
             ('Category', sku_category),
+            ('Pending Status From(Days)', po_delta_days),
             # ('PR Approved Date', release_date),
             ('PO Number', po_number),
             ('PO Quantity', po_quantity),

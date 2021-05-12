@@ -14345,3 +14345,24 @@ def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_
 def get_pr_number_from_po(pend_po):
     pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
     return pr_numbers
+
+
+def get_sku_code_inc_number(user, instanceName, category, check=False):
+    if instanceName == AssetMaster:
+        type_name = 'ASS'
+    elif instanceName == ServiceMaster:
+        type_name = 'SER'
+    elif instanceName == OtherItemsMaster:
+        type_name = SKU_CREATION_INC_MAPPING_OT.get(category.lower(), None)
+    else:
+        type_name = SKU_CREATION_INC_MAPPING_KC.get(category.lower(), None)
+    if not type_name:
+        return False, ''
+    elif check:
+        return True, ''
+    ftype_name = 'sku_' + type_name
+    main_user = get_company_admin_user(user)
+    inc_value = get_incremental(main_user, ftype_name)
+    sku_code = '%s%s' % (type_name, str(inc_value).zfill(6))
+    return True, sku_code
+

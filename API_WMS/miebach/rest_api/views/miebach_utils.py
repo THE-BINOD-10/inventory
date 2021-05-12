@@ -3631,6 +3631,10 @@ OPENING_STOCK_FILE_MAPPING = OrderedDict((('Opening Stock Date(YYYY-MM-DD)', 'op
                                           ))
 
 
+SKU_CREATION_INC_MAPPING_KC = {'accessories': 'ACC', 'reagent': 'REG', 'control': 'COT', 'chemical': 'CHE', 'consumable': 'CON', 'calibrator': 'CAL'}
+
+SKU_CREATION_INC_MAPPING_OT = {'printing stationary': 'PST', 'stationary': 'STA', 'marketing': 'MAR'}
+
 
 def fn_timer(function):
     @wraps(function)

@@ -88,7 +88,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.add = add;
     function add() {
       angular.copy(vm.empty_data, vm.model_data);
+      vm.date = new Date();
+      vm.date_format_convert(vm.date);
+      vm.bt_disable = false;
       $state.go('app.stockLocator.InventoryAdjustment.Adjustment');
+    }
+
+    vm.date_format_convert = function(utc_date){
+      var date = utc_date.toLocaleDateString();
+      var datearray = date.split("/");
+      vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
     }
 
     vm.close = close;
@@ -103,7 +112,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
-
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -153,6 +161,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     angular.copy(vm.empty_data, vm.model_data);
     vm.submit =submit;
     function submit(data) {
+      vm.bt_disable = true;
       if(data.$valid) {
         var elem = angular.element($('form'));
         elem = elem[0];
@@ -161,14 +170,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if(data.message) {
             if (data.data == "Added Successfully") {
               angular.extend(vm.model_data, vm.empty_data);
+              vm.bt_disable = false;
               reloadData();
               vm.close();
             } else {
+              vm.bt_disable = false;
               pop_msg(data.data);
             }
           }
         });
-      }  
+      } else {
+        colFilters.showNoty('Please Fill * Fileds !');
+        vm.bt_disable = false;
+      }
     }
     function pop_msg(msg) {
       vm.message = msg;
@@ -236,6 +250,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       });
     }
+  }
+
+  vm.get_machine_details = function(data, item) {
+    data.machine_brand = item.brand;
   }
 
   vm.get_sku_batches = function(sku_code){
@@ -327,13 +345,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
     vm.update_availabe_stock = function(sku_data) {
-     var send = {sku_code: sku_data.wms_code, location: "", source: vm.model_data.warehouse}
+     var send = {sku_code: sku_data.wms_code, location: "", source: vm.model_data.warehouse, 'comment': 'inventory'}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["available_stock"] = 0
       if(data.message) {
         if(data.data.available_quantity) {
           sku_data["available_stock"] = data.data.available_quantity;
-          sku_data.quantity = 1;
+          sku_data.quantity = 0;
         }
         else {
           sku_data.quantity = 0;

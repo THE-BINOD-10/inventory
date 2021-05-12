@@ -4245,6 +4245,29 @@ class ConsumptionData(models.Model):
         db_table = 'CONSUMPTION_DATA'
         index_together = (('sku', 'creation_date'))
 
+
+class AdjustementConsumptionData(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, related_name="adjustment_main_user", blank=True, null=True)
+    order_id = models.PositiveIntegerField(db_index=True, default=0)
+    consumption = models.ForeignKey(ConsumptionData, related_name='adj_consumption', blank=True, null=True)
+    inv_adjustment = models.ForeignKey(InventoryAdjustment, related_name='inv_adjustment', blank=True, null=True)
+    machine_master = models.ForeignKey(MachineMaster, related_name='adj_machine', blank=True, null=True)
+    requested_user = models.ForeignKey(User, related_name="adjustment_user", blank=True, null=True)
+    machine_date = models.DateField(blank=True, null=True)
+    machine_time = models.CharField(max_length=12, default='')
+    adjustment_type = models.CharField(max_length=128, default='')
+    workload = models.FloatField(default=0)
+    workload_from = models.DateField(blank=True, null=True)
+    workload_to = models.DateField(blank=True, null=True)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ADJUSTMENT_CONSUMPTION_DATA'
+
+
 class AdjustmentData(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, related_name='adjustment_sku')
@@ -4258,3 +4281,25 @@ class AdjustmentData(models.Model):
 
     class Meta:
         db_table = 'ADJUSTMENT_DATA'
+
+
+class MRP(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
+    user = models.ForeignKey(User, related_name='mrp_user')
+    avg_monthly_consumption = models.FloatField(default=0)
+    lead_time_qty = models.FloatField(default=0)
+    min_days_qty = models.FloatField(default=0)
+    max_days_qty = models.FloatField(default=0)
+    system_stock_qty = models.FloatField(default=0)
+    pending_pr_qty = models.FloatField(default=0)
+    pending_po_qty = models.FloatField(default=0)
+    total_stock_qty = models.FloatField(default=0)
+    suggested_qty = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MRP'
+        unique_together = ('user', 'sku')
+        index_together = ('user', 'sku')

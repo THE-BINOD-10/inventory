@@ -4248,6 +4248,7 @@ class ConsumptionData(models.Model):
 
 class AdjustementConsumptionData(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, related_name="adjustment_main_user", blank=True, null=True)
     order_id = models.PositiveIntegerField(db_index=True, default=0)
     consumption = models.ForeignKey(ConsumptionData, related_name='adj_consumption', blank=True, null=True)
     inv_adjustment = models.ForeignKey(InventoryAdjustment, related_name='inv_adjustment', blank=True, null=True)

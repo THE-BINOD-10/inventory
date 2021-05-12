@@ -147,7 +147,7 @@
                       <th class="hide">Expiry Date</th>
                       <th>Quantity</th>
                       <th>Final Stock</th>
-                      <th ng-if="showCase.model_data.reason=='Pooling'">Price *</th>
+                      <th class="hide" ng-if="showCase.model_data.reason=='Pooling'">Price *</th>
                       <th>remarks</th>
                       <th class="plus"></th>
                     </tr>
@@ -192,7 +192,7 @@
                       <td>
                         <input type="text" class="form-control" ng-model="data.final_stock" name="final_stock" ng-blur="showCase.update_final_stock(data, 'final_stock')" readonly>
                       </td>
-                      <td ng-if="showCase.model_data.reason=='Pooling'">
+                      <td class="hide" ng-if="showCase.model_data.reason=='Pooling'">
                         <input type="text" class="form-control decimal" ng-model="data.price" ng-init="data.price=''" name="price" required>
                       </td>
                       <td>

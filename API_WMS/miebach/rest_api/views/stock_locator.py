@@ -4091,6 +4091,7 @@ def insert_inventory_adjust(request, user=''):
         sku_datum['adjustment_type'] = reason
         sku_datum['remarks'] = remarks
         sku_datum['requested_user_id'] = request.user.id
+        sku_datum['user_id'] = user.id
         if request_data['workload'][i]:
             sku_datum['workload'] = request_data['workload'][i]
         if request_data['workload_from'][i]:

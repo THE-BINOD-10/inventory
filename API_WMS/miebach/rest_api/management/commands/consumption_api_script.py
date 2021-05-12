@@ -11,6 +11,7 @@ from rest_api.views import *
 from rest_api.views.common import get_local_date, get_misc_value, reduce_consumption_stock
 import datetime
 from rest_api.views.easyops_api import *
+import pandas as pd
 
 
 def init_logger(log_file):
@@ -120,7 +121,7 @@ def update_consumption(consumption_objss, user, company):
                         consumption_obj_ = Consumption.objects.filter(user=consumption_user.id, creation_date__gt=filter_date, **consumption_filter)
                         if consumption_obj_.exists():
                             status = 'Success'
-                            if consumption_obj_[0].status == 1 and department and user_groups:
+                            if consumption_obj_[0].status == 1 and department in ['BIOCHE', 'IMMUNO'] and user_groups:
                                 status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=data_dict['total_test'])
                             else:
                                 exist_total_test = consumption_obj_[0].total_test
@@ -132,8 +133,9 @@ def update_consumption(consumption_objss, user, company):
                         else:
                             run_date = (datetime.date.today() - datetime.timedelta(days=1))
                             data_dict['run_date'] = run_date
-                            consumption_obj_ = Consumption.objects.create(**data_dict)
-                            if department and user_groups:
+                            if department in ['BIOCHE', 'IMMUNO']:
+                                consumption_obj_ = Consumption.objects.create(**data_dict)
+                            if department in ['BIOCHE', 'IMMUNO'] and user_groups:
                                 status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['total_test'])
                         if status == 'Success':
                             log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
@@ -174,5 +176,21 @@ class Command(BaseCommand):
                 for server in servers:
                     consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
                     update_consumption(consumption_obj, user, company)
+            report_data = get_consumption_data(consumption_type='auto', from_date=datetime.date.today())
+            if report_data:
+                receivers = ["alap.christy@metropolisindia.com","pratip.patiyane@metropolisindia.com","flavia@metropolisindia.com","madhuri.bhosale@metropolisindia.com","jyotsna.naik@metropolisindia.com",
+                            "thirupathi.battul@metropolisindia.com","nilesh.kamtekar@metropolisindia.com","nisha.dhabolkar@metropolisindia.com","rashid.farooqui@metropolisindia.com","amit.mishra@metropolisindia.com",
+                            "kedar.shirodkar@metropolisindia.com","raviraj.deshpande@metropolisindia.com","nilam.tripathi@metropolisindia.com","surekha.kamble@metropolisindia.com","chaitali.berde@metropolisindia.com",
+                            "vishal.yamagekar@metropolisindia.com","pravin.rajput@metropolisindia.com","jayant.rajani@metropolisindia.com","sunilpahuja@metropolisindia.com",
+                            "medha@metropolisindia.com","vikas.kere@metropolisindia.com","roshan.nagvekar@metropolisindia.com","mahesh.sable@metropolisindia.com"]
+                path = 'static/excel_files/consumption_report.csv'
+                df = pd.DataFrame(report_data)
+                df.to_csv(path, index=False)
+                email_subject = 'Consumption Report'
+                email_body = 'Please find the Consumption Report in the attachment'
+                attachments = [{'path': path, 'name': 'consumption_report.csv'}]
+                send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+            else:
+                log.info('No report data')
             log.info("succesfull Consumption call for %s" % user.username)
         self.stdout.write("completed Consumption call at "+ str(datetime.datetime.now().strftime('%y-%d-%m %H: %M')))

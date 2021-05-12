@@ -263,7 +263,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
             batch_pcf = sku_conversion
             if po_batch_st.exists():
-                batch_pcf = po_batch[0].pcf
+                batch_pcf = po_batch_st[0].pcf
             putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
         if total:
@@ -4051,14 +4051,35 @@ def insert_inventory_adjust(request, user=''):
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count + 1
+    machine_datum = {}
+    cycle_id, consumption_id, consumption_number = [0]*3
     request_data = dict(request.POST.iterlists())
     for i in range(0, len(request_data['wms_code'])):
+        qty = request_data['quantity'][i]
+        if float(qty) <= 0:
+            return HttpResponse("Quantity is Mandatory !")
+    reason = request_data['reason'][0]
+    if reason == 'Breakdown':
+        try:
+            machine_det = request_data.get('machine')[0].split(' : ')
+            machine_datum['machine_master'] = MachineMaster.objects.get(machine_code=machine_det[0], machine_name=machine_det[1])
+        except Exception as e:
+            return HttpResponse("machine Details are Missing")
+        if request_data.get('machine_date')[0]:
+            machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%m/%d/%Y").date()
+        machine_datum['machine_time'] = request_data.get('machine_time')[0]
+    if reason in ['Consumption', 'Breakdown', 'Caliberation', 'Damaged/Disposed']:
+        consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
+        if inc_status:
+            return HttpResponse("Consumption Prefix not defined")
+    else:
+        cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+        if not cycle_count:
+            cycle_id = 1
+        else:
+            cycle_id = cycle_count + 1
+    for i in range(0, len(request_data['wms_code'])):
+        sku_datum = {}
         wmscode = request_data['wms_code'][i]
         quantity = request_data['quantity'][i]
         reason = request_data['reason'][0]
@@ -4066,6 +4087,17 @@ def insert_inventory_adjust(request, user=''):
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]
+        remarks = request_data['remarks'][i]
+        sku_datum['adjustment_type'] = reason
+        sku_datum['remarks'] = remarks
+        sku_datum['requested_user_id'] = request.user.id
+        sku_datum['user_id'] = user.id
+        if request_data['workload'][i]:
+            sku_datum['workload'] = request_data['workload'][i]
+        if request_data['workload_from'][i]:
+            sku_datum['workload_from'] = datetime.datetime.strptime(request_data['workload_from'][i], "%m/%d/%Y").date()
+        if request_data['workload_to'][i]:
+            sku_datum['workload_to'] = datetime.datetime.strptime(request_data['workload_to'][i], "%m/%d/%Y").date()
         price = ''
         if 'price' in request_data.keys():
             price = request_data['price'][i]
@@ -4075,15 +4107,17 @@ def insert_inventory_adjust(request, user=''):
             stock_increase = False
         receipt_number = get_stock_receipt_number(user)
         stock_stats_objs = []
+        sku_datum.update(machine_datum)
         status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
-                                                             batch_no=batch_no, receipt_number=receipt_number,
-                                       receipt_type='inventory-adjustment', stock_increase=stock_increase,
-                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price)
+                                                batch_no=batch_no, receipt_number=receipt_number,
+                                                receipt_type='inventory-adjustment', stock_increase=stock_increase,
+                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price, consumption_id=consumption_id,
+                                                consumption_number = consumption_number, remarks=remarks, sku_datum=sku_datum)
     #netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
-    if data_id and 'success' in status.lower():
-        MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
+    # if data_id and 'success' in status.lower():
+    #     MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
     #update_filled_capacity([loc], user.id)
     return HttpResponse(status)
 

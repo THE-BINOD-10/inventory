@@ -1583,6 +1583,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/stockLocator/stock_summary/stock_summary_plant_sku.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/stockLocator/stock_summary/stock_summary_plant.js'
+                  ])
                 });
               }]
           },

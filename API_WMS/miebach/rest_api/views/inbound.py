@@ -4880,10 +4880,10 @@ def add_pr(request, user=''):
             del myDict['location_sku_data']
         if myDict.get('is_actual_pr'):
             is_actual_pr = myDict.get('is_actual_pr')[0]
-            reversion.set_comment("addPendingPR")
+            reversion.set_comment("addPendingPR: %s" % str(get_user_ip(request)))
         else:
             is_actual_pr = 'false'
-            reversion.set_comment("addPendingPO")
+            reversion.set_comment("addPendingPO: %s" % str(get_user_ip(request)))
         if myDict.get('purchase_id'):
             pr_id = myDict.get('purchase_id')[0]
             if is_actual_pr == 'true':
@@ -16693,7 +16693,9 @@ def confirm_mr_request(request, user=''):
                             stock = StockDetail.objects.get(id=filter_data['data'])
                             po =PurchaseOrder.objects.get(id=filter_data['po'])
                             destination_warehouse = User.objects.get(id=filter_data['destination_warehouse'])
-                            auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock, order_typ=filter_data['order_typ'], upload_type='UI')
+                            picking_price = filter_data.get('price', 0)
+                            auto_receive(destination_warehouse, po, filter_data['type'], filter_data['update_picked'], data=stock,
+                                                order_typ=filter_data['order_typ'], upload_type='UI', picking_price=picking_price)
                             MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
             else:
                 return HttpResponse('Already Confirmed')
@@ -16746,7 +16748,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['user', 'user', 'sku_code', 'sku_desc', 'sku_category', 'user_id', 'user_id', 'user_id', 'user_id', 'user_id']
+    lis = ['user', 'user', 'sku_code', 'sku_desc', 'sku_category', 'user', 'user', 'user', 'user', 'user']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
     else:
@@ -16772,7 +16774,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
     kandc_skus = list(SKUMaster.objects.filter(user=main_user.id).exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
-                                        exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()))
+                                        exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).values_list('sku_code', flat=True))
     search_params['sku_code__in'] = kandc_skus
     master_data = SKUMaster.objects.filter(**search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -16789,19 +16791,28 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
                                             values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
     stock_qtys = {}
+    user_id_mapping = {}
     for stock in stocks:
-        usr = User.objects.get(id=stock['sku__user'])
-        if usr.userprofile.warehouse_type == 'DEPT':
-            usr = get_admin(usr)
+        if stock['sku__user'] in user_id_mapping:
+            usr = user_id_mapping[stock['sku__user']]
+        else:
+            usr = User.objects.get(id=stock['sku__user'])
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[stock['sku__user']] = usr
         grp_key = (usr.id, stock['sku__sku_code'])
         stock_qtys.setdefault(grp_key, 0)
         stock_qtys[grp_key] += stock['total']
     consumption_qtys = {}
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
     for cons in consumption_lt3:
-        usr = User.objects.get(id=cons.sku.user)
-        if usr.userprofile.warehouse_type == 'DEPT':
-            usr = get_admin(usr)
+        if cons.sku.user in user_id_mapping:
+            usr = user_id_mapping[cons.sku.user]
+        else:
+            usr = User.objects.get(id=cons.sku.user)
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[cons.sku.user] = usr
         grp_key = (usr.id, cons.sku.sku_code)
         consumption_qtys.setdefault(grp_key, 0)
         consumption_qtys[grp_key] += cons.quantity
@@ -16816,9 +16827,13 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
     pending_pr_dict = {}
     for pr_pend in pr_pending:
-        pr_user = User.objects.get(id=pr_pend.sku.user)
-        if pr_user.userprofile.warehouse_type == 'DEPT':
-            pr_user = get_admin(pr_user)
+        if pr_pend.sku.user in user_id_mapping:
+            pr_user = user_id_mapping[pr_pend.sku.user]
+        else:
+            pr_user = User.objects.get(id=pr_pend.sku.user)
+            if pr_user.userprofile.warehouse_type == 'DEPT':
+                pr_user = get_admin(pr_user)
+            user_id_mapping[pr_pend.sku.user] = pr_user
         grp_key = (pr_user.id, pr_pend.sku.sku_code)
         pending_pr_dict.setdefault(grp_key, {'qty': 0})
         pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
@@ -16827,9 +16842,13 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                                 pending_po__open_po__purchaseorder__isnull=True).distinct()
     pending_po_dict = {}
     for po_pend in po_pending:
-        po_user = User.objects.get(id=po_pend.sku.user)
-        if po_user.userprofile.warehouse_type == 'DEPT':
-            po_user = get_admin(po_user)
+        if po_pend.sku.user in user_id_mapping:
+            po_user = user_id_mapping[po_pend.sku.user]
+        else:
+            po_user = User.objects.get(id=po_pend.sku.user)
+            if po_user.userprofile.warehouse_type == 'DEPT':
+                po_user = get_admin(po_user)
+            user_id_mapping[po_pend.sku.user] = po_user
         grp_key = (po_user.id, po_pend.sku.sku_code)
         pending_po_dict.setdefault(grp_key, {'qty': 0})
         pending_po_dict[grp_key]['qty'] += po_pend.quantity

@@ -4245,6 +4245,28 @@ class ConsumptionData(models.Model):
         db_table = 'CONSUMPTION_DATA'
         index_together = (('sku', 'creation_date'))
 
+
+class AdjustementConsumptionData(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_id = models.PositiveIntegerField(db_index=True, default=0)
+    consumption = models.ForeignKey(ConsumptionData, related_name='adj_consumption', blank=True, null=True)
+    inv_adjustment = models.ForeignKey(InventoryAdjustment, related_name='inv_adjustment', blank=True, null=True)
+    machine_master = models.ForeignKey(MachineMaster, related_name='adj_machine', blank=True, null=True)
+    requested_user = models.ForeignKey(User, related_name="adjustment_user", blank=True, null=True)
+    machine_date = models.DateField(blank=True, null=True)
+    machine_time = models.CharField(max_length=12, default='')
+    adjustment_type = models.CharField(max_length=128, default='')
+    workload = models.FloatField(default=0)
+    workload_from = models.DateField(blank=True, null=True)
+    workload_to = models.DateField(blank=True, null=True)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ADJUSTMENT_CONSUMPTION_DATA'
+
+
 class AdjustmentData(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, related_name='adjustment_sku')

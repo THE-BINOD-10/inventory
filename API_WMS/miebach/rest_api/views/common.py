@@ -2685,7 +2685,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
 
 def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',
-                                       adjustment_objs=''):
+                                       adjustment_objs=[]):
     data = copy.deepcopy(INVENTORY_FIELDS)
     data['cycle_id'] = dat.id
     data['adjusted_quantity'] = quantity
@@ -2693,6 +2693,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     data['adjusted_location'] = location[0].id
     data['creation_date'] = now
     data['updation_date'] = now
+    data['price'] = stock.sku.average_price
     inv_adj_filter = {'cycle__cycle': dat.cycle, 'adjusted_location': location[0].id,
                       'cycle__sku__user': user.id}
     if stock:
@@ -2712,7 +2713,9 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
         inv_obj.save()
         dat = inv_obj
     else:
-        adjustment_objs.append(InventoryAdjustment(**data))
+        adj_objs = InventoryAdjustment(**data)
+        adj_objs.save()
+        adjustment_objs.append(adj_objs)
     return adjustment_objs
 
 
@@ -2930,7 +2933,8 @@ def save_adjustment_type_info(mapping_obj, stock, data_dict, quantity):
 
 def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
                           seller_master_id='', weight='', receipt_number=1, receipt_type='', price ='',
-                          stock_increase=False, manufactured_date='', expiry_date=''):
+                          stock_increase=False, manufactured_date='', expiry_date='',
+                          consumption_id='', consumption_number = '', remarks='', sku_datum=''):
     from inbound import create_default_zones
     now_date = datetime.datetime.now()
     now = str(now_date)
@@ -2982,7 +2986,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
     uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
-    remaining_quantity = quantity * uom_dict['sku_conversion']
+    # remaining_quantity = quantity * uom_dict['sku_conversion']
+    remaining_quantity = quantity
     data_dict['quantity'] = total_stock_quantity
     data_dict['seen_quantity'] = remaining_quantity
     data_dict['status'] = 0
@@ -2995,10 +3000,16 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             stock_qty = stock_qty if stock_qty else 0
             if stock_qty < remaining_quantity:
                 return 'Quantity exceeding available stock'
-        if 'Consumption' in reason:
+        if reason in ['Consumption', 'Breakdown', 'Caliberation', 'Damaged/Disposed']:
             consumption_data = ConsumptionData.objects.create(
+                order_id=consumption_id,
+                consumption_number=consumption_number,
+                sku_pcf=uom_dict['sku_conversion'],
+                price= sku[0].average_price,
+                remarks=remarks,
                 sku_id=sku[0].id,
                 quantity=remaining_quantity,
+                consumption_type=3,
             )
         remaining_quantity = abs(remaining_quantity)
         if reason == 'Pooling':
@@ -3100,7 +3111,6 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                 if reason != 'Pooling':
                     batch_dict['buy_price'] = sku[0].average_price
                 add_ean_weight_to_batch_detail(sku[0], batch_dict)
-
                 #if price:
                 #    batch_dict['buy_price'] = price
                 if batch_dict.keys():
@@ -3110,7 +3120,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if pallet:
                 del stock_dict['pallet_detail_id']
             del stock_dict["sku__user"]
-            stock_dict.update({"receipt_number": receipt_number, "receipt_date": now_date, "receipt_type": receipt_type,
+            stock_dict.update({"receipt_number": receipt_number, "receipt_date": now_date, "receipt_type": receipt_type, "remarks": remarks,
                                "quantity": remaining_quantity, "status": 1, "creation_date": now_date,
                                "updation_date": now_date
                               })
@@ -3148,10 +3158,15 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                                                                      adjustment_objs=adjustment_objs)
             stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
-
-
     if adjustment_objs:
-        InventoryAdjustment.objects.bulk_create(adjustment_objs)
+        for adjustment_obj in adjustment_objs:
+            sku_datum['inv_adjustment'] = adjustment_obj
+            adj_consumption_data = AdjustementConsumptionData(**sku_datum)
+            adj_consumption_data.save()
+    elif consumption_data:
+        sku_datum['consumption_id'] = consumption_data.id
+        adj_consumption_data = AdjustementConsumptionData(**sku_datum)
+        adj_consumption_data.save()
     elif not consumption_data:
         return_status = 'Failed'
     return return_status, stock_stats_objs
@@ -3637,6 +3652,23 @@ def search_wms_codes(request, user=''):
     # wms_codes = list(set(wms_codes))
 
     return HttpResponse(json.dumps(wms_codes))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_machine_code_name_brand(request, user=''):
+    data_id = request.GET.get('q', '')
+    extra_filter = {}
+    total_data = []
+    data = MachineMaster.objects.filter(Q(machine_code__icontains=data_id) | Q(machine_name__icontains=data_id)).order_by('machine_code')
+    count = 0
+    if data:
+        for machine in data:
+            total_data.append({'code':machine.machine_code, 'name': machine.machine_name, 'brand': machine.brand})
+            if len(total_data) >= 10:
+                break
+    return HttpResponse(json.dumps(total_data))
 
 
 @csrf_exempt
@@ -6761,12 +6793,13 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
     plant = request.GET.get('plant', '')
+    comment = request.GET.get('comment', '')
     consumption_dict = {'avg_qty': 0, 'base_qty': 0}
     if plant:
         consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
-    dept_avail_qty = 0
+    dept_avail_qty, avlb_qty = [0]*2
     if cur_dept:
         cur_de = User.objects.get(username=cur_dept)
         search_params1 = {'sku__user': cur_de.id}
@@ -6801,7 +6834,12 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
                 'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty, 'dept_avail_qty': dept_avail_qty,
+    avlb_qty = (avail_qty+st_avail_qty)
+    if comment:
+        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+        sku_pcf = uom_dict.get('sku_conversions', 1)
+        avlb_qty = avlb_qty * sku_pcf
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
                                     'avg_price': avg_price, 'consumption_dict': consumption_dict}))

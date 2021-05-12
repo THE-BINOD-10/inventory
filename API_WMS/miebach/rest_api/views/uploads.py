@@ -12240,6 +12240,7 @@ def closing_stock_form(request, user=''):
 
 @csrf_exempt
 def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    all_users_list = []
     index_status = {}
     data_list = []
     distinct_sku_user_combo = []
@@ -12289,6 +12290,9 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                                                                warehouse=[user.username])
                 else:
                     index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+                if data_dict['user']:
+                    if data_dict['user'].id not in all_users_list:
+                        all_users_list.append(data_dict['user'].id)
             elif key == 'department':
                 if cell_data:
                     if cell_data not in dept_mapping_res.keys():
@@ -12306,6 +12310,9 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                             index_status.setdefault(row_idx, set()).add("Doesn't have access for this Department")
                         else:
                             index_status.setdefault(row_idx, set()).add('Department not found in Selected Plant')
+                if data_dict['user']:
+                    if data_dict['user'].id not in all_users_list:
+                        all_users_list.append(data_dict['user'].id)
             elif key == 'sku_code':
                 if cell_data:
                     if data_dict['user']:
@@ -12347,7 +12354,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2 or month != 4:
+                        if len(str(month)) > 2 or month != 5:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')
@@ -12372,21 +12379,21 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
 
         data_list.append(data_dict)
     if not index_status:
-        return 'Success', data_list
+        return 'Success', data_list, all_users_list
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
         if file_path:
             f_name = file_path
-        return f_name, data_list
+        return f_name, data_list, all_users_list
 
     elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_excel_file(f_name, index_status, reader)
         if file_path:
             f_name = file_path
-        return f_name, data_list
+        return f_name, data_list, all_users_list
 
 
 def load_month_end_closing_stock(updating_users, year, month, opening_date=None):
@@ -12431,7 +12438,7 @@ def save_uploaded_closing_stock(data_list, fname, file_type, reader):
         rewrite_excel_file(f_name, {}, reader, file_path=file_path)
 
 
-def update_closing_stock_quantity(data_list, year, month):
+def update_closing_stock_quantity(data_list, year, month, all_users=[]):
     last_change_date = datetime.datetime.now()
     updating_users = {}
     first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
@@ -12441,6 +12448,14 @@ def update_closing_stock_quantity(data_list, year, month):
     if last_date < last_change_date:
         last_change_date = last_date
     print last_change_date
+    consumption_user_dict = {}
+    for usp in all_users:
+        usp = User.objects.get(id=usp)
+        consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(usp, 'consumption_prefix', None)
+        if inc_status:
+            return HttpResponse("Consumption Prefix not defined")
+        else:
+            consumption_user_dict[usp.id] = {'consumption_id': consumption_id, 'consumption_number': consumption_number}
     with transaction.atomic('default'):
         loop_counter = 1
         for final_data in data_list:
@@ -12503,6 +12518,9 @@ def update_closing_stock_quantity(data_list, year, month):
             if not closing_adj: continue
             consumption_data = ConsumptionData.objects.create(
                 sku_id=sku.id,
+                sku_pcf=uom_dict['sku_conversion'],
+                order_id=consumption_user_dict[sku.user]['consumption_id'],
+                consumption_number=consumption_user_dict[sku.user]['consumption_number'],
                 quantity=closing_adj,
                 price=unit_price,
                 remarks=remarks
@@ -12532,7 +12550,7 @@ def closing_stock_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-    status, data_list = validate_closing_stock_form(request, reader, user, no_of_rows,
+    status, data_list, all_users = validate_closing_stock_form(request, reader, user, no_of_rows,
                                                      no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
@@ -12549,7 +12567,7 @@ def closing_stock_upload(request, user=''):
         #if last_date < last_change_date:
         #    last_change_date = last_date
         #print last_change_date
-        update_closing_stock_quantity(data_list, year, month)
+        update_closing_stock_quantity(data_list, year, month, all_users=all_users)
 
         '''
         with transaction.atomic('default'):

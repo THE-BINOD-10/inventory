@@ -50,7 +50,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label">Seller ID *</label>
-                <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.seller_id" typeahead-on-select="showCase.model_data.seller_id=$item.seller_id" required>
+                <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.seller_id" typeahead-on-select="showCase.model_data.seller_id=$item.seller_id">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
@@ -108,7 +108,7 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.reason=='Breakdown'">
               <div class="form-group">
-                <label class="control-label"> Machine Brand *</label>
+                <label class="control-label"> Machine Brand </label>
                 <input type="text" class="form-control" ng-model="showCase.model_data.machine_brand" name="machine_brand" readonly>
               </div>
             </div>
@@ -193,7 +193,7 @@
                         <input type="text" class="form-control" ng-model="data.final_stock" name="final_stock" ng-blur="showCase.update_final_stock(data, 'final_stock')" readonly>
                       </td>
                       <td class="hide" ng-if="showCase.model_data.reason=='Pooling'">
-                        <input type="text" class="form-control decimal" ng-model="data.price" ng-init="data.price=''" name="price" required>
+                        <input type="text" class="form-control decimal" ng-model="data.price" ng-init="data.price=''" name="price">
                       </td>
                       <td>
                         <input type="text" class="form-control" ng-model="data.remarks" title="{{data.remarks}}" size="30" name="remarks">

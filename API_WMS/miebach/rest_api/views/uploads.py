@@ -1971,7 +1971,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not toggle_value:
                     cell_data = 0
                 if toggle_value:
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'batch_based':
                 svaed_value = str(cell_data).lower()
@@ -1982,7 +1983,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not svaed_value:
                     cell_data = 0
                 if svaed_value:
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'block_options':
                 if cell_data:
@@ -1990,7 +1992,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         cell_data = 'PO'
                     if str(cell_data).lower() in ['no', '']:
                         cell_data = ''
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'gl_code':
                 if cell_data:

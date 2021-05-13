@@ -6837,7 +6837,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     avlb_qty = (avail_qty+st_avail_qty)
     if comment:
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
-        sku_pcf = uom_dict.get('sku_conversions', 1)
+        sku_pcf = uom_dict.get('sku_conversion', 1)
         avlb_qty = avlb_qty * sku_pcf
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,

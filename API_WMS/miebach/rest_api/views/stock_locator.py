@@ -302,13 +302,16 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         if sku_conversion == 0:
             sku_conversion = 1
         sku_avg_price = SKUMaster.objects.get(user=data[4], sku_code=data[0]).average_price
-        cons_qty, monthly_cons_qty, days_cover_qty, day_cons_qty = [0]*4
-        consumption_user_data = get_last_three_months_consumption(filters={'sku__user__in':[sku_user.id], 'sku__sku_code__in': [data[0]]})
-        if consumption_user_data.exists():
-            cons_qty = consumption_user_data.aggregate(Sum('quantity'))['quantity__sum']
-            monthly_cons_qty = cons_qty/3
-            day_cons_qty = monthly_cons_qty/30
-            days_cover_qty = round((ptotal+putaway_pending)* sku_conversion, 5)/day_cons_qty
+        try:
+            cons_qty, monthly_cons_qty, days_cover_qty, day_cons_qty = [0]*4
+            consumption_user_data = get_last_three_months_consumption(filters={'sku__user__in':[sku_user.id], 'sku__sku_code__in': [data[0]]})
+            if consumption_user_data.exists():
+                cons_qty = consumption_user_data.aggregate(Sum('quantity'))['quantity__sum']
+                monthly_cons_qty = cons_qty/3
+                day_cons_qty = monthly_cons_qty/30
+                days_cover_qty = round((ptotal+putaway_pending)* sku_conversion, 5)/day_cons_qty    
+        except Exception as e:
+            monthly_cons_qty, days_cover_qty = 0, 0
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('SKU Conversion', sku_conversion),
                                                 ('sku_packs', sku_packs),

@@ -29,7 +29,7 @@
           </div>           
            <div class="modal-body">
 
-            <div class="row hide">
+            <div class="row">
               <div class="col-md-11 col-sm-11 col-xs-10">
                 <p align="right">Make Batch Mandatory</p>
               </div>
@@ -50,7 +50,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label">Seller ID *</label>
-                <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.seller_id" typeahead-on-select="showCase.model_data.seller_id=$item.seller_id" required>
+                <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.seller_id" typeahead-on-select="showCase.model_data.seller_id=$item.seller_id">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
@@ -108,7 +108,7 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.reason=='Breakdown'">
               <div class="form-group">
-                <label class="control-label"> Machine Brand *</label>
+                <label class="control-label"> Machine Brand </label>
                 <input type="text" class="form-control" ng-model="showCase.model_data.machine_brand" name="machine_brand" readonly>
               </div>
             </div>
@@ -139,12 +139,12 @@
                       <th>SKU Description</th>
                       <th>UOM</th>
                       <th>Available Stock</th>
-                      <th>Workload</th>
-                      <th>Workload From</th>
-                      <th>Workload To</th>
-                      <th class="hide">Batch No.</th>
-                      <th class="hide">Manufactured Date</th>
-                      <th class="hide">Expiry Date</th>
+                      <th>Batch No.</th>
+                      <th>Manufactured Date</th>
+                      <th>Expiry Date</th>
+                      <th ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">Workload<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
+                      <th ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">Workload From<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
+                      <th ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">Workload To<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
                       <th>Quantity</th>
                       <th>Final Stock</th>
                       <th class="hide" ng-if="showCase.model_data.reason=='Pooling'">Price *</th>
@@ -155,7 +155,7 @@
                   <tbody>
                     <tr ng-repeat="data in showCase.model_data.data">
                       <td>
-                        <input type="text" autocomplete="off" name="wms_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item)">
+                        <input type="text" autocomplete="off" name="wms_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item)" required>
                       </td>
                       <td>
                         <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="45" name="description" readonly>
@@ -166,25 +166,25 @@
                       <td>
                         <input type="text" class="form-control" ng-model="data.available_stock" name="available_stock" readonly>
                       </td>
-                      <td class="hide">
+                      <td>
                         <input type="text" autocomplete="off" name="batch_no" class="form-control detectTab" placeholder="Search Batch No" typeahead="address.batch_no for address in showCase.service.getSearchValues($viewValue, 'search_batch_data?wms_code='+data.wms_code+'&warehouse='+showCase.model_data.warehouse)" ng-model="data.batch_no" title="{{ data.batch_no }}" typeahead-on-select="showCase.get_batch_details(data, $item)" ng-blur="showCase.check_selected_batch(data)" ng-readonly="!showCase.batch_mandatory" ng-required="showCase.batch_mandatory" ng-change="showCase.update_final_stock(data)">
                       </td>
-                      <td class="hide">
+                      <td>
                         <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.manufactured_date" name="manufactured_date" ng-if="!data.mfg_readonly" style="background-color: white;" readonly>
                         <input type="text" class="form-control" ng-model="data.manufactured_date" name="manufactured_date" ng-if="data.mfg_readonly" readonly>
                       </td>
-                      <td class="hide">
+                      <td>
                         <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.expiry_date" name="expiry_date" ng-if="!data.mfg_readonly" style="background-color: white;" readonly>
                         <input type="text" class="form-control" ng-model="data.expiry_date" name="expiry_date" ng-if="data.mfg_readonly" readonly>
                       </td>
-                      <td>
-                        <input type="text" ng-init="data.workload=0" class="form-control decimal" ng-model="data.workload" name="workload">
+                      <td ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">
+                        <input type="text" ng-init="data.workload=0" class="form-control decimal" ng-model="data.workload" name="workload" ng-required="showCase.model_data.reason =='Consumption'">
                       </td>
-                      <td>
-                        <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.workload_from" name="workload_from" data-date-today-highlight="true" data-date-autoclose="true" style="background-color: white;">
+                      <td ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">
+                        <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.workload_from" name="workload_from" data-date-today-highlight="true" data-date-autoclose="true" style="background-color: white;" ng-required="showCase.model_data.reason =='Consumption'">
                       </td>
-                      <td>
-                        <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.workload_to" name="workload_to" data-date-today-highlight="true" data-date-autoclose="true" style="background-color: white;">
+                      <td ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">
+                        <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.workload_to" name="workload_to" data-date-today-highlight="true" data-date-autoclose="true" style="background-color: white;" ng-required="showCase.model_data.reason =='Consumption'">
                       </td>
                       <td>
                         <input type="text" class="form-control decimal" ng-model="data.quantity" name="quantity" autocomplete="off" ng-change="[showCase.check_quantity(data), showCase.update_final_stock(data)]">
@@ -193,7 +193,7 @@
                         <input type="text" class="form-control" ng-model="data.final_stock" name="final_stock" ng-blur="showCase.update_final_stock(data, 'final_stock')" readonly>
                       </td>
                       <td class="hide" ng-if="showCase.model_data.reason=='Pooling'">
-                        <input type="text" class="form-control decimal" ng-model="data.price" ng-init="data.price=''" name="price" required>
+                        <input type="text" class="form-control decimal" ng-model="data.price" ng-init="data.price=''" name="price">
                       </td>
                       <td>
                         <input type="text" class="form-control" ng-model="data.remarks" title="{{data.remarks}}" size="30" name="remarks">

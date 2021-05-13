@@ -16867,17 +16867,17 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         sku_pcf = sku_pcf if sku_pcf else 1
         user = User.objects.get(id=data.user)
         grp_key = (data.user, data.sku_code)
-        cons_qtyb = consumption_qtys.get(grp_key, 0)/3
+        cons_qtyb = (consumption_qtys.get(grp_key, 0)/3)/30
         cons_qty = round(cons_qtyb/sku_pcf, 5)
         sku_repl = repl_dict.get(grp_key, {})
-        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 5)
-        min_days = round(cons_qty * sku_repl.get('min_days', 0),5)
-        max_days = round(cons_qty * sku_repl.get('max_days', 0), 5)
-        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 5)
+        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 2)
+        min_days = round(cons_qty * sku_repl.get('min_days', 0),2)
+        max_days = round(cons_qty * sku_repl.get('max_days', 0), 2)
+        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 2)
         sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
         sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
         total_stock = stock_qty + sku_pending_pr + sku_pending_po
-        total_stock = round(total_stock, 5)
+        total_stock = round(total_stock, 2)
         if (total_stock - lead_time) > min_days:
             suggested_qty = 0
         else:

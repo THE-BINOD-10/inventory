@@ -202,7 +202,7 @@ PURCHASE_ORDER_REPORT_STATUS = ['Yet To Receive', 'Partially Received', 'Receive
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
-CONSUMPTION_TYPE = ['Auto Consumption', 'ClosingStock', 'Mannul Consumption']
+CONSUMPTION_TYPE = ['Auto Consumption', 'ClosingStock', 'Manual Consumption', 'Adjustment']
 
 INTEGRATION_STATUS= ['SUCCESS', 'FAILED', 'PENDING']
 
@@ -1897,7 +1897,8 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'},
         {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
     ],
-    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Stock Value', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
+    'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 
+                  'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Base UOM', 'Stock Value', 'Purchase Uom Quantity', 'Purchase UOM', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -17354,8 +17355,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
-            'quantity', 'quantity', 'price','stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+    status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
+    lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
+           'stock_mapping__stock__location__location','quantity', 'sku__measurement_type', 'quantity', 'price', 'sku__measurement_type', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
             'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks', 'consumption_type']
 
     col_num = search_params.get('order_index', 0)
@@ -17403,11 +17405,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
     if 'consumption_type' in search_params:
-        search_parameters['consumption_type'] = 0
-        if search_params['consumption_type'] == 'Auto':
-            search_parameters['consumption_type'] = 2
-        if search_params['consumption_type'] == 'ClosingStock':
-            search_parameters['consumption_type'] = 1
+        search_parameters['consumption_type'] = status_keys[search_params['consumption_type']]
     if 'order_id' in search_params:
         search_parameters['consumption_number'] = search_params['order_id']
     user_ids = list(users.values_list('id', flat=True))
@@ -17415,8 +17413,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
-                    'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+    values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location','sku__measurement_type',
+                    'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp','stock_mapping__stock__batch_detail__puom',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type', 'consumption_number']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
@@ -17443,11 +17441,11 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone_code = user_obj.userprofile.zone
-        consumption_type = ''
-        if result['consumption_type'] == 2:
-            consumption_type = 'Auto Consumption'
-        if result['consumption_type'] == 1:
-            consumption_type = 'Closing stock'
+        consumption_type = status_keys[result['consumption_type']]
+        # if result['consumption_type'] == 2:
+        #     consumption_type = 'Auto Consumption'
+        # if result['consumption_type'] == 1:
+        #     consumption_type = 'Closing stock'
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             department = user_obj.first_name
@@ -17461,11 +17459,15 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             mfg_date = str(result['stock_mapping__stock__batch_detail__manufactured_date'])
         if result['stock_mapping__stock__batch_detail__expiry_date']:
             exp_date = str(result['stock_mapping__stock__batch_detail__expiry_date'])
+        measurement_type = result['sku__measurement_type']
+        if result['stock_mapping__stock__batch_detail__puom']:
+            measurement_type =result['stock_mapping__stock__batch_detail__puom']
         uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
         pcf = uom_dict['sku_conversion']
         pcf = pcf if pcf else 1
-        if result['consumption_type']:
-            pcf = 1
+        base_uom = uom_dict['base_uom']
+        # if result['consumption_type']:
+        #     pcf = 1
         if result['sku_pcf']:
             pcf = result['sku_pcf']
         quantity = result['stock_mapping__quantity']
@@ -17488,6 +17490,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('Base Quantity', quantity),
             ('Purchase Uom Quantity', pqty),
             ('Stock Value', stock_value),
+            ('Purchase UOM', measurement_type),
+            ('Base UOM', base_uom),
             ('Consumption ID', result['consumption_number']),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
@@ -17617,6 +17621,11 @@ def get_consumption_data_(search_params, user, sub_user):
         if not result['status']:
             status = 'Consumption Booked'
         month = result['creation_date'].strftime('%b-%Y')
+        stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+                                                    sku__sku_code=result['consumptionmaterial__sku__sku_code'],
+                                                    quantity__gt=0).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+        stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
@@ -17630,7 +17639,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Device Name', machine_name),
             ('Status', status),('Consumption Booked Qty', result['consumptiondata__quantity']),
             ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),
-            ('Consumption ID', order_id),('Current Available Stock', ''),
+            ('Consumption ID', order_id),('Current Available Stock', stock_quantity),
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),

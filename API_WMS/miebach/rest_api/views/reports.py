@@ -94,7 +94,7 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
 
-    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
+    elif report_name in [ 'stock_transfer_report_main', 'pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
                          'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
@@ -170,7 +170,7 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = INTEGRATION_TYPES
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
-                         'zone_target_summary_report', 'zone_target_detailed_report',
+                         'zone_target_summary_report', 'zone_target_detailed_report', 
                          'corporate_reseller_mapping_report', 'financial_report', ''):
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(

@@ -991,7 +991,6 @@ METRO_PO_REPORT_DICT = {
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
 
-
     ],
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
@@ -1541,14 +1540,20 @@ STOCK_TRANSFER_REPORT_DICT_MAIN = {
         {'label': 'From Date', 'name': 'st_from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'st_to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+
         {'label': 'Stock Transfer ID', 'name': 'order_id', 'type': 'input'},
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'}
+        # {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        
     ],
-    'dt_headers': ['Date', 'Order ID', 'Order Type', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 
-                      'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
+    'dt_headers': ['Zone', 'Plant Code', 'Source Warehouse', 'Destination Warehouse', 'Date', 'Order ID', 'Order Type', 'SKU Code', 'SKU Description',  
+                     'Conversion Factor', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Purchse UOM', 'Base UOM Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Status', 'Destination Received Quantity', 'Destination Received Value', 'Destination Receive PO Status', 'Destination Received By'],
-    'mk_dt_headers': ['Date', 'Order ID', 'Order Type', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 
-                      'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
+    'mk_dt_headers': ['Zone', 'Plant Code', 'Source Warehouse', 'Destination Warehouse', 'Date', 'Order ID', 'Order Type', 'SKU Code', 'SKU Description',  
+                      'Conversion Factor', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Purchse UOM', 'Base UOM Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Status', 'Destination Received Quantity', 'Destination Received Value', 'Destination Receive PO Status', 'Destination Received By'],
     'dt_url': 'get_stock_transfer_report_main', 'excel_name': 'get_stock_transfer_report_main',
     'print_url': 'print_stock_transfer_report_main',
@@ -2718,7 +2723,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_allocation_filter': 'get_allocation_data',
                         'get_deallocation_report': 'get_deallocation_report_data',
                         'get_stock_transfer_report': 'get_stock_transfer_report_data',
-                        'get_stock_transfer_report_main': 'get_stock_transfer_report_data_main',
+                        'get_stock_transfer_report_main': '',
                         'get_credit_note_form_report': 'get_credit_note_form_report_data',
                         'get_credit_note_report': 'get_credit_note_report_data',
                         'get_po_approval_report': 'get_po_approval_report_data',
@@ -12361,13 +12366,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
 
 
 def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, get_uom_with_multi_skus, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
         get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params, get_uom_with_sku_code
     from miebach_admin.models import *
     from reversion.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
-    lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
+    lis = ['st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user','creation_date', 'order_id', 
            'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
            'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
            'st_po__open_st__sgst_tax',
@@ -12396,6 +12401,33 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         if request.POST.get('special_key', '') or search_params.get('special_key', ''):
             search_parameters['st_type'] = request.POST.get('special_key', '') if request.POST.get('special_key', '') else search_params.get('special_key', '')
         users = check_and_get_plants_wo_request(sub_user, user, users)
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -12427,7 +12459,13 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    for data in (stock_transfer_data[start_index:stop_index]):
+    if stop_index:
+        stock_transfer_data = (stock_transfer_data[start_index:stop_index])
+    sku_codes_list = []
+    for each_row in stock_transfer_data:
+        sku_codes_list.append(each_row.sku.sku_code)
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes_list, uom_type='purchase')
+    for data in stock_transfer_data:
         send_accepted_user_dest = ''
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
@@ -12447,6 +12485,11 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         total_order_amount = order_wo_amount + order_tax_amount
         tax_percentage = cgst + sgst + igst
         manufacturer, searchable, bundle = '', '', ''
+        uom_dict = skus_uom_dict.get(data.sku.sku_code, {})
+        base_uom = uom_dict.get('base_uom')
+        pcf = uom_dict.get('sku_conversion')
+        purchase_uom = uom_dict.get('measurement_unit')
+        # pcf= uom_dict.get('pcf')
         if data.stocktransfersummary_set.filter():
             uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
             qty_conversion = uom_dict['sku_conversion']
@@ -12488,12 +12531,12 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 if accepted_user_dest.exists():
                     send_accepted_user_dest = accepted_user_dest[0]['validated_by']
             ord_dict = OrderedDict(
-                (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
-                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
-                 ('SKU Code', data.sku.sku_code),
+                (('Zone', user.userprofile.zone), ('Plant Code', user.userprofile.stockone_code), ('Source Warehouse',  user.first_name), ('Destination Warehouse', destination.first_name),('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
+                 # ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
+                 ('SKU Code', data.sku.sku_code),  ('SKU Description', data.sku.sku_desc), ('Conversion Factor', pcf),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Unit Price', price), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                 ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Base UOM', float(invoice_quantity)),
+                 ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Purchse UOM', purchase_uom), ('Base UOM Quantity', float(invoice_quantity)), ('Base UOM', base_uom),
                  ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
             temp_data['aaData'].append(ord_dict)
         else:
@@ -12530,11 +12573,14 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 elif dest_received_qty < dest_ordered_qty and invoice_quantity > 0:
                     dest_receive_po_status = 'Partially Received'
             ord_dict = OrderedDict(
-                (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
-                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username), ('SKU Code', data.sku.sku_code),
+                (('Zone', user.userprofile.zone), ('Plant Code', user.userprofile.stockone_code), ('Source Warehouse',  user.first_name), ('Destination Warehouse', destination.first_name), ('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
+                 # ('Source Warehouse', user.username), 
+                 # ('Destination Warehouse', destination.username), 
+                 ('SKU Code', data.sku.sku_code),
+                 ('SKU Description', data.sku.sku_desc), ('Conversion Factor', pcf),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
-                 ('Unit Price', price), ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                 ('Base UOM', float(invoice_quantity)), ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
+                 ('Unit Price', price), ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount), ('Purchse UOM', purchase_uom),('Base UOM Quantity', float(invoice_quantity)), ('Base UOM', base_uom),
+                 ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
             temp_data['aaData'].append(ord_dict)
     return temp_data
 

@@ -17393,7 +17393,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type', 'consumption_number']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
-                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).order_by(order_data)
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)

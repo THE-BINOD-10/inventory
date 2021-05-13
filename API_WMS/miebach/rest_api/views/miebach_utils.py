@@ -1022,7 +1022,7 @@ METROPOLIS_PO_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
-                   'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
+                   'Final Approver date','PO Number', 'PO Quantity', 'PO Created by', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
                    'Supplier ID', 'Supplier Name', "Integration Status", "Integration Reason", "Integration Date"],
 
@@ -16638,9 +16638,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             'open_po__sku__sku_category', 'open_po__order_quantity', 'open_po__order_quantity',
             'open_po__pendingpos__requested_user__first_name', 'open_po__pendingpos__status',
             'open_po__pendingpos__updation_date', 'open_po__pendingpos__full_po_number',
-            'open_po__order_quantity', 'creation_date', 'open_po__order_quantity', 'open_po__order_quantity',
-            'open_po__order_quantity', 'open_po__pendingpos__full_po_number', 'updation_date', 'updation_date',
-            'open_po__pendingpos__delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__supplier__name'
+            'open_po__order_quantity', 'open_po__pendingpos__requested_user__first_name', 'creation_date', 'open_po__order_quantity', 'open_po__order_quantity',
+            'open_po__order_quantity', 'open_po__pendingpos__full_po_number',  'open_po__pendingpos__full_po_number', 'updation_date', 'updation_date',
+            'open_po__pendingpos__delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__supplier__name',  'open_po__pendingpos__full_po_number',  'open_po__pendingpos__full_po_number', 'open_po__pendingpos__full_po_number'
           ]
            #'order_id', 'status', 'po_date', 'po_number', 'open_po__order_quantity', 'creation_date',
            #'open_po__price', 'open_po__price', 'open_po__price', 'po_number', 'order_id','updation_date',
@@ -16828,6 +16828,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
 
         if check_pr_data.exists():
             for pr_data in check_pr_data:
+                po_user = pr_data["pending_po__requested_user__username"]
                 pr_number = pr_data['pending_po__pending_prs__full_pr_number']
                 pr_user = pr_data['pending_po__pending_prs__requested_user__first_name']
                 pr_date = pr_data['pending_po__pending_prs__creation_date']
@@ -16933,6 +16934,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('Integration Reason', integration_error),
             ('Integration Date', integration_date),
             ('Last Updated by', updated_user_name),
+
             # ('Integration Status', integration_status),
             # ('Integration Reason', integration_error),
             # ('Integration Date', integration_date),

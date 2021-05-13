@@ -2723,7 +2723,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_allocation_filter': 'get_allocation_data',
                         'get_deallocation_report': 'get_deallocation_report_data',
                         'get_stock_transfer_report': 'get_stock_transfer_report_data',
-                        'get_stock_transfer_report_main': '',
+                        'get_stock_transfer_report_main': 'get_stock_transfer_report_data_main',
                         'get_credit_note_form_report': 'get_credit_note_form_report_data',
                         'get_credit_note_report': 'get_credit_note_report_data',
                         'get_po_approval_report': 'get_po_approval_report_data',

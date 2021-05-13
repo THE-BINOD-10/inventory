@@ -17416,11 +17416,13 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone_code = user_obj.userprofile.zone
-        consumption_type = status_keys[result['consumption_type']]
-        # if result['consumption_type'] == 2:
-        #     consumption_type = 'Auto Consumption'
-        # if result['consumption_type'] == 1:
-        #     consumption_type = 'Closing stock'
+        # consumption_type = status_keys[result['consumption_type']]
+        if result['consumption_type'] == 2:
+            consumption_type = 'Auto Consumption'
+        if result['consumption_type'] == 1:
+            consumption_type = 'Closing stock'
+        if result['consumption_type'] == 3:
+            consumption_type = 'Adjustment'
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             department = user_obj.first_name

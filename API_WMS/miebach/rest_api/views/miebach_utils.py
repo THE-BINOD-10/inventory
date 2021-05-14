@@ -30,7 +30,7 @@ import base64
 import requests
 import json
 
-pr_po_grn_url = "http://65.21.93.111:7010/get_pr_po_grn_report/"
+pr_po_grn_url = "http://65.21.93.111:7020/get_pr_po_grn_report/"
 headers = {
   'accept': 'application/json',
   'Content-Type': 'application/json'

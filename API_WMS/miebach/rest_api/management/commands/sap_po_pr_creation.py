@@ -187,6 +187,7 @@ for purchase_order_data_pr in po_final_list:
         # pr_obj.purchase_orders.add(po_object[0])
     except Exception as err:
         print(".....", str(err))
+        break
         print(purchase_order_data)
 
 

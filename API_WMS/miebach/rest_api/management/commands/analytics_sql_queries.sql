@@ -60,6 +60,7 @@ CREATE TABLE `ANALYTICS_GRN` (
 
 CREATE TABLE `ANALYTICS_PURCHASE_ORDER` (
   `id` bigint NOT NULL AUTO_INCREMENT,
+  `po_id` bigint DEFAULT NULL,
   `full_po_number` varchar(32) NOT NULL,
   `po_date` datetime(6) DEFAULT NULL,
   `po_raised_date` datetime(6) DEFAULT NULL,
@@ -104,7 +105,7 @@ CREATE TABLE `ANALYTICS_PURCHASE_ORDER` (
   `updation_date` datetime(6) NOT NULL,
   `analytics_grn_id` int DEFAULT NULL,
   PRIMARY KEY (`id`)
-);
+)
 
 
 

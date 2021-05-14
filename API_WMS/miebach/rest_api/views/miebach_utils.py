@@ -17426,8 +17426,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         if result['consumption_type'] == 3:
             consumption_type = 'Adjustment'
             try:
-                temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku_use=result['sku__user'])
-                workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from, temp_datum.workload_to
+                temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku__user=result['sku__user'])
+                workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from.strftime("%d %b %Y") if temp_datum.workload_from else '', temp_datum.workload_to.strftime("%d %b %Y") if temp_datum.workload_to else ''
             except:
                 pass
         if user_obj.userprofile.warehouse_type == 'DEPT':

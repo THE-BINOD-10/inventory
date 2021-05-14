@@ -14311,20 +14311,29 @@ def search_batch_data(request, user=''):
     search_key = request.GET.get('q', '')
     wms_code = request.GET.get('wms_code', '')
     warehouse = request.GET.get('warehouse', '')
+    commit = request.GET.get('commit', '')
     user = User.objects.get(username=warehouse)
     total_data = []
     limit = 10
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
-    pcf = uom_dict['sku_conversion']
-    master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
-                                             batch_detail__batch_no__icontains=search_key).\
-                                    values('batch_detail__batch_no', 'batch_detail__manufactured_date',
-                                           'batch_detail__expiry_date',
-                                           'sku__sku_code', 'batch_detail__puom').distinct().\
-        annotate(total_qty=Sum(F('quantity')/Value(pcf)))
+    if commit:
+        master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                                 batch_detail__batch_no__icontains=search_key).\
+                                        values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                               'batch_detail__expiry_date',
+                                               'sku__sku_code', 'batch_detail__puom').distinct().\
+            annotate(total_qty=Sum('quantity'))
+    else:
+        uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                                 batch_detail__batch_no__icontains=search_key).\
+                                        values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                               'batch_detail__expiry_date',
+                                               'sku__sku_code', 'batch_detail__puom').distinct().\
+            annotate(total_qty=Sum(F('quantity')/Value(pcf)))
     for dat in master_data[:limit]:
         mfg_date = ''
         if dat['batch_detail__manufactured_date']:

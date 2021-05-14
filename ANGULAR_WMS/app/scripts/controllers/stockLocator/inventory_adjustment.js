@@ -309,7 +309,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
     data.wms_code = selected.wms_code;
     data.description = selected.sku_desc;
-    data.uom = selected.measurement_unit;
+    data.uom = selected.base_uom;
     if(!vm.batch_mandatory){
       vm.update_availabe_stock(data);
     }
@@ -327,7 +327,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if(!vm.batch_mandatory){
       return
     }
-    var batch_check = {'wms_code': data.wms_code, 'warehouse': vm.model_data.warehouse, 'q': data.batch_no}
+    var batch_check = {'wms_code': data.wms_code, 'warehouse': vm.model_data.warehouse, 'q': data.batch_no, 'commit': 'inventory'}
     vm.service.apiCall("search_batch_data/", "GET", batch_check).then(function(result) {
       if(result.message) {
         if(result.data.length){

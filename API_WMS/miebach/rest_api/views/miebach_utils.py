@@ -1915,7 +1915,7 @@ CONSUMPTION_DATA_DICT = {
     ],
     'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
                    'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
-                   'UOM', 'Remarks','Status','Test Date', 'Consumption ID'],
+                   'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17508,7 +17508,7 @@ def get_consumption_data_(search_params, user, sub_user):
           'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
           'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
           'total_test','qnp','total_patients', 'consumptiondata__quantity','total_test', 'creation_date', 'creation_date',
-          'status','run_date', 'consumptiondata__consumption_number']
+          'status','run_date', 'consumptiondata__consumption_number', 'status']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17607,6 +17607,11 @@ def get_consumption_data_(search_params, user, sub_user):
         status = 'Pending'
         if not result['status']:
             status = 'Consumption Booked'
+        reason = ''
+        if result['status'] == 2:
+            reason = 'Stock Not Found'
+        if result['status'] == 3:
+            reason = 'Bom Mapping Not Found'
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -17631,7 +17636,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
-            ('Test Date', get_local_date(user, result['run_date'])),
+            ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
             ('TT', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 

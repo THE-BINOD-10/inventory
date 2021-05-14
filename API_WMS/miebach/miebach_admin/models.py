@@ -4303,3 +4303,4 @@ class MRP(models.Model):
         db_table = 'MRP'
         unique_together = ('user', 'sku')
         index_together = ('user', 'sku')
+

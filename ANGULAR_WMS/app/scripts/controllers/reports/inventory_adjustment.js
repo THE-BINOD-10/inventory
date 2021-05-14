@@ -57,16 +57,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   }else {
     vm.dtColumns = [
+      DTColumnBuilder.newColumn('Store').withTitle('Store'),
+      DTColumnBuilder.newColumn('Department').withTitle('Department'),
+      DTColumnBuilder.newColumn('OrderId').withTitle('Order ID'),
       DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
       DTColumnBuilder.newColumn('Location').withTitle('Location'),
       DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
       DTColumnBuilder.newColumn('Base Uom Quantity').withTitle('Base Uom Quantity'),
       DTColumnBuilder.newColumn('Adjustment Value').withTitle('Adjustment Value'),
-      DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'),
+      // DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'),
       DTColumnBuilder.newColumn('Date').withTitle('Date'),
+      DTColumnBuilder.newColumn('Reason').withTitle('Reason'),
       DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
-      DTColumnBuilder.newColumn('Store').withTitle('Store'),
-      DTColumnBuilder.newColumn('Department').withTitle('Department'),
     ];
 
   }

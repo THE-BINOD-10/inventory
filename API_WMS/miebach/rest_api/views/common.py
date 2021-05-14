@@ -6837,7 +6837,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     avlb_qty = (avail_qty+st_avail_qty)
     if comment:
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
-        sku_pcf = uom_dict.get('sku_conversions', 1)
+        sku_pcf = uom_dict.get('sku_conversion', 1)
         avlb_qty = avlb_qty * sku_pcf
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
@@ -10889,9 +10889,12 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     if not user_prefix:
         if type_name == 'consumption_prefix':
             store_user = get_admin(user)
-            subsidiary = get_admin(store_user)
-            user_prefix = UserPrefixes.objects.filter(user=subsidiary.id, type_name=type_name, product_category='',
-                                                  sku_category='')
+            user_prefix = UserPrefixes.objects.filter(user=store_user.id, type_name=type_name, product_category='',
+                                                    sku_category='')
+            if not user_prefix:
+                subsidiary = get_admin(store_user)
+                user_prefix = UserPrefixes.objects.filter(user=subsidiary.id, type_name=type_name, product_category='',
+                                                          sku_category='')
         else:
             user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category='',
                                                   sku_category='')
@@ -14308,20 +14311,29 @@ def search_batch_data(request, user=''):
     search_key = request.GET.get('q', '')
     wms_code = request.GET.get('wms_code', '')
     warehouse = request.GET.get('warehouse', '')
+    commit = request.GET.get('commit', '')
     user = User.objects.get(username=warehouse)
     total_data = []
     limit = 10
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
-    pcf = uom_dict['sku_conversion']
-    master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
-                                             batch_detail__batch_no__icontains=search_key).\
-                                    values('batch_detail__batch_no', 'batch_detail__manufactured_date',
-                                           'batch_detail__expiry_date',
-                                           'sku__sku_code', 'batch_detail__puom').distinct().\
-        annotate(total_qty=Sum(F('quantity')/Value(pcf)))
+    if commit:
+        master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                                 batch_detail__batch_no__icontains=search_key).\
+                                        values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                               'batch_detail__expiry_date',
+                                               'sku__sku_code', 'batch_detail__puom').distinct().\
+            annotate(total_qty=Sum('quantity'))
+    else:
+        uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                                 batch_detail__batch_no__icontains=search_key).\
+                                        values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                               'batch_detail__expiry_date',
+                                               'sku__sku_code', 'batch_detail__puom').distinct().\
+            annotate(total_qty=Sum(F('quantity')/Value(pcf)))
     for dat in master_data[:limit]:
         mfg_date = ''
         if dat['batch_detail__manufactured_date']:

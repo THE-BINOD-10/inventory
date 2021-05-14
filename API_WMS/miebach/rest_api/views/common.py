@@ -14015,10 +14015,10 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             if consumption.machine:
                 bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
             bom_master = BOMMaster.objects.filter(**bom_check_dict)
-            if not bom_master.exists():
-                if 'machine_master__machine_code' in bom_check_dict.keys():
-                    del bom_check_dict['machine_master__machine_code']
-                bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            # if not bom_master.exists():
+            #     if 'machine_master__machine_code' in bom_check_dict.keys():
+            #         del bom_check_dict['machine_master__machine_code']
+            #     bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True
             pending_qty = 0
@@ -14127,8 +14127,14 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             machine_code = str(result['machine__machine_code'])
             machine_name = result['machine__machine_name']
         status = 'Pending'
+        reason = 'Mapping Not Found'
         if not result['status']:
             status = 'Consumption Booked'
+            reason = ''
+        if result['status'] == 2:
+            reason = 'Stock Not Found'
+        if result['status'] == 3:
+            reason = 'Bom Mapping Not Found'
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -14151,7 +14157,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             ('Consumption Booked Qty', result['consumptiondata__quantity']),('Current Available Stock', stock_quantity),
             ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),('Status', status),
             ('Consumption ID', order_id),
-            ('Test Date', get_local_date(user_obj, result['run_date']))))
+            ('Test Date', get_local_date(user_obj, result['run_date'])),
+            ('Reason', reason)))
         temp_data.append(ord_dict)
 
     return temp_data

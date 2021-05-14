@@ -1898,7 +1898,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
     ],
     'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 
-                  'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Base UOM', 'Stock Value', 'Purchase Uom Quantity', 'Purchase UOM', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
+                  'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Base UOM', 'Stock Value', 'Purchase Uom Quantity', 'Purchase UOM', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Workload', 'Workload From', 'Workload To', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -17333,7 +17333,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
     lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
            'stock_mapping__stock__location__location','quantity', 'sku__measurement_type', 'quantity', 'price', 'sku__measurement_type', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
-            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks', 'consumption_type']
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'order_id', 'order_id', 'order_id', 'remarks', 'consumption_type']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17410,19 +17410,26 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         results = model_data
     count = 0
     for result in results.iterator():
-        test_code, mfg_date, exp_date = [''] * 3
+        test_code, mfg_date, exp_date, workload, workload_from, workload_to  = [''] * 6
         user_obj = User.objects.get(id=result['sku__user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone_code = user_obj.userprofile.zone
         # consumption_type = status_keys[result['consumption_type']]
+        if result['consumption_type'] == 0:
+            consumption_type = 'Closing Stock'
         if result['consumption_type'] == 2:
             consumption_type = 'Auto Consumption'
         if result['consumption_type'] == 1:
-            consumption_type = 'Closing stock'
+            consumption_type = 'Manual Consumption'
         if result['consumption_type'] == 3:
             consumption_type = 'Adjustment'
+            try:
+                temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku_use=result['sku__user'])
+                workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from, temp_datum.workload_to
+            except:
+                pass
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             department = user_obj.first_name
@@ -17474,6 +17481,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),
             ('Expiry Date', exp_date),
+            ('Workload', workload),
+            ('Workload From', workload_from),
+            ('Workload To', workload_to),
             ('Type', consumption_type),
             ('Remarks', result['remarks'])))
         temp_data['aaData'].append(ord_dict)

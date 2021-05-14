@@ -26,7 +26,7 @@
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
             </button>
             <h4 class="modal-title" id="myLargeModalLabel">Add Inventory Adjustment</h4>
-          </div>           
+          </div>
            <div class="modal-body">
 
             <div class="row">
@@ -142,9 +142,9 @@
                       <th>Batch No.</th>
                       <th>Manufactured Date</th>
                       <th>Expiry Date</th>
-                      <th ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">Workload<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
-                      <th ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">Workload From<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
-                      <th ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">Workload To<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
+                      <th ng-hide="showCase.model_data.reason !='Consumption' || showCase.model_data.reason ==''">Workload<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
+                      <th ng-hide="showCase.model_data.reason !='Consumption' || showCase.model_data.reason ==''">Workload From<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
+                      <th ng-hide="showCase.model_data.reason !='Consumption' || showCase.model_data.reason ==''">Workload To<span ng-if="showCase.model_data.reason =='Consumption'">*</span></th>
                       <th>Quantity</th>
                       <th>Final Stock</th>
                       <th class="hide" ng-if="showCase.model_data.reason=='Pooling'">Price *</th>
@@ -177,13 +177,13 @@
                         <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.expiry_date" name="expiry_date" ng-if="!data.mfg_readonly" style="background-color: white;" readonly>
                         <input type="text" class="form-control" ng-model="data.expiry_date" name="expiry_date" ng-if="data.mfg_readonly" readonly>
                       </td>
-                      <td ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">
+                      <td ng-hide="showCase.model_data.reason !='Consumption' || showCase.model_data.reason ==''">
                         <input type="text" ng-init="data.workload=0" class="form-control decimal" ng-model="data.workload" name="workload" ng-required="showCase.model_data.reason =='Consumption'">
                       </td>
-                      <td ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">
+                      <td ng-hide="showCase.model_data.reason !='Consumption' || showCase.model_data.reason ==''">
                         <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.workload_from" name="workload_from" data-date-today-highlight="true" data-date-autoclose="true" style="background-color: white;" ng-required="showCase.model_data.reason =='Consumption'">
                       </td>
-                      <td ng-hide="showCase.model_data.reason =='Pooling' || showCase.model_data.reason ==''">
+                      <td ng-hide="showCase.model_data.reason !='Consumption' || showCase.model_data.reason ==''">
                         <input ui-jq="datepicker" type="text" class="form-control" ng-model="data.workload_to" name="workload_to" data-date-today-highlight="true" data-date-autoclose="true" style="background-color: white;" ng-required="showCase.model_data.reason =='Consumption'">
                       </td>
                       <td>

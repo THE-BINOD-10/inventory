@@ -1,4 +1,4 @@
-'use strict';
+// 'use strict';
 
 angular.module('urbanApp', ['datatables'])
   .controller('MaterialReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
@@ -64,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.reports[name] = data.data.data;
     angular.copy(data.data.data, vm.report_data);
       vm.report_data['special_key'] = 'MR';
-      vm.report_data.filters.pop();
+      // vm.report_data.filters.pop();
       vm.report_data.filters[2]['label'] = 'MR From Date';
       vm.report_data.filters[3]['label'] = 'MR To Date';
       vm.report_data.filters[5]['label'] = 'Material Request ID';
@@ -96,7 +96,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {
                     'from_date': '',
                     'to_date': '',
-                    'sku_code': ''
+                    'sku_code': '',
+                    'zone_code': '',
+                    'plant_code': '',
+                    'plant_name': '',
                     };
 
   vm.model_data = {};

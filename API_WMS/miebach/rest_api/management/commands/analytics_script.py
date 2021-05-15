@@ -17,6 +17,7 @@ class BigIntegerField(models.fields.IntegerField):
 
 class AnalyticsGRN(models.Model):
     id = BigAutoField(primary_key=True)
+    grn_id= BigIntegerField(blank=True, null=True, default=0)
     grn_number = models.CharField(max_length=32, default='', db_index=True)
     invoice_date = models.DateField(blank=True, null=True)
     invoice_number = models.CharField(max_length=64, default='')
@@ -806,6 +807,8 @@ def get_grn_detail_report_data(search_params, user, sub_user):
         #     data['wh_user'] = result['pending_po__wh_user__first_name']
         if plant_zone:
             data['zone'] = plant_zone
+        if result['id']:
+            data["grn_id"] = result["id"]
         if result['purchase_order__id']:
             data['po_id'] = result['purchase_order__id']
         if plant_name:
@@ -901,7 +904,7 @@ def get_grn_detail_report_data(search_params, user, sub_user):
                 del grn_data["po_id"]
             if 'priority_type' in  grn_data:
                 del grn_data["priority_type"]
-            grn_obj= AnalyticsGRN.objects.using('mhl_analytics').update_or_create(grn_number= grn_data['grn_number'],sku_code= grn_data['sku_code'], price= grn_data['price'], pquantity = grn_data['pquantity'], defaults= grn_data)
+            grn_obj= AnalyticsGRN.objects.using('mhl_analytics').update_or_create(grn_id= grn_data["grn_id"], grn_number= grn_data['grn_number'],sku_code= grn_data['sku_code'], price= grn_data['price'], pquantity = grn_data['pquantity'], defaults= grn_data)
             print(grn_obj)
             AnalyticsPurchaseOrder.objects.using('mhl_analytics').filter(
                 full_po_number= full_po_number,

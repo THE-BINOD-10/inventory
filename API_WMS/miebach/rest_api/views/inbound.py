@@ -1684,12 +1684,13 @@ def generated_pr_data(request, user=''):
     validateFlag = 0
     uploaded_file_dict = {}
     if len(record) > 0:
+        if record[0].pending_prs.filter():
+            full_pr_number = get_pr_number_from_po(record[0])
         if record[0].remarks:
             pr_remarks = record[0].remarks
         elif record[0].pending_prs.filter():
             pr_rec = record[0].pending_prs.filter()[0]
             pr_remarks = pr_rec.remarks
-            full_pr_number = pr_rec.full_pr_number
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
@@ -2143,6 +2144,7 @@ def print_pending_po_form(request, user=''):
     supplier_currency = 'INR'
     purchase_number = int(purchase_id)
     filtersMap = {}
+    full_pr_number = ''
     if warehouse:
         wh_user = User.objects.filter(first_name=warehouse)
         filtersMap['wh_user'] = wh_user[0].id
@@ -2165,6 +2167,7 @@ def print_pending_po_form(request, user=''):
             lineItems = pendingPurchaseObj.pending_prlineItems
         else:
             lineItems = pendingPurchaseObj.pending_polineItems
+            full_pr_number = get_pr_number_from_po(pendingPurchaseObj)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     table_headers = ['SKU Code','SKU Desc','Supplier Code', 'Qty', 'UOM', 'Unit Price',
@@ -2315,6 +2318,7 @@ def print_pending_po_form(request, user=''):
         'title': title,
         'is_actual_pr': is_actual_pr,
         'remarks': remarks,
+        'full_pr_number': full_pr_number,
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
@@ -9764,6 +9768,7 @@ def confirm_add_po(request, sales_data='', user=''):
     prQs = ''
     check_prefix = ''
     po_remarks = request.POST.get('po_remarks', '')
+    full_pr_number = ''
     try:
         if is_purchase_request == 'true':
             # pr_number = int(request.POST.get('pr_number'))
@@ -9776,6 +9781,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 po_creation_date = prObj.creation_date
                 po_id = prObj.po_number
                 full_po_number = prObj.full_po_number
+                full_pr_number = get_pr_number_from_po(prObj)
                 #po_remarks = prObj.remarks
                 prefix = prObj.prefix
                 delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
@@ -10116,7 +10122,8 @@ def confirm_add_po(request, sales_data='', user=''):
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan, 'remarks': po_remarks,
                      'company_address': company_address.encode('ascii', 'ignore'), 'company_details': company_details,
-                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo,
+                     'full_pr_number': full_pr_number}
         netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs, request)
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value

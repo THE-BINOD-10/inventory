@@ -2292,6 +2292,7 @@ def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_prefix = request.GET.get('prefix', '')
     po_num= request.GET.get('po_number', '')
+    for_mail = request.GET.get('for_mail', '')
     total_qty = 0
     total = 0
     remarks = ''
@@ -2304,6 +2305,7 @@ def print_purchase_order_form(request, user=''):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
+    full_pr_number = ''
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num).exclude(status='deleted')
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
@@ -2319,6 +2321,7 @@ def print_purchase_order_form(request, user=''):
             if pending_po_data.supplier_payment:
                 supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
+            full_pr_number = get_pr_number_from_po(pending_po_data)
         if pm_order.open_po.supplier.currency_code:
             supplier_currency = pm_order.open_po.supplier.currency_code
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
@@ -2536,10 +2539,13 @@ def print_purchase_order_form(request, user=''):
         'supplier_currency': supplier_currency,
         'delivery_date': delivery_date,
         'supplier_payment_terms': supplier_payment_terms,
-        'company_address': company_address
+        'company_address': company_address,
+        'full_pr_number': full_pr_number,
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
+    if for_mail:
+        return render(request, 'templates/toggle/po_download.html', data_dict)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 

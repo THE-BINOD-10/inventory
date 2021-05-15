@@ -204,7 +204,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         sku_codes_list.append(each_rw['sku__sku_code'])
     skus_uom_dict = get_uom_with_multi_skus(user, sku_codes_list, uom_type='purchase')
     count = 0
-    print(len(results))
+    print("Pending PR Total Count",len(results))
     for result in results:
         pr_obj = PendingPR.objects.get(id=result['pending_pr_id'])
         po_numbers = ','.join(pr_obj.pendingpo_set.filter().values_list('full_po_number', flat=True))
@@ -357,13 +357,16 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             data['final_status'] = final_status.title()
         if result['pending_pr__delivery_date']:
             data['delivery_date'] = result['pending_pr__delivery_date']
-        final_list.append(data)
-    for purchase_request_date in final_list:
-	    try:
-	        print(AnalyticsPurchaseRequest.objects.using('mhl_analytics').update_or_create(full_pr_number= purchase_request_date['full_pr_number'], pr_date= purchase_request_date['pr_date'], sku_code= purchase_request_date['sku_code'],price= purchase_request_date['price'], pquantity = purchase_request_date['pquantity'],defaults= purchase_request_date))
-	    except Exception as err:
-	        print(".....", str(err))
-	        print(purchase_request_date)
+        #final_list.append(data)
+        purchase_request_date = data
+    #for purchase_request_date in final_list:
+	try:
+	    print(AnalyticsPurchaseRequest.objects.using('mhl_analytics').update_or_create(full_pr_number= purchase_request_date['full_pr_number'], pr_date= purchase_request_date['pr_date'], sku_code= purchase_request_date['sku_code'],price= purchase_request_date['price'], pquantity = purchase_request_date['pquantity'],defaults= purchase_request_date))
+	except Exception as err:
+	    print(".....", str(err))
+	    print(purchase_request_date)
+        count+= 1
+        print("Pending PR Total Count = ",len(results), " and completed = ", count)
 
 
 
@@ -407,6 +410,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
         po_numbers_list.append(each_rw['pending_po__full_po_number'])
     skus_uom_dict = get_uom_with_multi_skus(user, sku_codes_list, uom_type='purchase')
     count = 0
+    print("Pending PO Count", len(results))
     for result in results:
         plant_code, plant_name, plant_zone , department, department_code = '', '', '', '', ''
         req_user = User.objects.filter(id = result['pending_po__wh_user'])[0]
@@ -446,6 +450,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
             data['plant_code'] = plant_code
         if result['pending_po__creation_date']:
             data['po_date'] =  result['pending_po__creation_date'].isoformat()
+            data['po_raised_date'] = data['po_date']
         if 'pending_po__requested_user__first_name' in result and result['pending_po__requested_user__first_name']:
             data['requested_user'] = result['pending_po__requested_user__first_name']
         if 'pending_po__wh_user__first_name' in result and result['pending_po__wh_user__first_name']:
@@ -510,7 +515,8 @@ def get_po_detail_report_data(search_params, user, sub_user):
         if result['pending_po__delivery_date']:
             data['delivery_date'] = result['pending_po__delivery_date'].isoformat()
         po_list.append(data)
-    for purchase_order_data in po_list:
+        purchase_order_data = data
+    #for purchase_order_data in po_list:
         try:
             full_pr_number = purchase_order_data.get("full_pr_number", "")
             pr_date = purchase_order_data.get("pr_date", "")
@@ -533,20 +539,25 @@ def get_po_detail_report_data(search_params, user, sub_user):
                sku_code= purchase_order_data['sku_code'],
                pquantity = purchase_order_data['pquantity'],
                pr_date= pr_date,
-               ).exclude(purchase_orders__full_po_number=purchase_order_data['full_po_number'],
-                   purchase_orders__po_raised_date= purchase_order_data['po_raised_date'],
-                   purchase_orders__sku_code= purchase_order_data['sku_code'],
-                   purchase_orders__pquantity = purchase_order_data['pquantity'],
-                   purchase_orders__price= purchase_order_data['price'],
                )
+            #.exclude(purchase_orders__full_po_number=purchase_order_data['full_po_number'],
+            #       purchase_orders__po_raised_date= purchase_order_data['po_raised_date'],
+            #       purchase_orders__sku_code= purchase_order_data['sku_code'],
+            #       purchase_orders__pquantity = purchase_order_data['pquantity'],
+            #       purchase_orders__price= purchase_order_data['price'],
+            #   )
             if pr_objects.exists():
             	for pr_obj in pr_objects:
             		pr_obj.purchase_orders.add(po_object[0])
         except Exception as err:
             print(".....", str(err))
             print(purchase_order_data)
-    last_hour = now + dateutil.relativedelta.relativedelta(hours=-275)
-    search_parameters = {'updation_date__gte': last_hour, "open_po_id__isnull":False}
+            continue
+    print("Pending PO completed")
+    #last_hour = now + dateutil.relativedelta.relativedelta(hours=-275)
+    #search_parameters = {'updation_date__gte': last_hour, "open_po_id__isnull":False}
+    search_parameters = {"open_po_id__isnull":False}
+    search_parameters.update(search_params)
     po_values_list = ["po_number", "creation_date", "received_quantity",
      "status", "id",
      "expected_date", "currency", "currency_internal_id", "currency_rate",
@@ -673,8 +684,9 @@ def get_po_detail_report_data(search_params, user, sub_user):
         #     data['final_status'] = final_status.title()
         if result['expected_date']:
             data['delivery_date'] = result['expected_date'].isoformat()
-        new_po_list.append(data)
-    for purchase_order_data in new_po_list:
+        #new_po_list.append(data)
+        purchase_order_data =data
+    #for purchase_order_data in new_po_list:
         try:
             full_pr_number = purchase_order_data.get("full_pr_number", "")
             pr_date = purchase_order_data.get("pr_date", "")
@@ -692,8 +704,16 @@ def get_po_detail_report_data(search_params, user, sub_user):
                 defaults= purchase_order_data)
             print(po_object)
         except Exception as err:
+	    po_object= AnalyticsPurchaseOrder.objects.using('mhl_analytics').update_or_create(
+                po_id= purchase_order_data['po_id'],
+                full_po_number= purchase_order_data['full_po_number'],
+                sku_code= purchase_order_data['sku_code'],
+                price= purchase_order_data['price'],
+                pquantity = purchase_order_data['pquantity'],
+                defaults= purchase_order_data)
             print(".....", str(err))
             print(purchase_order_data)
+            continue
 
 
 
@@ -743,7 +763,7 @@ def get_grn_detail_report_data(search_params, user, sub_user):
         # po_numbers_list.append(each_rw['pending_po__full_po_number'])
     skus_uom_dict = get_uom_with_multi_skus(user, grn_sku_codes_list, uom_type='purchase')
     count = 0
-    print(len(grn_results))
+    print("GRN Total count = ",len(grn_results))
     for result in grn_results:
         # if result["po_number"] in exclude_po_numbers: continue
         plant_code, plant_name, plant_zone , department, department_code = '', '', '', '', ''
@@ -869,8 +889,9 @@ def get_grn_detail_report_data(search_params, user, sub_user):
                                                     filter(revision__comment='generate_grn')
         if version_obj.exists():
        	    data['grn_user'] = version_obj.order_by('-revision__date_created')[0].revision.user.username
-        new_grn_list.append(data)
-    for grn_data in new_grn_list:
+        #new_grn_list.append(data)
+        grn_data = data
+    #for grn_data in new_grn_list:
         try:
             full_po_number = grn_data.get("full_po_number", "")
             po_id = grn_data.get("po_id", "")
@@ -889,3 +910,5 @@ def get_grn_detail_report_data(search_params, user, sub_user):
         except Exception as err:
             print(".....\n", str(err))
             print(grn_data)
+        count+=1
+        print("GRN total_count= ", len(grn_results), " completed = ",count)

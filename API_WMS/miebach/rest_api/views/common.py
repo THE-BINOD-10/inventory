@@ -683,6 +683,7 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PRConvertedPO': 'get_pr_converted_po',
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',

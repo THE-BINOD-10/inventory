@@ -15787,6 +15787,7 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Next Approver Email', next_approver_mail),
             ('Pending Approval Type', approval_type),
             ('Pending Level', pending_level),
+            ('pending_pr_id', result['pending_pr_id']),
             ('DT_RowClass', 'results')))
         count += 1
         temp_data['aaData'].append(ord_dict)

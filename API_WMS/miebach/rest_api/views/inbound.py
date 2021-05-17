@@ -7146,6 +7146,83 @@ def validate_grn_wms(user, myDict):
 
 @csrf_exempt
 @login_required
+@get_admin_multi_user
+def get_purchase_orders(request, users=''):
+    myDict = dict(request.GET.iterlists())
+    warehouse_users = myDict.get('warehouse_id')
+    order_id = myDict.get('order_id')
+    order_pre = myDict.get('prefix')
+    full_po_number = myDict.get('po_number')
+    orders = []
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users,
+                                                   received_quantity__lt=F('open_po__order_quantity'),
+                                                   order_id__in=order_id).exclude(status='location-assigned')
+    # if stop_index:
+    #     purchase_orders = purchase_orders[start_index:stop_index]
+    po_reference_no = ''
+    #admin_user = get_admin(user)
+    for order in purchase_orders:
+        po_reference_no = '%s%s_%s' % (
+            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        customer_name, sr_number = '', ''
+        po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
+        po_date = get_local_date(request.user, order.creation_date)
+        ord_dict = OrderedDict((('sku_code', order.open_po.sku.wms_code), ('po_number', po_reference_no),
+                                ('sku_category', order.open_po.sku.sku_category),
+                                ('ordered_quantity', order.open_po.order_quantity),
+                                ('received_quantity', order.received_quantity),
+                                ('quantity', po_quantity), ('sku_desc', order.open_po.sku.sku_desc),
+                                ('customer_name', customer_name),
+                                ('warehouse_id', order.open_po.sku.user),
+                                ('po_date', po_date),
+                                ('order_id', order.order_id)))
+        orders.append(ord_dict)
+
+    return HttpResponse(json.dumps({'data': orders}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_asn_order(request, user=''):
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
+    data = {}
+    for key, value in request.POST.iterlists():
+        if key not in ['warehouse_id']:
+            name, order_id = key.rsplit('_', 1)
+            data.setdefault(order_id, [])
+            for index, val in enumerate(value):
+                if len(data[order_id]) < index + 1:
+                    data[order_id].append({})
+                data[order_id][index][name] = val
+    try:
+        data = OrderedDict(sorted(data.items(), reverse=True))
+        asn_number = get_incremental(user, 'asn_number')
+        for key, value in data.iteritems():
+            po_order_id = value[0]['order_id']
+            for i in range(0, len(value)):
+                sku_code = value[i]['sku_code']
+                quantity = value[i].get('current_quantity', 0)
+                if quantity:
+                    po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
+                                                     open_po__sku__user=user.id, 
+                                                     open_po__sku__sku_code=sku_code)
+                    ASNMapping.objects.create(**{'purchase_order':po_obj[0], 'total_quantity':quantity,
+                                             'asn_number': asn_number, 'user':user})
+                else:
+                    return HttpResponse('Quantity missing')
+        return HttpResponse('ASN Confirmed')
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('ASN Confirmation failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(data), str(e)))
+        return HttpResponse('ASN Failed')
+
+@csrf_exempt
+@login_required
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def send_for_approval_confirm_grn(request, confirm_returns='', user=''):

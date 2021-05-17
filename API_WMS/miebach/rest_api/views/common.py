@@ -683,6 +683,7 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PRConvertedPO': 'get_pr_converted_po',
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',
@@ -6837,7 +6838,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     avlb_qty = (avail_qty+st_avail_qty)
     if comment:
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
-        sku_pcf = uom_dict.get('sku_conversions', 1)
+        sku_pcf = uom_dict.get('sku_conversion', 1)
         avlb_qty = avlb_qty * sku_pcf
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
@@ -10889,9 +10890,12 @@ def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     if not user_prefix:
         if type_name == 'consumption_prefix':
             store_user = get_admin(user)
-            subsidiary = get_admin(store_user)
-            user_prefix = UserPrefixes.objects.filter(user=subsidiary.id, type_name=type_name, product_category='',
-                                                  sku_category='')
+            user_prefix = UserPrefixes.objects.filter(user=store_user.id, type_name=type_name, product_category='',
+                                                    sku_category='')
+            if not user_prefix:
+                subsidiary = get_admin(store_user)
+                user_prefix = UserPrefixes.objects.filter(user=subsidiary.id, type_name=type_name, product_category='',
+                                                          sku_category='')
         else:
             user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category='',
                                                   sku_category='')
@@ -14015,10 +14019,10 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             if consumption.machine:
                 bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
             bom_master = BOMMaster.objects.filter(**bom_check_dict)
-            if not bom_master.exists():
-                if 'machine_master__machine_code' in bom_check_dict.keys():
-                    del bom_check_dict['machine_master__machine_code']
-                bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            # if not bom_master.exists():
+            #     if 'machine_master__machine_code' in bom_check_dict.keys():
+            #         del bom_check_dict['machine_master__machine_code']
+            #     bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True
             pending_qty = 0
@@ -14127,8 +14131,14 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             machine_code = str(result['machine__machine_code'])
             machine_name = result['machine__machine_name']
         status = 'Pending'
+        reason = 'Mapping Not Found'
         if not result['status']:
             status = 'Consumption Booked'
+            reason = ''
+        if result['status'] == 2:
+            reason = 'Stock Not Found'
+        if result['status'] == 3:
+            reason = 'Bom Mapping Not Found'
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -14151,7 +14161,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             ('Consumption Booked Qty', result['consumptiondata__quantity']),('Current Available Stock', stock_quantity),
             ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),('Status', status),
             ('Consumption ID', order_id),
-            ('Test Date', get_local_date(user_obj, result['run_date']))))
+            ('Test Date', get_local_date(user_obj, result['run_date'])),
+            ('Reason', reason)))
         temp_data.append(ord_dict)
 
     return temp_data
@@ -14308,20 +14319,29 @@ def search_batch_data(request, user=''):
     search_key = request.GET.get('q', '')
     wms_code = request.GET.get('wms_code', '')
     warehouse = request.GET.get('warehouse', '')
+    commit = request.GET.get('commit', '')
     user = User.objects.get(username=warehouse)
     total_data = []
     limit = 10
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
-    pcf = uom_dict['sku_conversion']
-    master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
-                                             batch_detail__batch_no__icontains=search_key).\
-                                    values('batch_detail__batch_no', 'batch_detail__manufactured_date',
-                                           'batch_detail__expiry_date',
-                                           'sku__sku_code', 'batch_detail__puom').distinct().\
-        annotate(total_qty=Sum(F('quantity')/Value(pcf)))
+    if commit:
+        master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                                 batch_detail__batch_no__icontains=search_key).\
+                                        values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                               'batch_detail__expiry_date',
+                                               'sku__sku_code', 'batch_detail__puom').distinct().\
+            annotate(total_qty=Sum('quantity'))
+    else:
+        uom_dict = get_uom_with_sku_code(user, wms_code, uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                                 batch_detail__batch_no__icontains=search_key).\
+                                        values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                               'batch_detail__expiry_date',
+                                               'sku__sku_code', 'batch_detail__puom').distinct().\
+            annotate(total_qty=Sum(F('quantity')/Value(pcf)))
     for dat in master_data[:limit]:
         mfg_date = ''
         if dat['batch_detail__manufactured_date']:

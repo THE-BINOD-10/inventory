@@ -7303,14 +7303,23 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
 
 def validate_grn_wms(user, myDict):
     status_msg = ''
-    for i in range(0, len(myDict['wms_code'])):
-        if myDict['wms_code'][i]:
-            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
-            if not sku_master:
-                if not status_msg:
-                    status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
+    try:
+        for i in range(0, len(myDict['wms_code'])):
+            if myDict['wms_code'][i]:
+                sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+                if not sku_master:
+                    if not status_msg:
+                        status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
+                    else:
+                        status_msg += ',' + myDict['wms_code'][i]
+                if float(myDict['quantity'][i]) > 0 :
+                    datum = PurchaseOrder.objects.get(id=myDict['id'][i])
+                    if float(datum.open_po.order_quantity - datum.received_quantity) < float(myDict['quantity'][i]):
+                        status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
                 else:
-                    status_msg += ',' + myDict['wms_code'][i]
+                    continue
+    except Exception as e:
+        status_msg = 'Something Went Worng, Please Contact to Stockone Team !'
     return status_msg
 
 @csrf_exempt
@@ -9900,6 +9909,10 @@ def format_printing_data(datum, order, purchase_order, wms_code, supplier_code, 
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_po(request, sales_data='', user=''):
+    if request.POST.get('po_number', ''):
+        req_data = PurchaseOrder.objects.filter(po_number=request.POST.get('po_number', ''))
+        if req_data.exists():
+            return HttpResponse("%s - %s" % (request.POST.get('po_number', ''), 'Already Confirmed - Please Close this Window & Check'))
     reversion.set_user(request.user)
     reversion.set_comment("raise_po")
     ean_flag = False

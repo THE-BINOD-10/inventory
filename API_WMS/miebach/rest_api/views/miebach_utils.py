@@ -1962,7 +1962,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
     ],
     'dt_headers': ['Consumption ID','Date', 'Zone Code', 'Plant Code', 'Plant Name', 'Department', 'Warehouse Username', 'Test Code', 'SKU Code', 
-                  'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Base UOM', 'Stock Value', 'Purchase Uom Quantity', 'Purchase UOM', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Remarks', 'Type'],
+                  'SKU Description', 'SKU Conversion','Location', 'Base Quantity', 'Base UOM', 'Stock Value', 'Purchase Uom Quantity', 'Purchase UOM', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date', 'Workload', 'Workload From', 'Workload To', 'Remarks', 'Type'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -1979,7 +1979,7 @@ CONSUMPTION_DATA_DICT = {
     ],
     'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
                    'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
-                   'UOM', 'Remarks','Status','Test Date', 'Consumption ID'],
+                   'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -17833,7 +17833,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
     lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
            'stock_mapping__stock__location__location','quantity', 'sku__measurement_type', 'quantity', 'price', 'sku__measurement_type', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
-            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'remarks', 'consumption_type']
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'order_id', 'order_id', 'order_id', 'remarks', 'consumption_type']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -17893,7 +17893,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type', 'consumption_number']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
-                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).order_by(order_data)
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -17910,17 +17910,26 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         results = model_data
     count = 0
     for result in results.iterator():
-        test_code, mfg_date, exp_date = [''] * 3
+        test_code, mfg_date, exp_date, workload, workload_from, workload_to  = [''] * 6
         user_obj = User.objects.get(id=result['sku__user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone_code = user_obj.userprofile.zone
-        consumption_type = status_keys[result['consumption_type']]
-        # if result['consumption_type'] == 2:
-        #     consumption_type = 'Auto Consumption'
-        # if result['consumption_type'] == 1:
-        #     consumption_type = 'Closing stock'
+        # consumption_type = status_keys[result['consumption_type']]
+        if result['consumption_type'] == 0:
+            consumption_type = 'Closing Stock'
+        if result['consumption_type'] == 2:
+            consumption_type = 'Auto Consumption'
+        if result['consumption_type'] == 1:
+            consumption_type = 'Manual Consumption'
+        if result['consumption_type'] == 3:
+            consumption_type = 'Adjustment'
+            try:
+                temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku__user=result['sku__user'])
+                workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from.strftime("%d %b %Y") if temp_datum.workload_from else '', temp_datum.workload_to.strftime("%d %b %Y") if temp_datum.workload_to else ''
+            except:
+                pass
         if user_obj.userprofile.warehouse_type == 'DEPT':
             admin_user = get_admin(user_obj)
             department = user_obj.first_name
@@ -17972,6 +17981,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),
             ('Expiry Date', exp_date),
+            ('Workload', workload),
+            ('Workload From', workload_from),
+            ('Workload To', workload_to),
             ('Type', consumption_type),
             ('Remarks', result['remarks'])))
         temp_data['aaData'].append(ord_dict)
@@ -17996,7 +18008,7 @@ def get_consumption_data_(search_params, user, sub_user):
           'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
           'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
           'total_test','qnp','total_patients', 'consumptiondata__quantity','total_test', 'creation_date', 'creation_date',
-          'status','run_date', 'consumptiondata__consumption_number']
+          'status','run_date', 'consumptiondata__consumption_number', 'status']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -18095,6 +18107,11 @@ def get_consumption_data_(search_params, user, sub_user):
         status = 'Pending'
         if not result['status']:
             status = 'Consumption Booked'
+        reason = ''
+        if result['status'] == 2:
+            reason = 'Stock Not Found'
+        if result['status'] == 3:
+            reason = 'Bom Mapping Not Found'
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -18119,7 +18136,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
-            ('Test Date', get_local_date(user, result['run_date'])),
+            ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
             ('TT', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 

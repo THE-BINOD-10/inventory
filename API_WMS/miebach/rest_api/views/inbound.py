@@ -7136,8 +7136,12 @@ def validate_grn_wms(user, myDict):
                         status_msg += ',' + myDict['wms_code'][i]
                 if float(myDict['quantity'][i]) > 0 :
                     datum = PurchaseOrder.objects.get(id=myDict['id'][i])
-                    if float(datum.open_po.order_quantity - datum.received_quantity) < float(myDict['quantity'][i]):
-                        status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
+                    if datum.open_po:
+                        if float(datum.open_po.order_quantity - datum.received_quantity) < float(myDict['quantity'][i]):
+                            status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
+                    elif datum.stpurchaseorder_set.filter():
+                        if float(datum.stpurchaseorder_set.filter().values('open_st__order_quantity')[0]['open_st__order_quantity'] - datum.received_quantity) < float(myDict['quantity'][i]):
+                            status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
                 else:
                     continue
     except Exception as e:

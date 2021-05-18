@@ -1781,12 +1781,14 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         zip_subdir = ""
         # for dat in report_file_names:
             # print dat
-        zip_filename ='static/excel_files/'+ file_name + '.tar.gz'
-        with tarfile.open(zip_filename, "w:gz") as tar:
+        zip_filename ='static/excel_files/'+ file_name + '.zip'
+        filename = zip_filename.split('/')[-1]
+        zipfile.ZipFile(zip_filename, mode='w').write(path, arcname=os.path.basename(path))
+        '''with tarfile.open(zip_filename, "w:gz") as tar:
             tar.add(path, arcname=os.path.basename(path))
         new_paths.append({'path': zip_filename, 'name': zip_filename.split('/')[-1]})
-        print new_paths
-        new_paths = "../"+  new_paths[0]["path"]
+        print new_paths'''
+        new_paths = "../"+ zip_filename
         return HttpResponse(new_paths)
     if file_type == 'csv':
         with open(path, 'w') as mycsvfile:

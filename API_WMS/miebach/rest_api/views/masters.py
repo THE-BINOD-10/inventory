@@ -1666,7 +1666,7 @@ def update_supplier_values(request, user=''):
             #setattr(data, key, value)
         filter_dict = {'supplier_id': data.supplier_id }
         del update_dict['supplier_id']
-        master_objs = sync_supplier_master(request, user, update_dict, filter_dict, secondary_email_id=secondary_email_id)
+        # master_objs = sync_supplier_master(request, user, update_dict, filter_dict, secondary_email_id=secondary_email_id)
         #data.save()
 
         '''master_data_dict = {}

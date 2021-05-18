@@ -17,6 +17,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.report_data = {};
   vm.reports = {}
   vm.title = "PR Report";
+
+  vm.row_call = function(aData) {
+    if (!vm.toggle_sku_wise) {
+        vm.file_url = "";
+        vm.consolated_file_url = "";
+        // vm.FileDownload(aData);
+        vm.model_data.pr_number = aData["PR Number"]
+        // print_pending_po_form/?purchase_id=21902&is_actual_pr=true&warehouse=
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+aData.pending_pr_id+'&is_actual_pr='+true, {withCredential: true}).success(function(data, status, headers, config) {
+            // var html = $(data);
+            // vm.print_page = $(html).clone();
+            // //html = $(html).find(".modal-body > .form-group");
+            // //$(html).find(".modal-footer").remove()
+            // $(".modal-body").html(html);
+            vm.service.print_data(data, vm.model_data.pr_number);
+          });
+          // $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
+    }
+  }
   vm.toggle_po = function() {
     var send = {};
     var name ='';

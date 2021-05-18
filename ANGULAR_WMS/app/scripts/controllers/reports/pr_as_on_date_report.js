@@ -36,6 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.empty_data = datam.empty_data;
           angular.copy(vm.empty_data, vm.model_data);
           vm.dtOptions = datam.dtOptions;
+          vm.dtOptions.order = [0, 'desc']
           vm.dtColumns = datam.dtColumns;
           vm.datatable = true;
           vm.dtInstance = {};

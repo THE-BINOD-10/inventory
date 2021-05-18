@@ -17,6 +17,7 @@ class BigIntegerField(models.fields.IntegerField):
 
 class AnalyticsGRN(models.Model):
     id = BigAutoField(primary_key=True)
+    grn_id= BigIntegerField(blank=True, null=True, default=0)
     grn_number = models.CharField(max_length=32, default='', db_index=True)
     invoice_date = models.DateField(blank=True, null=True)
     invoice_number = models.CharField(max_length=64, default='')
@@ -178,7 +179,9 @@ def get_pr_detail_report_data(search_params, user, sub_user):
     last_hour = now + dateutil.relativedelta.relativedelta(hours=-275)
 #    last_month = now + dateutil.relativedelta.relativedelta(months=-1)
     search_parameters = {'purchase_type': 'PR'}
-    search_parameters.update(search_params)
+    from_date = search_params.get("from_date", {})
+    if from_date:
+        search_parameters.update({'pending_pr__updation_date__gte': from_date})
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number',
                    'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
                    'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date', 'pending_pr__wh_user', 'pending_pr__wh_user__first_name','pending_pr__wh_user__userprofile__zone',
@@ -381,7 +384,10 @@ def get_po_detail_report_data(search_params, user, sub_user):
     last_hour = now + dateutil.relativedelta.relativedelta(hours=-275)
 #    last_month = now + dateutil.relativedelta.relativedelta(months=-2)
     search_parameters = {'purchase_type': 'PO'}
-    search_parameters.update(search_params)
+    from_date = search_params.get("from_date", {})
+    if from_date:
+        search_parameters.update({"pending_po__updation_date__gte": from_date})
+    #search_parameters.update(search_params)
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 'pending_po__po_number',
                    'pending_po__requested_user__username', 'pending_po__full_po_number', 'pending_po__final_status',
                    'pending_po__pending_level', 'pending_po__remarks', 'pending_po__delivery_date', 'pending_po__wh_user','pending_po__wh_user__first_name','pending_po__wh_user__userprofile__zone',
@@ -557,7 +563,8 @@ def get_po_detail_report_data(search_params, user, sub_user):
     #last_hour = now + dateutil.relativedelta.relativedelta(hours=-275)
     #search_parameters = {'updation_date__gte': last_hour, "open_po_id__isnull":False}
     search_parameters = {"open_po_id__isnull":False}
-    search_parameters.update(search_params)
+    if from_date:
+        search_parameters.update({'updation_date__gte': from_date})
     po_values_list = ["po_number", "creation_date", "received_quantity",
      "status", "id",
      "expected_date", "currency", "currency_internal_id", "currency_rate",
@@ -736,7 +743,9 @@ def get_grn_detail_report_data(search_params, user, sub_user):
     last_month = now + dateutil.relativedelta.relativedelta(months=-1)
     # last_hour = now + dateutil.relativedelta.relativedelta(hours=-275)
     search_parameters = {"purchase_order__open_po_id__isnull":False}
-    search_parameters.update(search_params)
+    from_date = search_params.get("from_date", {})
+    if from_date:
+        search_parameters.update({'updation_date__gte': from_date})
     grn_values_list = ["purchase_order__po_number", "purchase_order__creation_date",
      "purchase_order__open_po__supplier__supplier_id", "purchase_order__open_po__supplier__name",
      "purchase_order__open_po__supplier__country", "purchase_order__open_po__supplier__state",
@@ -806,6 +815,8 @@ def get_grn_detail_report_data(search_params, user, sub_user):
         #     data['wh_user'] = result['pending_po__wh_user__first_name']
         if plant_zone:
             data['zone'] = plant_zone
+        if result['id']:
+            data["grn_id"] = result["id"]
         if result['purchase_order__id']:
             data['po_id'] = result['purchase_order__id']
         if plant_name:
@@ -901,7 +912,7 @@ def get_grn_detail_report_data(search_params, user, sub_user):
                 del grn_data["po_id"]
             if 'priority_type' in  grn_data:
                 del grn_data["priority_type"]
-            grn_obj= AnalyticsGRN.objects.using('mhl_analytics').update_or_create(grn_number= grn_data['grn_number'],sku_code= grn_data['sku_code'], price= grn_data['price'], pquantity = grn_data['pquantity'], defaults= grn_data)
+            grn_obj= AnalyticsGRN.objects.using('mhl_analytics').update_or_create(grn_id= grn_data["grn_id"], grn_number= grn_data['grn_number'],sku_code= grn_data['sku_code'], price= grn_data['price'], pquantity = grn_data['pquantity'], defaults= grn_data)
             print(grn_obj)
             AnalyticsPurchaseOrder.objects.using('mhl_analytics').filter(
                 full_po_number= full_po_number,

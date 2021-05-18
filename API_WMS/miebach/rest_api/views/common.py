@@ -51,6 +51,8 @@ from miebach.celery import app
 import git
 from lockout import LockedOut
 from ipware import get_client_ip
+import tarfile
+from xlsxwriter import Workbook
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -683,6 +685,7 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PRConvertedPO': 'get_pr_converted_po',
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',
@@ -1771,6 +1774,22 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
     path_to_file = '../' + path
+    if 'excel_name=metropolis_pr_po_grn_dict' in excel_name:
+        excel_headers = METROPOLIS_PR_PO_GRN_DICT["dt_headers"]
+        save_to_excel(excel_headers, temp_data['aaData'], request, path, path_to_file)
+        new_paths = []
+        zip_subdir = ""
+        # for dat in report_file_names:
+            # print dat
+        zip_filename ='static/excel_files/'+ file_name + '.zip'
+        filename = zip_filename.split('/')[-1]
+        zipfile.ZipFile(zip_filename, mode='w').write(path, arcname=os.path.basename(path))
+        '''with tarfile.open(zip_filename, "w:gz") as tar:
+            tar.add(path, arcname=os.path.basename(path))
+        new_paths.append({'path': zip_filename, 'name': zip_filename.split('/')[-1]})
+        print new_paths'''
+        new_paths = "../"+ zip_filename
+        return HttpResponse(new_paths)
     if file_type == 'csv':
         with open(path, 'w') as mycsvfile:
             thedatawriter = csv.writer(mycsvfile, delimiter=',')
@@ -1806,8 +1825,27 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         #             ws.write(data_count, column_count, value)
         #             column_count += 1
         wb.save(path)
-    return HttpResponse(path_to_file)
 
+    return HttpResponse(new_paths)
+
+
+def save_to_excel(headers, data, request, path, path_to_file):
+    wb=Workbook(path)
+    ws=wb.add_worksheet("New Sheet") #or leave it blank, default name is "Sheet 1"
+
+    first_row=0
+    for header in headers:
+        col=headers.index(header) # we are keeping order.
+        ws.write(first_row,col,header) # we have written first row which is the header of worksheet also.
+
+    row=1
+    for player in data:
+        for _key,_value in player.items():
+            if _key in ["Total Records"]:continue
+            col=headers.index(_key)
+            ws.write(row,col,_value)
+        row+=1 #enter the next row
+    wb.close()
 
 def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table_headers=None):
     data = '%s Orders for %s dated %s' % (user_name, f_name, order_date)

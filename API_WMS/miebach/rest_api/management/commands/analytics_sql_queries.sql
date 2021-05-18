@@ -1,5 +1,6 @@
 CREATE TABLE `ANALYTICS_GRN` (
   `id` bigint NOT NULL AUTO_INCREMENT,
+  `grn_id` bigint DEFAULT NULL,
   `grn_number` varchar(32) NOT NULL,
   `grn_date` datetime(6) DEFAULT NULL,
   `invoice_date` date DEFAULT NULL,

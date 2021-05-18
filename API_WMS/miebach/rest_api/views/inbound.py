@@ -7210,9 +7210,13 @@ def get_purchase_orders(request, users=''):
 @login_required
 @get_admin_user
 def confirm_asn_order(request, user=''):
+    from rest_api.views.qrcodes import generate_qr
     warehouse_id = request.POST.get('warehouse_id', '')
     invoice_number = request.POST.get('invoice_number', '')
     expected_date = request.POST.get("expected_date", '')
+    asn_obj = None
+    data_list = []
+    results = {'status': 'failed', 'data':[]}
     if expected_date:
         date = expected_date.split('/')
         expected_date=datetime.date(int(date[2]), int(date[0]), int(date[1]))
@@ -7243,17 +7247,26 @@ def confirm_asn_order(request, user=''):
                                 'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number}
                     if expected_date:
                         asn_dict['expected_date'] = expected_date
-                    ASNMapping.objects.create(**asn_dict)
+                    asn_obj = ASNMapping.objects.create(**asn_dict)
+                    data_dict = {'asn_number':asn_number, ''}
                 else:
-                    return HttpResponse('Quantity missing')
-        return HttpResponse('ASN Confirmed')
+                    results['message'] = str('Quantity missing')
+                    return HttpResponse(json.dumps(results))
+        if asn_obj:
+            supplier_obj = po_obj[0].open_po.supplier
+            data_dict = {'asn_number':asn_number, 'po_num': po_obj[0].po_number, 'supplier_name':supplier_obj.name, 
+                        'supplier_id':supplier_obj.supplier_id, 'asn_date': get_local_date(user, asn_obj.creation_date)}
+            data_list.append(data_dict)
+            response = generate_qr(user, data_list=data_list, display_dict={})
+        return response
 
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('ASN Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
-        return HttpResponse('ASN Failed')
+        results['message'] = str(e)
+        return HttpResponse(json.dumps(results))
 
 @csrf_exempt
 @login_required

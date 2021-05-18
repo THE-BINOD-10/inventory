@@ -46,7 +46,15 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
       Service.apiCall("confirm_asn_order/", "POST", elem, true).then(function(data){
         if(data.message) {
           vm.message = data.data;
-	        vm.service.pop_msg(data.data);
+          if data.data.message == 'failed' {
+	         vm.service.pop_msg(data.data);
+          }
+          else {
+            const file = new Blob([data.data], { type: 'application/pdf' })
+            const fileURL = URL.createObjectURL(file)
+            $('#proceedModal').modal('hide');
+            window.open(fileURL)
+          }
           vm.ok();
 
           if(data.data.search("<div") != -1) {
@@ -54,6 +62,7 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
                 var html = $(vm.html).closest("form").clone();
                 angular.element(".modal-body").html($(html));
                 vm.print_enable = true;
+
            } else {
              vm.service.pop_msg(data.data);
            }

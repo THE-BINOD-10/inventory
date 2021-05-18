@@ -99,12 +99,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        console.log(vm.selected[key]);
        if(vm.selected[key]) {
       vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
-      data.push({name: 'order_id', value: vm.generate_data[key]['DT_RowId']},
+        }
+     }
+     data.push({name: 'order_id', value: vm.generate_data[key]['DT_RowId']},
                 {name: 'warehouse_id', value: vm.generate_data[key]['warehouse_id']},
                 {name: 'prefix', value: vm.generate_data[key]['prefix']},
                 {name: 'po_number', value: vm.generate_data[key]['PO No']})
-        }
-     }
     var mod_data = {data:data}
     $scope.open = function (size) {
 

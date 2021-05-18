@@ -1,4 +1,4 @@
-import datetime
+import  datetime
 import time
 from functools import wraps
 from collections import OrderedDict
@@ -739,7 +739,7 @@ METROPOLIS_PR_PO_GRN_DICT = {'filters': [
                         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
                         # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
                         # {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
-                        # {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
+                        {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
                     ],
             
             'dt_headers': [
@@ -6066,6 +6066,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             search_parameters['product_category'] = 'Kits&Consumables'
     if 'final_status' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters['final_status'] = search_params['final_status'].lower()
+        payload_dict["pr_status"]= search_params['final_status']
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
         payload_dict["po_number"]= search_params['po_number']

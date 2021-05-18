@@ -1839,6 +1839,7 @@ def save_to_excel(headers, data, request, path, path_to_file):
     row=1
     for player in data:
         for _key,_value in player.items():
+            if _key in ["Total Records"]:continue
             col=headers.index(_key)
             ws.write(row,col,_value)
         row+=1 #enter the next row

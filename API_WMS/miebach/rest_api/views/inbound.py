@@ -1190,7 +1190,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     rw_order_ids_list = rw_results_objs.filter(
         purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
         values_list('purchase_order_id', flat=True)
-    asn_pos = list(ASNMapping.objects.filter().values_list('purchase_order_id',flat=True))
+    asn_pos = list(ASNMapping.objects.filter(status=0).values_list('purchase_order_id',flat=True))
     results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params). \
         filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway']).exclude(id__in=asn_pos)
     po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids,
@@ -7424,6 +7424,8 @@ def confirm_asn_order(request, user=''):
                                                      open_po__sku__sku_code=sku_code)
                     asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,
                                 'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number}
+                    if po_obj[0].open_po.order_quantity > quantity:
+                        asn_dict['status'] = 1
                     if expected_date:
                         asn_dict['expected_date'] = expected_date
                     asn_obj = ASNMapping.objects.create(**asn_dict)

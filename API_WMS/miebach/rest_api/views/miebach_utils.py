@@ -731,7 +731,7 @@ METROPOLIS_PR_PO_GRN_DICT = {'filters': [
                         # {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
                         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
                         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
-                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
                         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
@@ -6067,6 +6067,8 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
     if 'final_status' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters['final_status'] = search_params['final_status'].lower()
         payload_dict["pr_status"]= search_params['final_status']
+    if 'grn_number' in search_params:
+        payload_dict["grn_number"]=  search_params['grn_number']
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
         payload_dict["po_number"]= search_params['po_number']

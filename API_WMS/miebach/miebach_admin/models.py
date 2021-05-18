@@ -4287,7 +4287,7 @@ class MRP(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
     user = models.ForeignKey(User, related_name='mrp_user')
-    avg_monthly_consumption = models.FloatField(default=0)
+    avg_sku_consumption_day = models.FloatField(default=0)
     lead_time_qty = models.FloatField(default=0)
     min_days_qty = models.FloatField(default=0)
     max_days_qty = models.FloatField(default=0)
@@ -4301,6 +4301,5 @@ class MRP(models.Model):
 
     class Meta:
         db_table = 'MRP'
-        unique_together = ('user', 'sku')
-        index_together = ('user', 'sku')
+        index_together = (('sku', 'user'), ('sku', 'creation_date'))
 

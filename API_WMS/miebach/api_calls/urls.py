@@ -31,6 +31,7 @@ urlpatterns = [
     url(r'^putaway_list/$',putaway_list),
     url(r'^putaway_detail/$',putaway_detail),
     url(r'^get_confirmed_po/$',get_confirmed_po),
+    url(r'^get_asn_details/$',get_asn_details),
     url(r'^get_supplier_data/$',get_supplier_data),
     url(r'^get_misc_value/$',get_misc_value),
     url(r'^get_api_misc_value/$',get_api_misc_value),

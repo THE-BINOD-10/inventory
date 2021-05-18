@@ -186,6 +186,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "store_id": data.data.store_id,
                   "department": data.data.department,
                   "data": data.data.data,
+                  "is_auto_pr": data.data.is_auto_pr,
           };
           vm.model_data = {};
           vm.resubmitCheckObj = {};

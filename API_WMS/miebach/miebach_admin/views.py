@@ -41,11 +41,24 @@ import operator
 
 from generate_reports import *
 
+
+from django.shortcuts import render, redirect
+from django.core.mail import send_mail, BadHeaderError
+from django.http import HttpResponse
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.models import User
+from django.template.loader import render_to_string
+from django.db.models.query_utils import Q
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+
 logger = logging.getLogger(__name__)
 import datetime, time
 from django.utils import timezone
 import pytz
 import time
+import lockout
 
 def get_misc_value(misc_type, user):
     misc_value = 'false'
@@ -12257,3 +12270,9 @@ def add_inventory_data(request, user=''):
     if stock_data_list:
         StockDetail.objects.bulk_create(stock_data_list)
     return HttpResponse(json.dumps('Inventory Added Successfully'))
+
+
+def password_reset_complete(request):
+    lockout.reset_attempts(request)
+    logger.info('Lock Relaeased')
+    return render(request, 'templates/password/password_reset_complete.html')

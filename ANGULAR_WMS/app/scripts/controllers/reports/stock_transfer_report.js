@@ -14,8 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {};
   vm.model_data = {};
   vm.report_data = {};
-
-  vm.toggle_sku_wise = false;
+  vm.toggle_batch_wise =  false;
 
   vm.print = print;
   vm.print = function() {
@@ -23,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
 
   vm.reports = {}
-  vm.toggle_rtv_sku_wise = function() {
+  vm.toggle_batch_sku_wise = function() {
     var send = {};
 	var name = 'stock_transfer_report';
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
@@ -53,8 +52,40 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 	})
   }
 
-  vm.toggle_rtv_sku_wise()
+  vm.toggle_st_sku_wise = function() {
+    var send = {};
+  var name = 'stock_transfer_report_main';
+    vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
+  if(data.message) {
+    if ($.isEmptyObject(data.data.data)) {
+    vm.datatable = false;
+    vm.dtInstance = {};
+    } else {
+    vm.reports[name] = data.data.data;
+    angular.copy(data.data.data, vm.report_data);
+      vm.report_data['special_key'] = 'ST_INTRA';
+      vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
+        vm.empty_data = datam.empty_data;
+        angular.copy(vm.empty_data, vm.model_data);
+        vm.dtOptions = datam.dtOptions;
+        vm.dtColumns = datam.dtColumns;
+        vm.datatable = true;
+        vm.dtInstance = {};
+      })
+  }
+  }
+  })
+  }
 
+  vm.set_filter_function = function() {
+    if (vm.toggle_batch_wise) {
+      vm.toggle_batch_sku_wise();
+    } else {
+      vm.toggle_st_sku_wise();
+    }
+  }
+
+  vm.set_filter_function();
   vm.print_page = "";
   vm.dtInstance = {};
 

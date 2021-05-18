@@ -4,6 +4,7 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
 
   $scope.process = false;
   $scope.invalid = false;
+  $scope.password_expired = false;
 
   $scope.username = "";
   $scope.password = "";
@@ -20,6 +21,14 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
                   $scope.username = "";
                   $scope.password = "";
                   $scope.invalid = true;
+                  $scope.password_expired = false;
+                } else if((["Password Expired", "Account Locked"]).indexOf(data.message)  != -1) {
+                  $scope.process = false;
+                  $scope.username = "";
+                  $scope.password = "";
+                  $scope.password_expired = true;
+                  $scope.invalid = false;
+                  $scope.error_message = data.message;
                 } else {
                   console.log(Session);
                   if(Session.roles.permissions["setup_status"])  {

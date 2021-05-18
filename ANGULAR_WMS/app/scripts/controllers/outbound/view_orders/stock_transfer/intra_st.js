@@ -16,6 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
     vm.alt_view = true;
+    vm.userName = Session.userName;
     //vm.changeDtFields(vm.alt_view);
   
     function getOS() {
@@ -109,11 +110,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.selected[meta.row] = vm.selectAll;
                     return vm.service.frontHtml + meta.row + vm.service.endHtml;
                 }).notSortable(),
-            DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse'),
-            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Destination Warehouse'),
+            DTColumnBuilder.newColumn('source_label').withTitle('Source Warehouse'),
+            DTColumnBuilder.newColumn('warehouse_label').withTitle('Destination Warehouse'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
             DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+            DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty'),
         ];
       } else {
 
@@ -373,10 +375,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = close;
     function close() {
+      vm.bt_disable = false;
+      vm.reloadData();
       $state.go('app.outbound.ViewOrders');
     }
 
     vm.back_button = function() {
+      vm.bt_disable = false;
       vm.reloadData();
       $state.go('app.outbound.ViewOrders')
     }
@@ -386,43 +391,60 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.generate_picklist = generate_picklist;
     function generate_picklist() {
       for(var key in vm.selected) {
-        console.log(vm.selected[key]);
         if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
         }
       }
-      if(vm.generate_data.length > 0) {
-        console.log(vm.generate_data);
+      if(vm.generate_data.length > 0 && (vm.generate_data.length == 1 || vm.userName.toLocaleLowerCase() == 'mhl_admin')) {
         var data = {};
+        var current_data = {}
         //data['warehouse_id'] = vm.generate_data[0]['warehouse_id'];
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
+          current_data['source'] = vm.generate_data[i]['source_label'];
+          current_data['destination'] = vm.generate_data[i]['warehouse_label'];
+          current_data['order_id'] = vm.generate_data[i]['Stock Transfer ID'];
+          current_data['order_date'] = vm.generate_data[i]['Creation Date'];
+          current_data['type'] = 'ST_INTRA';
           data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i]['warehouse_id'];
         }
         data["enable_damaged_stock"] = vm.enable_damaged_stock;
         var url = 'st_generate_picklist/';
-        if (vm.alt_view) {
-          url = 'stock_transfer_generate_picklist/';
-        }
-
+        //if (vm.alt_view) {
+        //  url = 'stock_transfer_generate_picklist/';
+        //}
         vm.service.apiCall(url, 'POST', data, true).then(function(data){
           if(data.message) {
-            angular.copy(data.data, vm.model_data);
-            for(var i=0; i<vm.model_data.data.length; i++){
-                    vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
-                    vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
-                                                         location: vm.model_data.data[i].location,
-                                                         orig_location: vm.model_data.data[i].location,
-                                                         batchno: vm.model_data.data[i].batchno,
-                                                         picked_quantity: value});
-                  }
-            $state.go('app.outbound.ViewOrders.Picklist');
-            reloadData();
-            pop_msg(data.data.stock_status);
+            if (typeof(data.data) == 'string') {
+              vm.bt_disable = false;
+              reloadData();
+              vm.service.showNoty(data.data);      
+            } else {
+              angular.copy(data.data, vm.model_data);
+              vm.model_data['current_data'] = current_data;
+              for(var i=0; i<vm.model_data.data.length; i++){
+                      vm.model_data.data[i]['sub_data'] = [];
+                      var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                      vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
+                                                           location: vm.model_data.data[i].location,
+                                                           orig_location: vm.model_data.data[i].location,
+                                                           orig_batchno: vm.model_data.data[i].batchno,
+                                                           batchno: vm.model_data.data[i].batchno,
+                                                           expiry_date: vm.model_data.data[i].expiry_date,
+                                                           manufactured_date: vm.model_data.data[i].manufactured_date,
+                                                           picked_quantity: value});
+                    }
+              $state.go('app.outbound.ViewOrders.Picklist');
+              reloadData();
+              pop_msg(data.data.stock_status);
+            }
           }
         });
         vm.generate_data = [];
+      } else {
+        vm.bt_disable = false;
+        vm.service.showNoty("Please Select Single Order ! ");
+        reloadData();
       }
     }
 

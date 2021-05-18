@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.send_sku_dict = {};
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
+    vm.supplier_mail_flag = true;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -153,13 +154,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (aData['PR No'] != "None") {
         vm.is_direct_po = false;
       }
+
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
+          if (typeof(data.data) == 'string') {
+            vm.service.showNoty(data.data);
+            return;
+          }
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
             "supplier_payment_terms": data.data.supplier_payment_desc,
+            "supplier_currency": data.data.supplier_currency,
+            "supplier_currency_rate": '',
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -171,6 +179,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "cess_tax": 0,
             "sub_total": "",
             "pr_delivery_date": data.data.pr_delivery_date,
+            "full_pr_number": data.data.full_pr_number,
             "pr_created_date": data.data.pr_created_date,
             "product_category": data.data.product_category,
             "store": data.data.store,
@@ -183,6 +192,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "uploaded_file_dict": data.data.uploaded_file_dict,
             "pr_uploaded_file_dict": data.data.pr_uploaded_file_dict,
             "pa_uploaded_file_dict": data.data.pa_uploaded_file_dict,
+            "approval_remarks": data.data.approval_remarks,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
@@ -233,10 +243,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.confirm_disabled = false;
               var seller_data = data.data.sellers;
               vm.model_data.tax = data.data.tax;
+              vm.model_data.ship_addr_names = data.data.shipment_add_names;
+              vm.model_data.shipment_addresses = data.data.shipment_addresses;
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+              vm.ship_addr_change(vm.model_data.ship_to);
               vm.model_data["receipt_types"] = data.data.receipt_types;
               vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
-              console.log(vm.model_data.terms_condition)
               vm.model_data.seller_type = vm.dedicated_seller;
               vm.model_data.warehouse_names = data.data.warehouse
               angular.forEach(seller_data, function(seller_single){
@@ -593,12 +605,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             vm.service.showNoty('Please fill required Fields');
           }
-        } else if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
+        } else if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue) {
           vm.confirm_validation(type);
         } else {
           data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
           typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-          if (!vm.permissions.central_admin_level_po) {
+          if (!vm.permissions.central_admin_level_po && typeof(vm.permissions.central_admin_level_po) != 'undefined') {
             vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
           }
         }
@@ -691,10 +703,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
   }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id, {withCredential: true})
-      .success(function(data, status, headers, config) {
+      if (form.$valid) {
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks, {withCredential: true})
+        .success(function(data, status, headers, config) {
           vm.service.print_data(data, vm.model_data.purchase_id);
-      });      
+        });
+      } else {
+        vm.service.showNoty('Please Fill * fields !!');
+      }
     }
 
     vm.barcode = function() {
@@ -790,9 +806,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.confirm_po();
           }
         }
+      } else {
+        vm.service.showNoty('Please Fill * fields !!');
       }
     }
-
+    vm.supplier_notify = function (elems){
+      vm.supplier_mail_flag = elems;
+    }
     vm.confirm_add_po = function() {
       var elem = angular.element($('form'));
       elem = elem[0];
@@ -801,6 +821,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:"data_id", value: vm.data_id})
         vm.common_confirm('confirm_central_add_po/', elem);
       } else {
+        elem.push({'name':'supplier_notify', 'value':vm.supplier_mail_flag})
         vm.common_confirm('confirm_add_po/', elem);
       }
     }

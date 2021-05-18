@@ -140,6 +140,7 @@ class Command(BaseCommand):
                                     continue
 
                                 status = ''
+                                #import pdb; pdb.set_trace()
                                 if not val['location'] == 'NO STOCK':
                                     pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
                                                                                      picklist)
@@ -169,13 +170,13 @@ class Command(BaseCommand):
                                 picking_count1 = 0  # picking_count
                                 wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                                 if not val.get('batchno', ''):
-                                    total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', **pic_check_data).\
+                                    total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', creation_date__lt='2020-12-01', **pic_check_data).\
                                                             distinct().select_for_update()
-                                    total_stock2 = StockDetail.objects.using('default').filter(**pic_check_data).\
+                                    total_stock2 = StockDetail.objects.using('default').filter(creation_date__lt='2020-12-01', **pic_check_data).\
                                                             exclude(batch_detail__batch_no='').distinct().select_for_update()
                                     total_stock = total_stock1 | total_stock2
                                 else:
-                                    total_stock = StockDetail.objects.using('default').filter(**pic_check_data).distinct().select_for_update()
+                                    total_stock = StockDetail.objects.using('default').filter(creation_date__lt='2020-12-01', **pic_check_data).distinct().select_for_update()
                                 if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                                     insert_order_serial(picklist, val)
                                 if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -258,12 +259,12 @@ class Command(BaseCommand):
                                         stock.quantity -= picking_count
                                         picklist.reserved_quantity -= picking_count
                                         picking_count = 0
-                                    update_picked = truncate_float(update_picked, decimal_limit)
-                                    picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
-                                    stock.quantity = truncate_float(stock.quantity, decimal_limit)
+                                    update_picked = truncate_float(update_picked, 5)
+                                    picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, 5)
+                                    stock.quantity = truncate_float(stock.quantity, 5)
                                     if float(stock.location.filled_capacity) - update_picked >= 0:
                                         location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
-                                        location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
+                                        location_fill_capacity = truncate_float(location_fill_capacity, 5)
                                         setattr(stock.location, 'filled_capacity', location_fill_capacity)
                                         stock.location.save()
                                     if picklist.storder_set.filter():

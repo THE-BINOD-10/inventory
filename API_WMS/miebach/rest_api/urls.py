@@ -167,12 +167,15 @@ urlpatterns = [
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
     url(r'^search_machine_codes/$', search_machine_codes),
+    url(r'^search_machine_code_name_brand/$', search_machine_code_name_brand),
     url(r'^search_sku_brands/$', search_sku_brands),
     url(r'^search_sku_categorys/$', search_sku_categorys),
     url(r'^search_corporate_names/$', search_corporate_names),
     url(r'^search_reseller_names/$', search_reseller_names),
     url(r'^search_distributor_codes/$', search_distributor_codes),
+    url(r'^search_plants/$', search_plants),
     url(r'^get_supplier_data/$', get_supplier_data),
+    url(r'^get_purchase_orders/$',get_purchase_orders),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
@@ -256,7 +259,9 @@ urlpatterns = [
     url(r'^validate_product_wms/$', validate_product_wms),
     url(r'^grn_upload_preview/$', grn_upload_preview),
     url(r'^confirm_mr_request/$', confirm_mr_request),
-
+    url(r'^view_pending_mr_details/$', view_pending_mr_details),
+    url(r'^prepare_material_planning_pr_data/$', prepare_material_planning_pr_data),
+    url(r'^confirm_asn_order/$', confirm_asn_order),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -491,6 +496,7 @@ urlpatterns = [
     url(r'^create_manual_test/$', create_manual_test),
     url(r'^create_manual_test_approval/$', create_manual_test_approval),
     url(r'^get_manual_test_approval_pending/$', get_manual_test_approval_pending),
+    url(r'^save_closing_stock_ui/$', save_closing_stock_ui),
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -508,6 +514,9 @@ urlpatterns = [
     url(r'^get_supplier_details/$', get_supplier_details),
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
+    url(r'^get_integration_report/$', get_integration_report),
+    url(r'^get_pr_po_grn_filter/$', get_pr_po_grn_filter),
+    url(r'^get_metropolis_pr_po_grn_filter/$', get_metropolis_pr_po_grn_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
@@ -517,6 +526,8 @@ urlpatterns = [
     url(r'^get_deallocation_report/$', get_deallocation_report),
     url(r'^get_order_summary_filter/$', get_order_summary_filter),
     url(r'^get_sku_stock_filter/$', get_sku_stock_filter),
+    url(r'^get_ageing_data_filter/$', get_ageing_data_filter),
+    url(r'^get_expired_stock_data_filter/$', get_expired_stock_data_filter),
     url(r'^get_sales_return_filter/$', get_sales_return_filter),
     url(r'^get_sku_purchase_filter/$', get_sku_purchase_filter),
     url(r'^get_inventory_adjust_filter/$', get_inventory_adjust_filter),
@@ -591,6 +602,7 @@ urlpatterns = [
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
     url(r'^get_material_request_report/$', get_material_request_report),
+    url(r'^get_stock_transfer_report_main/$', get_stock_transfer_report_main),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),
     url(r'^get_stock_reconciliation_report/$', get_stock_reconciliation_report),
     url(r'^get_margin_report/$', get_margin_report),
@@ -625,7 +637,10 @@ urlpatterns = [
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
     url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
+    url(r'^get_consumption_data/$', get_consumption_data),
+    url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
+    url(r'^get_praod_report/$', get_praod_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -743,8 +758,14 @@ urlpatterns += [
     url(r'^closing_adjustment_upload/$', closing_adjustment_upload),
     url(r'^closing_stock_form/$', closing_stock_form),
     url(r'^closing_stock_upload/$', closing_stock_upload),
+    url(r'^closing_stock_in_bulk_form/$', closing_stock_in_bulk_form),
+    url(r'^closing_stock_in_bulk_upload/$', closing_stock_in_bulk_upload),
+    url(r'^opening_stock_form/$', opening_stock_form),
+    url(r'^opening_stock_upload/$', opening_stock_upload),
     url(r'^consumption_form/$', consumption_form),
     url(r'^consumption_upload/$', consumption_upload),
+    url(r'^inventory_norm_form/$', inventory_norm_form),
+    url(r'^inventory_norm_upload/$', inventory_norm_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -819,7 +840,8 @@ urlpatterns += [
     url(r'^get_user_groups_list/$', get_user_groups_list),
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
     url(r'^get_sku_uom_list/$', get_sku_uom_list),
-
+    url(r'^display_closing_stock_uploaded/$', display_closing_stock_uploaded),
+    url(r'^bulk_grn_files_upload/$', bulk_grn_files_upload),
 
 
     # Retailone

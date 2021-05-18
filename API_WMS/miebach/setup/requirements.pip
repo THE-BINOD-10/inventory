@@ -44,3 +44,6 @@ django-celery==3.3.1
 django-celery-results==1.2.1
 zeep==3.4.0
 sendgrid==6.4.6
+GitPython==2.1.15
+django-lockout==0.1.1
+django-ipware==3.0.2

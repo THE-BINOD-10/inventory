@@ -48,7 +48,7 @@
 			<div class="col-md-offset-1 col-md-3 col-sm-4 col-xs-4">
 			  <p style="float:right">DC Level GRN :
 			  <label class="switch switch-sm square mt5">
-				  <input type="checkbox" name="dc_level_grn" ng-model="showCase.model_data.dc_level_grn">
+				  <input type="checkbox" name="dc_level_grn" ng-model="showCase.model_data.dc_level_grn" ng-disabled="showCase.selected_order_type == 'Stock Transfer'">
 				  <span style="margin-top: 28%;">
 				<i class="handle"></i>
 				  </span>
@@ -124,39 +124,39 @@
             </div>
 
 
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number) && showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check">
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" ng-change="showCase.check_inv_number_length(showCase.model_data.invoice_number)" required>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check" ng-change="showCase.check_inv_number_length(showCase.model_data.invoice_number)">
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number) && showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required readonly>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check" readonly>
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" data-date-end-date="{{showCase.date}}" required readonly>
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check" data-date-end-date="{{showCase.date}}" readonly>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check && !showCase.permissions.receive_po_inv_value_qty_check">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.permissions.receive_po_invoice_check && !showCase.permissions.receive_po_inv_value_qty_check) && showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>
                 <input class="form-control" ng-class="service.get_decimal_perm()" ng-readonly="showCase.invoice_readonly_option" ng-model="showCase.model_data.invoice_value" type="text" name="invoice_value" required>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check) && showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>
                 <input class="form-control" ng-class="service.get_decimal_perm()" ng-model="showCase.model_data.invoice_value" type="text" name="invoice_value" required>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="(showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check) && showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Quantity</label>
                 <input class="form-control" ng-model="showCase.model_data.invoice_quantity" type="text" ng-class="service.get_decimal_perm()" name="invoice_quantity" >
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6">
+            <div class="hide col-md-3 col-sm-3 col-xs-6" ng-if="showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group">
                 <label for="over_discount" class="control-label"> Discount(value)</label>
                 <input class="form-control"  ng-model="showCase.model_data.overall_discount" type="text"  ng-keyup="showCase.change_overall_discount()" name ="overall_discount">
@@ -168,7 +168,7 @@
                 <input type="text" name=grn_field_{{data}}  ng-model="showCase.grn_exta_model[data]" class="form-control">
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.selected_order_type != 'Stock Transfer'">
               <div class="form-group" ng-init="showCase.update_tcs(showCase.model_data.tcs)">
                 <label for="tcs" class="control-label"> TCS </label>
                 <input class="form-control" ng-class="service.get_decimal_perm()" ng-model="showCase.model_data.tcs" type="text" name="tcs" ng-change="showCase.update_tcs(showCase.model_data.tcs)">
@@ -492,7 +492,7 @@
               </div>
             </div>
           </div>
-          <div class="row" style="padding-top: 35px;">
+          <div class="row" style="padding-top: 35px;" ng-if="showCase.selected_order_type != 'Stock Transfer'">
               <!-- ng-show="!showCase.model_data.dc_level_grn" -->
               <div class="form-group col-md-3" ng-if="!showCase.existing_file_name">
                 <div ng-if="!showCase.model_data.dc_level_grn || showCase.model_data.dc_number">File Upload *</div>

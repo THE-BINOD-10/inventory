@@ -113,6 +113,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   var data = {data_id: aData.DT_RowAttr["data-id"], warehouse_id: aData['warehouse_id']};
   var mod_data = {data: data};
+  mod_data['destination'] = aData['customer'];
   mod_data['source'] = aData['source_wh'];
   mod_data['order_typ'] = aData['order_type'];
   mod_data['url'] = "view_picklist/";

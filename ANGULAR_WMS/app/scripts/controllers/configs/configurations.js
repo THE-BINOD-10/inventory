@@ -66,6 +66,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'central_admin_level_po': false,
                     'sku_attribute_grouping_key': '',
                     'pending_pr_prefix': false,
+                    'auto_putaway_grn': false,
+                    'block_pr_po_transactions': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -120,6 +122,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      1122: 'pending_pr_prefix',
                      119: 'central_admin_level_po',
                      120: 'sku_attribute_grouping_key',
+                     121: 'auto_putaway_grn',
+                     122: 'block_pr_po_transactions'
                      }
 
 
@@ -817,6 +821,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Auto Fill Receive Quantity",
       model_name: "auto_generate_receive_qty",
       param_no: 114,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Auto Putaway after GRN",
+      model_name: "auto_putaway_grn",
+      param_no: 121,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Block PR PO Transactions",
+      model_name: "block_pr_po_transactions",
+      param_no: 122,
       class_name: "fa fa-server",
       display: true
     },

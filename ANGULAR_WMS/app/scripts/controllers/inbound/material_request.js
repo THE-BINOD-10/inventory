@@ -12,7 +12,7 @@ function MaterialStockOrders($scope, $http, $q, $state, Session, colFilters, Ser
   vm.model_data = {};
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
-  var empty_data = {data: [{wms_code: "", order_quantity: 0, price: "", capacity:0, tax_type: ""}], warehouse_name: "",
+  var empty_data = {data: [{wms_code: "", order_quantity: 0, price: "", capacity:0, capacity_base:0, dept_capacity:0, dept_capacity_base:0, tax_type: ""}], warehouse_name: "",
                             source_seller_id:"", dest_seller_id: "", total_qty: 0};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
@@ -99,7 +99,7 @@ vm.changeUnitPrice = function(data){
   if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
     data.total_qty = 0;
     data.order_quantity = 0;
-    colFilters.showNoty("Total Qty Should be less then available Quantity");
+    colFilters.showNoty("Total Qty Should be less than available Quantity");
   }
   data.total_price = (data.order_quantity * data.price)
   var cgst_percentage = 0;
@@ -165,10 +165,20 @@ vm.changeUnitPrice = function(data){
       if (vm.validate_sku(elem)) {
         vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
           if(data.message) {
-            if("Confirmed Successfully" == data.data) {
+            if("Confirmed Successfully" == data.data.status) {
               angular.copy(empty_data, vm.model_data);
+              swal2({
+                title: 'Confirmed MR Number',
+                text: data.data.id,
+                icon: "success",
+                button: "OK",
+                allowOutsideClick: false
+              }).then(function (text) {
+              });
             }
-            colFilters.showNoty(data.data);
+            if (data.data == 'MR & Stock Transfer Disable Due to Closing Stock Updations' || data.data == 'Prefix not defined') {
+              colFilters.showNoty(data.data);
+            }
             vm.bt_disable = false;
           }
         })
@@ -201,12 +211,18 @@ vm.changeUnitPrice = function(data){
   }
   
   vm.update_availabe_stock = function(sku_data) {
-     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.plant}
+     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.plant, dept: vm.model_data.department_type}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
-      sku_data["capacity"] = 0
+      sku_data["capacity"], sku_data["dept_capacity"],  sku_data["capacity_base"], sku_data["dept_capacity_base"]= 0
       if(data.message) {
         if(data.data.available_quantity) {
+          sku_data['price'] = parseFloat(data.data.avg_price);
           sku_data["capacity"] = (parseFloat(data.data.available_quantity)).toFixed(2);
+          sku_data["capacity_base"] = (parseFloat(data.data.available_quantity) * sku_data['conversion']).toFixed(2);
+        }
+        if (data.data.dept_avail_qty) {
+          sku_data["dept_capacity"] = (parseFloat(data.data.dept_avail_qty)).toFixed(2);
+          sku_data["dept_capacity_base"] = (parseFloat(data.data.dept_avail_qty) * sku_data['conversion']).toFixed(2);
         }
       }
     });

@@ -28,10 +28,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('classification').withTitle('Classification'),
-        DTColumnBuilder.newColumn('size').withTitle('Size'),
-        DTColumnBuilder.newColumn('min_days').withTitle('SA Min Days'),
-        DTColumnBuilder.newColumn('max_days').withTitle('SA Max Days'),
+        DTColumnBuilder.newColumn('plant_code').withTitle('Plant Code'),
+        DTColumnBuilder.newColumn('plant_name').withTitle('Plant Name'),
+        DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
+        DTColumnBuilder.newColumn('sku_desc').withTitle('SKU Description'),
+        DTColumnBuilder.newColumn('sku_category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('lead_time').withTitle('Lead Time in Days'),
+        DTColumnBuilder.newColumn('min_days').withTitle('Min Days'),
+        DTColumnBuilder.newColumn('max_days').withTitle('Max Days'),
 
     ];
 
@@ -48,9 +52,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
-                vm.title = "Update Replenushment";
+                vm.title = "Update Inventory Norm";
                 vm.message ="";
-                $state.go('app.masters.Replenushment.update');
+                $state.go('app.masters.InventoryNorm.update');
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
                 }, 500);
@@ -63,7 +67,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.base = function() {
 
-    vm.title = "Add Replenushment";
+    vm.title = "Add Inventory Norm";
     vm.update = false;
     angular.copy(empty_data, vm.model_data);
   }
@@ -72,14 +76,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
-    $state.go('app.masters.Replenushment');
+    $state.go('app.masters.InventoryNorm');
   }
 
   vm.add = add;
   function add() {
 
     vm.base();
-    $state.go('app.masters.Replenushment.update');
+    $state.go('app.masters.InventoryNorm.update');
   }
 
   vm.replenushment_insert = function(url) {
@@ -101,7 +105,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
 
     if (data.$valid) {
-      if ("Add Replenushment" == vm.title) {
+      if ("Add Inventory Norm" == vm.title) {
         vm.replenushment_insert('insert_replenushment/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
@@ -109,4 +113,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
   }
+
+  vm.warehouse_list = [];
+  vm.get_company_warehouse_list = get_company_warehouse_list;
+  function get_company_warehouse_list() {
+    var wh_data = {};
+    wh_data['company_id'] = vm.model_data.company_id;
+    wh_data['warehouse_type'] = 'STORE,SUB_STORE';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        vm.warehouse_list = data.data.warehouse_list;
+      }
+    });
+  }
+
+  vm.get_company_warehouse_list();
+
+
 }

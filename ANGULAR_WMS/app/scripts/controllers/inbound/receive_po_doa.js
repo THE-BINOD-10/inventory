@@ -26,8 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.parent_username = Session.parent.userName;
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01','GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
     vm.milkbasket_file_check = ['GGN01'];
-
-
+    vm.date = new Date();
     vm.display_approval_button = false;
     // vm.display_approval_button_DOA = false;
     vm.confirm_srn=false;
@@ -183,15 +182,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   var date_cnf = new Date();
                   vm.current_month = vm.months[date_cnf.getMonth()];
                   vm.last_two_months = []
-                  if (vm.current_month == 'January'){
-                    vm.last_two_months = ['December', 'November', 'October']
-                  } else if (vm.current_month == 'February') {
-                    vm.last_two_months = ['January', 'December', 'November']
-                  } else {
-                    vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                    vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                    vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                  }
+                  // if (vm.current_month == 'January'){
+                  //   vm.last_two_months = ['December', 'November', 'October']
+                  // } else if (vm.current_month == 'February') {
+                  //   vm.last_two_months = ['January', 'December', 'November']
+                  // } else {
+                  //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                  //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                  //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                  // }
                   vm.model_data.warehouse_id = aData["warehouse_id"];
                   vm.get_grn_extra_fields();
                   // vm.send_for_approval_check(event, vm.model_data);
@@ -792,13 +791,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             return
           }
         }
-        if($(".grn-form").find('[name="files"]')[0].files.length > 0){
-          var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
-          if(size_check_status){
-            colFilters.showNoty("File Size should be less than 10 MB");
-            return
-          }
-        }
+        // if($(".grn-form").find('[name="files"]')[0].files.length > 0){
+        //   var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
+        //   if(size_check_status){
+        //     colFilters.showNoty("File Size should be less than 10 MB");
+        //     return
+        //   }
+        // }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
           var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);
           if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){

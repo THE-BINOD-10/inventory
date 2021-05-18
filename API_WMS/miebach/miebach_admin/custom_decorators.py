@@ -61,6 +61,7 @@ def login_required(f):
         from django.utils import timezone
         now_aware = timezone.now()
         """ this check the session if userid key exist, if not it will redirect to login page """
+        from rest_api.views.common import check_password_expiry
         response_data = {'data': {}, 'message': 'invalid user', 'status': 401}
         if not request.user.is_authenticated():
             if django_login_required(request):
@@ -84,6 +85,11 @@ def login_required(f):
             if objs and objs[0].expires > now_aware:
                 request.user = objs[0].application.user
                 return f(request, *args, **kwargs)
+        else:
+            password_expired = check_password_expiry(request.user)
+            if password_expired:
+                wms_logout(request)
+                return HttpResponse(json.dumps(response_data))
 
         return f(request, *args, **kwargs)
 

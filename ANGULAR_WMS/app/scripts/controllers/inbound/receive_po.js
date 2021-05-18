@@ -39,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.passed_serial_number = {};
     vm.firebase_temp_po = ''
     vm.quantity_focused = false;
+    vm.date = new Date();
     vm.months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
     vm.collect_imei_details = $rootScope.collect_imei_details;
     if(vm.permissions.receive_po_mandatory_fields) {
@@ -229,15 +230,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     var date_cnf = new Date();
                     vm.current_month = vm.months[date_cnf.getMonth()];
                     vm.last_two_months = []
-                    if (vm.current_month == 'January'){
-                      vm.last_two_months = ['December', 'November', 'October']
-                    } else if (vm.current_month == 'February') {
-                      vm.last_two_months = ['January', 'December', 'November']
-                    } else {
-                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                      vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
-                    }
+                    // if (vm.current_month == 'January'){
+                    //   vm.last_two_months = ['December', 'November', 'October']
+                    // } else if (vm.current_month == 'February') {
+                    //   vm.last_two_months = ['January', 'December', 'November']
+                    // } else {
+                    //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                    //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                    //   vm.last_two_months.push(vm.months[new Date(date_cnf.setDate(0)).getMonth()])
+                    // }
                     vm.model_data.warehouse_id = aData['warehouse_id'];
                     vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
@@ -586,6 +587,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
        return d.promise;
     }
+
+    vm.check_inv_number_length = function(invoice_no) {
+      if (parseInt(invoice_no.length) >= 60) {
+        vm.model_data.invoice_number = '';
+        colFilters.showNoty("Invoice Number Should Not Exceed 60 Characters !");
+      }
+    }
+
     vm.get_grn_extra_fields = function(){
       vm.service.apiCall("get_grn_extra_fields/").then(function(data){
         if(data.message) {
@@ -836,7 +845,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
             //   temp_str = temp_str + " - Quantity"
             // }
-            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total && vm.selected_order_type != 'Stock Transfer') {
               temp_str = temp_str + " - Value"
             }
             if (temp_str.includes('Value')) {
@@ -868,7 +877,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.html = "";
     vm.confirm_grn = function(form) {
       if (form.$valid) {
-        if((!vm.model_data.dc_level_grn || vm.model_data.dc_number) && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
+        if((!vm.model_data.dc_level_grn || vm.model_data.dc_number) && Object.keys(vm.model_data.uploaded_file_dict).length == 0 && vm.selected_order_type != 'Stock Transfer'){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
             return
@@ -934,6 +943,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem.push({'name':'expected_date', 'value': vm.expected_date});
         elem.push({'name':'order_type', 'value': vm.order_type});
       }
+      elem.push({'name': 'order_type', 'value': vm.selected_order_type});
       $.each(elem, function(i, val) {
         val.name == 'grn_date' && val.value == vm.current_month ? form_data.append(val.name, '') : form_data.append(val.name, val.value);
       });
@@ -2740,6 +2750,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.buy_price == ''){
         sku_row_data.buy_price = 0;
       }
+      if (!sku_row_data.is_stock_transfer && parseFloat(sku_row_data.buy_price) > parseFloat(sku_row_data.price)) {
+        data.data[parent_index][index]['buy_price'] = sku_row_data.price;
+        Service.showNoty("Buy Price Should not be Greater than Unit price");
+        return
+      }
       if(sku_row_data.value == ''){
         sku_row_data.value = 0;
       }
@@ -2811,7 +2826,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.update_grn_total('', 'add');
     }
     vm.update_tcs = function(tcs){
-      vm.calc_total_amt(event, vm.model_data, 0, 0);
+      if (vm.selected_order_type != 'Stock Transfer') {
+        vm.calc_total_amt(event, vm.model_data, 0, 0);
+      }
     }
     vm.pull_cls = "pull-right";
     vm.margin_cls = {marginRight: '50px'};

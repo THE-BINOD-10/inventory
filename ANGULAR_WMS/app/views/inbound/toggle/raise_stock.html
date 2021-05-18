@@ -17,7 +17,7 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="display: block;">
   <form id="add_st_intra" name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
-  <div class="modal-dialog model-custom modal-lg" style="width: 1175px;">
+  <div class="modal-dialog model-custom modal-lg" style="width: 1300px;">
     <div class="modal-content mw45">
       <div ng-include="'views/common/loader.html'"></div>
       <div class="modal-header">
@@ -29,7 +29,7 @@
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Request To</label>
+                <label class="control-label"> Request raised by </label>
                 <!-- <label class="control-label"> Source Plant (Request From)</label> -->
                 <input type="hidden" name="st_type" value="ST">
                 <select name="source_plant" class="form-control" ng-model="showCase.model_data.selected" ng-change="showCase.changeDestWarehouse()">
@@ -39,7 +39,7 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Request From</label>
+                <label class="control-label"> Material to be dispatched by </label>
                 <!-- <label class="control-label"> Destination Plant (Request To)</label> -->
                 <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.warehouse_name" ng-change="showCase.verifyTax()">
                   <option ng-repeat="wh in showCase.dest_wh_list" value="{{wh.username}}">{{wh.name}}:{{wh.stockone_code}}</option>
@@ -57,7 +57,8 @@
                 <tr>
                   <th>SKU Code*</th>
                   <th>Description </th>
-                  <th>Available Quantity*</th>
+                  <th>Req To Available Qty</th>
+                  <th>Req From Available Qty</th>
                   <th>Quantity*</th>
                   <th>UOM</th>
                   <th>Base UOM</th>
@@ -81,6 +82,7 @@
                     <input type="hidden" name="order_typ" value="ST_INTRA">
                     <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="100" name="description">
                   </td>
+                  <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.to_capacity}}</span> </td>
                   <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
                   <td>
                     <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
@@ -98,20 +100,23 @@
                     <input type="text" name="quantity" class="form-control" ng-model="data.total_qty" readonly>
                   </td>
                   <td>
-                    <input type="text" name="price" class="form-control" ng-model="data.price"  ng-keyup="showCase.changeUnitPrice(data)" decimal-number>
+                    <input type="text" name="price" class="form-control" ng-model="data.price"  ng-keyup="showCase.changeUnitPrice(data)" decimal-number readonly>
                      <input type="hidden" name="id" value="">
                   </td>
                   <td>
-                    <input type="text" name="cgst" class="form-control" size="2" ng-model="data.cgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.igst_enable">
+                    <input type="text" name="cgst" class="form-control" size="2" ng-model="data.cgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number readonly>
+                    <!-- ng-readonly="showCase.igst_enable" -->
                   </td>
                   <td>
-                    <input type="text" name="sgst" class="form-control" size="2" ng-model="data.sgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.igst_enable">
+                    <input type="text" name="sgst" class="form-control" size="2" ng-model="data.sgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number readonly>
+                    <!-- ng-readonly="showCase.igst_enable" -->
                   </td>
                   <td>
-                    <input type="text" name="igst" class="form-control" size="2" ng-model="data.igst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.tax_cg_sg">
+                    <input type="text" name="igst" class="form-control" size="2" ng-model="data.igst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number readonly>
+                    <!-- ng-readonly="showCase.tax_cg_sg" -->
                   </td>
                   <td>
-                    <input type="text" name="cess" class="form-control" size="2" ng-model="data.cess" ng-keyup="showCase.changeUnitPrice(data)" decimal-number >
+                    <input type="text" name="cess" class="form-control" size="2" ng-model="data.cess" ng-keyup="showCase.changeUnitPrice(data)" decimal-number readonly>
                   </td>
                   <td>
                     <input type="text" name="total_price" class="form-control" ng-model="data.total_price" decimal-number>
@@ -126,69 +131,7 @@
           </div>
         </div>
       </div>
-      <!-- <div class="modal-body">
-        <div class="row">
-          <div class="col-md-4 col-sm-4 col-xs-6">
-            <div class="form-group">
-              <label class="control-label"> Warehouse Name *</label>
-              <select ng-model="showCase.model_data.warehouse_name" ng-if="(!(showCase.update))" class="form-control" name="warehouse_name" ng-change="showCase.changeDestSeller()" required>
-                <option ng-repeat="option in showCase.model_data.warehouse_list" value="{{option}}">{{option}}</option>
-              </select>
-              <input type="text" class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse" ng-if="showCase.update" ng-readonly="showCase.update"/>
-            </div>
-          </div>
-          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
-              <div class="form-group">
-                <label class="control-label"> Source Warehouse Seller *</label>
-                <select name="source_seller_id" class="form-control" ng-model="showCase.model_data.source_seller_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
-                  <option ng-selected="showCase.model_data.source_seller_id==seller.id" ng-repeat="seller in showCase.sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
-              <div class="form-group">
-                <label class="control-label"> Destination Warehouse Seller *</label>
-                <select name="dest_seller_id" class="form-control" ng-model="showCase.model_data.dest_seller_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
-                  <option ng-selected="showCase.model_data.dest_seller_id==seller.id" ng-repeat="seller in showCase.dest_sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
-                </select>
-              </div>
-            </div>
-        </div>
-        <div class="row">
-          <div class="col-md-12"><hr></div>
-        </div>
-        <div class="row">
-          <div class="col-md-12">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th> SKU Code* </th>
-                  <th> Quantity* </th>
-                  <th ng-if="showCase.industry_type=='FMCG'"> MRP </th>
-                  <th> Price </th>
-                  <th class="plus"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="product in showCase.model_data.data">
-                  <input type="hidden" name="id" value="{{product.id}}">
-                  <td>
-                    <input type="text" autocomplete="off" name="wms_code" class="form-control ng-dirty ng-valid ng-valid-required ng-valid-editable" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.wms_code" ng-required="$first" typeahead-on-select="showCase.get_sku_data(product, $item, $index)" aria-autocomplete="list" aria-expanded="false" aria-owns="typeahead-00B-4663" required="required">
-                  </td>
-                  <td><input id="quant1" ng-model="product.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-required ="$first"> </td>
-                  <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.mrp" name="mrp" class="form-control" decimal-number > </td>
-                  <td><input type="text" ng-model="product.price" name="price" class="form-control" decimal-number > </td>
-                  <td> <i ng-click="showCase.update_data($index)" ng-class="showCase.isLast($last)"></i> </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="row"><h4 align="center">{{showCase.message}}</h4></div>
-      </div> -->
       <div class="modal-footer">
-        <!-- <button type="submit" class="btn pop pop-normal" ng-click="showCase.save_stock(form)">Save</button> -->
-        <!-- <button type="submit" class="btn btn-primary" id="st-create-order" ng-disabled="showCase.bt_disable" style="margin: auto;display: block;" ng-click="showCase.insert_order_data(form)">Create Transfer Order </button> -->
         <button type="submit" class="btn pop pop-green" data-dismiss="modal" ng-click="showCase.insert_order_data(form)" title="Confirm Stock Transfer" ng-disabled="showCase.bt_disable">Confirm</button>
       </div>
     </div>

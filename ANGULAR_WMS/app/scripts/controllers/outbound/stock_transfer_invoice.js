@@ -270,19 +270,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     		if (obj) {
     		  var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Stock Transfer ID'];
     		  var invoice = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Invoice Number'];
-    		  var pick_number = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['pick_number'];
+    		  var pick_number = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Pick Receipt Number'];
+          var source_wh = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['source_wh'];
     		  if(checkbox_valid.length < 1){
     		      checkbox_valid.push(temp)
     		      inv_check.push(invoice)
     		      data_dict['order_id'] =temp
-                  data_dict['pick_number'] = [pick_number]
+              data_dict['pick_number'] = pick_number
+              data_dict['source_wh'] = source_wh
     		  } else {
     		      if(checkbox_valid.indexOf(temp) == -1 || inv_check.indexOf(invoice) == -1){
     		          vm.service.showNoty("Please select only one Order or Invoice ");
                       flag = 0
     			     return false;
     		      } else {
-                      data_dict['pick_number'].push(pick_number)
+                data_dict['source_wh'] = source_wh
+                data_dict['pick_number'] = pick_number
     		      }
     		  }
     		}

@@ -17,9 +17,9 @@
     border-color: #ffffff !important;
     border-top: #fff !important;
   }
-  .select2-container .select2-choice{
-    height: 30px !important;
-    border: 1px solid #e8e8e8 !important;
+  .select2-container .select2-choice {
+    height: 32px !important;
+    border: 1px solid #aaaaaa5c !important;
   }
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
@@ -36,7 +36,7 @@
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
             </div>
           </div>
-          <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
+          <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span></button>
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
           <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
@@ -55,7 +55,7 @@
                 </label>
               </div>
             </div>
-            <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'" ng-if="!showCase.model_data.is_approval">
+            <div class="hide" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'" ng-if="!showCase.model_data.is_approval">
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <p align="right">Vendor Receipt</p>
               </div>
@@ -144,23 +144,21 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
               <div class="form-group">
-                <label class="control-label">Address</label><br>
-                <div class="btn-group mr15" dropdown="">
-                  <button type="button" ng-init = "showCase.model_data.shipment_address_select = 'Select Shipment Address'" ng-model="showCase.model_data.shipment_address_select" class="btn btn-default dropdown-toggle" dropdown-toggle="" aria-haspopup="true" aria-expanded="false" style="width: 300px;">{{showCase.model_data.shipment_address_select}} <span class="caret"></span> </button>
-                  <ul class="dropdown-menu" role="menu">
-                    <li ng-repeat="data in showCase.model_data.ship_addr_names"
-                        ng-readonly="showCase.model_data.is_approval"
-                        ng-click= "showCase.ship_addr_change(data)"> <a href="javascript:;">{{data}}</a> </li>
-                  </ul>
-                </div>
+                <label class="control-label">Ship to Address *</label>
+                <select ui-select2 class="form-control" name="plant" ng-model="showCase.model_data.shipment_address_select" ng-change = "showCase.ship_addr_change(showCase.model_data.shipment_address_select)" required>
+                  <option ng-repeat="data in showCase.model_data.ship_addr_names"
+                          ng-selected="showCase.model_data.shipment_address_select == data"
+                          value="{{data}}">{{data}}
+                  </option>
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
               <div class="form-group">
-                <label class="control-label"> Ship To </label>
+                <label class="control-label"> Ship To *</label>
                 <input type="text"
                        ng-readonly="showCase.model_data.is_approval"
-                       ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
+                       ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" required> </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
             <div class="form-group">
@@ -199,6 +197,25 @@
               <div class="form-group">
                 <label class="control-label">Supplier Payment Terms</label>
                 <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
+            <div class="form-group">
+              <label class="control-label"> PR Number </label>
+                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
+              <div class="form-group">
+                <label class="control-label">Supplier Currency</label>
+                <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
+              <div class="form-group">
+                <label class="control-label">Please Enter Conv.rate (<span>{{showCase.model_data.supplier_currency}}</span>) *</label>
+                <input type="text" ng-model="showCase.model_data.supplier_currency_rate" name="supplier_currency_rate" class="form-control" ng-class="service.get_decimal_perm()" required>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin' && !showCase.permissions.central_admin_level_po">
@@ -426,6 +443,24 @@
           <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="terms_condition" ng-model="showCase.model_data.terms_condition" placeholder="Enter Terms and Condition"></textarea>
         </div>
       </div>
+      <div class="col-md-12 col-sm-12 col-xs-12" style="padding-top: 10px">
+        <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
+          <strong>Remarks :</strong>
+        </div>
+        <div class="col-md-9 col-sm-9 col-xs-9">
+          <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="po_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+        </div>
+      </div>
+      <div class="col-md-12 col-sm-12 col-xs-12" ng-init="showCase.supplier_mail_flag == 'true'" style="padding-top: 12px;">
+        <div class="form-group">
+          <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
+            <strong>Send Mail To Supplier :</strong>
+          </div>
+          <div class="col-md-9 col-sm-9 col-xs-9">
+            <toggle ng-model="showCase.supplier_mail_flag" name="supplier_notify" ng-change="showCase.supplier_notify(showCase.supplier_mail_flag)" onstyle="btn-success" offstyle="btn-default" size="btn-sm"></toggle>
+          </div>
+        </div>
+      </div>
       <!-- <div class="row">
         <div class="col-md-10">
           <strong class="pull-left" style="margin-left: 10px;">
@@ -473,12 +508,14 @@
         </div>
 		</div>
         <div class="modal-footer" ng-if="!(showCase.is_purchase_request)">
+          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PREVIEW PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
         <div class="modal-footer" ng-if="(showCase.is_purchase_request)">
+          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PREVIEW PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_pendingpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>

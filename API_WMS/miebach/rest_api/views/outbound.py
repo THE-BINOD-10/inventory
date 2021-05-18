@@ -1044,7 +1044,6 @@ def get_picklist_data(data_id, user_id):
                     original_order_id = str(order_id) + str(order_code)
                 if not invoice :
                     invoice = 0
-
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': reserved_quantity,
                                                'picklist_number': data_id, 'stock_id': st_id, 'sku_sequence': sku_sequence,
@@ -1790,7 +1789,7 @@ def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, 
                 seller_stock.save()
 
 @fn_timer
-def create_order_summary(picklist,picked_count, pick_number, picks_all):
+def create_order_summary(picklist,picked_count, pick_number, picks_all, stock=None):
     # seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
     order = picklist.order
     st_order = picklist.storder_set.filter()
@@ -1800,8 +1799,11 @@ def create_order_summary(picklist,picked_count, pick_number, picks_all):
     if st_order.exists():
         invoice_value = picked_count
         if not pick_number: pick_number = 1
-        StockTransferSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=picked_count,
-                                          stock_transfer_id=st_order[0].stock_transfer.id, financial_year=financial_year)
+        stocksummarysummary_dict = {'picklist_id': picklist.id, 'pick_number': pick_number, 'quantity': picked_count,
+                                    'stock_transfer_id': st_order[0].stock_transfer.id, 'financial_year': financial_year}
+        if stock:
+            stocksummarysummary_dict['price'] = stock.sku.average_price
+        StockTransferSummary.objects.create(**stocksummarysummary_dict)
         return
     insert_quan = 0
     if order.original_quantity > picked_count:
@@ -2019,6 +2021,8 @@ def picklist_confirmation(request, user=''):
     warehouse_id = request.POST.get('warehouse_id_', '')
     if warehouse_id:
         user = User.objects.get(id=warehouse_id)
+    if check_consumption_configuration([user.id]):
+        return HttpResponse("Picklist Confirmation Disable Due to Closing Stock Updations")
     if request.POST.get('source'):
         cur_user = request.POST.get('source')
         user = User.objects.get(username=cur_user)
@@ -2220,32 +2224,22 @@ def picklist_confirmation(request, user=''):
                             pre_stock = float(stock_quantity)
                             if picking_count == 0:
                                 break
-                            # new Code
-                            # print picking_count
-                            # conv_value = 1
-                            # if stock.batch_detail:
-                            #     conv_value = stock.batch_detail.pcf
-                            #     if not conv_value:
-                            #         uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
-                            #         conv_value = uom_dict.get('sku_conversion', 1)
-                            # new Code
                             if picking_count > stock_quantity:
                                 update_picked = float(stock_quantity)
                                 picking_count -= stock_quantity
                                 picklist.reserved_quantity -= stock_quantity
-
                                 stock.quantity = stock.quantity - stock_quantity
                             else:
                                 update_picked = picking_count
                                 stock.quantity -= picking_count
                                 picklist.reserved_quantity -= picking_count
                                 picking_count = 0
-                            update_picked = truncate_float(update_picked, decimal_limit)
-                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
-                            stock.quantity = truncate_float(stock.quantity, decimal_limit)
+                            update_picked = truncate_float(update_picked, 5)
+                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, 5)
+                            stock.quantity = truncate_float(stock.quantity, 5)
                             if float(stock.location.filled_capacity) - update_picked >= 0:
                                 location_fill_capacity = (float(stock.location.filled_capacity) - update_picked)
-                                location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
+                                location_fill_capacity = truncate_float(location_fill_capacity, 5)
                                 setattr(stock.location, 'filled_capacity', location_fill_capacity)
                                 stock.location.save()
                             if picklist.storder_set.filter():
@@ -2284,7 +2278,7 @@ def picklist_confirmation(request, user=''):
                                                                             update_picked_pack_qty,
                                                                order_typ = order_typ,
                                                                                  grn_number_dict=grn_number_dict, last_change_date=last_change_date)
-                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock, transact_date=last_change_date)
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
                             else:
                                 # SKU Stats
                                 save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
@@ -2326,7 +2320,7 @@ def picklist_confirmation(request, user=''):
                             create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
                                                         seller_stock_objs)
                         else:
-                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
+                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all, stock=stock)
                         picked_status = ""
                         if picklist.picked_quantity > 0 and picklist.order:
                             if merge_flag:
@@ -2412,13 +2406,13 @@ def picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
     else:
-        try:
-            netsuite_picklist_confirmation(final_data_list, user)
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
-            str(user.username), str(data), str(e)))
+        # try:
+        #     netsuite_picklist_confirmation(final_data_list, user)
+        # except Exception as e:
+        #     import traceback
+        #     log.debug(traceback.format_exc())
+        #     log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
+        #     str(user.username), str(data), str(e)))
         return HttpResponse('Picklist Confirmed')
 
 def netsuite_picklist_confirmation(final_data_list, user):
@@ -2945,7 +2939,13 @@ def view_picklist(request, user=''):
         if order_count_len == 1:
             single_order = str(order_count[0])
         order_status = data[0]['status']
-    return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id,
+    display_order_id = ''
+    display_order_id = STOrder.objects.filter(picklist__picklist_number=data_id, stock_transfer__sku__user=user.id).values('stock_transfer__order_id').distinct()
+    if display_order_id.exists():
+        display_order_id_date = StockTransfer.objects.filter(order_id=display_order_id[0]['stock_transfer__order_id'])[0].creation_date
+        display_order_id_date = get_local_date(request.user, display_order_id_date)
+        display_order_id = display_order_id[0]['stock_transfer__order_id']
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id, 'display_order_id': display_order_id, 'display_order_id_date': display_order_id_date,
                                     'show_image': show_image, 'use_imei': use_imei,
                                     'order_status': order_status, 'user': request.user.id,
                                     'single_order': single_order,
@@ -3771,6 +3771,8 @@ def mr_generate_picklist(request, user=''):
             user = User.objects.get(id=int(value))
         except Exception as e:
             user = User.objects.get(id=value)
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("MR Picklist Generation Disable Due to Closing Stock Updations")
         if user.username in user_picknumber_dict.keys():
             picklist_number = user_picknumber_dict[user.username]
         else:
@@ -3849,79 +3851,93 @@ def mr_generate_picklist(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def st_generate_picklist(request, user=''):
-    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
+    reversion.set_user(request.user)
+    user_picknumber_dict = {}
     out_of_stock = []
-    picklist_number = get_picklist_number(user)
-    picklist_exclude_zones = get_exclude_zones(user)
-    sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    if enable_damaged_stock == 'true':
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
-                                                                                location__zone__zone__in=[
-                                                                                    'DAMAGED_ZONE'])
-    else:
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
-                                    exclude(location__zone__zone__in=picklist_exclude_zones)
-
-    switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
-                   'fifo_switch': get_misc_value('fifo_switch', user.id),
-                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
-                   'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
-    '''if user.username in MILKBASKET_USERS:
-        zones  = get_all_sellable_zones(user)
-        locations = []
-        bulk_zone_name = MILKBASKET_BULK_ZONE
-        bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
-        zones = list(chain(zones, bulk_zones))
-        sku_stocks = sku_stocks.filter(location__zone__zone__in=zones)
-    else:
-        sku_stocks = sku_stocks.exclude(location__zone__zone__in=picklist_exclude_zones)'''
-    if switch_vals['fifo_switch'] == 'true':
-        stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
-            'receipt_date')
-        #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
-        stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
-    else:
-        stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
-            'location_id__pick_sequence')
-        stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
-    all_sku_stocks = stock_detail1 | stock_detail2
-    seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     for key, value in request.POST.iteritems():
         if key =='enable_damaged_stock':
             continue
-        order_data = StockTransfer.objects.filter(id=key)
-        if order_data and order_data[0].st_seller:
-            sku_stocks = all_sku_stocks
-            seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(order_data[0].st_seller_id),
+        try:
+            user = User.objects.get(id=int(value))
+        except Exception as e:
+            user = User.objects.get(id=value)
+        if check_consumption_configuration([user.id]):
+            return HttpResponse("Stock Transfer Picklist Generation Disable Due to Closing Stock Updations")
+        if user.username in user_picknumber_dict.keys():
+            picklist_number = user_picknumber_dict[user.username]
+        else:
+            picklist_number = get_picklist_number(user)
+        picklist_exclude_zones = get_exclude_zones(user)
+        sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+        if enable_damaged_stock == 'true':
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
+                                                                                    location__zone__zone__in=[
+                                                                                        'DAMAGED_ZONE'])
+        else:
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
+                                        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0, status=1)
+        company_user = get_company_admin_user(user)
+        switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
+                       'fifo_switch': get_misc_value('fifo_switch', user.id),
+                       'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', company_user.id)}
+        if switch_vals['fifo_switch'] == 'true':
+            stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
+                'receipt_date')
+            stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+        elif user.userprofile.industry_type == 'FMCG':
+            stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).\
+                                    order_by('batch_detail__expiry_date')
+            stock_detail2 = sku_stocks.filter(quantity__gt=0, location__zone__zone='TEMP_ZONE').\
+                order_by('batch_detail__expiry_date')
+        else:
+            stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
+                'location_id__pick_sequence')
+            stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+        sku_stocks = stock_detail1 | stock_detail2
+        seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
+
+        orders_data = StockTransfer.objects.filter(order_id=key, status=1, sku__user=user.id)
+        if orders_data and orders_data[0].st_seller:
+            seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(orders_data[0].st_seller_id),
                                        seller_stocks)
             if seller_stock_dict:
                 sell_stock_ids = map(lambda person: person['stock_id'], seller_stock_dict)
                 sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
             else:
                 sku_stocks = sku_stocks.filter(id=0)
-            #seller_stock_ids = list(SellerStock.objects.filter(seller_id=order_data[0].st_seller_id,
-            #                        stock_id__in=sku_stocks.values_list('id', flat=True), quantity__gt=0).values_list('stock_id', flat=True))
-            #sku_stocks = sku_stocks.filter(id__in=seller_stock_ids).distinct()
-        stock_status, picklist_number = picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
+        stock_status, picklist_number = picklist_generation(orders_data, enable_damaged_stock, picklist_number, user,
                                                             sku_combos, sku_stocks, switch_vals)
+        user_picknumber_dict[user.username] = picklist_number
         if stock_status:
             out_of_stock = out_of_stock + stock_status
 
-    if out_of_stock:
-        stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
+    if len(user_picknumber_dict.keys()) == 1:
+        order_typ = 'ST_INTRA'
+        current_user = user_picknumber_dict.keys()[0]
+        if out_of_stock:
+            stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
+        else:
+            stock_status = ''
+        picklist_number = user_picknumber_dict[current_user]
+        user = User.objects.get(username=current_user)
+        check_picklist_number_created(user, picklist_number + 1)
+        order_status = ''
+        data, sku_total_quantities, courier_name = get_picklist_data(picklist_number + 1, user.id)
+        if data:
+            order_status = data[0]['status']
     else:
-        stock_status = ''
-
-    check_picklist_number_created(user, picklist_number + 1)
-    order_status = ''
-    data, sku_total_quantities, courier_name = get_picklist_data(picklist_number + 1, user.id)
-    if data:
-        order_status = data[0]['status']
-
+        data = []
+        stock_status , order_status = '', ''
+        picklist_number = 0
+        order_typ = ''
+        current_user = ''
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status, 'current_user': '', 'order_typ': 'ST_INTRA'}))
+                                    'order_status': order_status, 'current_user': current_user, 'order_typ': 'ST_INTRA'}))
 
 
 @csrf_exempt
@@ -5899,6 +5915,11 @@ def create_stock_transfer(request, user=''):
     if not warehouse:
         return HttpResponse("Invalid Destination Plant")
     warehouse = warehouse[0]
+    urs = [user.id]
+    if order_typ == 'ST_INTRA':
+        urs.append(warehouse.id)
+    if check_consumption_configuration(urs):
+        return HttpResponse('MR & Stock Transfer Disable Due to Closing Stock Updations')
     status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
     if status:
         return HttpResponse(status)
@@ -9688,9 +9709,11 @@ def picklist_delete(request, user=""):
                                                                    aggregate(Sum('picked_quantity'),Sum('reserved_quantity'))
                         st_picked_quantity = st_picklist_objs['picked_quantity__sum']
                         st_reserved_quantity = st_picklist_objs['reserved_quantity__sum']
-                        stock_transfer_obj.picked_quantity = st_picked_quantity/pcf
-                        if stock_transfer_obj.status == 1:
-                            stock_transfer_obj.quantity = stock_transfer_obj.quantity + float(st_reserved_quantity/pcf)
+                        stock_transfer_obj.picked_quantity = stock_transfer_obj.picked_quantity + float(st_picked_quantity/pcf)
+                        if stock_transfer_obj.quantity == stock_transfer_obj.original_quantity:
+                            stock_transfer_obj.quantity = stock_transfer_obj.quantity - float(st_picked_quantity/pcf)
+                        else:
+                            stock_transfer_obj.quantity = float(stock_transfer_obj.original_quantity - stock_transfer_obj.picked_quantity)
                         stock_transfer_obj.status = 1
                         stock_transfer_obj.save()
                         updated_st_ids.append(stock_transfer_obj.id)
@@ -11276,7 +11299,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
+    st_list=['order_id','order_id','order_id','quantity','order_id', 'order_id', 'order_id', 'stocktransfersummary__invoice_number','quantity']
     summary_params = {'status':2}
     users = [user.id]
     users = check_and_get_plants(request, users)
@@ -11293,15 +11316,27 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
                                                 .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct() \
                                                 .annotate(total_sm=Sum(F('quantity')/F('picklist__stock__batch_detail__pcf')),
-                                                amount=Sum(F('quantity') * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),
+                                                amount=Sum((F('quantity')/F('picklist__stock__batch_detail__pcf')) * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),
                                                 grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number',output_field=CharField()))
+    # import pdb; pdb.set_trace()
     qty_dict = dict(data_dict.values_list('grouping_key', 'total_sm'))
     amount_dict = dict(data_dict.values_list('grouping_key', 'amount'))
     temp_data['recordsTotal'] = stock_transfer_summary_values.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for stock_transfer in stock_transfer_summary_values[start_index:stop_index]:
         summary_price =0
-        creation_date = stock_transfer_summary.filter(order_id=stock_transfer['order_id']).latest('creation_date').creation_date
+        order_quantity = 0
+        source_wh = ''
+        current_material_tns = stock_transfer_summary.filter(order_id=stock_transfer['order_id'])
+        if current_material_tns.exists():
+            source_wh = current_material_tns[0].st_po.open_st.warehouse
+            creation_date = current_material_tns.latest('creation_date').creation_date
+            try:
+                order_quantitys = current_material_tns.annotate(total_qty=Sum('original_quantity')).values('total_qty')
+                for qty in order_quantitys:
+                    order_quantity += float(qty['total_qty'])
+            except Exception as e:
+                order_quantity = 0
         group_key = "{}{}{}".format(str(stock_transfer['order_id']), ':', str(stock_transfer['stocktransfersummary__pick_number']))
         picked_quantity = qty_dict.get(group_key,0)
         summary_price = amount_dict.get(group_key,0)
@@ -11311,11 +11346,10 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
         pick_number = ''
         if stock_transfer['stocktransfersummary__pick_number']:
             pick_number = stock_transfer['stocktransfersummary__pick_number']
-        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user']).username
-        data_dict = {'Stock Transfer ID': stock_transfer['order_id'], 'Order Quantity': 0, 'Picked Quantity': picked_quantity,
-             'Total Amount': "%.2f"% float(summary_price), 'Stock Transfer Date&Time': get_local_date(user, creation_date),'pick_number': pick_number,
-             'Invoice Number': invoice_number,#value['full_invoice_number'],
-             'Warehouse Name': warehouse_name}
+        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user'])
+        data_dict = {'Stock Transfer ID': stock_transfer['order_id'], 'Order Quantity': order_quantity, 'Picked Quantity': round(picked_quantity, 2),
+             'Total Amount': "%.2f"% float(summary_price), 'Stock Transfer Date&Time': get_local_date(user, creation_date),'Pick Receipt Number': pick_number,
+             'Invoice Number': invoice_number, 'source_wh': source_wh.id, 'Source Warehouse': "%s %s" %(source_wh.first_name, source_wh.last_name), 'Destination Warehouse': "%s %s" %(warehouse_name.first_name, warehouse_name.last_name)}
         temp_data['aaData'].append(data_dict)
     return temp_data
 
@@ -12421,6 +12455,174 @@ def generate_customer_invoice_tab(request, user=''):
     return HttpResponse(invoice_data)
 
 
+# @csrf_exempt
+# @get_admin_user
+# def generate_stock_transfer_invoice(request, user=''):
+#     resp_list = {'data': [],'titles': ['Stock transfer invoice (Non-Commercial)']}
+#     data= json.loads(request.POST.get('data'))
+#     total_invoice_amount, total_taxable_amount, total_tax, total_cgst_amt, total_sgst_amt, total_igst_amt,total_quantity,invoice_number,full_invoice_number = 0,0,0,0,0,0,0,0,0
+#     order_id=data['order_id']
+#     cess_amt,total_cess_amt = 0 ,0
+#     get_stock_transfer = StockTransfer.objects.filter(order_id=order_id)
+#     warehouse_id = get_stock_transfer[0].st_po.open_st.sku.user
+#     order_date = get_stock_transfer[0].creation_date
+#     invoice_date = ''
+#     mb_user=False
+#     if user.username in MILKBASKET_USERS :
+#         mb_user = True
+#     is_cess_tax_flag = 0
+#     if mb_user:
+#         is_cess_tax_flag = 1
+#     interfix , prefix, date_type,full_invoice_number, invoice_number = '','','','',''
+#     prefix_obj= UserTypeSequence.objects.filter(user=user.id,type_name='stock_transfer_invoice',type_value = 'Offline')
+#     if prefix_obj.exists():
+#         interfix = prefix_obj[0].interfix
+#         prefix = prefix_obj[0].prefix
+#         date_type = prefix_obj[0].date_type
+
+#     user_profile = UserProfile.objects.get(user_id=user.id)
+#     details_data = {'invoice_header': 'Stock Transfer Invoice',
+#                     'gstin_no': user_profile.gst_number,
+#                     'pan_number': user_profile.pan_number,
+#                     'cin_no': user_profile.cin_number,
+#                     'company_name': user_profile.company.company_name,
+#                     'company_address': user_profile.address,
+#                     'company_number': user_profile.phone_number,
+#                     'email': user.email}
+#     warehouse_obj = User.objects.get(id=warehouse_id)
+#     if warehouse_obj:
+#         warehouse = warehouse_obj.username
+#     to_warehouse = UserProfile.objects.filter(user_id=warehouse_id)[0]
+#     inter_state=False
+#     if str(to_warehouse.state).lower() == str(user_profile.state).lower():
+#         inter_state=True
+#     dest_data = {'destination_gstin_no': to_warehouse.gst_number,
+#                  'destination_pan_number': to_warehouse.pan_number,
+#                  'destination_cin_no': to_warehouse.cin_number,
+#                  'destination_company_name': to_warehouse.company.company_name,
+#                  'destination_company_address': to_warehouse.address,
+#                  'destination_company_number': to_warehouse.phone_number,
+#                  'destination_email': warehouse_obj.email}
+#     pick_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=get_stock_transfer.values_list('id', flat=True)).\
+#         annotate(group_key=Concat('stock_transfer__order_id', Value('<<>>'), 'stock_transfer__sku__sku_code', output_field=CharField())).values_list('group_key').annotate(tot_sum=Sum(F('picklist__picked_quantity')/F('picklist__stock__batch_detail__pcf'))))
+#     for stock_transfer in get_stock_transfer:
+#         if mb_user:
+#             st_order_list=STOrder.objects.filter(stock_transfer_id=stock_transfer.id)
+#         else:
+#             st_order_list = [stock_transfer]
+#         for i in st_order_list:
+#             mb_picked_quantity = 0
+#             cgst_tax,sgst_tax,igst_tax =0,0,0
+#             try:
+#                 if mb_user:
+#                     if inter_state:
+#                         igst_tax = i.picklist.stock.batch_detail.tax_percent
+#                     else:
+#                         cgst_tax = float(i.picklist.stock.batch_detail.tax_percent)/2
+#                         sgst_tax = cgst_tax
+#                     mb_picked_quantity = i.picklist.picked_quantity
+#                     rate = i.picklist.stock.batch_detail.buy_price
+#                 else:
+#                     cgst_tax = stock_transfer.st_po.open_st.cgst_tax
+#                     sgst_tax = stock_transfer.st_po.open_st.sgst_tax
+#                     igst_tax = stock_transfer.st_po.open_st.igst_tax
+#                     rate = stock_transfer.st_po.open_st.price
+#                 shipment_date = str(stock_transfer.updation_date)
+#                 invoice_date = stock_transfer.creation_date
+#                 cess_tax = stock_transfer.st_po.open_st.cess_tax
+#                 if data.get('pick_number','')[0]:
+#                     stock_transfer_summary =StockTransferSummary.objects.filter(stock_transfer_id=stock_transfer.id,pick_number__in=data.get('pick_number'))
+#                     if not stock_transfer_summary.exists():
+#                         continue
+#                     if full_invoice_number:
+#                         stock_transfer_summary.update(invoice_number=invoice_number,
+#                                                       full_invoice_number=full_invoice_number, invoice_date=invoice_date)
+#                     if not mb_user:
+#                         total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
+#                         #total_picked_quantity = stock_transfer_summary.aggregate(tot_quantity=Sum('quantity'))['tot_quantity']
+#                     if stock_transfer_summary[0].invoice_number:
+#                         invoice_number = stock_transfer_summary[0].invoice_number
+#                         full_invoice_number = stock_transfer_summary[0].full_invoice_number
+#                         invoice_date = stock_transfer_summary[0].invoice_date
+#                     else:
+#                         invoice_date = stock_transfer_summary[0].creation_date
+#                         in_obj = IncrementalTable.objects.filter(user=user.id,type_name='stock_transfer_invoice')
+#                         if in_obj.exists():
+#                             invoice_number = in_obj[0].value
+#                             in_obj.update(value=invoice_number+1)
+#                         else:
+#                             invoice_number = 1
+#                             in_obj = IncrementalTable.objects.create(user=user, type_name='stock_transfer_invoice',value =invoice_number+1)
+#                         date_format = invoice_date.strftime('%m%y')
+#                         if prefix:
+#                             if date_type == 'financial':
+#                                 date_format = get_financial_year(invoice_date)
+#                             full_invoice_number = '{}/{}/{}'.format(prefix,
+#                                                                        date_format,
+#                                                                        str(invoice_number).zfill(3))
+#                         else:
+#                             full_invoice_number = '{}/{}/{}'.format(user_profile.prefix,
+#                                                                          date_format,
+#                                                                        str(invoice_number).zfill(3))
+#                         stock_transfer_summary.update(invoice_number=invoice_number,full_invoice_number =full_invoice_number,invoice_date=invoice_date)
+#                 else:
+#                     total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
+#                 if mb_user:
+#                     total_picked_quantity = mb_picked_quantity
+#                 price = rate * total_picked_quantity
+#                 total_quantity+=total_picked_quantity
+#                 cgst_amt, sgst_amt ,igst_amt,gst,cess_amt = 0,0,0,0,0
+#                 if cgst_tax :
+#                     cgst_amt = (price * cgst_tax)/100
+#                     sgst_amt = (price * sgst_tax)/100
+#                 else:
+#                     igst_amt  = (price * igst_tax)/100
+#                 if cess_tax:
+#                     cess_amt = (price * cess_tax)/100
+#                 total_cgst_amt+=cgst_amt
+#                 total_sgst_amt+=sgst_amt
+#                 total_igst_amt+=igst_amt
+#                 total_cess_amt+=cess_amt
+#                 gst = cgst_amt+ sgst_amt + igst_amt
+#                 total_price = price+gst+cess_amt
+#                 total_taxable_amount +=price
+#                 total_invoice_amount += total_price
+#                 total_tax +=gst
+#                 sku_description = stock_transfer.sku.sku_desc
+#                 sku = stock_transfer.sku.wms_code
+#                 hsn_code = stock_transfer.sku.hsn_code
+#             except Exception as e:
+#                 import traceback
+#                 log.debug(traceback.format_exc())
+#                 log.info('Stock Transfer  invoice Generation failed for %s and params are %s and error statement is %s' % (
+#                     str(user.username), str(request.POST.dict()), str(e)))
+#             final_data = {'order_id' : order_id, 'picked_quantity' : total_picked_quantity,'price':price,
+#                     'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'unit_price' : rate,
+#                     'igst_amt':igst_amt, 'cgst_amt':cgst_amt , 'sgst_amt':sgst_amt,'hsn_code':hsn_code,
+#                     'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
+#                     'sku_code' : sku, 'invoice_date' : '','cess_tax':cess_tax,'cess_amt':cess_amt,
+#                     'to_warehouse' : to_warehouse, 'title' : sku_description,
+#                     'invoice_number' : '' }
+#             resp_list['data'].append(final_data)
+#     if invoice_date:
+#         invoice_date = invoice_date.strftime("%d %b %Y")
+#     order_date =  order_date.strftime("%d %b %Y")
+
+#     total_prices_dict = {'total_taxable_amount':total_taxable_amount,'total_quantity':total_quantity,'full_invoice_number':full_invoice_number,
+#                          'order_id':order_id,'invoice_date':invoice_date,'order_date':order_date,'declaration': DECLARATIONS['default'],
+#                          'total_invoice_amount':total_invoice_amount,'total_tax':total_tax,'total_tax_words':number_in_words(total_tax),
+#                          'invoice_header':'Stock transfer invoice (Non-Commercial)','is_cess_tax_flag':is_cess_tax_flag,'total_cess_amt':total_cess_amt,
+#                          'rounded_invoice_amount':round(total_invoice_amount), 'price_in_words':number_in_words(round(total_invoice_amount)),
+#                          'total_igst_amt':total_igst_amt, 'total_cgst_amt':total_cgst_amt, 'total_sgst_amt': total_sgst_amt}
+#     title_dat = get_misc_value('invoice_titles', user.id)
+#     if not title_dat == 'false':
+#         resp_list['titles'] = title_dat.split(",")
+#     resp_list.update(details_data)
+#     resp_list.update(dest_data)
+#     resp_list.update(total_prices_dict)
+#     html = build_invoice(resp_list,user,css=False,stock_transfer=True)
+#     return HttpResponse(html)
+
 @csrf_exempt
 @get_admin_user
 def generate_stock_transfer_invoice(request, user=''):
@@ -12428,32 +12630,29 @@ def generate_stock_transfer_invoice(request, user=''):
     data= json.loads(request.POST.get('data'))
     total_invoice_amount, total_taxable_amount, total_tax, total_cgst_amt, total_sgst_amt, total_igst_amt,total_quantity,invoice_number,full_invoice_number = 0,0,0,0,0,0,0,0,0
     order_id=data['order_id']
-    cess_amt,total_cess_amt = 0 ,0
-    get_stock_transfer = StockTransfer.objects.filter(order_id=order_id)
+    cess_amt,total_cess_amt, total_qty = 0 ,0, 0
+    user = User.objects.get(id=data['source_wh'])
+    get_stock_transfer = StockTransfer.objects.filter(order_id=order_id, sku__user=data['source_wh'])
     warehouse_id = get_stock_transfer[0].st_po.open_st.sku.user
     order_date = get_stock_transfer[0].creation_date
     invoice_date = ''
-    mb_user=False
-    if user.username in MILKBASKET_USERS :
-        mb_user = True
-    is_cess_tax_flag = 0
-    if mb_user:
-        is_cess_tax_flag = 1
     interfix , prefix, date_type,full_invoice_number, invoice_number = '','','','',''
-    prefix_obj= UserTypeSequence.objects.filter(user=user.id,type_name='stock_transfer_invoice',type_value = 'Offline')
-    if prefix_obj.exists():
-        interfix = prefix_obj[0].interfix
-        prefix = prefix_obj[0].prefix
-        date_type = prefix_obj[0].date_type
-
     user_profile = UserProfile.objects.get(user_id=user.id)
+    source_address = UserAddresses.objects.filter(user=user, address_type='Shipment Address').order_by('-creation_date').values('mobile_number', 'address', 'pincode')
+    if source_address.exists():
+        source_address = source_address[0]
+        source_phoneno = source_address['mobile_number']
+        source_address = "%s %s : %s - %s" %(user.first_name, user.last_name, source_address['address'], source_address['pincode'])
+    else:
+        source_address = user_profile.address
+        source_phoneno = user_profile.phone_number
     details_data = {'invoice_header': 'Stock Transfer Invoice',
                     'gstin_no': user_profile.gst_number,
                     'pan_number': user_profile.pan_number,
                     'cin_no': user_profile.cin_number,
                     'company_name': user_profile.company.company_name,
-                    'company_address': user_profile.address,
-                    'company_number': user_profile.phone_number,
+                    'company_address': source_address,
+                    'company_number': source_phoneno,
                     'email': user.email}
     warehouse_obj = User.objects.get(id=warehouse_id)
     if warehouse_obj:
@@ -12462,124 +12661,85 @@ def generate_stock_transfer_invoice(request, user=''):
     inter_state=False
     if str(to_warehouse.state).lower() == str(user_profile.state).lower():
         inter_state=True
+    dest_address = UserAddresses.objects.filter(user=warehouse_obj, address_type='Shipment Address').order_by('-creation_date').values('mobile_number', 'address', 'pincode')
+    if dest_address.exists():
+        dest_address = dest_address[0]
+        dest_phoneno = dest_address['mobile_number']
+        dest_address = "%s - %s" %(dest_address['address'], dest_address['pincode'])
+    else:
+        dest_address = to_warehouse.address
+        dest_phoneno = to_warehouse.phone_number
     dest_data = {'destination_gstin_no': to_warehouse.gst_number,
                  'destination_pan_number': to_warehouse.pan_number,
                  'destination_cin_no': to_warehouse.cin_number,
-                 'destination_company_name': to_warehouse.company.company_name,
-                 'destination_company_address': to_warehouse.address,
-                 'destination_company_number': to_warehouse.phone_number,
+                 # 'destination_company_name': to_warehouse.company.company_name,
+                 'destination_company_name': "%s %s" %(warehouse_obj.first_name, warehouse_obj.last_name),
+                 'destination_company_address': dest_address,
+                 'destination_company_number': dest_phoneno,
                  'destination_email': warehouse_obj.email}
-    pick_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=get_stock_transfer.values_list('id', flat=True)).\
-        annotate(group_key=Concat('stock_transfer__order_id', Value('<<>>'), 'stock_transfer__sku__sku_code', output_field=CharField())).values_list('group_key').annotate(tot_sum=Sum(F('picklist__picked_quantity')/F('picklist__stock__batch_detail__pcf'))))
-    for stock_transfer in get_stock_transfer:
-        if mb_user:
-            st_order_list=STOrder.objects.filter(stock_transfer_id=stock_transfer.id)
-        else:
-            st_order_list = [stock_transfer]
-        for i in st_order_list:
-            mb_picked_quantity = 0
-            cgst_tax,sgst_tax,igst_tax =0,0,0
+    stock_transfer_data = StockTransferSummary.objects.filter(stock_transfer__st_type='ST_INTRA', stock_transfer__order_id=data['order_id'], stock_transfer__status=2, pick_number = data['pick_number'], stock_transfer__sku__user=user.id)
+    for invoice_no in stock_transfer_data:
+        cgst_tax,sgst_tax,igst_tax, igst_amt, cgst_amt, sgst_amt = 0,0,0,0,0,0
+        try:
+            uom_dict = get_uom_with_sku_code(user, invoice_no.stock_transfer.sku.sku_code, uom_type='purchase')
+            batch_pcf = uom_dict.get('sku_conversion', 1)
+            batch_number = ''
+            expiry_date = ''
+            manufactured_date = ''
+            batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
+            batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                'pick_loc__stock__batch_detail__batch_no',
+                'pick_loc__stock__batch_detail__manufactured_date',
+                'pick_loc__stock__batch_detail__expiry_date'
+                )
+            if batch_data.exists():
+                batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
+                expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
+                    "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
+                manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
+                    "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
             try:
-                if mb_user:
-                    if inter_state:
-                        igst_tax = i.picklist.stock.batch_detail.tax_percent
-                    else:
-                        cgst_tax = float(i.picklist.stock.batch_detail.tax_percent)/2
-                        sgst_tax = cgst_tax
-                    mb_picked_quantity = i.picklist.picked_quantity
-                    rate = i.picklist.stock.batch_detail.buy_price
-                else:
-                    cgst_tax = stock_transfer.st_po.open_st.cgst_tax
-                    sgst_tax = stock_transfer.st_po.open_st.sgst_tax
-                    igst_tax = stock_transfer.st_po.open_st.igst_tax
-                    rate = stock_transfer.st_po.open_st.price
-                shipment_date = str(stock_transfer.updation_date)
-                invoice_date = stock_transfer.creation_date
-                cess_tax = stock_transfer.st_po.open_st.cess_tax
-                if data.get('pick_number','')[0]:
-                    stock_transfer_summary =StockTransferSummary.objects.filter(stock_transfer_id=stock_transfer.id,pick_number__in=data.get('pick_number'))
-                    if not stock_transfer_summary.exists():
-                        continue
-                    if full_invoice_number:
-                        stock_transfer_summary.update(invoice_number=invoice_number,
-                                                      full_invoice_number=full_invoice_number, invoice_date=invoice_date)
-                    if not mb_user:
-                        total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
-                        #total_picked_quantity = stock_transfer_summary.aggregate(tot_quantity=Sum('quantity'))['tot_quantity']
-                    if stock_transfer_summary[0].invoice_number:
-                        invoice_number = stock_transfer_summary[0].invoice_number
-                        full_invoice_number = stock_transfer_summary[0].full_invoice_number
-                        invoice_date = stock_transfer_summary[0].invoice_date
-                    else:
-                        invoice_date = stock_transfer_summary[0].creation_date
-                        in_obj = IncrementalTable.objects.filter(user=user.id,type_name='stock_transfer_invoice')
-                        if in_obj.exists():
-                            invoice_number = in_obj[0].value
-                            in_obj.update(value=invoice_number+1)
-                        else:
-                            invoice_number = 1
-                            in_obj = IncrementalTable.objects.create(user=user, type_name='stock_transfer_invoice',value =invoice_number+1)
-                        date_format = invoice_date.strftime('%m%y')
-                        if prefix:
-                            if date_type == 'financial':
-                                date_format = get_financial_year(invoice_date)
-                            full_invoice_number = '{}/{}/{}'.format(prefix,
-                                                                       date_format,
-                                                                       str(invoice_number).zfill(3))
-                        else:
-                            full_invoice_number = '{}/{}/{}'.format(user_profile.prefix,
-                                                                         date_format,
-                                                                       str(invoice_number).zfill(3))
-                        stock_transfer_summary.update(invoice_number=invoice_number,full_invoice_number =full_invoice_number,invoice_date=invoice_date)
-                else:
-                    total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
-                if mb_user:
-                    total_picked_quantity = mb_picked_quantity
-                price = rate * total_picked_quantity
-                total_quantity+=total_picked_quantity
-                cgst_amt, sgst_amt ,igst_amt,gst,cess_amt = 0,0,0,0,0
-                if cgst_tax :
-                    cgst_amt = (price * cgst_tax)/100
-                    sgst_amt = (price * sgst_tax)/100
-                else:
-                    igst_amt  = (price * igst_tax)/100
-                if cess_tax:
-                    cess_amt = (price * cess_tax)/100
-                total_cgst_amt+=cgst_amt
-                total_sgst_amt+=sgst_amt
-                total_igst_amt+=igst_amt
-                total_cess_amt+=cess_amt
-                gst = cgst_amt+ sgst_amt + igst_amt
-                total_price = price+gst+cess_amt
-                total_taxable_amount +=price
-                total_invoice_amount += total_price
-                total_tax +=gst
-                sku_description = stock_transfer.sku.sku_desc
-                sku = stock_transfer.sku.wms_code
-                hsn_code = stock_transfer.sku.hsn_code
+                invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
             except Exception as e:
-                import traceback
-                log.debug(traceback.format_exc())
-                log.info('Stock Transfer  invoice Generation failed for %s and params are %s and error statement is %s' % (
-                    str(user.username), str(request.POST.dict()), str(e)))
-            final_data = {'order_id' : order_id, 'picked_quantity' : total_picked_quantity,'price':price,
-                    'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'unit_price' : rate,
-                    'igst_amt':igst_amt, 'cgst_amt':cgst_amt , 'sgst_amt':sgst_amt,'hsn_code':hsn_code,
-                    'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
-                    'sku_code' : sku, 'invoice_date' : '','cess_tax':cess_tax,'cess_amt':cess_amt,
-                    'to_warehouse' : to_warehouse, 'title' : sku_description,
-                    'invoice_number' : '' }
-            resp_list['data'].append(final_data)
-    if invoice_date:
-        invoice_date = invoice_date.strftime("%d %b %Y")
-    order_date =  order_date.strftime("%d %b %Y")
+                invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
+            # import pdb; pdb.set_trace()
+            invoice_date = invoice_no.creation_date.strftime("%d %b %Y")
+            if invoice_no.price:
+                price = invoice_no.price
+            else:
+                price = invoice_no.stock_transfer.st_po.open_st.price
+            total_quantity += float(invoice_no.quantity)
+            total_invoice_amount += price
+            temp_dict = {}
+            temp_dict['order_id'] = invoice_no.stock_transfer.order_id
+            temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
+            temp_dict['desc'] = invoice_no.stock_transfer.sku.sku_desc
+            temp_dict['qty'] = invoice_no.quantity
+            temp_dict['amount'] = round(invoice_no.quantity * price, 3)
+            temp_dict['batch_number'] = batch_number
+            temp_dict['manufactured_date'] = manufactured_date
+            temp_dict['expiry_date'] = expiry_date
 
-    total_prices_dict = {'total_taxable_amount':total_taxable_amount,'total_quantity':total_quantity,'full_invoice_number':full_invoice_number,
-                         'order_id':order_id,'invoice_date':invoice_date,'order_date':order_date,'declaration': DECLARATIONS['default'],
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Stock Transfer  invoice Generation failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
+        final_data = {'order_id' : temp_dict['order_id'], 'picked_quantity' : temp_dict['qty'],'price':price,
+                'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'unit_price' : price,
+                'igst_amt':igst_amt, 'cgst_amt':cgst_amt , 'sgst_amt':sgst_amt,'hsn_code':invoice_no.stock_transfer.sku.hsn_code,
+                'amount' : temp_dict['amount'], 'stock_transfer_date_time' : str(''), 'warehouse_name': user.username,
+                'sku_code' : temp_dict['sku_code'], 'invoice_date' : invoice_date,'cess_tax':0,'cess_amt':0,
+                'to_warehouse' : warehouse_obj.username, 'title' : temp_dict['desc'],
+                'invoice_number' : '' }
+        resp_list['data'].append(final_data)
+    order_date =  order_date.strftime("%d %b %Y")
+    total_prices_dict = {'total_taxable_amount':total_invoice_amount,'total_quantity':total_quantity,'full_invoice_number':"%s/%s"%(data['order_id'], data['pick_number']),
+                         'order_id':data['order_id'],'invoice_date':invoice_date,'order_date':order_date,'declaration': DECLARATIONS['default'],
                          'total_invoice_amount':total_invoice_amount,'total_tax':total_tax,'total_tax_words':number_in_words(total_tax),
-                         'invoice_header':'Stock transfer invoice (Non-Commercial)','is_cess_tax_flag':is_cess_tax_flag,'total_cess_amt':total_cess_amt,
+                         'invoice_header':'Stock transfer invoice (Non-Commercial)','is_cess_tax_flag':0,'total_cess_amt':0,
                          'rounded_invoice_amount':round(total_invoice_amount), 'price_in_words':number_in_words(round(total_invoice_amount)),
-                         'total_igst_amt':total_igst_amt, 'total_cgst_amt':total_cgst_amt, 'total_sgst_amt': total_sgst_amt}
+                         'total_igst_amt':0, 'total_cgst_amt':0, 'total_sgst_amt': 0}
     title_dat = get_misc_value('invoice_titles', user.id)
     if not title_dat == 'false':
         resp_list['titles'] = title_dat.split(",")
@@ -12587,10 +12747,8 @@ def generate_stock_transfer_invoice(request, user=''):
     resp_list.update(dest_data)
     resp_list.update(total_prices_dict)
     html = build_invoice(resp_list,user,css=False,stock_transfer=True)
-    # if invoice_number and invoice_number!=1:
-    #     IncrementalTable.objects.filter(user=user.id,type_name='stock_transfer_invoice').update(value=invoice_number+1)
     return HttpResponse(html)
-    # return HttpResponse(json.dumps(resp_list))
+
 
 @csrf_exempt
 @get_admin_user
@@ -15265,10 +15423,17 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type=st_type).\
+    if user.username == 'mhl_admin':
+        stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type=st_type, upload_type='UI').\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
-                                        distinct().annotate(tsum=Sum('quantity'),
+                                        distinct().annotate(tsum=Sum('quantity'), tpicked=Sum('picked_quantity'), toriginal_qty=Sum('original_quantity'),
+                                        date_only=Cast('creation_date', DateField()))
+    else:
+        stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type=st_type, upload_type='UI').\
+                                        values('st_po__open_st__sku__user', 'order_id',
+                                               'st_po__open_st__warehouse__username', 'sku__user').\
+                                        distinct().annotate(tsum=Sum('quantity'), tpicked=Sum('picked_quantity'), toriginal_qty=Sum('original_quantity'),
                                         date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -15276,8 +15441,7 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     if search_term:
         user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
         master_data = stock_transfer_objs.filter(Q(st_po__open_st__sku__user__in=user_ids) |
-                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term) |
-                                                   Q(creation_date__regex=search_term)).order_by(order_data)
+                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term)).order_by(order_data)
     else:
         master_data = stock_transfer_objs.order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
@@ -15286,10 +15450,13 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
 
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
+        source_name = User.objects.get(username=data['st_po__open_st__warehouse__username'])
         warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'],
-                                    'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'Quantity': data['toriginal_qty'], 'Pending Qty': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'warehouse_id': data['sku__user'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
@@ -16985,10 +17152,11 @@ def generate_mr_dc(request , user = ''):
         order = json.loads(orders)[0]
         datum = []
         user = User.objects.get(id=order['source_wh'])
-        stock_transfer_data = StockTransfer.objects.filter(st_type='MR', sku__user=user.id, order_id=order['order_id'], status=2).select_related('sku', 'st_po__open_st__sku')
-        for data in stock_transfer_data:
-            date = get_local_date(user, data.creation_date)
-            destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        idsm = StockTransferSummary.objects.filter(stock_transfer__st_type='MR', stock_transfer__order_id=order['order_id'], stock_transfer__status=2, pick_number = order['pick_number'])
+        stock_transfer_data = StockTransferSummary.objects.filter(stock_transfer__st_type='MR', stock_transfer__order_id=order['order_id'], stock_transfer__status=2, pick_number = order['pick_number'])
+        for invoice_no in stock_transfer_data:
+            date = get_local_date(user, invoice_no.stock_transfer.creation_date)
+            destination = User.objects.get(id=invoice_no.stock_transfer.st_po.open_st.sku.user)
             dest_up = destination.userprofile
             invoice_data['destination_dept_name'] = "%s %s" %(destination.first_name, destination.last_name)
             invoice_data['destination_dept_address'] = dest_up.address
@@ -16997,49 +17165,40 @@ def generate_mr_dc(request , user = ''):
                 invoice_data['destination_dept_phone'] = dest_up.phone_number
             else:
                 invoice_data['destination_dept_phone'] = ''
-            duser_profile = UserProfile.objects.get(user_id=destination.id)
-            if data.stocktransfersummary_set.filter(pick_number = order['pick_number']):
-                creation_date = data.stocktransfersummary_set.filter(pick_number = order['pick_number'])[0].creation_date
-                invoice_date = get_local_date(user, creation_date, send_date='true')
-                invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
-                invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
-                for invoice_no in data.stocktransfersummary_set.filter(pick_number = order['pick_number']):
-                    batch_pcf = 1
-                    batch_number = ''
-                    expiry_date = ''
-                    manufactured_date = ''
-                    # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id, picklist__picklistlocation__quantity__gt=0,
-                    #                                     stock_transfer=data.id).values(
-                    #     'picklist__picklistlocation__stock__batch_detail__batch_no',
-                    #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
-                    #     'picklist__picklistlocation__stock__batch_detail__expiry_date', 'picklist__picklistlocation__stock__batch_detail__pcf')
-                    batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
-                    batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
-                        'pick_loc__stock__batch_detail__batch_no',
-                        'pick_loc__stock__batch_detail__manufactured_date',
-                        'pick_loc__stock__batch_detail__expiry_date',
-                        'pick_loc__stock__batch_detail__pcf'
-                        )
-                    if batch_data.exists():
-                        batch_pcf = batch_data[0]['pick_loc__stock__batch_detail__pcf']
-                        batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
-                        expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
-                            "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
-                        manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
-                            "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
-                    try:
-                        invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
-                    except Exception as e:
-                        invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
-                    total_qty += float(invoice_no.quantity)
-                    temp_dict = {}
-                    temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
-                    temp_dict['desc'] = invoice_no.stock_transfer.sku.sku_desc
-                    temp_dict['qty'] = invoice_no.quantity
-                    temp_dict['batch_number'] = batch_number
-                    temp_dict['manufactured_date'] = manufactured_date
-                    temp_dict['expiry_date'] = expiry_date
-                    datum.append(temp_dict)
+            creation_date = invoice_no.creation_date
+            invoice_date = get_local_date(user, creation_date, send_date='true')
+            invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+            invoice_data['inv_date'] = invoice_date.strftime("%d %b %Y")
+            uom_dict = get_uom_with_sku_code(user, invoice_no.stock_transfer.sku.sku_code, uom_type='purchase')
+            batch_pcf = uom_dict.get('sku_conversion', 0)
+            batch_number = ''
+            expiry_date = ''
+            manufactured_date = ''
+            batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
+            batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                'pick_loc__stock__batch_detail__batch_no',
+                'pick_loc__stock__batch_detail__manufactured_date',
+                'pick_loc__stock__batch_detail__expiry_date'
+                )
+            if batch_data.exists():
+                batch_number = batch_data[0]['pick_loc__stock__batch_detail__batch_no']
+                expiry_date = batch_data[0]['pick_loc__stock__batch_detail__expiry_date'].strftime(
+                    "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__expiry_date'] else ''
+                manufactured_date = batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'].strftime(
+                    "%d %b, %Y") if batch_data[0]['pick_loc__stock__batch_detail__manufactured_date'] else ''
+            try:
+                invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
+            except Exception as e:
+                invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
+            total_qty += float(invoice_no.quantity)
+            temp_dict = {}
+            temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
+            temp_dict['desc'] = invoice_no.stock_transfer.sku.sku_desc
+            temp_dict['qty'] = invoice_no.quantity
+            temp_dict['batch_number'] = batch_number
+            temp_dict['manufactured_date'] = manufactured_date
+            temp_dict['expiry_date'] = expiry_date
+            datum.append(temp_dict)
         invoice_data['username'] = user.username
         invoice_data['data'] = datum
         invoice_data['name'] = "%s - %s" %(str(user.first_name), str(user.last_name))
@@ -17471,6 +17630,7 @@ def create_manual_test(request, user=''):
             uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, 'consumption',
                                              uom=request_data['uom'][i])
             pcf = uom_dict['sku_conversion']
+            pcf = 1
             if data_dict.get('sku_quantity', 0):
                 sku_stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE'). \
                     filter(sku_id=sku[0].id, quantity__gt=0).order_by('batch_detail__expiry_date')
@@ -17491,6 +17651,7 @@ def create_manual_test(request, user=''):
                 consumption = Consumption.objects.create(**consumption_dict)
                 # TempJson.objects.create(model_id=consumption.id, model_json=json.dumps(value),
                 #                         model_name='manual_test_sku_data')
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
                 for val in value:
                     sku = SKUMaster.objects.get(id=val['sku_id'])
                     quantity = val['needed_quantity']
@@ -17498,9 +17659,12 @@ def create_manual_test(request, user=''):
                         exclude(location__zone__zone='DAMAGED_ZONE').\
                         filter(sku_id=sku.id, quantity__gt=0).order_by('batch_detail__expiry_date')
                     consumption_data = ConsumptionData.objects.create(
+                        order_id=consumption_id,
+                        consumption_number=consumption_number,
                         sku_id=sku.id,
                         quantity=quantity,
-                        consumption_id=consumption.id
+                        consumption_id=consumption.id,
+                        consumption_type=1
                     )
                     update_stock_detail(sku_stocks, quantity, user,
                                         consumption_data.id, transact_type='consumption',
@@ -17571,3 +17735,174 @@ def get_manual_test_approval_pending(request, user=''):
         data_dict['data'].append({'test_code': value[0]['test_code'], 'test_desc': value[0]['test_desc'],
                                   'sub_data': sub_data, 'remarks': value[0]['remarks']})
     return HttpResponse(json.dumps({'data': data_dict}))
+
+
+def get_closing_stock_ui_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
+    users = [user.id]
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(request.user, user, users)
+    lis = ['user', 'user', 'user','sku_code', 'sku_desc', 'stock_quantity', 'sku_code', 'sku_code', 'sku_code', 'sku_code', 'sku_code', 'sku_code',
+    'sku_code', 'sku_code']
+    headers1, search_params, filter_params1 = get_search_params(request)
+    search_parameters = {}
+    if 'sku_code' in search_params:
+        search_parameters['sku_code'] = search_params['sku_code'].upper()
+    if 'sku_category' in search_params:
+       search_parameters['sku_category'] = search_params['sku_category']
+    user_query = False
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'sister_warehouse' in search_params:
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_type)
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    user_ids = list(users.values_list('id', flat=True))
+    if not user_query:
+        skus = SKUMaster.objects.none()
+    else:
+        skus = SKUMaster.objects.filter(user__in=user_ids, **search_parameters).values('id', 'sku_code', 'sku_desc', 'average_price', 'user').\
+                                exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
+                                exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).annotate(stock_quantity=Sum('stockdetail__quantity')).distinct()
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if order_term:
+        skus = skus.order_by(order_data)
+    temp_data['recordsTotal'] = skus.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    count = 0
+    skus = skus[start_index: stop_index]
+    model_sku_codes = []
+    model_sku_ids = []
+    stock_dict = {}
+    consumption_dict = {}
+    for sku in skus:
+        model_sku_codes.append(sku['sku_code'])
+        model_sku_ids.append(sku['id'])
+
+    stocks = StockDetail.objects.filter(sku_id__in=model_sku_ids, quantity__gt=0).\
+                                exclude(location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date').only('sku_id', 'quantity')
+    for stock in stocks:
+        stock_dict.setdefault(stock.sku_id, 0)
+        stock_dict[stock.sku_id] += stock.quantity
+    cons_filter = {'sku_id__in': model_sku_ids, 'quantity__gt': 0}
+    if 'year' in search_params and 'month_no' in search_params:
+        first_date = datetime.datetime.strptime('%s-%s-1' % (str(search_params['year']),str(search_params['month_no'])), '%Y-%m-%d')
+        last_date = first_date + relativedelta(months=1)
+        cons_filter['creation_date__range'] = [first_date.date(), last_date.date()]
+    skus_uom_dict = get_uom_with_multi_skus(user, model_sku_codes, uom_type='purchase')
+    consumption = ConsumptionData.objects.filter(**cons_filter).\
+                                            only('sku_id', 'quantity', 'price')
+    for cons in consumption:
+       consumption_dict.setdefault(cons.sku_id, {'qty': 0, 'value': 0})
+       uom_dict = skus_uom_dict.get(sku['sku_code'], {})
+       pcf = uom_dict.get('sku_conversion', 1)
+       cons_pqty = cons.quantity/pcf
+       cons_value = cons_pqty * cons.price
+       consumption_dict[cons.sku_id]['qty'] += cons.quantity
+       consumption_dict[cons.sku_id]['value'] += cons_value
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    for sku in skus:
+        user_obj = User.objects.get(id=sku['user'])
+        department = ''
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            department = dept_mapping.get(user_obj.userprofile.stockone_code, user_obj.userprofile.stockone_code)
+            user_obj = get_admin(user_obj)
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        data_id = sku['id']
+        stock_qty = stock_dict.get(data_id, 0)
+        cons_dict = consumption_dict.get(data_id, {})
+        cons_qty = cons_dict.get('qty', 0)
+        cons_value = round(cons_dict.get('value', 0), 5)
+        uom_dict = skus_uom_dict.get(sku['sku_code'], {})
+        base_uom = uom_dict.get('base_uom', '')
+        pcf = uom_dict.get('sku_conversion', 1)
+        pqty = stock_qty/pcf
+        cons_pqty = cons_qty/pcf
+        stock_value = round(pqty * sku['average_price'], 5)
+        #cons_value = cons_pqty * sku['average_price']
+        cls_input = '<input type="number" class="form-control" name="closing_qty" min="0" ng-model="showCase.closing_qty_val_%s" ng-init="showCase.closing_qty_val_%s=0" ng-keyup="showCase.check_closing_qty(%s, %s, showCase.closing_qty_val_%s)" style="width: 120px !important">' % (str(data_id), str(data_id), str(count), str(data_id), str(data_id))
+        remarks_input = '<input type="text"  class="form-control" name="remarks" ng-model="showCase.remarks_%s" ng-init="showCase.remarks_%s=%s" auto-complete="false" style="width: 150px !important">' % \
+                                (str(data_id), str(data_id), str("''"))
+        data_dict = OrderedDict((('data_id', data_id),
+                                                ('Plant Code', plant_code),
+                                                ('Plant Name', plant_name),
+                                                ('Department', department),
+                                                ('SKU Code', sku['sku_code']),
+                                                ('SKU Description', sku['sku_desc']),
+                                                ('Current Available Stock', stock_qty),
+                                                ('Base UOM', base_uom),
+                                                ('Stock Value', stock_value),
+                                                ('Closing Quantity', cls_input),
+                                                ('Consumption Quantity', cons_qty),
+                                                ('Consumption Value', cons_value),
+                                                ('Remarks', remarks_input),
+                                                ('sku_avg_price', sku['average_price']),
+                                                ('sku_pcf', pcf),
+                                                ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_closing_qty(%s, %s)" ng-disabled="showCase.conf_disable">Save</button>' % (str(count), str(data_id))),
+                                                ('id', data_id),
+                                                ('DT_RowClass', 'results'),
+                                ))
+
+        temp_data['aaData'].append(data_dict)
+        count += 1
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_closing_stock_ui(request, user=''):
+    log.info('Request params for Closing Stock UI for ' + user.username + ' is ' + str(request.POST.dict()))
+    from rest_api.views.uploads import update_closing_stock_quantity
+    data_id = request.POST['data_id']
+    quantity = float(request.POST['quantity'])
+    year = request.POST['year']
+    month = request.POST['month']
+    sku = SKUMaster.objects.get(id=data_id)
+    user = User.objects.get(id=sku.user)
+    stocks = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).exclude(
+                                        location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
+    stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    stock_quantity = stock_quantity if stock_quantity else 0
+    uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+    if stock_quantity < quantity:
+        return HttpResponse("Quantity is less than Stock quantity")
+    data_dict = {}
+    data_dict['sku'] = sku
+    data_dict['user'] = user
+    data_dict['base_uom_quantity'] = quantity
+    data_dict['stocks'] = stocks
+    data_dict['uom_dict'] = uom_dict
+    data_dict['remarks'] = request.POST.get('remarks', '')
+    try:
+        update_closing_stock_quantity([data_dict], year, month)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Closing Stock UI failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+
+    return HttpResponse("Success")

@@ -352,7 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Success') {
-
+            vm.conf_disable = false;
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
@@ -363,13 +363,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.extra_width = {}
               angular.element(".modal-body").html($(data.data));
               vm.print_enable = true;
+              vm.conf_disable = false;
               vm.service.refresh(vm.dtInstance);
             } else {
               pop_msg(data.data)
+              vm.conf_disable = false;
             }
           }
         }
-        vm.conf_disable = false;
       });
     }
 

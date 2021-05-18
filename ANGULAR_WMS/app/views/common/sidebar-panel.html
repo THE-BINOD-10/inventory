@@ -104,7 +104,7 @@
             <span>SKU Pack Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user' &&  user.user_profile['industry_type'] == 'FMCG'">
+        <li ui-sref-active="active" ng-if="user.user_profile['industry_type'] == 'FMCG'">
           <a ui-sref="app.masters.Replenushment">
             <span>Replenishment Master</span>
           </a>
@@ -225,6 +225,11 @@
             <span>Cluster SKU Mapping</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_replenushmentmaster')">
+          <a ui-sref="app.masters.InventoryNorm">
+            <span>Inventory Norm Master</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -236,16 +241,16 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <!-- <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
+        <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.inbound.MaterialRequest">
             <span>Material Request</span>
           </a>
-        </li> -->
-        <!-- <li ui-sref-active="active">
+        </li>
+        <li g-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.inbound.TransferOrder">
             <span>Raise Transfer Orders</span>
           </a>
-        </li> -->
+        </li>
         <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePr">
             <span>Purchase Request</span>
@@ -300,6 +305,11 @@
         <li ui-sref-active="active" ng-show="show_tab('delete_sellerposummary')">
           <a ui-sref="app.inbound.GrnEdit">
             <span>GRN Edit</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+          <a ui-sref="app.inbound.MaterialPlanning">
+            <span>Material Planning</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'admin_sub_user' && permissions.priceband_sync)">
@@ -436,7 +446,7 @@
             <span>Shipment Info</span>
           </a>
         </li>
-        <li   ng-show="show_tab('add_stocktransfer')" ui-sref-active="active">
+        <li ng-show="show_tab('add_stocktransfer')" ui-sref-active="active">
           <a ui-sref="app.outbound.CreateStockTransfer">
             <span>Create Stock Transfer</span>
           </a>
@@ -461,6 +471,11 @@
         <li ng-show="show_tab('add_consumptiondata') || show_tab('view_manual_test_approval')" ui-sref-active="active">
           <a ui-sref="app.outbound.CreateManualTest">
             <span>Manual Test</span>
+          </a>
+        </li>
+        <li ng-show="show_tab('change_consumptiondata')" ui-sref-active="active">
+          <a ui-sref="app.outbound.ClosingStock">
+            <span>Closing Stock</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
@@ -550,6 +565,16 @@
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.PR_AODReport">
+            <span>Pending PR as on date</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.PR_PO_GRNReport">
+            <span>PR PO GRN Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.GoodsReceiptNote">
             <span>Goods Receipt Note</span>
           </a>
@@ -559,7 +584,7 @@
             <span>PR REPORT</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')" ng-if="false">
           <a ui-sref="app.reports.STGoodsReceiptNote">
             <span>Stock Transfer Goods Receipt Note</span>
           </a>
@@ -592,6 +617,16 @@
         <li ui-sref-active="active" ng-show="show_tab('view_stockdetail')">
           <a ui-sref="app.reports.SKUWiseStock">
             <span>SKU Wise Stock</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_skustock')">
+          <a ui-sref="app.reports.StockExpired">
+            <span>Expired Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_skustock')">
+          <a ui-sref="app.reports.StockAgeing">
+            <span>Ageing Report</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_openpo')">
@@ -764,17 +799,18 @@
             <span>Enquiry Status Report</span>
           </a>
         </li>
-        <li ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" ui-sref-active="active">
+        <!-- ng-show="show_tab('add_pendingpr') || show_tab('change_pendingpr') || show_tab('view_pendingpr')" -->
+        <li ui-sref-active="active">
           <a ui-sref="app.reports.MaterialRequestReport">
             <span>Material Request</span>
           </a>
         </li>
-        <!-- <li ui-sref-active="active">
+        <li ui-sref-active="active">
           <a ui-sref="app.reports.StockTransferReport">
             <span>Intra Stock Transfer Orders</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!-- <li ui-sref-active="active">
           <a ui-sref="app.reports.SaleTransferReport">
             <span>Inter Sale Transfer Orders</span>
           </a>
@@ -819,7 +855,7 @@
             <span>Credit Note Form (ORACLE Upload File)</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-if="false">
           <a ui-sref="app.reports.CreditNoteReport">
             <span>Credit Note Report</span>
           </a>
@@ -834,9 +870,24 @@
             <span>Approval PO Report</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.ConsumptionData">
+            <span>Test Data</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-if="show_tab('view_consumption')">
           <a ui-sref="app.reports.ConsumptionReport">
             <span>Consumption Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="show_tab('view_closingstock')">
+          <a ui-sref="app.reports.ClosingStockReport">
+            <span>Closing Stock Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.IntegrationReport">
+            <span>Netsuite Integration Report</span>
           </a>
         </li>
       </ul>
@@ -898,7 +949,8 @@
     <li data-ng-class="{open: $state.includes('user')}" style="" class="user-section">
       <a href="javascript:;">
         <i class="fa fa-user"></i>
-        <span><b style="display: inline-flex;width: 120px;">{{(user.user_profile['first_name'] == "")? user.userName:user.user_profile['first_name'];}}</b></span>
+        <span><b style="display: inline-flex;width: 120px;">{{(user.user_profile['first_name'] == "")? user.userName:user.user_profile['first_name'];}}</b></span><br>
+        <span style="align-items: start;font-size: 10px;font-weight: 900;margin-left: 35%;text-transform: lowercase;">{{user.version_number}}</span>
       </a>
       <ul class="sub-menu manage" style="position: absolute;bottom: 50px;width:100%">
         <li ui-sref-active="active" ng-show="show_tab('is_staff')">

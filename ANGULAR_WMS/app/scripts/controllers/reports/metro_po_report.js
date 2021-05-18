@@ -94,7 +94,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   	})
 }
 
-  vm.toggle_po()
+  // vm.toggle_po()
   vm.toggle_view()
   vm.print_page = "";
   vm.dtInstance = {};

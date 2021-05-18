@@ -142,6 +142,8 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['measurement_type'], data.measurement_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sale_through'], data.sale_through, file_type)
         ws = write_excel(ws, data_count, excel_mapping['color'], data.color, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['creation_date'], get_local_date(user, data.creation_date), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['updation_date'], get_local_date(user, data.updation_date), file_type)
         substitutes_list = []
         field_count = max(excel_mapping.values()) + 1
         if data.substitutes:
@@ -293,6 +295,8 @@ def asset_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['vendor'], data.vendor, file_type)
         ws = write_excel(ws, data_count, excel_mapping['store_id'], data.store_id, file_type)
         ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['creation_date'], get_local_date(user, data.creation_date), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['updation_date'], get_local_date(user, data.updation_date), file_type)
         ean_list = []
         ean_objs = data.eannumbers_set.filter()
         if data.ean_number:
@@ -392,6 +396,8 @@ def service_excel_download(search_params, temp_data, headers, user, request):
                           values_list('str_eans', flat=True))
         ean_number = ','.join(ean_list)
         ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['creation_date'], get_local_date(user, data.creation_date), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['updation_date'], get_local_date(user, data.updation_date), file_type)
         if file_type == 'csv':
             ws = ws[:-1] + '\n'
             wb.write(ws)
@@ -467,6 +473,8 @@ def otheritems_excel_download(search_params, temp_data, headers, user, request):
             ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
         ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
+        ws = write_excel(ws, data_count, excel_mapping['creation_date'], get_local_date(user, data.creation_date), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['updation_date'], get_local_date(user, data.updation_date), file_type)
         ean_list = []
         ean_objs = data.eannumbers_set.filter()
         if data.ean_number:

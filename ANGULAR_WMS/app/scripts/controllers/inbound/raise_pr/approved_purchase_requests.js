@@ -570,8 +570,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if(prIds.length > 0){
             vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
               if(data.message){
-                vm.preview_data = data.data;
-                $state.go("app.inbound.RaisePr.PRemptyPreview");
+                if (typeof(data.data) == 'string') {
+                  vm.service.showNoty(data.data);
+                } else {
+                  vm.preview_data = data.data;
+                  $state.go("app.inbound.RaisePr.PRemptyPreview");
+                }
               }
             });
           } else {

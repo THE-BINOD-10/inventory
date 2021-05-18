@@ -10,24 +10,35 @@
           <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6">
               <div class="form-group">
-                <label class="control-label"> Classification * </label>
-                <input type="text" name="classification" class="form-control namevalid"  ng-readonly="showCase.update" ng-model="showCase.model_data.classification" maxlength="256" required> </div>
-
-            </div>
+                <label class="control-label"> Plant * </label>
+                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
+                <input ng-if="showCase.update" type="text" class="form-control" ng-model="showCase.model_data.plant_name" title={{showCase.model_data.plant_name}} readonly>
+                <select class="selectpicker-plants show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="[showCase.check_selected_val(showCase.model_data.warehouse, role)]" ng-if="!showCase.update" ng-required="true">
+                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}:{{warehouse.stockone_code}}</option>
+                </select>
+              </div>
+	        </div>
             <div class="col-lg-6 col-md-6 col-sm-6">
               <div class="form-group">
-                <label class="control-label"> Size * </label>
-                <input type="text" name="size" class="form-control namevalid"  ng-model="showCase.model_data.size" maxlength="256" required> </div>
+                <label class="control-label"> SKU Code * </label>
+                <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.sku_code" typeahead-on-select="showCase.model_data.sku_code=$item.wms_code;alert($item.wms_code)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-required="true" ng-if="!showCase.update">
+                <input ng-if="showCase.update" type="text" class="form-control" ng-model="showCase.model_data.sku_code" title={{showCase.model_data.sku_code}} name="wms_code" readonly>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+              <div class="form-group">
+                <label class="control-label">Lead time Days * </label>
+                <input type="text"  name="lead_time" class="form-control decimal" ng-model="showCase.model_data.lead_time" maxlength="64" required> </div>
             </div>
             <div class="col-lg-6 col-md-6">
               <div class="form-group">
                 <label class="control-label">SA Min Days * </label>
-                <input type="text"  name="min_days" class="form-control" ng-model="showCase.model_data.min_days" maxlength="64" required> </div>
+                <input type="text"  name="min_days" class="form-control decimal" ng-model="showCase.model_data.min_days" maxlength="64" required> </div>
             </div>
             <div class="col-lg-6 col-md-6">
               <div class="form-group">
                 <label class="control-label">SA Max Days * </label>
-                <input type="text"  name="max_days" class="form-control" ng-model="showCase.model_data.max_days" maxlength="64" required> </div>
+                <input type="text" name="max_days" class="form-control decimal" ng-model="showCase.model_data.max_days" maxlength="64" required> </div>
             </div>
           </div>
           <div class="row insert-status">

@@ -25,7 +25,7 @@
               <div class="row m0" style="overflow: hidden;">
                 <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="margin-left: -10px;">
                   {% if company_logo %}
-                    <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:150px;height:50px"/>
+                    <img id="image1" alt="Image1" src="data:image/png;base64,{{ company_logo }}" style="width:150px;height:50px"/>
                 {% endif %}
                 </div>
                 <div class="col-lg-7 col-md-7 col-sm-7 col-xs-7" style="padding-top: 8px;">
@@ -65,10 +65,14 @@
                   {% endif %} 
                   {% if supplier_payment_terms %}
                      <span><b>PaymentTerms:</b>{{ supplier_payment_terms }}</span><br>
-                  {% endif %} 
+                  {% endif %}
+                  {% if full_pr_number %}
+                    <span><b>PR Number :</b>{{full_pr_number}}</span><br>
+                  {% endif %}
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 fs14 p0">
                   <label><b>Supplier Details: </b></label><br>
+                  <span><b>Supplier Code :</b></span>{{ code }}<br>
                   <span><b>Name :</b></span>{{ name }}<br>
                   <span><b>Address :</b></span>{{ address }}<br>
                   <span><b>Telephone :</b></span>{{ tPaymentTermselephone }}<br>
@@ -86,7 +90,7 @@
                     <h4><b>Ship To:</b></h4>
                     <span><b>Name :</b></span>{{ company_name }}<br>
                     <span><b>Address :</b></span>{{ w_address }}<br>
-                    <span><b>Telephone :</b></span>{{ wh_telephone }}<br>
+                    <!-- <span><b>Telephone :</b></span>{{ wh_telephone }}<br> -->
                     <span><b>GSTIN No :</b></span>{{ wh_gstin }}<br>
                     <span><b>PAN No. :</b>{{ wh_pan }}</span><br>
                   </div>

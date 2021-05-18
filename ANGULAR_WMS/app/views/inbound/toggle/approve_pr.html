@@ -28,7 +28,7 @@
 </style>
 
 <div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision">
-  <form name="{{showCase.form}}" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="approve_form">
+  <form name="{{showCase.form}}" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="approve_form">
     <div class="modal-dialog model-custom modal-lg" style="min-width: 1305px;font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
@@ -48,8 +48,9 @@
             <div class="col-md-2 col-sm-3 col-xs-4">
               <div class="form-group">
                 <label class="control-label"> PR Number </label>
-                <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="form-control" ng-readonly="true"> 
+                <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="form-control" ng-readonly="true">
                 <input type="text" name="purchase_id" ng-model="showCase.model_data.purchase_id" class="hide">
+                <input type="text" name="is_auto_pr" ng-model="showCase.model_data.is_auto_pr" value="{{ showCase.model_data.is_auto_pr }}" class="hide">
               </div>
             </div>
             <div class="col-md-1 col-sm-3 col-xs-4">

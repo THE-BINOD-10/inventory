@@ -42,7 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type'),
-        DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
+        DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value').notVisible(),
         DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code').notSortable(),
         DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable(),
         DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable()
@@ -64,10 +64,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       vm.dtColumns.push(DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'))
     }
 
-    $scope.$on('change_filters_data', function(){
+    /*$scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.reloadData();
     });
+    */
 
   }
 

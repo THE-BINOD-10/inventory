@@ -1486,13 +1486,17 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     index_status = {}
     upload_file_skus = []
     ean_duplicate_check = []
+    instanceName = SKUMaster
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     if is_asset:
         sku_file_mapping = get_asset_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+        instanceName = AssetMaster
     if is_service:
         sku_file_mapping = get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+        instanceName = ServiceMaster
     if is_test:
         sku_file_mapping = get_test_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+        instanceName = TestMaster
     if is_item:
         instanceName = OtherItemsMaster
         sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
@@ -1527,11 +1531,11 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     sku_code = str(int(cell_data))
                 if sku_code in upload_file_skus:
                     index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
-                else:
+                elif sku_code:
                     upload_file_skus.append(sku_code)
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('WMS Code missing')
+                #if not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('WMS Code missing')
             elif key == 'test_code' and is_test:
                 data_set = wms_data
                 data_type = 'WMS'
@@ -1697,7 +1701,14 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
             elif key == 'sku_category':
-                if cell_data and cell_data not in category_list:
+                if not sku_code:
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('SKU Category is Mandatory')
+                    elif instanceName.__name__ in ['OtherItemsMaster', 'SKUMaster']:
+                        sku_inc_status, check_sku = get_sku_code_inc_number(user, instanceName, cell_data, check=True)
+                        if not sku_inc_status:
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Category for SKU creation')
+                elif cell_data and cell_data not in category_list:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
             elif key == 'sku_class':
                 if cell_data and cell_data not in class_list:
@@ -1836,6 +1847,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             elif key not in temp_dict:
                 continue
             if key == 'wms_code':
+                if not cell_data:
+                    continue
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(xcode(cell_data))
@@ -1958,7 +1971,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not toggle_value:
                     cell_data = 0
                 if toggle_value:
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'batch_based':
                 svaed_value = str(cell_data).lower()
@@ -1969,7 +1983,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not svaed_value:
                     cell_data = 0
                 if svaed_value:
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'block_options':
                 if cell_data:
@@ -1977,7 +1992,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         cell_data = 'PO'
                     if str(cell_data).lower() in ['no', '']:
                         cell_data = ''
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'gl_code':
                 if cell_data:
@@ -2017,6 +2033,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
+        if instanceName != TestMaster:
+            sku_inc_status, wms = get_sku_code_inc_number(user, instanceName, data_dict['sku_category'])
+            data_dict['wms_code'] = wms
         if is_test:
             data_dict['test_code'] = data_dict['wms_code']
             data_dict['test_name'] = data_dict['sku_desc']
@@ -7848,6 +7867,7 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
     sku_masters_dict = {}
     order_id_order_type = {}
     order_data = {}
+    all_sku_codes = []
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
     source_seller = ''
@@ -7888,6 +7908,10 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                 wms_code = str(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type))
             except:
                 wms_code = str(int(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type)))
+            if wms_code in all_sku_codes:
+                index_status.setdefault(count, set()).add('Duplicate SKU Code')
+            else:
+                all_sku_codes.append(wms_code)
             sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
             if not sku_master:
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
@@ -7906,7 +7930,7 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                             search_params['sku__sku_code'] = wms_code
                             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
                             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, wms_code, search_params, '')
-                            if (avail_qty+st_avail_qty) < float(cell_data):
+                            if (avail_qty+st_avail_qty) < abs(float(cell_data)):
                                 index_status.setdefault(count, set()).add('Quantity Exceeding available quantity')
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
@@ -7947,9 +7971,10 @@ def material_request_order_xls_upload(request, reader, user, no_of_rows, fname, 
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
                 except:
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
+                price = sku_master[0].average_price
             elif key == 'quantity':
-                 quantity = float(get_cell_data(row_idx, value, reader, file_type))
-            price = 0
+                 quantity = abs(float(get_cell_data(row_idx, value, reader, file_type)))
             mrp = 0
             cgst_tax = 0
             sgst_tax = 0
@@ -7992,6 +8017,23 @@ def stock_transfer_order_upload(request, user=''):
 def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("stock transfer order upload started")
     st_time = datetime.datetime.now()
+    plants_list = []
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('username', flat=True)
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('username', flat=True)
     index_status = {}
     st_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING)
     st_res = dict(zip(st_mapping.values(), st_mapping.keys()))
@@ -8021,7 +8063,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         if order_mapping.has_key('source_warehouse'):
             source_warehouse = str(get_cell_data(row_idx, order_mapping['source_warehouse'], reader, file_type))
             try:
-                user = User.objects.get(username=source_warehouse)
+                if source_warehouse in plants_list:
+                    user = User.objects.get(username=source_warehouse)
+                else:
+                    index_status.setdefault(count, set()).add('Access denied for Source warehouse')
             except Exception as e:
                 index_status.setdefault(count, set()).add('Invalid Source warehouse')
         else:
@@ -8112,8 +8157,9 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
-        mrp =0
+        mrp, price =0, 0
         st_type = 'ST_INTRA'
+        current_sku = ''
         for key, value in order_mapping.iteritems():
             if key == 'source_warehouse':
                 source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
@@ -8133,13 +8179,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
+                current_sku = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)[0]
             elif key == 'quantity':
                  quantity = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
-                    price = float(get_cell_data(row_idx, value, reader, file_type))
+                    price = current_sku.average_price
                 except:
-                    price = 0
+                    price = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'mrp':
                 try:
                     mrp = float(get_cell_data(row_idx, value, reader, file_type))
@@ -11202,15 +11249,15 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                         buom_list = map(lambda x: x['base_uom'].lower(), uom_data)
                         #if not cell_data.lower() in buom_list:
                         #    index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
             elif key == 'purchase_uom':
                 if cell_data:
                     data_dict[key] = cell_data
                     #if not cell_data.lower() in puom_list:
                     #    index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
             elif key == 'batch_number':
                 if data_dict.get('sku', '') and data_dict.get('adjustment_date', ''):
                     first_date = data_dict['adjustment_date'].replace(day=1)
@@ -11246,7 +11293,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             all_data[sku_cond]['data'].setdefault(cond, {'stocks': StockDetail.objects.none(), 'sku': data_dict['sku'], 'location': {},
                                         'conversion_factor': data_dict['conversion_factor'],
                                         'batch_id': batch_id, 'adjustment_date': data_dict['adjustment_date'],
-                                        'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict['purchase_uom'],
+                                        'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict.get('purchase_uom', ''),
                                         'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': [],
                                        'last_date': data_dict['last_date'], 'batch_number': data_dict['batch_number'],
                                         'unit_price': data_dict.get('unit_price', 0), 'expiry_date': data_dict.get('expiry_date', '')})
@@ -11304,7 +11351,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                     remaining_stock = remaining_stocks[0]
                     closing_adj = remaining_stocks.aggregate(Sum('quantity'))['quantity__sum']
                     new_cond = (sku_group_key[0], sku_group_key[1], '')
-                    all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data['purchase_uom'], 'base_uom_qty': 0, 'purchase_uom_qty': 0,
+                    all_data[sku_group_key]['data'][new_cond] = {'purchase_uom': valid_data.get('purchase_uom', ''), 'base_uom_qty': 0, 'purchase_uom_qty': 0,
                                                          'adjustment_date': valid_data['adjustment_date'],
                                                          'stocks': remaining_stocks, 'sku': valid_data['sku'],
                                                          'user': valid_data['user'],
@@ -11317,7 +11364,6 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
             import traceback
             print e
             print traceback.format_exc()
-            #import pdb;pdb.set_trace()
     print index_status
     if not index_status:
         return 'Success', all_data
@@ -11341,6 +11387,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
 @login_required
 @get_admin_user
 def closing_adjustment_upload(request, user=''):
+    return HttpResponse('Consumption Adjustiment upload Disabled !!')
     from dateutil.relativedelta import relativedelta
     fname = request.FILES['files']
     try:
@@ -11452,8 +11499,8 @@ def closing_adjustment_upload(request, user=''):
                     elif not putaway_pending_qty and closing_qty != total_qty:
                         closing_adj = total_qty - rem_base_quantity
                     last_change_date = last_date - datetime.timedelta(hours=1)
-                    adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
-                                'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
+                    adj_dict = {'base_quantity': base_quantity, 'puom': uom_dict['measurement_unit'], 'pquantity': final_data['purchase_uom_qty'],
+                                'pcf': uom_dict['sku_conversion'], 'creation_date': final_data['adjustment_date']}
                     adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
                     if adj_created:
                         AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
@@ -11510,7 +11557,7 @@ def closing_adjustment_upload(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def closing_stock_form(request, user=''):
+def closing_stock_in_bulk_form(request, user=''):
     excel_file = request.GET['download-closing-stock-file']
     if excel_file:
         return error_file_download(excel_file)
@@ -11521,7 +11568,7 @@ def closing_stock_form(request, user=''):
 
 
 @csrf_exempt
-def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+def validate_closing_stock_in_bulk_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
     inv_mapping = copy.deepcopy(CLOSING_STOCK_FILE_MAPPING)
@@ -11555,22 +11602,24 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                 else:
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
+                utc_date = reqDate + datetime.timedelta(1)
+                data_dict['closing_stock_date'] = utc_date
                 data_dict[key] = reqDate
             elif key == 'plant_code':
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
-                    user_obj = all_users.filter(first_name=cell_data)
+                    user_obj = all_users.filter(userprofile__stockone_code=cell_data)
                     if not user_obj:
-                        index_status.setdefault(row_idx, set()).add('Invalid Plant Name')
+                        index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
                     else:
                         data_dict['user'] = user_obj[0]
                         user = user_obj[0]
                         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
                                                                warehouse=[user.username])
                 else:
-                    index_status.setdefault(row_idx, set()).add('Plant Name is Mandatory')
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
             elif key == 'department':
                 if cell_data:
                     if cell_data not in dept_mapping_res.keys():
@@ -11602,11 +11651,13 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                         data_dict[key] = float(cell_data)
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Base UOM Quantity')
-                elif key in ['base_uom_quantity', 'purchase_uom_quantity']:
+                elif key in ['base_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('Base UOM Quantity is Mandatory')
         #data_list.append(data_dict)
         if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0,
+                                                creation_date__lt=data_dict['closing_stock_date']
+                                                ).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             sku_cond = (data_dict['user'].id, data_dict['sku'].sku_code)
             user_skus.setdefault(data_dict['user'].id, [])
@@ -11617,13 +11668,28 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                                         'indexes': []})
             all_data[sku_cond]['base_uom_qty'] += data_dict['base_uom_quantity']
             all_data[sku_cond]['stocks'] = all_data[sku_cond]['stocks'] | stocks
-            all_stocks = all_stocks | stocks
+            #all_stocks = all_stocks | stocks
             all_data[sku_cond]['indexes'].append(data_dict['row_index'])
 
     if not index_status:
+        user_skus_copy = copy.deepcopy(user_skus)
+        for user_id in user_skus_copy.keys():
+            temp_usr = User.objects.get(id=user_id)
+            if temp_usr.userprofile.warehouse_type == 'DEPT':
+                temp_usr = get_admin(temp_usr)
+            dept_users_t = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[temp_usr.username])
+            dept_users_t = dept_users_t.exclude(id__in=user_skus.keys())
+            for dept_usr in dept_users_t:
+                if dept_usr.id not in user_skus.keys():
+                    user_skus[dept_usr.id] = []
         for user_id, skus in user_skus.items():
-            remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0).\
-                exclude(sku__sku_code__in=skus)
+            remaining_sku_stocks = StockDetail.objects.filter(sku__user=user_id, quantity__gt=0,
+                                                              creation_date__lt=data_dict['closing_stock_date']
+                                                              ).\
+                exclude(sku__sku_code__in=skus).exclude(sku_id__in=AssetMaster.objects.all()).\
+                exclude(sku_id__in=ServiceMaster.objects.all()).\
+                exclude(sku_id__in=OtherItemsMaster.objects.all()). \
+                exclude(sku_id__in=TestMaster.objects.all())
             remaining_sku_list = remaining_sku_stocks.values_list('sku__sku_code', flat=True)
             user_id_obj = User.objects.get(id=user_id)
             for remaining_sku in remaining_sku_list:
@@ -11638,7 +11704,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                                     'user': data_dict['user'], 'base_uom_qty': 0,
                                     'indexes': []}
                 all_data[sku_cond]['stocks'] = all_data[sku_cond]['stocks'] | sku_remaining_objs
-                all_stocks = all_stocks | sku_remaining_objs
+                #all_stocks = all_stocks | sku_remaining_objs
     if not index_status:
         return 'Success', all_data, all_stocks
 
@@ -11659,7 +11725,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
 @csrf_exempt
 @login_required
 @get_admin_user
-def closing_stock_upload(request, user=''):
+def closing_stock_in_bulk_upload(request, user=''):
     from dateutil.relativedelta import relativedelta
     fname = request.FILES['files']
     try:
@@ -11669,15 +11735,15 @@ def closing_stock_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-    status, data_list, all_stocks = validate_closing_stock_form(request, reader, user, no_of_rows,
+    status, data_list, all_stocks = validate_closing_stock_in_bulk_form(request, reader, user, no_of_rows,
                                                      no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
     try:
         with transaction.atomic('default'):
             loop_counter = 1
-            all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
-                select_for_update()
+            #all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
+            #    select_for_update()
             for group_key, final_data in data_list.items():
                 print 'Updating: %s' % str(loop_counter)
                 loop_counter += 1
@@ -11685,7 +11751,7 @@ def closing_stock_upload(request, user=''):
                 sku = final_data['sku']
                 base_quantity = final_data['base_uom_qty']
                 last_date = get_utc_start_date(final_data['closing_date'])
-                sku_stocks = all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
+                sku_stocks = final_data['stocks']#all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
                 unit_price = sku.average_price
                 if not unit_price:
                     try:
@@ -11843,7 +11909,11 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if isinstance(plant_code, (int, float)):
                 plant_code = str(int(plant_code))
             try:
-                user = User.objects.get(userprofile__stockone_code=plant_code)
+                if st_type == 'MR':
+                    # user = User.objects.get(userprofile__stockone_code=plant_code)
+                    user = User.objects.get(username=plant_code)
+                else:
+                    user = User.objects.get(username=plant_code)
                 data_dict['source'] = user
                 if st_type == 'MR':
                     dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username])
@@ -11868,16 +11938,21 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if st_type == 'MR':
                 if not warehouse_name:
                     index_status.setdefault(count, set()).add('Invalid Department')
-                elif warehouse_name not in dept_mapping_res.keys():
-                    index_status.setdefault(count, set()).add('Invalid Department')
-                else:
-                    warehouse_name = dept_mapping_res[warehouse_name]
+                #elif warehouse_name not in dept_mapping_res.keys():
+                #    index_status.setdefault(count, set()).add('Invalid Department')
+                #else:
+                #    warehouse_name = dept_mapping_res[warehouse_name]
             else:
                 if not warehouse_name:
                     index_status.setdefault(count, set()).add('Invalid Destination Plant')
             if warehouse_name:
                 try:
-                    user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
+                    if st_type == 'MR':
+                        # user_obj = dept_users.get(userprofile__stockone_code=warehouse_name)
+                        user_obj = dept_users.get(username=warehouse_name)
+                        # user_obj = User.objects.get(username=warehouse_name)
+                    else:
+                        user_obj = dept_users.get(username=warehouse_name)
                     data_dict['warehouse'] = user_obj
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
@@ -11927,7 +12002,15 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         for key, value in number_fields.iteritems():
             if order_mapping.has_key(key):
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-                if cell_data:
+                if key == 'price':
+                    try:
+                        cell_data = sku_master[0].average_price
+                    except Exception as e:
+                        cell_data = 0
+                        index_status.setdefault(count, set()).add('Invalid AVG Price %s' % number_fields[key])
+                        pass
+                    data_dict[key] = cell_data
+                elif cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(count, set()).add('Invalid %s' % number_fields[key])
                     data_dict[key] = cell_data
@@ -11948,7 +12031,6 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         if file_path:
             f_name = file_path
         return f_name
-
     all_data = {}
     for ind, final_data in enumerate(data_list):
         print 'Saving : %s' % str(ind)
@@ -11973,7 +12055,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type,
                                order_id, creation_date, batch_no])
     all_data = insert_st_gst(all_data, warehouse)
-    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type)
+    status = confirm_stock_transfer_gst(all_data, user.username, order_typ=st_type, upload_type='BULK_UPLOAD')
 
     if status.status_code == 200:
         return 'Success'
@@ -11996,6 +12078,8 @@ def consumption_form(request, user=''):
 @csrf_exempt
 def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
+    date_time_str = '01/11/2020'
+    stock_exclude_date = datetime.datetime.strptime(date_time_str, '%d/%m/%Y')
     data_list = []
     inv_mapping = copy.deepcopy(CONSUMPTION_FILE_MAPPING)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
@@ -12020,6 +12104,8 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                 else:
                     reqDate = None
                     index_status.setdefault(row_idx, set()).add('Wrong format for Date')
+                utc_date = reqDate + datetime.timedelta(1)
+                data_dict['closing_stock_date'] = utc_date
                 data_dict[key] = reqDate
             elif key == 'warehouse':
                 if cell_data:
@@ -12050,8 +12136,8 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif key in ['purchase_uom_quantity']:
                     index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
-        if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
+        if data_dict.get('sku', '') and data_dict.get('closing_stock_date', ''):
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lt=data_dict['closing_stock_date']).exclude(
                 location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
             stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
             stock_quantity = stock_quantity if stock_quantity else 0
@@ -12061,10 +12147,12 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
             pcf = pcf if pcf else 1
             stock_pquantity = stock_quantity/pcf
             if stock_pquantity < data_dict['purchase_uom_quantity']:
+                #data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
+                print stock_pquantity
                 index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
             data_dict['stocks'] = stocks
             data_dict['uom_dict'] = uom_dict
-            all_stocks = all_stocks | stocks
+            #all_stocks = all_stocks | stocks
         data_list.append(data_dict)
     print index_status
     if not index_status:
@@ -12089,6 +12177,7 @@ def validate_consumption_form(request, reader, user, no_of_rows, no_of_cols, fna
 @login_required
 @get_admin_user
 def consumption_upload(request, user=''):
+    return HttpResponse('Consumption Uploads Disabled !!')
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -12103,8 +12192,8 @@ def consumption_upload(request, user=''):
     try:
         with transaction.atomic('default'):
             loop_counter = 1
-            all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
-                select_for_update()
+            #all_stocks = StockDetail.objects.using('default').filter(id__in=all_stocks.values_list('id', flat=True)). \
+            #    select_for_update()
             for final_data in data_list:
                 print 'Updating: %s' % str(loop_counter)
                 loop_counter += 1
@@ -12115,7 +12204,7 @@ def consumption_upload(request, user=''):
                 amount = final_data.get('amount', 0)
                 quantity = final_data['purchase_uom_quantity']
                 uom_dict = final_data['uom_dict']
-                sku_stocks = all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
+                sku_stocks = final_data['stocks'] #all_stocks.filter(id__in=final_data['stocks'].values_list('id', flat=True))
                 closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
                 closing_qty = closing_qty if closing_qty else 0
                 unit_price = float(amount)/quantity
@@ -12139,7 +12228,7 @@ def consumption_upload(request, user=''):
                 consumption_data = ConsumptionData.objects.create(
                     sku_id=sku.id,
                     quantity=closing_adj,
-                    price=unit_price
+                    price=sku.average_price
                 )
                 ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
                 update_stock_detail(sku_stocks, closing_adj, user,
@@ -12150,6 +12239,860 @@ def consumption_upload(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Consumption Upload failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def closing_stock_form(request, user=''):
+    excel_file = request.GET['download-closing-stock-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(CLOSING_STOCK_FEATURE_FILE_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Closing Stock', excel_headers)
+    return xls_to_response(wb, '%s.closing_stock_form.xls' % str(user.username))
+
+
+@csrf_exempt
+def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    all_users_list = []
+    index_status = {}
+    data_list = []
+    distinct_sku_user_combo = []
+    inv_mapping = copy.deepcopy(CLOSING_STOCK_FEATURE_FILE_MAPPING)
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    all_users = get_related_users_filters(user.id)
+    if user.userprofile.warehouse_type == 'ADMIN' and request.user.is_staff:
+        access_users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        access_users = check_and_get_plants_depts(request, users)
+    all_data = OrderedDict()
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    for row_idx in range(1, no_of_rows):
+        dept_users = User.objects.none()
+        print 'Validating %s' % str(row_idx)
+        data_dict = {'user': None, 'row_index': row_idx}
+        main_user = get_company_admin_user(user)
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'plant_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                    data_dict[key] = cell_data
+                    user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                   userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        try:
+                            cell_data = int(float(cell_data))
+                        except:
+                            pass
+                        data_dict[key] = cell_data
+                        user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                       userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        if not all_users.filter(first_name=cell_data).exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
+                        else:
+                            index_status.setdefault(row_idx, set()).add("Does'nt have access for this Plant")
+                    else:
+                        data_dict['user'] = user_obj[0]
+                        user = user_obj[0]
+                        dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                                               warehouse=[user.username])
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+                if data_dict['user']:
+                    if data_dict['user'].id not in all_users_list:
+                        all_users_list.append(data_dict['user'].id)
+            elif key == 'department':
+                if cell_data:
+                    if cell_data not in dept_mapping_res.keys():
+                        index_status.setdefault(row_idx, set()).add('Invalid Department')
+                    else:
+                        dept = dept_mapping_res[cell_data]
+                        department = access_users.filter(userprofile__stockone_code=dept,
+                                                         userprofile__warehouse_type='DEPT', 
+                                                         id__in=dept_users)
+                        if department:
+                            data_dict['department'] = dept
+                            data_dict['dept_obj'] = department[0]
+                            data_dict['user'] = department[0]
+                        elif all_users.filter(userprofile__stockone_code=dept, userprofile__warehouse_type='DEPT'):
+                            index_status.setdefault(row_idx, set()).add("Doesn't have access for this Department")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Department not found in Selected Plant')
+                if data_dict['user']:
+                    if data_dict['user'].id not in all_users_list:
+                        all_users_list.append(data_dict['user'].id)
+            elif key == 'sku_code':
+                if cell_data:
+                    if data_dict['user']:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        tus = (data_dict['user'].id, cell_data)
+                        if tus in distinct_sku_user_combo:
+                            index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
+                        else:
+                            distinct_sku_user_combo.append(tus)
+                        if not sku_master.exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                        else:
+                            data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'base_uom_quantity':
+                if cell_data != '':
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Base UOM Quantity')
+                elif key in ['base_uom_quantity']:
+                    index_status.setdefault(row_idx, set()).add('Base UOM Quantity is Mandatory')
+            elif key == 'year':
+                if cell_data:
+                    try:
+                        year = int(float(cell_data))
+                        data_dict[key] = year
+                        if len(str(year)) != 4 or year != 2021:
+                            index_status.setdefault(row_idx, set()).add('Invalid Year')
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Year')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Year is Mandatory')
+            elif key == 'month':
+                if cell_data:
+                    try:
+                        month = int(float(cell_data))
+                        data_dict[key] = month
+                        if len(str(month)) > 2 or month != 5:
+                            index_status.setdefault(row_idx, set()).add('Invalid Month')
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Month')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Month is Mandatory')
+        if data_dict.get('sku', ''):
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku'].id, quantity__gt=0).exclude(
+                location__zone__zone='DAMAGED_ZONE').order_by('batch_detail__expiry_date')
+            stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            stock_quantity = stock_quantity if stock_quantity else 0
+            uom_dict = get_uom_with_sku_code(data_dict['user'], data_dict['sku'].sku_code,
+                                             uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
+            pcf = pcf if pcf else 1
+            #stock_pquantity = stock_quantity/pcf
+            if stock_quantity < data_dict['base_uom_quantity']:
+                #data_dict['purchase_uom_quantity'] = round(stock_pquantity,4)
+                print stock_quantity
+                index_status.setdefault(row_idx, set()).add('Quantity is less than Stock quantity')
+            data_dict['stocks'] = stocks
+            data_dict['uom_dict'] = uom_dict
+
+        data_list.append(data_dict)
+    if not index_status:
+        return 'Success', data_list, all_users_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list, all_users_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list, all_users_list
+
+
+def load_month_end_closing_stock(updating_users, year, month, opening_date=None):
+    if not opening_date:
+        first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
+        last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
+        last_date = get_utc_start_date(last_date)
+    else:
+        opening_date = get_utc_start_date(opening_date)
+        last_date = opening_date - datetime.timedelta(1)
+    main_user = User.objects.get(id=2)
+    for upd_user, upd_skus in updating_users.items():
+        closing_stock_objs = ClosingStock.objects.filter(stock__sku__user=upd_user.id, stock__sku__sku_code__in=upd_skus,
+                                                     creation_date=last_date)
+        closing_stock_objs.delete()
+        stocks = StockDetail.objects.filter(sku__user=upd_user.id, sku__sku_code__in=upd_skus, quantity__gt=0)
+        for ind, stock in enumerate(stocks):
+            csd = {}
+            csd['stock_id'] = stock.id
+            csd['quantity'] = stock.quantity
+            uom_dict = get_uom_with_sku_code(main_user, stock.sku.sku_code, uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
+            if not pcf:
+                pcf = 1
+            csd['sku_avg_price'] = stock.sku.average_price
+            csd['sku_pcf'] = pcf
+            cs_obj = ClosingStock.objects.create(**csd)
+            ClosingStock.objects.filter(id=cs_obj.id).update(creation_date=last_date)
+
+
+def save_uploaded_closing_stock(data_list, fname, file_type, reader):
+    file_path = 'static/closing_stock_files/'
+    total_file_quantity = reduce(lambda x, y: x + y['base_uom_quantity'], data_list,0)
+    if file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        f_name = '%s_%s_%s' % (str(datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')), str(total_file_quantity), f_name)
+        rewrite_csv_file(f_name, {}, reader, file_path=file_path)
+
+    elif file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        f_name = '%s_%s_%s' % (str(datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')), str(total_file_quantity), f_name)
+        rewrite_excel_file(f_name, {}, reader, file_path=file_path)
+
+
+def update_closing_stock_quantity(data_list, year, month, all_users=[]):
+    last_change_date = datetime.datetime.now()
+    updating_users = {}
+    first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
+    last_date = first_date + relativedelta(months=1) - datetime.timedelta(1)
+    last_date = get_utc_start_date(last_date)
+    last_change_date = get_utc_start_date(last_change_date)
+    if last_date < last_change_date:
+        last_change_date = last_date
+    print last_change_date
+    consumption_user_dict = {}
+    for usp in all_users:
+        usp = User.objects.get(id=usp)
+        consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(usp, 'consumption_prefix', None)
+        if inc_status:
+            return HttpResponse("Consumption Prefix not defined")
+        else:
+            consumption_user_dict[usp.id] = {'consumption_id': consumption_id, 'consumption_number': consumption_number}
+    with transaction.atomic('default'):
+        loop_counter = 1
+        for final_data in data_list:
+            print 'Updating: %s' % str(loop_counter)
+            updating_users.setdefault(final_data['user'], set())
+            updating_users[final_data['user']].add(final_data['sku'].sku_code)
+            loop_counter += 1
+            user = final_data['user']
+            sku = final_data['sku']
+            base_quantity = final_data['base_uom_quantity']
+            sku_stocks = final_data['stocks']
+            remarks = final_data.get('remarks', '')
+            unit_price = sku.average_price
+            if not unit_price:
+                try:
+                    latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku.id).\
+                        exclude(batch_detail__isnull=True).latest('id')
+                    unit_price = latest_batch.buy_price + ((latest_batch.buy_price/100) * (latest_batch.tax_percent + latest_batch.cess_percent))
+                except:
+                    pass
+            closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
+            closing_qty = closing_qty if closing_qty else 0
+            closing_adj = closing_qty - base_quantity
+            uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+            temp_batch_stocks = sku_stocks.filter(batch_detail__isnull=False)
+            if temp_batch_stocks:
+                puom = temp_batch_stocks[0].batch_detail.puom
+                pcf = temp_batch_stocks[0].batch_detail.pcf
+            else:
+                pcf = uom_dict['sku_conversion']
+                puom = uom_dict['measurement_unit']
+            pquantity = base_quantity/pcf
+            adj_dict = {'base_quantity': base_quantity, 'puom': puom,
+                        'pquantity': pquantity,
+                        'pcf': pcf, 'creation_date': last_change_date.date()}
+            stock_dict = {}
+            if not sku_stocks:
+                if sku.zone:
+                    location = sku.zone.locationmaster_set.filter()[0]
+                else:
+                    put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+                    if not put_zone:
+                        create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                    else:
+                        put_zone = put_zone[0]
+                    location = put_zone.locationmaster_set.filter()[0]
+                stock_dict = {'sku_id': sku.id,
+                              'quantity': base_quantity,
+                              'receipt_date': last_change_date.date(),
+                              'receipt_number': get_stock_receipt_number(user),
+                              'location_id': location.id}
+                batch_dict = {'pquantity': pquantity, 'puom': puom,
+                              'pcf': pcf, 'buy_price': unit_price}
+                stock_dict['batch_dict'] = batch_dict
+            #adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id,
+            #                                                               batch_no='',
+            #                                                               creation_date__date=last_change_date.date(),
+            #                                                               defaults=adj_dict)
+            if not closing_adj: continue
+            consumption_data = ConsumptionData.objects.create(
+                sku_id=sku.id,
+                sku_pcf=uom_dict['sku_conversion'],
+                order_id=consumption_user_dict[sku.user]['consumption_id'],
+                consumption_number=consumption_user_dict[sku.user]['consumption_number'],
+                quantity=closing_adj,
+                price=unit_price,
+                remarks=remarks
+            )
+            consumption_data.creation_date = last_change_date
+            consumption_data.save()
+            if closing_adj > 0:
+                update_stock_detail(sku_stocks, closing_adj, user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='dec', transact_date=last_change_date)
+            else:
+                update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict, transact_date=last_change_date)
+        load_month_end_closing_stock(updating_users, year, month)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def closing_stock_upload(request, user=''):
+    #return HttpResponse('Closing Stock Uploads Disabled !!')
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list, all_users = validate_closing_stock_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    save_uploaded_closing_stock(data_list, fname, file_type, reader)
+    try:
+        #last_change_date = datetime.datetime.now()
+        #updating_users = {}
+        year = data_list[0]['year']
+        month = data_list[0]['month']
+        #first_date = datetime.datetime.strptime('%s-%s-1' % (str(year),str(month)), '%Y-%m-%d')
+        #first_date = get_utc_start_date(first_date)
+        #last_date = first_date + relativedelta(months=1)
+        #last_change_date = get_utc_start_date(last_change_date)
+        #if last_date < last_change_date:
+        #    last_change_date = last_date
+        #print last_change_date
+        update_closing_stock_quantity(data_list, year, month, all_users=all_users)
+
+        '''
+        with transaction.atomic('default'):
+            loop_counter = 1
+            for final_data in data_list:
+                print 'Updating: %s' % str(loop_counter)
+                updating_users.setdefault(final_data['user'], set())
+                updating_users[final_data['user']].add(final_data['sku'].sku_code)
+                loop_counter += 1
+                user = final_data['user']
+                sku = final_data['sku']
+                base_quantity = final_data['base_uom_quantity']
+                sku_stocks = final_data['stocks']
+                unit_price = sku.average_price
+                if not unit_price:
+                    try:
+                        latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku.id).\
+                            exclude(batch_detail__isnull=True).latest('id')
+                        unit_price = latest_batch.buy_price + ((latest_batch.buy_price/100) * (latest_batch.tax_percent + latest_batch.cess_percent))
+                    except:
+                        pass
+                closing_qty = sku_stocks.distinct().aggregate(Sum('quantity'))['quantity__sum']
+                closing_qty = closing_qty if closing_qty else 0
+                closing_adj = closing_qty - base_quantity
+                uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+                temp_batch_stocks = sku_stocks.filter(batch_detail__isnull=False)
+                if temp_batch_stocks:
+                    puom = temp_batch_stocks[0].batch_detail.puom
+                    pcf = temp_batch_stocks[0].batch_detail.pcf
+                else:
+                    pcf = uom_dict['sku_conversion']
+                    puom = uom_dict['measurement_unit']
+                pquantity = base_quantity * pcf
+                adj_dict = {'base_quantity': base_quantity, 'puom': puom,
+                            'pquantity': pquantity,
+                            'pcf': pcf, 'creation_date': last_change_date.date()}
+                stock_dict = {}
+                if not sku_stocks:
+                    if sku.zone:
+                        location = sku.zone.locationmaster_set.filter()[0]
+                    else:
+                        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+                        if not put_zone:
+                            create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                        else:
+                            put_zone = put_zone[0]
+                        location = put_zone.locationmaster_set.filter()[0]
+                    stock_dict = {'sku_id': sku.id,
+                                  'quantity': base_quantity,
+                                  'receipt_date': last_change_date.date(),
+                                  'receipt_number': get_stock_receipt_number(user),
+                                  'location_id': location.id}
+                    batch_dict = {'pquantity': pquantity, 'puom': puom,
+                                  'pcf': pcf, 'buy_price': unit_price}
+                    stock_dict['batch_dict'] = batch_dict
+                #adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id,
+                #                                                               batch_no='',
+                #                                                               creation_date__date=last_change_date.date(),
+                #                                                               defaults=adj_dict)
+                if not closing_adj: continue
+                consumption_data = ConsumptionData.objects.create(
+                    sku_id=sku.id,
+                    quantity=closing_adj,
+                    price=unit_price
+                )
+                consumption_data.creation_date = last_change_date
+                consumption_data.save()
+                if closing_adj > 0:
+                    update_stock_detail(sku_stocks, closing_adj, user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data, inc_type='dec', transact_date=last_change_date)
+                else:
+                    update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict, transact_date=last_change_date)
+            load_month_end_closing_stock(updating_users, year, month)
+            '''
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Closing Stock Upload failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@get_admin_user
+def inventory_norm_form(request, user=''):
+    inventory_file = request.GET['download-inventory-norm-file']
+    if inventory_file:
+        return error_file_download(inventory_file)
+    headers = copy.deepcopy(INVENTORY_NORM_HEADERS)
+    wb, ws = get_work_sheet('Inventory Norm', headers)
+    return xls_to_response(wb, '%s.inventory_norm_form.xls' % str(user.username))
+
+
+@csrf_exempt
+def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    distinct_sku_user_combo = []
+    inv_mapping = copy.deepcopy(INVENTORY_NORM_HEADERS)
+    inv_mapping_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    all_users = get_related_users_filters(user.id)
+    if user.userprofile.warehouse_type == 'ADMIN' and request.user.is_staff:
+        access_users = get_related_users_filters(user.id)
+    else: 
+        users = [user.id]
+        access_users = check_and_get_plants_depts(request, users)
+    all_data = OrderedDict()
+    for row_idx in range(1, no_of_rows):
+        dept_users = User.objects.none()
+        print 'Validating %s' % str(row_idx)
+        data_dict = {'user': None, 'row_index': row_idx}
+        main_user = get_company_admin_user(user)
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'plant_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                    data_dict[key] = cell_data
+                    user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                   userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        try:
+                            cell_data = int(float(cell_data))
+                        except:
+                            pass
+                        data_dict[key] = cell_data
+                        user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                       userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        if not all_users.filter(first_name=cell_data).exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
+                        else:
+                            index_status.setdefault(row_idx, set()).add("Does'nt have access for this Plant")
+                    else:
+                        data_dict['user'] = user_obj[0]
+                        user = user_obj[0]
+                        dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                                               warehouse=[user.username])
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+            elif key == 'sku_code':
+                if cell_data:
+                    if data_dict['user']:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        if not sku_master.exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                        else:
+                            data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+
+            elif key in ['lead_time', 'sa_min_days', 'sa_max_days']:
+                if cell_data != '':
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_mapping_res[key])
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_mapping_res[key])
+        data_list.append(data_dict)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+def validate_opening_stock_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    distinct_sku_user_combo = []
+    inv_mapping = copy.deepcopy(OPENING_STOCK_FILE_MAPPING)
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    all_users = get_related_users_filters(user.id)
+    if user.userprofile.warehouse_type == 'ADMIN' and request.user.is_staff:
+        access_users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        access_users = check_and_get_plants_depts(request, users)
+    all_data = OrderedDict()
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    current_date = datetime.datetime.now()
+    stock_user_map = {}
+    for row_idx in range(1, no_of_rows):
+        dept_users = User.objects.none()
+        print 'Validating %s' % str(row_idx)
+        data_dict = {'user': None, 'row_index': row_idx}
+        main_user = get_company_admin_user(user)
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'opening_date':
+                if isinstance(cell_data, float):
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    reqDate = datetime.datetime(year, month, day, hour, minute, second)
+                elif '-' in cell_data:
+                    reqDate = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                else:
+                    reqDate = None
+                    index_status.setdefault(row_idx, set()).add('Wrong format for Opening Date')
+                if reqDate:
+                    if reqDate.year != current_date.year:
+                        index_status.setdefault(row_idx, set()).add('Invalid Opening year')
+                    elif reqDate.month != current_date.month:
+                        index_status.setdefault(row_idx, set()).add('Invalid Opening Month')
+                    elif reqDate.day != 1:
+                        index_status.setdefault(row_idx, set()).add('Opening Date should be first of the month')
+                data_dict[key] = reqDate
+            elif key == 'plant_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                    data_dict[key] = cell_data
+                    user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                   userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        try:
+                            cell_data = int(float(cell_data))
+                        except:
+                            pass
+                        data_dict[key] = cell_data
+                        user_obj = access_users.filter(userprofile__stockone_code=cell_data,
+                                                       userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+                    if not user_obj:
+                        if not all_users.filter(first_name=cell_data).exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid Plant Code')
+                        else:
+                            index_status.setdefault(row_idx, set()).add("Does'nt have access for this Plant")
+                    else:
+                        data_dict['user'] = user_obj[0]
+                        user = user_obj[0]
+                        dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
+                                                               warehouse=[user.username])
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+            elif key == 'department':
+                if cell_data:
+                    if cell_data not in dept_mapping_res.keys():
+                        index_status.setdefault(row_idx, set()).add('Invalid Department')
+                    else:
+                        dept = dept_mapping_res[cell_data]
+                        department = access_users.filter(userprofile__stockone_code=dept,
+                                                         userprofile__warehouse_type='DEPT', 
+                                                         id__in=dept_users)
+                        if department:
+                            data_dict['department'] = dept
+                            data_dict['dept_obj'] = department[0]
+                            data_dict['user'] = department[0]
+                        elif all_users.filter(userprofile__stockone_code=dept, userprofile__warehouse_type='DEPT'):
+                            index_status.setdefault(row_idx, set()).add("Doesn't have access for this Department")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Department not found in Selected Plant')
+            elif key == 'sku_code':
+                if cell_data:
+                    if data_dict['user']:
+                        if isinstance(cell_data, (int, float)):
+                            cell_data = str(int(cell_data))
+                        sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                        tus = (data_dict['user'].id, cell_data)
+                        if tus in distinct_sku_user_combo:
+                            index_status.setdefault(row_idx, set()).add('Duplicate SKU User Combination Found')
+                        else:
+                            distinct_sku_user_combo.append(tus)
+                        if not sku_master.exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                        else:
+                            data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'base_uom_quantity':
+                if cell_data != '':
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Base UOM Quantity')
+                elif key in ['base_uom_quantity']:
+                    index_status.setdefault(row_idx, set()).add('Base UOM Quantity is Mandatory')
+            elif key == 'expiry_date':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                        expiry_date = datetime.datetime(year, month, day, hour, minute, second)
+                    elif '-' in cell_data:
+                        expiry_date = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                    else:
+                        expiry_date = None
+                        index_status.setdefault(row_idx, set()).add('Wrong format for Expiry Date')
+                    data_dict[key] = expiry_date
+            elif key in ['base_uom_quantity', 'unit_price']:
+                if cell_data:
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                elif key in ['base_uom_quantity']:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+            elif key == 'location':
+                if cell_data and data_dict['user']:
+                    location_master = LocationMaster.objects.filter(zone__user=data_dict['user'].id, location=cell_data)
+                    if not location_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid Location')
+                    else:
+                        data_dict['location'] = location_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Location is Mandatory')
+            elif key == 'batch_no':
+                data_dict[key] = cell_data
+        if data_dict.get('sku', ''):
+            uom_dict = get_uom_with_sku_code(data_dict['user'], data_dict['sku'].sku_code,
+                                             uom_type='purchase')
+            pcf = uom_dict['sku_conversion']
+            pcf = pcf if pcf else 1
+            data_dict['uom_dict'] = uom_dict
+            tup = (data_dict['user'].id, data_dict['sku'].sku_code, data_dict.get('batch_no', ''))
+            if tup in distinct_sku_user_combo:
+                index_status.setdefault(row_idx, set()).add('Duplicate SKU User Batch Combination Found')
+            else:
+                distinct_sku_user_combo.append(tup)
+            if data_dict['user'] in stock_user_map:
+                if stock_user_map[data_dict['user']] > 0:
+                    index_status.setdefault(row_idx, set()).add('Stock already present in the system')
+            else:
+                stock_user_map[data_dict['user']] = StockDetail.objects.filter(sku__user=data_dict['user'].id, quantity__gt=0).count()
+                if stock_user_map[data_dict['user']] > 0:
+                    index_status.setdefault(row_idx, set()).add('Stock already present in the system')
+
+        data_list.append(data_dict)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def opening_stock_form(request, user=''):
+    excel_file = request.GET['download-opening-stock-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(OPENING_STOCK_FILE_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Opening Stock', excel_headers)
+    return xls_to_response(wb, '%s.opening_stock_form.xls' % str(user.username))
+
+
+def save_uploaded_opening_stock(data_list, user):
+    updating_users = {}
+    main_user = get_company_admin_user(user)
+    with transaction.atomic('default'):
+        loop_counter = 1
+        user_sku_amt = {}
+        excl_ids = []
+        for final_data in data_list:
+            last_change_date = final_data['opening_date']
+            print 'Updating: %s' % str(loop_counter)
+            updating_users.setdefault(final_data['user'], set())
+            updating_users[final_data['user']].add(final_data['sku'].sku_code)
+            loop_counter += 1
+            user = final_data['user']
+            sku = final_data['sku']
+            sku_code = sku.sku_code
+            base_quantity = final_data['base_uom_quantity']
+            expiry_date = final_data['expiry_date']
+            unit_price = final_data.get('unit_price', 0)
+            location = final_data['location']
+            batch_no = final_data['batch_no']
+            closing_adj = base_quantity
+            uom_dict = final_data['uom_dict']
+            pcf = uom_dict['sku_conversion']
+            pcf = pcf if pcf else 1
+            puom = uom_dict['measurement_unit']
+            pquantity = base_quantity/pcf
+            stock_dict = {}
+            sku_stocks = []
+            if not sku_stocks:
+                stock_dict = {'sku_id': sku.id,
+                              'quantity': base_quantity,
+                              'receipt_date': last_change_date.date(),
+                              'receipt_number': get_stock_receipt_number(user),
+                              'location_id': location.id,
+                              'unit_price': unit_price}
+                batch_dict = {'pquantity': pquantity, 'puom': puom,
+                              'pcf': pcf, 'buy_price': unit_price, 'batch_no': batch_no}
+                if expiry_date:
+                    batch_dict['expiry_date'] = expiry_date
+                stock_dict['batch_dict'] = batch_dict
+            if not closing_adj: continue
+            created_stock_ids = update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                'NA', transact_type='opening_stock',
+                                mapping_obj=None, inc_type='inc', stock_dict=stock_dict, transact_date=last_change_date)
+            if created_stock_ids:
+                excl_ids.extend(created_stock_ids)
+            avg_price_user = user
+            if user.userprofile.warehouse_type == 'DEPT':
+                avg_price_user = get_admin(user)
+            user_sku_amt.setdefault(avg_price_user, {})
+            user_sku_amt[avg_price_user].setdefault(sku_code, {'amount': 0, 'qty': 0, 'exclude_po_loc': []})
+            user_sku_amt[avg_price_user][sku_code]['qty'] += pquantity
+            user_sku_amt[avg_price_user][sku_code]['amount'] += pquantity * unit_price
+        for user, sku_amt in user_sku_amt.items():
+            update_sku_avg_main(sku_amt, user, main_user, excl_ids=excl_ids)
+        load_month_end_closing_stock(updating_users, last_change_date.year, last_change_date.month, opening_date=last_change_date)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def inventory_norm_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_inventory_norm_form(request, reader, user, no_of_rows,
+                                                        no_of_cols, fname, file_type)
+    try:
+        with transaction.atomic('default'):
+            loop_counter = 1
+            for final_data in data_list:
+                sku = final_data['sku']
+                user = final_data['user']
+                replenushment_obj = ReplenushmentMaster.objects.filter(sku__sku_code=sku.sku_code, user = user.id)
+                if replenushment_obj.exists():
+                    replenushment_obj = replenushment_obj[0]
+                    replenushment_obj.lead_time = final_data['lead_time']
+                    replenushment_obj.min_days = final_data['sa_min_days']
+                    replenushment_obj.max_days = final_data['sa_max_days']
+                    replenushment_obj.save()
+                else:
+                    replenushment = {}
+                    replenushment['sku_id'] = sku.id
+                    replenushment['min_days'] = final_data['sa_min_days']
+                    replenushment['max_days'] = final_data['sa_max_days']
+                    replenushment['lead_time'] = final_data['lead_time']
+                    replenushment['user'] = user
+
+                    ReplenushmentMaster.objects.create(**replenushment)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Inventory Norm Master Upload failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def opening_stock_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_opening_stock_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        print data_list
+        save_uploaded_opening_stock(data_list, user)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Opening Stock Upload failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Failed")
     return HttpResponse("Success")

@@ -22,6 +22,14 @@
       <tab heading="Pending PO Enquiries" ng-if="showCase.permissions.enable_pending_approval_pos">
         <div ng-include="'views/inbound/raise_po/pending_po_enquiries.html'"></div>
       </tab>
+      <tab heading="Cancelled & Rejected PO's" ng-if="showCase.permissions.enable_pending_approval_pos">
+        <div class="panel" ng-controller="poCancelRejectedCtrl as showCase">
+          <div class="panel-header">
+            <div ng-include="'views/common/excel.html'"></div>
+          </div>
+          <div ng-include="'views/common/datatable.html'"></div>
+        </div>
+      </tab>
     </tabset>
   </div>
 </div>

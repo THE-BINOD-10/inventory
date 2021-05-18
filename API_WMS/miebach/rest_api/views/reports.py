@@ -94,11 +94,12 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
 
-    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
+    elif report_name in [ 'stock_transfer_report_main', 'pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
-                         'metropolis_po_detail_report']:
+                         'metropolis_po_detail_report', 'pr_po_grn_dict', 'metropolis_pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
+                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
         if 'sister_warehouse' in filter_keys:
-            if user.userprofile.warehouse_type == 'ADMIN':
+            '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
                 sister_wh = user_data.keys()
             else:
@@ -113,7 +114,18 @@ def get_report_data(request, user=''):
             sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").\
                 values_list('user__first_name', flat=True))
 
-            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
+            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))'''
+            users = [user.id]
+            sub_user = request.user
+            if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'])
+            else:
+                users = [user.id]
+                users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+                users = users.filter(userprofile__warehouse_type='DEPT')
+            depts = users.values_list('first_name', flat=True).distinct()
+            data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(depts)
 
         if 'final_status' in filter_keys:
             data_index = data['filters'].index(
@@ -124,6 +136,9 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'po_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PO_REPORT_PO_STATUS
 
+        if 'status' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PURCHASE_ORDER_REPORT_STATUS
         if 'priority_type' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'priority_type' in person['name'], data['filters'])[0])
@@ -138,10 +153,24 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'po_view' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PO_REPORT_VIEW
+        if 'zone_code' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'zone_code' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ZONE_CODES
+        if 'consumption_type' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'consumption_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = CONSUMPTION_TYPE
 
+        if 'integration_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'integration_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = INTEGRATION_STATUS
+        if 'integration_type' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'integration_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = INTEGRATION_TYPES
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
-                         'zone_target_summary_report', 'zone_target_detailed_report',
+                         'zone_target_summary_report', 'zone_target_detailed_report', 
                          'corporate_reseller_mapping_report', 'financial_report', ''):
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
@@ -218,6 +247,31 @@ def get_po_filter(request, user=''):
     temp_data = get_po_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_integration_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_integration_report_data(request, search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_po_grn_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_po_grn_filter_data(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metropolis_pr_po_grn_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metropolis_pr_po_grn_filter_data(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -535,6 +589,25 @@ def get_sku_stock_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_ageing_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_ageing_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_expired_stock_data_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_expired_stock_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_sku_wise_stock(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     report_data = print_sku_wise_data(search_params, user, request.user)
@@ -573,16 +646,16 @@ def get_supplier_details_data(search_params, user, sub_user):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    user_ids = list(users.values_list('id', flat=True))
+    #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user)
     order_term = search_params.get('order_term', 'asc')
     order_index = search_params.get('order_index', 0)
     # search_parameters = {'open_po__sku_id__in': sku_master_ids}
     search_parameters = {}
     supplier_data = {'aaData': []}
-    supplier_name = search_params.get('supplier_id')
-    lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
-           'order_id']
+    supplier_name = search_params.get('supplier')
+    lis = ['created_date', 'open_po__sku__user', 'open_po__sku__user', 'open_po__sku__user', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
+           'order_id', 'created_date']
     order_val = lis[order_index]
     if order_term == 'desc':
         order_val = '-%s' % lis[order_index]
@@ -595,28 +668,60 @@ def get_supplier_details_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    print search_params
     if 'status' in search_params:
         status = search_params.get('status')
-        if status == 'yet_to_receive':
+        if status == 'Yet To Receive':
             search_parameters['status'] = ''
-        elif status == 'partially_received':
+        elif status == 'Partially Received':
             search_parameters['status'] = 'grn-generated'
-        elif status == 'location_assigned':
+        elif status == 'Received':
             search_parameters['status'] = 'location-assigned'
-        elif status == 'putaway_completed':
+        elif status == 'Putaway Completed':
             search_parameters['status'] = 'confirmed-putaway'
     if 'po_number' in search_params:
         order_id = search_params.get('po_number')
         search_parameters['po_number'] = order_id
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
     if supplier_name:
+        if ':' in supplier_name:
+            supplier_name = supplier_name.split(':')[0]
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
-            open_po__sku__user__in=user_ids, **search_parameters)
+            open_po__sku__user__in=user_ids, **search_parameters).exclude(status='deleted')
     else:
-        suppliers = PurchaseOrder.objects.select_related('open_po').filter(open_po__sku__user__in=user_ids, **search_parameters)
-    purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='deleted').filter(open_po__sku__user__in=user_ids, **search_parameters)
+    purchase_orders = suppliers.values('order_id', 'status', 'prefix', 'po_number', 'open_po__sku__user').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
-        total_received=Sum('received_quantity')). \
+        total_received=Sum('received_quantity'),
+        created_date=Cast('creation_date', DateField())). \
         order_by(order_val)
 
     supplier_data['recordsTotal'] = purchase_orders.count()
@@ -630,12 +735,14 @@ def get_supplier_details_data(search_params, user, sub_user):
         purchase_orders = purchase_orders[start_index:stop_index]
 
     for purchase_order in purchase_orders:
-        po_data = suppliers.filter(order_id=purchase_order['order_id'], prefix=purchase_order['prefix'])
+        plant_code, plant_name, zone = [''] * 3
+        pending_days = 0
+        po_data = suppliers.filter(po_number=purchase_order['po_number'], open_po__sku__user=purchase_order['open_po__sku__user'])
         total_amt = 0
         total_ordered= 0
         for po in po_data:
             price, quantity = po.open_po.price, po.open_po.order_quantity
-            taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax
+            taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax + po.open_po.cess_tax
             amt = price * quantity
             total_amt += amt + ((amt / 100) * taxes)
             total_ordered += quantity
@@ -655,7 +762,18 @@ def get_supplier_details_data(search_params, user, sub_user):
             status_var = 'Putaway Confirmed'
         else:
             status_var = 'Partially Received'
-        supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
+        if status_var not in  ['Received', 'Putaway Confirmed']:
+            pending_days = (datetime.datetime.now() - po_obj.creation_date.replace(tzinfo=None)).days
+        user_obj = users.get(id=po_obj.open_po.sku.user)
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            user_obj = get_admin(user_obj)
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone = user_obj.userprofile.zone
+        supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.creation_date)),
+                                                    ('Plant Code', plant_code),
+                                                    ('Plant Name', plant_name),
+                                                    ('Zone', zone),
                                                     ('PO Number', po_obj.po_number), #get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
@@ -663,7 +781,8 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', total_ordered),
                                                     ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
-                                                    ('Status', status_var), ('order_id', po_obj.order_id))))
+                                                    ('Status', status_var), ('order_id', po_obj.order_id),
+                                                    ('PO Pending Days', pending_days))))
     # supplier_data['total_charge'] = total_charge
     return supplier_data
 
@@ -952,7 +1071,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
     search_parameters['cycle__sku__user__in'] = user_ids
     #search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
-        adjustments = InventoryAdjustment.objects.filter(**search_parameters)
+        adjustments = InventoryAdjustment.objects.filter(**search_parameters).order_by('-id')
     grouping_data = OrderedDict()
     industry_type = user.userprofile.industry_type
     user_type = user.userprofile.user_type
@@ -1068,6 +1187,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             adjustments = adjustments[start_index:stop_index]
         for data in adjustments:
             #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            price, order_id, store, dept, remarks = 0, '', '', '', ''
             base_quantity = data.adjusted_quantity
             uom_dict = get_uom_with_sku_code(user, data.cycle.sku.sku_code, uom_type='purchase')
             pcf = uom_dict['sku_conversion']
@@ -1075,25 +1195,34 @@ def get_adjust_filter_data(search_params, user, sub_user):
             #    pcf = data.stock.batch_detail.pcf
             quantity = base_quantity/pcf
             user_obj = User.objects.get(id=data.cycle.sku.user)
-            dept_name = ''
-            store_name = user_obj.first_name
+            store = user_obj
             if user_obj.userprofile.warehouse_type == 'DEPT':
-                dept_name = user_obj.first_name
-                store_name = get_admin(user_obj).first_name
-            temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
+                dept = user_obj
+                store = get_admin(user_obj)
+            if data.price:
+                price = data.price
+            else:
+                price = data.cycle.sku.average_price
+            order_id = "%s - %s %s" % (data.cycle.cycle, store.userprofile.stockone_code, dept.userprofile.stockone_code if dept else '')
+            datum = AdjustementConsumptionData.objects.filter(inv_adjustment_id=data.id)
+            if datum.exists():
+                remarks = datum[0].remarks
+            temp_data['aaData'].append(OrderedDict((('OrderId', order_id),
+                                                    ('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
                                                     ('Category', data.cycle.sku.sku_category),
                                                     ('Sub Category', data.cycle.sku.sub_category),
                                                     ('Location', data.cycle.location.location),
                                                     ('Quantity', quantity),
-                                                    ('Adjustment Value', '%.2f' % float(quantity*data.cycle.sku.average_price)),
+                                                    ('Adjustment Value', '%.2f' % float(quantity*price)),
                                                     ('Base Uom Quantity', base_quantity),
                                                     ('Pallet Code',
                                                      data.pallet_detail.pallet_code if data.pallet_detail else ''),
                                                     ('Date', get_local_date(user, data.creation_date)),
-                                                    ('Remarks', data.reason),
-                                                    ('Store', store_name),
-                                                    ('Department', dept_name)
+                                                    ('Reason', data.reason),
+                                                    ('Remarks', remarks),
+                                                    ('Store', store.first_name),
+                                                    ('Department', dept.first_name if dept else '')
                                                     )))
 
     return temp_data
@@ -1559,9 +1688,15 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
+    if 'excel_name=integration_report' in excel_name:
+        params = [request, search_params, user, request.user]
+    if 'excel_name=pr_po_grn_dict' in excel_name:
+        params = [request, search_params, user, request.user]
+    if 'excel_name=metropolis_pr_po_grn_dict' in excel_name:
+        params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
-    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report']:
+    if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report', 'excel_name=get_stock_transfer_report_main']:
         params = [request, search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
@@ -1590,6 +1725,8 @@ def excel_reports(request, user=''):
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
             squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number',
                 'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ',
@@ -1619,7 +1756,8 @@ def excel_reports(request, user=''):
                     report_data['New_aaData'].append(v[0])
             report_data['aaData'] = report_data['New_aaData']
             headers = report_data['aaData'][0].keys()
-
+    if temp[1] in ['expired_stock_data'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
@@ -1986,6 +2124,14 @@ def get_stock_transfer_report(request, user=''):
     temp_data = get_stock_transfer_report_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_stock_transfer_report_main(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_stock_transfer_report_data_main(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @csrf_exempt
 @login_required
@@ -2043,7 +2189,7 @@ def get_pr_report(request, user=''):
 @get_admin_user
 def get_pr_detail_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_pr_detail_report_data(search_params, user, request)
+    temp_data = get_pr_detail_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -2115,10 +2261,14 @@ def print_stock_cover_report(request, user=''):
     return HttpResponse(html_data)
 
 
-def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
+def format_printing_datam(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    amount = float(datum.quantity) * float(purchase_order.price)
+    if order.currency_rate > 1:
+        current_price = round(float(purchase_order.price) / order.currency_rate, 2)
+    else:
+        current_price = float(purchase_order.price)
+    amount = float(datum.quantity) * current_price
     amount = float("%.2f" % amount)
     total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
     total_sgst = purchase_order.sgst_tax * (amount/100)
@@ -2132,7 +2282,7 @@ def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measur
         pass
     po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, delivery_date, float(datum.quantity),
                 measurement_unit,
-                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                current_price, round(purchase_order.mrp/ order.currency_rate, 2), amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                 purchase_order.igst_tax, total_igst,
                 total_sku_amt
                 ]
@@ -2152,6 +2302,7 @@ def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_prefix = request.GET.get('prefix', '')
     po_num= request.GET.get('po_number', '')
+    for_mail = request.GET.get('for_mail', '')
     total_qty = 0
     total = 0
     remarks = ''
@@ -2164,7 +2315,8 @@ def print_purchase_order_form(request, user=''):
         users = get_related_users_filters(user.id)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num)
+    full_pr_number = ''
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num).exclude(status='deleted')
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
@@ -2173,12 +2325,13 @@ def print_purchase_order_form(request, user=''):
             user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
-            remarks = pending_po_data.remarks
+            #remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
                 supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
+            full_pr_number = get_pr_number_from_po(pending_po_data)
         if pm_order.open_po.supplier.currency_code:
             supplier_currency = pm_order.open_po.supplier.currency_code
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
@@ -2209,8 +2362,13 @@ def print_purchase_order_form(request, user=''):
         table_headers.insert(table_headers.index('Total'), 'APMC (%)')
     for order in purchase_orders:
         open_po = order.open_po
+        remarks = order.remarks
         total_qty += open_po.order_quantity
-        amount = open_po.order_quantity * open_po.price
+        if order.currency_rate > 1:
+            currency_rate = round(open_po.price / order.currency_rate, 2)
+        else:
+            currency_rate = open_po.price
+        amount = open_po.order_quantity * currency_rate
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax + open_po.apmc_tax
         total += amount + ((amount / 100) * float(tax))
         if user.userprofile.industry_type == 'FMCG':
@@ -2220,7 +2378,7 @@ def print_purchase_order_form(request, user=''):
                 if sku_pending_line.exists():
                     delivery_schedule_data = sku_pending_line[0].purchasedeliveryschedule_set.filter(status=1)
                     for delivery_data in delivery_schedule_data:
-                        po_temp_data = format_printing_datam(delivery_data, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
+                        po_temp_data = format_printing_datam(delivery_data, order, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
                         po_data.append(po_temp_data)
             if not po_temp_data:
                 total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
@@ -2231,7 +2389,7 @@ def print_purchase_order_form(request, user=''):
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [open_po.sku.sku_code, open_po.sku.hsn_code,open_po.supplier_code, open_po.sku.sku_desc, '',
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp, amount,
+                            open_po.order_quantity, open_po.measurement_unit, currency_rate, round(open_po.mrp/order.currency_rate, 2), amount,
                             open_po.sgst_tax, total_sgst, open_po.cgst_tax, total_cgst, open_po.igst_tax, total_igst, total_sku_amt]
                 po_data.append(po_temp_data)
 
@@ -2244,7 +2402,7 @@ def print_purchase_order_form(request, user=''):
             total_tax_amt = float("%.2f" % total_tax_amt)
             total_sku_amt = total_tax_amt + amount
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, '',
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
+                            open_po.order_quantity, open_po.measurement_unit, currency_rate, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
                             open_po.utgst_tax, total_sku_amt]
 
@@ -2277,12 +2435,13 @@ def print_purchase_order_form(request, user=''):
         vendor_telephone = open_po.vendor.phone_number
     telephone = open_po.supplier.phone_number
     name = open_po.supplier.name
+    code = open_po.supplier.supplier_id
     order_id = order.order_id
     gstin_no = open_po.supplier.tin_number
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        if open_po.ship_to:
+        if open_po.ship_to and  get_utc_start_date(datetime.datetime.strptime('2021-02-12', '%Y-%m-%d')) < open_po.creation_date:
             ship_to_address = open_po.ship_to
             if user.userprofile.wh_address:
                 company_address = user.userprofile.wh_address
@@ -2290,13 +2449,15 @@ def print_purchase_order_form(request, user=''):
                 company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
-        wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
-        if wh_ship_to.exists():
-            wh_ship_to = wh_ship_to[0]
-            ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
-        ship_to_address = '\n'.join(ship_to_address.split(','))
+        if not ship_to_address:
+            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+            if wh_ship_to.exists():
+                wh_ship_to = wh_ship_to[0]
+                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+        # ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
+        code = open_po.supplier.supplier_id
         supplier_email = open_po.supplier.email_id
         gstin_no = open_po.supplier.tin_number
         if open_po.order_type == 'VR':
@@ -2309,7 +2470,7 @@ def print_purchase_order_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     po_number = order.po_number #'%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     po_reference = order.open_po.po_name
-    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    total_amt_in_words = str(supplier_currency) + ' '+ number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name
@@ -2318,7 +2479,13 @@ def print_purchase_order_form(request, user=''):
     company_details = {}
     company_logo=""
     if profile.company.logo:
-        company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
+        try:
+            _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+            _logo_url =  urllib.url2pathname(_logo_url)
+            with open(_logo_url, "rb") as image_file:
+                company_logo = base64.b64encode(image_file.read())
+        except:
+            company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
     if profile.company:
         company_details['company_address'] = ''
         if profile.company.address:
@@ -2355,6 +2522,7 @@ def print_purchase_order_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'code': code,
         'remarks': remarks,
         'order_date': order_date,
         'total': round(total),
@@ -2381,10 +2549,13 @@ def print_purchase_order_form(request, user=''):
         'supplier_currency': supplier_currency,
         'delivery_date': delivery_date,
         'supplier_payment_terms': supplier_payment_terms,
-        'company_address': company_address
+        'company_address': company_address,
+        'full_pr_number': full_pr_number,
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
+    if for_mail:
+        return render(request, 'templates/toggle/po_download.html', data_dict)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -2778,6 +2949,35 @@ def get_sku_wise_cancel_grn_report(request, user=''):
 def get_sku_wise_consumption_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_consumption_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_consumption_data(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_consumption_data_(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_closing_stock_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_closing_stock_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_praod_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_praod_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

@@ -44,10 +44,45 @@
               </label>
             </div>
           </div>
-          <div class="row">
+          <!-- <div class="row">
             <div class="col-md-12">
               <h5>Picklist ID: <b>{{showCase.model_data.picklist_id}}</b></h5>
               <input type="hidden" value="{{showCase.model_data.single_order}}" name="single_order">
+            </div>
+          </div> -->
+          <div class="row">
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Picklist ID</label>
+                <input class="form-control" type="text" value="{{showCase.model_data.picklist_id}}" disabled>
+                <input type="hidden" value="{{showCase.model_data.single_order}}" name="single_order">
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label" ng-if = "showCase.model_data['current_data']['type'] == 'MR'">Material Request ID</label>
+                <label class="control-label" ng-if = "showCase.model_data['current_data']['type'] == 'ST_INTRA'">Stock Transfer ID</label>
+                <input class="form-control" type="text" value="{{showCase.model_data['current_data']['order_id']}}" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label" ng-if = "showCase.model_data['current_data']['type'] == 'MR'">Material Request Date</label>
+                <label class="control-label" ng-if = "showCase.model_data['current_data']['type'] == 'ST_INTRA'">Stock Transfer Date</label>
+                <input class="form-control" type="text" value="{{showCase.model_data['current_data']['order_date']}}" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Source Warehouse</label>
+                <input class="form-control" type="text" name="source" value="{{showCase.model_data['current_data']['source']}}" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Destination Warehouse</label>
+                <input class="form-control" type="text" value="{{showCase.model_data['current_data']['destination']}}" disabled>
+              </div>
             </div>
           </div>
           <div class="row">
@@ -94,9 +129,10 @@
                   <td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
                   <td>
+                    <!-- ng-blur="showCase.service.checkSearchValue(record.batchno,'search_batches', $event, record, 'batchno',showCase.model_data.current_user);showCase.get_sku_details(data, $item, $index)" -->
                     <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" ng-init="record.batchno=data.batchno"
                         typeahead="address.batchno for address in showCase.service.getSearchValues(record.batchno, 'search_batches',record, '', '', showCase.model_data.current_user)"
-                        ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record.batchno,'search_batches', $event, record, 'batchno',showCase.model_data.current_user);showCase.get_sku_details(data, $item, $index)"
+                        ng-model="record.batchno"
                         typeahead-on-select="showCase.get_sku_details(data, $item, $index)"
                         required>
                     <!-- <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" typeahead="address.batchno for address in showCase.service.getSearchValues($viewValue, 'search_batches',record)" ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" required> -->

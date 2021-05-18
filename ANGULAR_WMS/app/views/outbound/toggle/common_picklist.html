@@ -28,7 +28,7 @@
           <h4 class="modal-title" id="myLargeModalLabel">Picklist</h4>
         </div>
         <div class="modal-body">
-          <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'">
+          <!-- <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'">
       <div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
             <div class="col-md-6 col-sm-6 col-xs-5">
               <p align="right">Display Order ID in Print View</p>
@@ -62,7 +62,7 @@
             </div>
       </div>
 
-          </div>
+          </div> -->
           <div class="row">
             <div class="col-md-3 col-sm-4 col-xs-6">
               <div class="form-group">
@@ -74,8 +74,28 @@
             </div>
             <div class="col-md-3 col-sm-4 col-xs-6">
               <div class="form-group">
+                <label class="control-label" ng-if = "pop.order_typ == 'MR'">Material Request ID</label>
+                <label class="control-label" ng-if = "pop.order_typ == 'ST_INTRA'">Stock Transfer ID</label>
+                <input class="form-control" type="text" value="{{pop.model_data.display_order_id}}" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label" ng-if = "pop.order_typ == 'MR'">Material Request Date</label>
+                <label class="control-label" ng-if = "pop.order_typ == 'ST_INTRA'">Stock Transfer Date</label>
+                <input class="form-control" type="text" value="{{pop.model_data.display_order_id_date}}" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
                 <label class="control-label">Source Warehouse</label>
                 <input class="form-control" type="text" name="source" value="{{pop.current_source}}" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Destination Warehouse</label>
+                <input class="form-control" type="text" value="{{pop.current_destination}}" disabled>
               </div>
             </div>
             <div class="col-md-3 col-sm-4 col-xs-6" ng-show="pop.model_data.single_order!='' &&

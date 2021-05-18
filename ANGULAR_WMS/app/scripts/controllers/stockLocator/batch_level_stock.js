@@ -9,8 +9,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    
-    vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': ''}
+
+
+    vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': '',
+                  'search9': '', 'search10': '', 'search11': '', 'search12': '', 'search13': '', 'search14': '', 'search15': '', 'search16': '', 'search17': '',
+                  'search18': '', 'search19': '', 'search20': '', 'search21': '', 'search22': '', 'search23': '', 'search24': '', 'search25': '', 'search26': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -25,7 +28,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
+       //.withOption('rowCallback', rowCallback)
+       .withOption('initComplete', function( settings ) {
+         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+       });
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Receipt Number').withTitle('Receipt Number'),
@@ -33,23 +39,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
+        DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
+        DTColumnBuilder.newColumn('Zone Code').withTitle('Zone Code'),
+        DTColumnBuilder.newColumn('dept_type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'),
         DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
         DTColumnBuilder.newColumn('Weight').withTitle('Weight'),
-        DTColumnBuilder.newColumn('Price').withTitle('Price'),
-        DTColumnBuilder.newColumn('Tax Percent').withTitle('Tax Percent'),
+        DTColumnBuilder.newColumn('Procurement Price').withTitle('Procurement Price'),
+        DTColumnBuilder.newColumn('Procurement Tax Percent').withTitle('Procurement Tax Percent'),
+        DTColumnBuilder.newColumn('Unit Purchase Qty Price').withTitle('Unit Purchase Qty Price'),
         DTColumnBuilder.newColumn('Manufactured Date').withTitle('Manufactured Date'),
         DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
         //DTColumnBuilder.newColumn('Pallet').withTitle('Pallet'),
-        DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+        DTColumnBuilder.newColumn('Conversion Factor').withTitle('Conversion Factor'),
+        DTColumnBuilder.newColumn('Base Uom Quantity').withTitle('Base Uom Quantity'),
+        DTColumnBuilder.newColumn('Base Uom').withTitle('Base Uom'),
+        DTColumnBuilder.newColumn('Purchase Uom Quantity').withTitle('Purchase Uom Quantity'),
+        DTColumnBuilder.newColumn('Purchase Uom').withTitle('Purchase Uom'),
         DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
         DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type'),
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
-        DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code').notSortable(),
-        DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable(),
-        DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable()
     ];
 
     vm.dtInstance = {};

@@ -6,8 +6,10 @@ from django.conf import settings
 from miebach_admin.views import *
 from api_calls import urls as api_calls_urls
 from rest_api import urls as rest_api_urls
+from django.contrib.auth import views as auth_views
 
 admin.autodiscover()
+
 
 #urlpatterns = patterns('miebach_admin.views',
 urlpatterns =  [
@@ -19,6 +21,10 @@ urlpatterns =  [
 
     #url(r'^grappelli/', include('grappelli.urls')), # grappelli URLS
     url(r'^mieone_panel/',  include(admin.site.urls)), # admin site
+
+    url('accounts/', include('django.contrib.auth.urls')),
+    #url('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='password/password_reset_complete.html'), name='password_reset_complete'),
+    url('reset/done/', password_reset_complete, name='password_reset_complete'),
 
     # Login and logout
     url(r'^login/$', login),
@@ -337,3 +343,4 @@ urlpatterns += [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 #+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+

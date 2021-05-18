@@ -131,10 +131,14 @@
    .sidebar-panel{
       z-index: 1000;
    }
+   .select2-container .select2-choice {
+      height: 32px !important;
+      border: 1px solid #aaaaaa5c !important;
+   }
 </style>
 
 <div id="page-pop" class="modal fade in over-x">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
+  <form name="form" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width" style="font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
@@ -155,19 +159,21 @@
           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.warehouse_type!='DEPT'">
             <div class="form-group">
               <label class="control-label">Plant *</label>
-              <select class="form-control" name="plant"
-              ng-model="showCase.model_data.plant"  ng-change="showCase.get_warehouse_department_list()" required>
+              <select ui-select2 class="form-control" name="plant"
+              ng-model="showCase.model_data.plant"  ng-change="showCase.get_warehouse_department_list()"
+              required>
                 <option ng-repeat="(plant_name, plant_code) in showCase.plants_list"
-                        value="{{plant_code}}">{{plant_name}}
+                        value="{{plant_code}}" ng-selected="showCase.model_data.plant==plant_code">{{plant_name}}
                 </option>
               </select>
+              <input type="hidden" name="is_auto_pr" ng-model="showCase.current_raise_pr" value="{{showCase.current_raise_pr}}">
             </div>
           </div>
           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.warehouse_type!='DEPT'">
             <div class="form-group">
-              <label class="control-label">Department Type *</label>
-              <select class="form-control" name="department_type"
-              ng-model="showCase.model_data.department_type" required>
+              <label class="control-label">Department Type * </label>
+              <select ui-select2 class="form-control" name="department_type"
+              ng-model="showCase.model_data.department_type" ng-required="!showCase.current_raise_pr">
                 <option ng-repeat="(dept_code, dept_name) in showCase.department_type_list"
                         value="{{dept_code}}">{{dept_name}}
                 </option>
@@ -177,7 +183,7 @@
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
               <label class="control-label">Product Category</label>
-              <select class="form-control" name="product_category" 
+              <select ui-select2 class="form-control" name="product_category"
               ng-init="showCase.model_data.product_category='Kits&Consumables'"
               ng-model="showCase.model_data.product_category"
               ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
@@ -190,7 +196,7 @@
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
               <label class="control-label">Category</label>
-              <select class="form-control" name="sku_category" 
+              <select ui-select2 class="form-control" name="sku_category"
                       ng-model="showCase.model_data.sku_category"
                       ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
                 <option ng-if="showCase.model_data.product_category=='Kits&Consumables'"

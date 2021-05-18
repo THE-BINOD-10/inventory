@@ -768,7 +768,10 @@ def results_data(request, user=''):
             return HttpResponse(str(excel_data))
     temp_data['draw'] = search_params.get('draw')
     start_index = search_params.get('start')
-    stop_index = start_index + search_params.get('length')
+    if start_index == None and search_params.get('length') == None:
+        stop_index = None
+    else:
+        stop_index = start_index + search_params.get('length')
     if not stop_index:
         stop_index = None
     params = [start_index, stop_index, temp_data, search_params.get('search_term')]
@@ -782,6 +785,7 @@ def results_data(request, user=''):
             params.append(filter_params)
         if 'special_key' in search_params.keys():
             params.append(search_params.get('special_key'))
+        print(params)
         eval(fun)(*params)
     else:
         temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}

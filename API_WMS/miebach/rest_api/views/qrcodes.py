@@ -7,7 +7,7 @@ from reportlab.graphics.barcode import qr
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics import renderPDF
-from miebach_admin.models import QrCodeSettings
+# from miebach_admin.models import QrCodeSettings
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import mm
 
@@ -33,11 +33,11 @@ def generate_qr(user='', data_list=None, display_dict=None, qr_name=''):
     qr_width = 130
     qr_height = 130
     qr_position = 0
-    qr_obj = QrCodeSettings.objects.filter(user=user.id, qr_name=qr_name)
+    # qr_obj = QrCodeSettings.objects.filter(user=user.id, qr_name=qr_name)
     page_properties =  '(100,60)'
-    qr_code_properties = (25, 25, 10)
+    qr_code_properties = '(25, 25, 10)'
     # if qr_obj.exists():
-    qr_obj = qr_obj[0]
+    # qr_obj = qr_obj[0]
     page_sizes = ast.literal_eval(page_properties)
     qr_code_sizes = ast.literal_eval(qr_code_properties)
     if len(page_sizes) == 2:
@@ -47,7 +47,7 @@ def generate_qr(user='', data_list=None, display_dict=None, qr_name=''):
         qr_width = qr_code_sizes[0] * mm
         qr_height = qr_code_sizes[1] * mm
         qr_position = qr_code_sizes[2] * mm
-    show_fields = ast.literal_eval("[{'mapping':0,'mapping_type':'address ','x':2,'y':9,'text':'Metropolise Health care' , 'font_size ':2},{'mapping ':1,'mapping_type ':'po_num ','x ':2,'y ':47,'text': ' ','font_size': 4},{'mapping': 1,'mapping_type': 'asn_date','x': 2,'y': 40,'text': ' ','extra_text': '','font_size': 6}]")
+    show_fields = ast.literal_eval("[{'mapping':0,'mapping_type':'address ','x':2,'y':9,'text':'Metropolise Health care' , 'font_size':2},{'mapping': 1,'mapping_type': 'supplier_id','x': 2,'y': 40,'text': ' ','extra_text': '','font_size': 4},{'mapping': 1,'mapping_type': 'supplier_name','x': 2,'y': 40,'text': ' ','extra_text': '','font_size': 4},{'mapping':1,'mapping_type':'po_num ','x':2,'y':47,'text': ' ','font_size': 4},{'mapping': 1,'mapping_type': 'asn_date','x': 2,'y': 40,'text': ' ','extra_text': '','font_size': 4}]")
 
     if display_dict:
         total_text_height += (len(display_dict.keys())*text_height_space)
@@ -59,7 +59,6 @@ def generate_qr(user='', data_list=None, display_dict=None, qr_name=''):
     exclude_keys = ['image', 'qr_data', 'supplier_id', 'supplier_name', 'asn_date', 'po_num']
     for data_dict in data_list:
         c.setFont("Times-Roman", 10)
-        scanned_data = json.dumps(scan_obj)
         if data_dict.get('qr_data',False):
             scan_obj = data_dict.copy()
             exclude_keys = [i for i in exclude_keys if i in scan_obj.keys()]
@@ -67,8 +66,8 @@ def generate_qr(user='', data_list=None, display_dict=None, qr_name=''):
                 del scan_obj[key]
             scanned_data = json.dumps(scan_obj)
 
-        # else:
-        #     scanned_data = data_dict.get('sku_code')+'6YE$'+str(data_dict.get('quantity',2))
+        else:
+            scanned_data = data_dict.get('asn_number')
         qr_code = qr.QrCodeWidget(scanned_data)
         bounds = qr_code.getBounds()
         width = bounds[2] - bounds[0]

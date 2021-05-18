@@ -46,7 +46,7 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
       Service.apiCall("confirm_asn_order/", "POST", elem, true).then(function(data){
         if(data.message) {
           vm.message = data.data;
-          if data.data.message == 'failed' {
+          if (data.data.status == 'failed') {
 	         vm.service.pop_msg(data.data);
           }
           else {

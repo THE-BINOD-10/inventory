@@ -7182,14 +7182,15 @@ def get_purchase_orders(request, users=''):
     orders = []
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users,
                                                    received_quantity__lt=F('open_po__order_quantity'),
-                                                   order_id__in=order_id).exclude(status='location-assigned')
+                                                   po_number__in=full_po_number).exclude(status='location-assigned')
     # if stop_index:
     #     purchase_orders = purchase_orders[start_index:stop_index]
     po_reference_no = ''
     #admin_user = get_admin(user)
     for order in purchase_orders:
-        po_reference_no = '%s%s_%s' % (
-            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        # po_reference_no = '%s%s_%s' % (
+        #     order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        po_reference_no = order.po_number
         customer_name, sr_number = '', ''
         po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
         po_date = get_local_date(request.user, order.creation_date)
@@ -7248,14 +7249,14 @@ def confirm_asn_order(request, user=''):
                     if expected_date:
                         asn_dict['expected_date'] = expected_date
                     asn_obj = ASNMapping.objects.create(**asn_dict)
-                    data_dict = {'asn_number':asn_number, ''}
                 else:
                     results['message'] = str('Quantity missing')
                     return HttpResponse(json.dumps(results))
         if asn_obj:
             supplier_obj = po_obj[0].open_po.supplier
             data_dict = {'asn_number':asn_number, 'po_num': po_obj[0].po_number, 'supplier_name':supplier_obj.name, 
-                        'supplier_id':supplier_obj.supplier_id, 'asn_date': get_local_date(user, asn_obj.creation_date)}
+                        'supplier_id':supplier_obj.supplier_id, 'asn_date': get_local_date(user, asn_obj.creation_date,
+                         'qr_data':True)}
             data_list.append(data_dict)
             response = generate_qr(user, data_list=data_list, display_dict={})
         return response

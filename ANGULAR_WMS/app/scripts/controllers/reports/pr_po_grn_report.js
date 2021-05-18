@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.toggle_grn = function() {
     var send = {};
   	var name;
-    name = 'pr_po_grn_dict';
+    name = 'metropolis_pr_po_grn_dict';
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
   	if(data.message) {
   	  if ($.isEmptyObject(data.data.data)) {
@@ -69,7 +69,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           if (vm.toggle_sku_wise) {
               vm.report_data['excel_name'] = 'sku_wise_goods_receipt'
           } else {
-              vm.report_data['excel_name'] = 'pr_po_grn_dict'
+              vm.report_data['excel_name'] = 'metropolis_pr_po_grn_dict'
           }
         })
   	  }

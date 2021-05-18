@@ -4304,3 +4304,17 @@ class MRP(models.Model):
         unique_together = ('user', 'sku')
         index_together = ('user', 'sku')
 
+class ASNMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_number = models.CharField(max_length=128, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    total_quantity = models.FloatField(default=0)
+    received_quantity = models.FloatField(default=0)
+    status = models.PositiveIntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_MAPPING'
+

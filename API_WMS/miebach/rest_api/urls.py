@@ -175,6 +175,7 @@ urlpatterns = [
     url(r'^search_distributor_codes/$', search_distributor_codes),
     url(r'^search_plants/$', search_plants),
     url(r'^get_supplier_data/$', get_supplier_data),
+    url(r'^get_purchase_orders/$',get_purchase_orders),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
@@ -260,6 +261,7 @@ urlpatterns = [
     url(r'^confirm_mr_request/$', confirm_mr_request),
     url(r'^view_pending_mr_details/$', view_pending_mr_details),
     url(r'^prepare_material_planning_pr_data/$', prepare_material_planning_pr_data),
+    url(r'^confirm_asn_order/$', confirm_asn_order),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -514,6 +516,7 @@ urlpatterns = [
     url(r'^get_po_filter/$', get_po_filter),
     url(r'^get_integration_report/$', get_integration_report),
     url(r'^get_pr_po_grn_filter/$', get_pr_po_grn_filter),
+    url(r'^get_metropolis_pr_po_grn_filter/$', get_metropolis_pr_po_grn_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),

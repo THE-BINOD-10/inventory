@@ -65,7 +65,10 @@
                   {% endif %} 
                   {% if supplier_payment_terms %}
                      <span><b>PaymentTerms:</b>{{ supplier_payment_terms }}</span><br>
-                  {% endif %} 
+                  {% endif %}
+                  {% if full_pr_number %}
+                    <span><b>PR Number :</b>{{full_pr_number}}</span><br>
+                  {% endif %}
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 fs14 p0">
                   <label><b>Supplier Details: </b></label><br>

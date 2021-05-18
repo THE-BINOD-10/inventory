@@ -7220,7 +7220,7 @@ def confirm_asn_order(request, user=''):
         user = User.objects.get(id=warehouse_id)
     data = {}
     for key, value in request.POST.iterlists():
-        if key not in ['warehouse_id']:
+        if key not in ['warehouse_id', 'invoice_number', 'expected_date']:
             name, order_id = key.rsplit('_', 1)
             data.setdefault(order_id, [])
             for index, val in enumerate(value):

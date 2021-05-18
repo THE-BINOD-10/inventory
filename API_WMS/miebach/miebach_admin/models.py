@@ -846,6 +846,10 @@ class PurchaseOrder(models.Model):
     class Meta:
         db_table = 'PURCHASE_ORDER'
         index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'))
+        permissions = [
+            ('update_purchaseorder', 'Update Purchase Order'),
+        ]
+
 
     def __unicode__(self):
         return str(self.id)

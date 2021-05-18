@@ -1646,11 +1646,18 @@ def generated_pr_data(request, user=''):
         return HttpResponse("PO disabled due to MHL Audit Purpose !")
     pr_id = request.POST.get('id', '')
     pr_number = request.POST.get('purchase_id', '')
+    full_po_number = request.POST.get('full_po_number', '')
     requested_user = request.POST.get('requested_user', '')
-    requestedUserId = User.objects.get(username=requested_user).id
-    pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     supplier_id = request.POST.get('supplier_id', '')
-    record = PendingPO.objects.filter(requested_user__username=requested_user, id=pr_number)
+    if full_po_number:
+        record = PendingPO.objects.filter(full_po_number=full_po_number)
+        requestedUserId = record[0].requested_user.id
+        pr_user = get_warehouse_user_from_sub_user(requestedUserId)
+    else:
+        requestedUserId = User.objects.get(username=requested_user).id
+        pr_user = get_warehouse_user_from_sub_user(requestedUserId)
+        record = PendingPO.objects.filter(requested_user__username=requested_user, id=pr_number)
+    warehouse_id = record[0].wh_user.id
     department_id = record[0].pending_prs.filter().values_list('wh_user', flat=True)[0]
     dept_user = User.objects.get(id=department_id)
     department_code = dept_user.userprofile.stockone_code
@@ -1766,6 +1773,7 @@ def generated_pr_data(request, user=''):
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(record[0].wh_user, sku_code,
                                                     search_params, includeStoreStock=False)
+        tax_data = get_supplier_sku_price_values(record[0].supplier.supplier_id, sku_code, record[0].wh_user)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'capacity': st_avail_qty+avail_qty,
                                             'intransit_quantity': intransitQty,
@@ -1779,7 +1787,8 @@ def generated_pr_data(request, user=''):
                                     'sku_detail': sku_desc_edited, 'service_stdate': service_stdate, 'service_edate': service_edate,
                                     'temp_price': temp_price, 'temp_tax': temp_tax,
                                     'temp_cess_tax': temp_cess_tax
-                                    }, 'pk': apprId})
+                                    }, 'pk': apprId,
+                                    'tax_data': tax_data})
     if pr_id:
         central_po_data = TempJson.objects.filter(model_id=pr_id, model_name='CENTRAL_PO') or ''
         if central_po_data:
@@ -1808,7 +1817,8 @@ def generated_pr_data(request, user=''):
                                     'store': store, 'department': department,
                                     'approval_remarks': pr_remarks,
                                     'pa_uploaded_file_dict':pa_uploaded_file_dict,
-                                    'full_pr_number': full_pr_number}))
+                                    'full_pr_number': full_pr_number,
+                                    'warehouse_id': warehouse_id}))
 
 
 @csrf_exempt
@@ -16909,3 +16919,79 @@ def prepare_material_planning_pr_data(request, user=''):
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def update_po_values(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("update_po")
+    request_data = dict(request.POST.iterlists())
+    po_number = request_data['po_number'][0]
+    po_remarks = request_data['po_remarks'][0]
+    payment_terms = request_data['payment_term'][0]
+    log.info("Request Params for update_po_values for po number %s are %s by %s" % (po_number, str(request_data), request.user.username))
+    if payment_terms:
+        temp, payment_code, payment_description = payment_terms.split(':')
+    pos = PurchaseOrder.objects.filter(po_number=po_number)
+    pending_po = PendingPO.objects.filter(full_po_number=po_number)
+    pend_po = None
+    try:
+        with transaction.atomic('default'):
+            if pending_po:
+                pend_po = pending_po[0]
+                pend_po.remarks = po_remarks
+                if payment_terms:
+                    if not (pend_po.supplier_payment.payment_code == payment_code and pend_po.supplier_payment.payment_description == payment_description):
+                        terms_obj = PaymentTerms.objects.filter(supplier_id=pos[0].open_po.supplier_id, payment_code=payment_code, payment_description=payment_description)
+                        if terms_obj:
+                            pend_po.supplier_payment_id = terms_obj[0].id
+                        else:
+                            return HttpResponse("Invalid Payment Terms")
+                pend_po.save()
+            for i in range(0, len(request_data['wms_code'])):
+                wms_code = request_data['wms_code'][i]
+                price = request_data['price'][i]
+                cgst_tax = request_data['cgst_tax'][i]
+                sgst_tax = request_data['sgst_tax'][i]
+                igst_tax = request_data['igst_tax'][i]
+                try:
+                    cgst_tax = float(cgst_tax)
+                except:
+                    cgst_tax = 0
+                try:
+                    sgst_tax = float(sgst_tax)
+                except:
+                    sgst_tax = 0
+                try:
+                    igst_tax = float(igst_tax)
+                except:
+                    igst_tax = 0
+                try:
+                    price = float(price)
+                except:
+                    price = 0
+                po = pos.filter(open_po__sku__sku_code=wms_code)[0]
+                open_po = po.open_po
+                open_po.price = price
+                open_po.cgst_tax = cgst_tax
+                open_po.sgst_tax = sgst_tax
+                open_po.igst_tax = igst_tax
+                if pend_po:
+                    line_item = pend_po.pending_polineItems.filter(sku__sku_code=wms_code)[0]
+                    line_item.price = price
+                    line_item.cgst_price = cgst_tax
+                    line_item.sgst_price = sgst_tax
+                    line_item.igst_price = igst_tax
+                    line_item.save()
+                open_po.save()
+            TempJson.objects.filter(model_id__in=pos.values_list('id', flat=True),model_name='PO').delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Exception raised while Updating PO Values for user %s and request data is %s and error is %s" %
+                 (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Update PO Failed")
+    return HttpResponse("Success")

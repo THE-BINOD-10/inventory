@@ -2735,6 +2735,7 @@ PERMISSION_DICT = OrderedDict((
                        ("Approve Manual Test", "approve_manual_test"),
                        ("View Manual Test Approval", "view_manual_test_approval"),
                        ("Material Planning", "change_replenushmentmaster"),
+                       ("Update Purchase Order", "update_purchaseorder")
                        )),
 
     # Production

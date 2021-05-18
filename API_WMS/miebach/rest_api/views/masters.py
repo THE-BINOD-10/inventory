@@ -1666,7 +1666,7 @@ def update_supplier_values(request, user=''):
             #setattr(data, key, value)
         filter_dict = {'supplier_id': data.supplier_id }
         del update_dict['supplier_id']
-        master_objs = sync_supplier_master(request, user, update_dict, filter_dict, secondary_email_id=secondary_email_id)
+        # master_objs = sync_supplier_master(request, user, update_dict, filter_dict, secondary_email_id=secondary_email_id)
         #data.save()
 
         '''master_data_dict = {}
@@ -3223,11 +3223,11 @@ def insert_sku(request, user=''):
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
         enable_serial_based = request.POST.get('enable_serial_based', 0)
-        if not wms or not description:
+        sku_category = request.POST.get('sku_category', '')
+        if not description:
             return HttpResponse('Missing Required Fields')
         filter_params = {'zone': zone, 'user': user.id}
         zone_master = filter_or_none(ZoneMaster, filter_params)
-        filter_params = {'wms_code': wms, 'user': user.id}
         instanceName = SKUMaster
         status_msg = 'SKU exists'
         if request.POST.get('is_asset') == 'true':
@@ -3242,6 +3242,11 @@ def insert_sku(request, user=''):
         elif request.POST.get('is_test') == 'true':
             instanceName = TestMaster
             status_msg = 'Test Item exists'
+        if instanceName != TestMaster:
+            sku_inc_status, wms = get_sku_code_inc_number(user, instanceName, sku_category)
+            if not sku_inc_status:
+                return HttpResponse("Invalid Category for sku code creation")
+        filter_params = {'wms_code': wms, 'user': user.id}
         data = filter_or_none(instanceName, filter_params)
 
         wh_ids = get_related_users(user.id)
@@ -3261,9 +3266,12 @@ def insert_sku(request, user=''):
             if instanceName == TestMaster:
                 data_dict.update(TEST_SKU_DATA)
             data_dict['user'] = user.id
+            data_dict['wms_code'] = wms
             for key, value in request.POST.iteritems():
                 if key in data_dict.keys():
-                    if key == 'zone_id':
+                    if key == 'wms_code':
+                        continue
+                    elif key == 'zone_id':
                         value = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
                         if value:
                             value = value.id

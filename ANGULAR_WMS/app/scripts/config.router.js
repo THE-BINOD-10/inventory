@@ -3516,7 +3516,13 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/supplier_purchase_order.js'
                   ])
-                });
+                }).then( function() {
+                return $ocLazyLoad.load([
+                  {
+                  serie: true,
+                        files: ['scripts/controllers/inbound/pop_jos/common_asn.js']}
+                ])
+              });
               }]
           },
           data: {

@@ -56,15 +56,15 @@ def get_user(seller_profile, code, token):
 def login_required(f):
     """Login Decorator """
     def wrap(request, *args, **kwargs):
+        from oauth2_provider.models import AccessToken
+        from datetime import datetime
+        from django.utils import timezone
+        now_aware = timezone.now()
         """ this check the session if userid key exist, if not it will redirect to login page """
         from rest_api.views.common import check_password_expiry
         response_data = {'data': {}, 'message': 'invalid user', 'status': 401}
         if not request.user.is_authenticated():
             if django_login_required(request):
-                from oauth2_provider.models import AccessToken
-                from datetime import datetime
-                from django.utils import timezone
-                now_aware = timezone.now()
                 objs = AccessToken.objects.filter(token=request.META.get('HTTP_AUTHORIZATION',''))
                 if objs and objs[0].expires > now_aware:
                     request.user = objs[0].application.user
@@ -80,6 +80,11 @@ def login_required(f):
                         return HttpResponse(json.dumps(response_data))
             else:
                 return HttpResponse(json.dumps(response_data))
+        elif request.META.get('HTTP_AUTHORIZATION', None): 
+            objs = AccessToken.objects.filter(token=request.META.get('HTTP_AUTHORIZATION',''))
+            if objs and objs[0].expires > now_aware:
+                request.user = objs[0].application.user
+                return f(request, *args, **kwargs)
         else:
             password_expired = check_password_expiry(request.user)
             if password_expired:
@@ -92,7 +97,33 @@ def login_required(f):
     wrap.__name__ = f.__name__
     return wrap
 
+def class_login_required(f):
+    """Login Decorator """
+    def wrap(classObj, *args, **kwargs):
+        """ this check the session if userid key exist, if not it will redirect to login page """
+        response_data = {'data': {}, 'message': 'invalid user', 'status': 401}
+        if django_login_required(classObj.request):
+            from oauth2_provider.models import AccessToken
+            from datetime import datetime
+            from django.utils import timezone
+            now_aware = timezone.now()
+            objs = AccessToken.objects.filter(token=classObj.request.META.get('HTTP_AUTHORIZATION',''))
+            if objs and objs[0].expires > now_aware:
+                classObj.request.user = objs[0].application.user
+                return f(classObj, *args, **kwargs)
+            else:
+                try:
+                    temp_abs_url = classObj.request.get_full_path()
+                    if temp_abs_url.split('/')[1] in ['rest_api', 'api']:
+                        return HttpResponse(json.dumps(response_data), status=401)
+                    else:
+                        return HttpResponse(json.dumps(response_data))
+                except:
+                    return HttpResponse(json.dumps(response_data))
+        else:
+            return HttpResponse(json.dumps(response_data))
 
+            
 def get_admin_user(f):
     def wrap(request, *args, **kwargs):
         user = ''

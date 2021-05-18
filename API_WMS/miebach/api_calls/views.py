@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.contrib import auth
@@ -85,31 +85,56 @@ def scroll_data(request, obj_lists, limit='', request_type='POST'):
 
 @csrf_exempt
 def authenticate_user(request):
+    from oauth2_provider.models import Application
+    # from rest_api.views.common import get_warehouse_user
     data = {'status': 'fail'}
     username = request.POST.get('username')
     passwd = request.POST.get('password')
-    if not username or not passwd:
+    auth_type = request.POST.get('auth_type')
+
+    if not username or not passwd and auth_type == 'normal':
         return return_response(data)
 
-    user = authenticate(username=username, password=passwd)
-    if not user:
+    if auth_type== 'normal':
         user = authenticate(username=username, password=passwd)
+        if not user:
+            user = authenticate(username=username, password=passwd)
+    elif auth_type == 'google':
+        user = User.objects.filter(email=username)
+        if user.exists():
+            user = user[0]
+        else:
+            return HttpResponseBadRequest('No User Data Available')
     '''
     if user and user.is_authenticated():
         data['status'] = 'warning'
         data['reason'] = 'Please reset your password'
         return return_response(data)
-
     user = authenticate(username=username, password=passwd)
     '''
 
-    if user and user.is_authenticated():
+    if user:
         login(request, user)
-        session_key = request.session._get_session_key()
-        if session_key:
-            data['status'] = 'success'
-            data['session_key'] = session_key
-            data['username'] = user.username
+    else:
+        return HttpResponseBadRequest('No User Data Available')
+        # session_key = request.session._get_session_key()
+        # if session_key:
+    data['status'] = 'success'
+    # data['session_key'] = session_key
+    data['username'] = user.username
+    # data['permissions'] = get_user_app_permissions(request, request.user)
+    try:
+        data['emp_id'] = request.user.employee.id
+    except Exception as e:
+        data['emp_id'] = None
+    
+    parent_user = get_warehouse_user(request)
+    oauth_data = Application.objects.filter(user_id=parent_user.id)
+    if oauth_data.exists():
+        oauth_data = oauth_data[0]
+        data['client_id'] = oauth_data.client_id
+        data['client_secret'] = oauth_data.client_secret
+        data['grant_type'] = oauth_data.authorization_grant_type
 
     return return_response(data)
 
@@ -866,19 +891,22 @@ def putaway_detail(request):
 
     return return_response(new_data)
 
+
+@login_required
+@get_admin_user
 @csrf_exempt
-def get_confirmed_po(request):
+def get_confirmed_po(request, user=''):
     data_list = []
     data = []
     supplier_data = {}
     temp_data = {'aaData': []}
-
-    results = PurchaseOrder.objects.filter(open_po__sku__user = request.user.id).exclude(status__in=['location-assigned', 'confirmed-putaway']).values('order_id').distinct()
+    
+    results = PurchaseOrder.objects.filter(open_po__sku__user = user.id).exclude(status__in=['location-assigned', 'confirmed-putaway']).values('order_id').distinct()
 
     for result in results:
-        suppliers = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user = request.user.id).exclude(status__in=['location-assigned', 'confirmed-putaway'])
+        suppliers = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user = user.id).exclude(status__in=['location-assigned', 'confirmed-putaway'])
         if not suppliers:
-            st_order_ids = STPurchaseOrder.objects.filter(po__order_id=result['order_id'], open_st__sku__user = requestuser.id).values_list('po_id', flat=True)
+            st_order_ids = STPurchaseOrder.objects.filter(po__order_id=result['order_id'], open_st__sku__user = user.id).values_list('po_id', flat=True)
             suppliers = PurchaseOrder.objects.filter(id__in=st_order_ids)
         for supplier in suppliers[:1]:
             supplier_data = get_purchase_order_data(supplier)
@@ -2361,4 +2389,166 @@ def update_supplier(request, user=''):
         log.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(message), status=message.get('status', 200))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_gate_in(request, user=''):
+    if request.method == 'GET':
+        srn = request.GET.get('srn')
+        data = GateIn.objects.get(id=srn)
+        dictToSend = {
+            'srn': srn,
+            'invoice_number': data.invoice_number,
+            'total_boxes': data.no_of_boxes,
+            'received_by': data.user.username,
+            'received_at': data.in_date
+        }
+        pos = data.po_number.split(',')
+        result = []
+        for row in pos:
+            po_order_id = row.split('_')[-1]
+            poso = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id)
+            for po in poso:
+                result.append({
+                    'po_number': row,
+                    'sku_code': po.open_po.sku.sku_code,
+                    'quantity': po.open_po.order_quantity,
+                    })
+                dictToSend.update({
+                    'supplier': po.open_po.supplier.name
+                    })
+        dictToSend.update({
+            'purchase_orders': result
+            })
+        response = {
+            'data': dictToSend ,
+            'status': 200
+        }
+        return JsonResponse(response)
+
+
+    
+    if request.method == 'POST':
+        po_arr = request.POST.get('purchaseorders', [])
+        invoice_number = request.POST.get('invoice_number', None)
+        # transport_company = request.POST.get('transport_company', None)
+        # dock_number = request.POST.get('dock_number', None)
+        total_cartons = request.POST.get('cartons', None)
+        if isinstance(po_arr, list):
+            po_arr = po_arr.join(',')
+        gateInObj = GateIn(
+            po_number=po_arr,
+            invoice_number=invoice_number,
+            no_of_boxes=total_cartons,
+            user=request.user
+        )
+        gateInObj.save()
+        for file, obj in request.FILES.iteritems():
+            files = request.FILES.getlist(file)
+            for fi in files:
+                fil = FileLocationMapping.objects.create(
+                        reference_text=file,
+                        reference_key=gateInObj.id,
+                        document=fi
+                    )
+                fil.save()
+
+        response = {
+            'data': { 'srn': gateInObj.id },
+            'status': 200
+        }
+        return JsonResponse(response)
+
+
+def update_image(request, user=''):
+    srn_number = int(request.POST.get('srn', 0))
+    file_name = request.POST.get('file_name', 0)
+    gateInObj = GateIn.objects.get(pk=srn_number)
+    for file, obj in request.FILES.iteritems():
+        files = request.FILES.getlist(file)
+        for fi in files:
+            fil = FileLocationMapping.objects.create(
+                    reference_text=file,
+                    reference_key=gateInObj.id,
+                    document=fi
+                )
+            fil.save()
+
+    return HttpResponse('File Added')
+
+def get_warehouse_user(request):
+    admin_group = AdminGroups.objects.filter(user_id=request.user.id)
+    user = None
+    if admin_group:
+        user = admin_group[0].user
+    else:
+        groups_list = request.user.groups.all()
+        for group in groups_list:
+            group = AdminGroups.objects.filter(group_id=group.id)
+            if group:
+                user = group[0].user
+                break
+    if not user:
+        user = request.user
+        group, created = Group.objects.get_or_create(name=user.username)
+        admin_dict = {'group_id': group.id, 'user_id': user.id}
+        admin_group = AdminGroups(**admin_dict)
+        admin_group.save()
+        user.groups.add(group)
+
+    user_profile = UserProfile.objects.filter(user_id=request.user.id)
+    if user_profile and user_profile[0].user_type == 'customer':
+        cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
+        if cus_mapping:
+            user_id = cus_mapping[0].customer.user
+            user = User.objects.get(id=user_id)
+    return user
+
+@login_required
+@get_admin_user
+def get_user_object(request, user=''):
+    if request.method == 'GET':
+        email = request.GET.get('username', None)
+        if not email:
+            return HttpResponseBadRequest('Email Not available')
+
+        StaffObj = StaffMaster.objects.get(email_id=email)
+        plants = list(StaffObj.plant.filter().values_list('name',flat=True))
+        response = {
+            'data': plants,
+            'status': 200
+        }
+        return JsonResponse(response)
+
+    elif request.method == 'POST':
+        email = request.POST.get('username', None)
+        plant = request.POST.get('plant', None)
+        if not email or not plant:
+            return HttpResponseBadRequest('Missing Parameters')
+
+        StaffObj = StaffMaster.objects.get(email_id=email)
+        plants = list(StaffObj.plant.filter().values_list('name',flat=True))
+        if plant in plants:
+            user = User.objects.get(username=plant)
+        else:
+            return HttpResponseBadRequest('Invalid Plant')
+
+        from oauth2_provider.models import Application
+        oauth_data = Application.objects.filter(user_id=user.id)
+        data = {}
+        if oauth_data.exists():
+            oauth_data = oauth_data[0]
+            data['client_id'] = oauth_data.client_id
+            data['client_secret'] = oauth_data.client_secret
+            data['grant_type'] = oauth_data.authorization_grant_type
+        else:
+            return HttpResponseBadRequest('Plant Configuration Not Enabled')            
+
+        response = {
+            'data': data,
+            'status': 200
+        }
+        return JsonResponse(response)
 

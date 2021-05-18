@@ -48,7 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     var columns = ['PO No', 'Store', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
+                   'PO Remarks', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';

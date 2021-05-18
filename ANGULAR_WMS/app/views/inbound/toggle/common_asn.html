@@ -37,6 +37,18 @@
                 <input class="form-control" type="text" ng-model="pop.model_data.data[0].original_order_id" disabled>
               </div>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Number </label>
+                <input class="form-control" ng-model="pop.model_data.invoice_number" type="text" name="invoice_number">
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Expected Date</label>
+                <input name="expected_date" ui-jq="datepicker" ng-model="pop.model_data.expected_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{pop.date}}" readonly>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12">

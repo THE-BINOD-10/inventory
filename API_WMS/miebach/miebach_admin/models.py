@@ -4312,6 +4312,8 @@ class ASNMapping(models.Model):
     total_quantity = models.FloatField(default=0)
     received_quantity = models.FloatField(default=0)
     status = models.PositiveIntegerField(default=0)
+    invoice_number = models.CharField(max_length=128, default='')
+    expected_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

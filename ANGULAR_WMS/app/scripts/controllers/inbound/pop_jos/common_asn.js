@@ -5,6 +5,7 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
+  vm.date = new Date();
 
   if(items){
      vm.state_data = items;
@@ -45,7 +46,7 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
       Service.apiCall("confirm_asn_order/", "POST", elem, true).then(function(data){
         if(data.message) {
           vm.message = data.data;
-	  vm.service.pop_msg(data.data);
+	        vm.service.pop_msg(data.data);
           vm.ok();
 
           if(data.data.search("<div") != -1) {

@@ -1193,7 +1193,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Receivable Qty', round(total_receivable_qty, 2)),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Store', warehouse.first_name),('Order Type', order_type),
-                                      ('Receive Status', receive_status), ('Customer Name', customer_name),
+                                      ('Receive Status', receive_status), ('Customer Name', customer_name),('PO Remarks', supplier.remarks),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),('Store', store),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
                                       ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to), ('service_doa', services_doa)
@@ -7190,6 +7190,11 @@ def get_purchase_orders(request, users=''):
 @get_admin_user
 def confirm_asn_order(request, user=''):
     warehouse_id = request.POST.get('warehouse_id', '')
+    invoice_number = request.POST.get('invoice_number', '')
+    expected_date = request.POST.get("expected_date", '')
+    if expected_date:
+        date = expected_date.split('/')
+        expected_date=datetime.date(int(date[2]), int(date[0]), int(date[1]))
     if warehouse_id:
         user = User.objects.get(id=warehouse_id)
     data = {}
@@ -7213,8 +7218,11 @@ def confirm_asn_order(request, user=''):
                     po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
                                                      open_po__sku__user=user.id, 
                                                      open_po__sku__sku_code=sku_code)
-                    ASNMapping.objects.create(**{'purchase_order':po_obj[0], 'total_quantity':quantity,
-                                             'asn_number': asn_number, 'user':user})
+                    asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,
+                                'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number}
+                    if expected_date:
+                        asn_dict['expected_date'] = expected_date
+                    ASNMapping.objects.create(**asn_dict)
                 else:
                     return HttpResponse('Quantity missing')
         return HttpResponse('ASN Confirmed')

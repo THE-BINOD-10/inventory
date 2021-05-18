@@ -7433,8 +7433,8 @@ def confirm_asn_order(request, user=''):
         if asn_obj:
             supplier_obj = po_obj[0].open_po.supplier
             data_dict = {'asn_number':asn_number, 'po_num': po_obj[0].po_number, 'supplier_name':supplier_obj.name, 
-                        'supplier_id':supplier_obj.supplier_id, 'asn_date': get_local_date(user, asn_obj.creation_date,
-                         'qr_data':True)}
+                        'supplier_id':supplier_obj.supplier_id, 'asn_date': get_local_date(user, asn_obj.creation_date),
+                        'qr_data':True}
             data_list.append(data_dict)
             response = generate_qr(user, data_list=data_list, display_dict={})
         return response

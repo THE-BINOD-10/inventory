@@ -4349,7 +4349,9 @@ class MRP(models.Model):
 class ASNMapping(models.Model):
     id = BigAutoField(primary_key=True)
     asn_number = models.CharField(max_length=128, default='')
+    asn_id = models.PositiveIntegerField(default=0)
     user = models.ForeignKey(User, blank=True, null=True)
+    vendor = models.ForeignKey(User, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     total_quantity = models.FloatField(default=0)
     received_quantity = models.FloatField(default=0)

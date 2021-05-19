@@ -7398,6 +7398,7 @@ def confirm_asn_order(request, user=''):
     warehouse_id = request.POST.get('warehouse_id', '')
     invoice_number = request.POST.get('invoice_number', '')
     expected_date = request.POST.get("expected_date", '')
+    request_user = request.user
     asn_obj = None
     data_list = []
     results = {'status': 'failed', 'data':[]}
@@ -7417,7 +7418,7 @@ def confirm_asn_order(request, user=''):
                 data[order_id][index][name] = val
     try:
         data = OrderedDict(sorted(data.items(), reverse=True))
-        asn_number = get_incremental(user, 'asn_number')
+        asn_count = get_incremental(request_user, 'asn_number', default=1)
         for key, value in data.iteritems():
             po_order_id = value[0]['order_id']
             for i in range(0, len(value)):
@@ -7431,12 +7432,14 @@ def confirm_asn_order(request, user=''):
                     po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
                                                      open_po__sku__user=user.id, 
                                                      open_po__sku__sku_code=sku_code)
+                    supplier_obj = po_obj[0].open_po.supplier
+                    asn_number = '%s-%s-%s' % ('MHL', str(supplier_obj.supplier_id), str(asn_count))
                     asn_obj = ASNMapping.objects.filter(purchase_order=po_obj[0].id)
                     if asn_obj:
                         asn_qty = asn_obj.aggregate(Sum('total_quantity'))['total_quantity__sum']
                         shipped_qty = asn_qty + quantity
-                    asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,
-                                'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number, 'status':0}
+                    asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,'vendor':request_user,
+                                'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number, 'status':0, 'asn_id':asn_count}
                     if po_obj[0].open_po.order_quantity > shipped_qty:
                         asn_dict['status'] = 1
                     else:
@@ -7456,7 +7459,9 @@ def confirm_asn_order(request, user=''):
                         'qr_data':True}
             data_list.append(data_dict)
             response = generate_qr(user, data_list=data_list, display_dict={})
-        return response
+            return response
+        else:
+            dec_status = get_decremental(request_user, 'asn_number', asn_count)
 
     except Exception as e:
         import traceback
@@ -7464,7 +7469,9 @@ def confirm_asn_order(request, user=''):
         log.info('ASN Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
         results['message'] = str(e)
-        return HttpResponse(json.dumps(results))
+        if not asn_obj:
+            dec_status = get_decremental(request_user, 'asn_number', asn_count)
+    return HttpResponse(json.dumps(results))
 
 @csrf_exempt
 @login_required

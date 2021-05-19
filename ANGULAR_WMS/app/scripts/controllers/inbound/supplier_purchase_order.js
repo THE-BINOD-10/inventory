@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
                    vm.selected[meta.row] = false;
-       return '<input style="display: block;margin: auto;" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
+       return '<input style="display: block;margin: auto;" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected);showCase.invoiceSelectionCheck(showCase.selected)">';
                  })
     row_click_bind = 'td:not(td:first)';
     vm.dtColumns.unshift(toggle);
@@ -91,6 +91,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function reloadData () {
       vm.dtInstance.reloadData();
     };
+    vm.invoiceSelectionCheck = function(data){
+    var multiple_check = []
+    angular.forEach(data, function(key, val){
+      if (key){
+        if (multiple_check.length > 0){
+           vm.service.showNoty("Only one PO allowed");
+           data[val] = false; }
+           else{
+           multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Store'])
+           }
+        }
+       });
+    }
 
    vm.asn_popup = asn_popup;
    function asn_popup() {

@@ -7360,7 +7360,8 @@ def get_purchase_orders(request, users=''):
     orders = []
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users,
                                                    received_quantity__lt=F('open_po__order_quantity'),
-                                                   po_number__in=full_po_number).exclude(status='location-assigned')
+                                                   po_number__in=full_po_number).exclude(status='location-assigned').\
+                                                   exclude(asnmapping__status=0)
     # if stop_index:
     #     purchase_orders = purchase_orders[start_index:stop_index]
     po_reference_no = ''
@@ -7430,7 +7431,7 @@ def confirm_asn_order(request, user=''):
                     po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
                                                      open_po__sku__user=user.id, 
                                                      open_po__sku__sku_code=sku_code)
-                    asn_obj = ASNMapping.objects.filter(purchase_order=order.id)
+                    asn_obj = ASNMapping.objects.filter(purchase_order=po_obj[0].id)
                     if asn_obj:
                         asn_qty = asn_obj.aggregate(Sum('total_quantity'))['total_quantity__sum']
                         shipped_qty = asn_qty + quantity

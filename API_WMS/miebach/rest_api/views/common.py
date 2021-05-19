@@ -52,7 +52,6 @@ import git
 from lockout import LockedOut
 from ipware import get_client_ip
 import tarfile
-from xlsxwriter import Workbook
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -1825,18 +1824,17 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         #             ws.write(data_count, column_count, value)
         #             column_count += 1
         wb.save(path)
-
-    return HttpResponse(new_paths)
+    return HttpResponse(path_to_file)
 
 
 def save_to_excel(headers, data, request, path, path_to_file):
-    wb=Workbook(path)
+    wb=xlsxwriter.Workbook(path)
     ws=wb.add_worksheet("New Sheet") #or leave it blank, default name is "Sheet 1"
-
+    header_style = wb.add_format({'bold': True})
     first_row=0
     for header in headers:
         col=headers.index(header) # we are keeping order.
-        ws.write(first_row,col,header) # we have written first row which is the header of worksheet also.
+        ws.write(first_row,col,header, header_style) # we have written first row which is the header of worksheet also.
 
     row=1
     for player in data:

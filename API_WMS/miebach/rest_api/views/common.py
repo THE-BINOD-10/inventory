@@ -5962,7 +5962,7 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_
     return sku_master, sku_master_ids
 
 
-def create_update_user(full_name, email, phone_number, password, username, role_name='customer'):
+def create_update_user(full_name, email, phone_number, password, username, role_name='customer', company=None):
     """
     Creating a new Customer User
     """
@@ -5981,6 +5981,8 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
+                if company:
+                    user_profile.company = company.id
                 user_profile.save()
             status = 'New Customer Added'
 

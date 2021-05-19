@@ -1631,6 +1631,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['supplier_id']
         data = get_or_none(SupplierMaster, {'supplier_id': data_id, 'user': user.id})
         old_name = data.name
+        company = None
         upload_master_file(request, user, data.id, "SupplierMaster")
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1686,8 +1687,10 @@ def update_supplier_values(request, user=''):
             MasterEmailMapping.objects.create(**master_data_dict)'''
 
         if create_login == 'true':
+            if user.userprofile.company:
+                company = user.userprofile.company
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
-                                                         password, username, role_name='supplier')
+                                                         password, username, role_name='supplier', company=company)
             if 'already' in status_msg:
                 return HttpResponse(status_msg)
             UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,

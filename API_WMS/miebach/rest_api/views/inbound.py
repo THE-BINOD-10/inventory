@@ -7434,7 +7434,7 @@ def confirm_asn_order(request, user=''):
                                                      open_po__sku__user=user.id, 
                                                      open_po__sku__sku_code=sku_code)
                     supplier_obj = po_obj[0].open_po.supplier
-                    asn_number = '%s-%s-%s' % ('MHL', str(supplier_obj.supplier_id), str(asn_count))
+                    asn_number = '%s-%s-%s' % ('MHL', str(supplier_obj.supplier_id), str(asn_count).zfill(4))
                     asn_obj = ASNMapping.objects.filter(purchase_order=po_obj[0].id)
                     if asn_obj:
                         asn_qty = asn_obj.aggregate(Sum('total_quantity'))['total_quantity__sum']

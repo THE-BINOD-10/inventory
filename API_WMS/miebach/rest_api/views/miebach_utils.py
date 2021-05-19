@@ -2101,6 +2101,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'supplier_wise_po_report': SUPPLIER_WISE_PO_REPORT,
                      'get_consumption_data': CONSUMPTION_DATA_DICT,
                      'PRAOD_report': PRAOD_REPORT_DICT,
+                     'get_asn_detail': ASN_DATA_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -18173,8 +18174,8 @@ def get_asn_data(search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
-    search_parameters = {}
-    lis = []
+    search_parameters = {'vendor':user.id}
+    lis = ['asn_number', 'user', 'purchase_order__po_number', 'purchase_order__remarks','purchase_order__open_po__order_quantity', 'purchase_order__status']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -18195,7 +18196,7 @@ def get_asn_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['asn_number', 'user', 'purchase_order__po_number', 'purchase_order__remarks','purchase_order__open_po__order_quantity', 'purchase_order__status']
+    values_list = ['asn_number', 'user', 'purchase_order__po_number']
     model_data = ASNMapping.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
@@ -18213,8 +18214,16 @@ def get_asn_data(search_params, user, sub_user):
         results = model_data
     count = 0
     for result in results:
+        purchase_order = PurchaseOrder.objects.filter(po_number=result['purchase_order__po_number'], open_po__sku__user=result['user'])
+        po_status = list(purchase_order.values_list('status', flat=True))
+        status = 'Open'
+        if 'grn-generated' in po_status:
+            status = 'Fully Delivered'
+        if 'grn-generated' and '' in po_status:
+            status = 'Partially Delivered'
+        if purchase_order.received_quantity
         ord_dict = OrderedDict((('ASN Number', result['asn_number']), ('PO Number', result['purchase_order__po_number'])
-                                ('PO Remarks', result['purchase_order__remarks']), ('Status', result['purchase_order__status'])))
+                                ('PO Remarks', purchase_order[0].remarks), ('Status', status), ('Plant', user.username)))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

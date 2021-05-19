@@ -2414,10 +2414,11 @@ def get_asn_details(request, user=''):
         order_data = get_purchase_order_data(supplier)
         if supplier.received_quantity and not int(order_data['order_quantity']) == int(supplier.received_quantity):
             receive_status = 'Partially Receive'
-        if supplier.open_po and supplier.open_po.po_name != '':
-            po_reference = supplier.open_po.po_name
-        else:
-            po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
+        # if supplier.open_po and supplier.open_po.po_name != '':
+        #     po_reference = supplier.open_po.po_name
+        # else:
+        #     po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
+        po_reference = supplier.po_number
         data_list.append({'po_number': po_reference, 'order_date': str(supplier.creation_date).split('+')[0],
                       'supplier_id': order_data['supplier_id'], 'supplier_name': order_data['supplier_name'],
                       'receive_status': receive_status, 'asn_number': result.asn_number, 'quantity':result.total_quantity,

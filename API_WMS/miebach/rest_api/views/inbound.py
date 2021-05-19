@@ -7368,6 +7368,10 @@ def get_purchase_orders(request, users=''):
     for order in purchase_orders:
         # po_reference_no = '%s%s_%s' % (
         #     order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        received_quantity = 0
+        asn_obj = ASNMapping.objects.filter(purchase_order=order.id)
+        if asn_obj:
+            received_quantity = asn_obj.aggregate(Sum('total_quantity'))['total_quantity__sum']
         po_reference_no = order.po_number
         customer_name, sr_number = '', ''
         po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
@@ -7375,7 +7379,7 @@ def get_purchase_orders(request, users=''):
         ord_dict = OrderedDict((('sku_code', order.open_po.sku.wms_code), ('po_number', po_reference_no),
                                 ('sku_category', order.open_po.sku.sku_category),
                                 ('ordered_quantity', order.open_po.order_quantity),
-                                ('received_quantity', order.received_quantity),
+                                ('received_quantity', received_quantity),
                                 ('quantity', po_quantity), ('sku_desc', order.open_po.sku.sku_desc),
                                 ('customer_name', customer_name),
                                 ('warehouse_id', order.open_po.sku.user),
@@ -7418,6 +7422,7 @@ def confirm_asn_order(request, user=''):
             for i in range(0, len(value)):
                 sku_code = value[i]['sku_code']
                 quantity = value[i].get('current_quantity', 0)
+                quantity = float(quantity)
                 if quantity:
                     po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
                                                      open_po__sku__user=user.id, 
@@ -7429,9 +7434,9 @@ def confirm_asn_order(request, user=''):
                     if expected_date:
                         asn_dict['expected_date'] = expected_date
                     asn_obj = ASNMapping.objects.create(**asn_dict)
-                else:
-                    results['message'] = str('Quantity missing')
-                    return HttpResponse(json.dumps(results))
+                # else:
+                #     results['message'] = str('Quantity missing')
+                #     return HttpResponse(json.dumps(results))
         if asn_obj:
             supplier_obj = po_obj[0].open_po.supplier
             supplier_id_name = str(supplier_obj.supplier_id)+'/'+str(supplier_obj.name)

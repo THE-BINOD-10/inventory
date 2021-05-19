@@ -76,6 +76,13 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
     vm.service.print_data(vm.html, "Purchase Order");
   }
 
+  vm.check_qty = function(record) {
+    var avilable_qty = record.ordered_quantity - record.received_quantity;
+    if (record.current_quantity > avilable_qty) {
+      record.current_quantity = avilable_qty;
+    }
+  }
+
   vm.ok = function (msg) {
     $modalInstance.close(vm.status_data);
   };

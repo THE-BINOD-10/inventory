@@ -81,7 +81,7 @@
                   <td>
                     <input name="received_quantity_{{record.order_id}}" ng-model="record.received_quantity" class="form-control" type="text" readonly>
                   </td>
-                  <td><input name="current_quantity_{{record.order_id}}" ng-model="record.current_quantity" class="form-control" type="text"></td>
+                  <td><input name="current_quantity_{{record.order_id}}" ng-model="record.current_quantity" class="form-control" type="text" ng-keyup ="pop.check_qty(record)"></td>
                   
                 </tr>
               </tbody>

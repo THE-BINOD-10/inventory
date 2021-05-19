@@ -7438,7 +7438,7 @@ def confirm_asn_order(request, user=''):
                     if asn_obj:
                         asn_qty = asn_obj.aggregate(Sum('total_quantity'))['total_quantity__sum']
                         shipped_qty = asn_qty + quantity
-                    asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,'vendor':request_user,
+                    asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,'vendor':request_user.id,
                                 'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number, 'status':0, 'asn_id':asn_count}
                     if po_obj[0].open_po.order_quantity > shipped_qty:
                         asn_dict['status'] = 1

@@ -890,11 +890,6 @@
             <span>Netsuite Integration Report</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'supplier'">
-          <a ui-sref="app.reports.ASNReport">
-            <span>ASN Report</span>
-          </a>
-        </li>
       </ul>
     </li>
     <!-- ready pages -->
@@ -936,6 +931,11 @@
       <a ui-sref="app.PurchaseOrder">
         <i class="fa fa-tasks"></i>
         <span>Purchase Order</span>
+      </a>
+    </li>
+    <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'supplier'">
+      <a ui-sref="app.reports.ASNReport">
+        <span>ASN Report</span>
       </a>
     </li>
 

@@ -2955,12 +2955,20 @@ def get_sku_wise_consumption_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_asn_detail(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_asn_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_consumption_data(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_consumption_data_(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
-
 
 @csrf_exempt
 @login_required

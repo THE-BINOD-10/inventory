@@ -385,6 +385,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
 #    last_month = now + dateutil.relativedelta.relativedelta(months=-2)
     search_parameters = {'purchase_type': 'PO'}
     from_date = search_params.get("from_date", {})
+    pending_po = search_params.get("pending_po", False)
     if from_date:
         search_parameters.update({"pending_po__updation_date__gte": from_date})
     #search_parameters.update(search_params)
@@ -418,6 +419,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
     count = 0
     print("Pending PO Count", len(results))
     for result in results:
+        if pending_po: break
         plant_code, plant_name, plant_zone , department, department_code = '', '', '', '', ''
         req_user = User.objects.filter(id = result['pending_po__wh_user'])[0]
         if req_user:
@@ -537,7 +539,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
             po_object= AnalyticsPurchaseOrder.objects.using('mhl_analytics').update_or_create(
                 full_po_number= purchase_order_data['full_po_number'],
                 sku_code= purchase_order_data['sku_code'],
-                price= purchase_order_data['price'],
+                #price= purchase_order_data['price'],
                 pquantity = purchase_order_data['pquantity'],
                 defaults= purchase_order_data)
             pr_objects = AnalyticsPurchaseRequest.objects.using('mhl_analytics').filter(
@@ -577,7 +579,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
      "open_po__order_quantity", "open_po__price", "open_po__sku__hsn_code"
      ]
     exclude_perms= {"status__in": ["deleted", "stock-transfer"]}
-    po_results = PurchaseOrder.objects.filter(**search_parameters).exclude(**exclude_perms).values(*po_values_list)
+    po_results = PurchaseOrder.objects.filter( Q(updation_date__gte=from_date) | Q(open_po__updation_date__gte=from_date), open_po_id__isnull=False).exclude(**exclude_perms).values(*po_values_list)
     po_sku_codes_list = []
     # po_numbers_list= []
     for each_row in  po_results:
@@ -706,7 +708,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
             po_object= AnalyticsPurchaseOrder.objects.using('mhl_analytics').update_or_create(
                 full_po_number= purchase_order_data['full_po_number'],
                 sku_code= purchase_order_data['sku_code'],
-                price= purchase_order_data['price'],
+                #price= purchase_order_data['price'],
                 pquantity = purchase_order_data['pquantity'],
                 defaults= purchase_order_data)
             print(po_object)
@@ -715,7 +717,7 @@ def get_po_detail_report_data(search_params, user, sub_user):
                 po_id= purchase_order_data['po_id'],
                 full_po_number= purchase_order_data['full_po_number'],
                 sku_code= purchase_order_data['sku_code'],
-                price= purchase_order_data['price'],
+                #price= purchase_order_data['price'],
                 pquantity = purchase_order_data['pquantity'],
                 defaults= purchase_order_data)
             print(".....", str(err))

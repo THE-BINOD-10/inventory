@@ -14481,7 +14481,8 @@ def check_block_pr_po_configuration():
     return status
 
 def get_last_three_months_consumption(filters):
-    end_date = datetime.datetime.today().replace(day=1)
+    #end_date = datetime.datetime.today().replace(day=1)
+    end_date = datetime.datetime.today()
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)

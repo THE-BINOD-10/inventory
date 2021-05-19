@@ -17132,7 +17132,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         uom_dict = sku_uoms.get(data.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', user.userprofile.stockone_code), ('Plant Name', user.first_name),
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', data.user.userprofile.stockone_code), ('Plant Name', data.user.first_name),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Base UOM', uom_dict.get('base_uom', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
                                   ('Lead Time Qty', round(data.lead_time_qty, 2)), ('Min Days Qty', round(data.min_days_qty, 2)), ('Max Days Qty', round(data.max_days_qty, 2)),
@@ -17162,7 +17162,7 @@ def prepare_material_planning_pr_data(request, user=''):
             sku_code = dat['SKU Code']
             capacity = dat['System Stock Qty']
             openpr_qty = dat['Pending PR Qty']
-            avg_consumption_qty = dat['Average Monthly Consumption Qty']
+            avg_consumption_qty = dat['Average Daily Consumption Qty']
             plant_username = User.objects.get(userprofile__stockone_code=dat['Plant Code']).username
             uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
             suggested_qty = dat['Suggested Qty']
@@ -17174,8 +17174,9 @@ def prepare_material_planning_pr_data(request, user=''):
                             'openpo_qty': openpo_qty})
     else:
         for i in range(len(request_data['id'])):
-            sku = SKUMaster.objects.get(id=request_data['id'][i])
-            plant_username = User.objects.get(id=sku.user).username
+            datum = MRP.objects.get(id=request_data['id'][i])
+            plant_username = datum.user.username
+            sku = datum.sku
             uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
             suggested_qty = request_data['suggested_qty'][i]
             capacity = request_data['capacity'][i]

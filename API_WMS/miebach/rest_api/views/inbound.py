@@ -7422,15 +7422,25 @@ def confirm_asn_order(request, user=''):
             for i in range(0, len(value)):
                 sku_code = value[i]['sku_code']
                 quantity = value[i].get('current_quantity', 0)
+                if not quantity:
+                    quantity = 0
                 quantity = float(quantity)
+                shipped_qty = quantity
                 if quantity:
                     po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
                                                      open_po__sku__user=user.id, 
                                                      open_po__sku__sku_code=sku_code)
+                    asn_obj = ASNMapping.objects.filter(purchase_order=order.id)
+                    if asn_obj:
+                        asn_qty = asn_obj.aggregate(Sum('total_quantity'))['total_quantity__sum']
+                        shipped_qty = asn_qty + quantity
                     asn_dict = {'purchase_order':po_obj[0], 'total_quantity':quantity,
-                                'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number}
-                    if po_obj[0].open_po.order_quantity > quantity:
+                                'asn_number': asn_number, 'user':user, 'invoice_number':invoice_number, 'status':0}
+                    if po_obj[0].open_po.order_quantity > shipped_qty:
                         asn_dict['status'] = 1
+                    else:
+                        if asn_obj:
+                            asn_obj.update(status=0)
                     if expected_date:
                         asn_dict['expected_date'] = expected_date
                     asn_obj = ASNMapping.objects.create(**asn_dict)

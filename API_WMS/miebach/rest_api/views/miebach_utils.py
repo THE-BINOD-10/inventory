@@ -1984,6 +1984,16 @@ CONSUMPTION_DATA_DICT = {
     'print_url': 'get_consumption_data',
 }
 
+ASN_DATA_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+    ],
+    'dt_headers': ['ASN Number', 'Plant', 'PO Number', 'PO Remarks', 'Status'],
+    'dt_url': 'get_asn_detail', 'excel_name': 'get_asn_detail',
+    'print_url': 'get_asn_detail',
+}
+
 CLOSING_STOCK_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -2805,6 +2815,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise_po_report': 'get_supplier_details_data',
                         'get_consumption_data': 'get_consumption_data_',
                         'PRAOD_report': 'get_praod_report_data',
+                        'get_asn_detail': 'get_asn_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -18149,6 +18160,64 @@ def get_consumption_data_(search_params, user, sub_user):
 
     return temp_data
 
+def get_asn_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    search_parameters = {}
+    lis = []
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    
+    user_ids = list(users.values_list('id', flat=True))
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['asn_number', 'user', 'purchase_order__po_number', 'purchase_order__remarks','purchase_order__open_po__order_quantity', 'purchase_order__status']
+    model_data = ASNMapping.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+
+    #if order_term:
+    #    results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = len(model_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results:
+        ord_dict = OrderedDict((('ASN Number', result['asn_number']), ('PO Number', result['purchase_order__po_number'])
+                                ('PO Remarks', result['purchase_order__remarks']), ('Status', result['purchase_order__status'])))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
 
 def po_upload_amount_and_quantity(po_number):
     from miebach_admin.models import *

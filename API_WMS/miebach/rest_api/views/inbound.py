@@ -7401,6 +7401,7 @@ def confirm_asn_order(request, user=''):
     request_user = request.user
     asn_obj = None
     data_list = []
+    asn_count = 0
     results = {'status': 'failed', 'data':[]}
     if expected_date:
         date = expected_date.split('/')
@@ -7418,7 +7419,7 @@ def confirm_asn_order(request, user=''):
                 data[order_id][index][name] = val
     try:
         data = OrderedDict(sorted(data.items(), reverse=True))
-        asn_count = get_incremental(request_user, 'asn_number', default=1)
+        asn_count = get_incremental(request_user, 'asn_number', default_val=1)
         for key, value in data.iteritems():
             po_order_id = value[0]['order_id']
             for i in range(0, len(value)):
@@ -7469,7 +7470,7 @@ def confirm_asn_order(request, user=''):
         log.info('ASN Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
         results['message'] = str(e)
-        if not asn_obj:
+        if not asn_obj and asn_count:
             dec_status = get_decremental(request_user, 'asn_number', asn_count)
     return HttpResponse(json.dumps(results))
 

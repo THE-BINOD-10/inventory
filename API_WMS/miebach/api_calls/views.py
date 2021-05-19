@@ -2399,7 +2399,13 @@ def get_asn_details(request, user=''):
     supplier_data = {}
     search = request.GET.get('search', None)
     temp_data = {'aaData': []}
-    results = ASNMapping.objects.filter(user = user.id).distinct()
+    search_parameters = {}
+    users = [user.id]
+    if user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    if search:
+        search_parameters['asn_number__iexact'] = search
+    results = ASNMapping.objects.filter(user__in = users, **search_parameters).distinct()
     temp_data['recordsTotal'] = len(results)
     temp_data['recordsFiltered'] = len(results)
     for result in results:
@@ -2412,17 +2418,10 @@ def get_asn_details(request, user=''):
             po_reference = supplier.open_po.po_name
         else:
             po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
-        if search:
-            if search in po_reference:
-                data_list.append({'PO Number': po_reference, 'Order Date': str(supplier.creation_date).split('+')[0],
-                              'Supplier ID': order_data['supplier_id'], 'Supplier Name': order_data['supplier_name'],
-                              'Receive Status': receive_status, 'Asn Number': result.asn_number, 'Quantity':result.total_quantity,
-                              'Asn created Date': str(result.creation_date).split('+')[0]})
-        else:
-            data_list.append({'PO Number': po_reference, 'Order Date': str(supplier.creation_date).split('+')[0],
-                          'Supplier ID': order_data['supplier_id'], 'Supplier Name': order_data['supplier_name'],
-                          'Receive Status': receive_status, 'Asn Number': result.asn_number, 'Quantity':result.total_quantity,
-                          'Asn created Date': str(result.creation_date).split('+')[0]})
+        data_list.append({'PO Number': po_reference, 'Order Date': str(supplier.creation_date).split('+')[0],
+                      'Supplier ID': order_data['supplier_id'], 'Supplier Name': order_data['supplier_name'],
+                      'Receive Status': receive_status, 'Asn Number': result.asn_number, 'Quantity':result.total_quantity,
+                      'Asn created Date': str(result.creation_date).split('+')[0]})
 
     temp_data['aaData'] = list(chain(temp_data['aaData'], data_list))
     return return_response(temp_data)

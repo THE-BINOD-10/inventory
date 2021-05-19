@@ -2418,10 +2418,10 @@ def get_asn_details(request, user=''):
             po_reference = supplier.open_po.po_name
         else:
             po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
-        data_list.append({'PO Number': po_reference, 'Order Date': str(supplier.creation_date).split('+')[0],
-                      'Supplier ID': order_data['supplier_id'], 'Supplier Name': order_data['supplier_name'],
-                      'Receive Status': receive_status, 'Asn Number': result.asn_number, 'Quantity':result.total_quantity,
-                      'Asn created Date': str(result.creation_date).split('+')[0]})
+        data_list.append({'po_number': po_reference, 'order_date': str(supplier.creation_date).split('+')[0],
+                      'supplier_id': order_data['supplier_id'], 'supplier_name': order_data['supplier_name'],
+                      'receive_status': receive_status, 'asn_number': result.asn_number, 'quantity':result.total_quantity,
+                      'asn_created_date': str(result.creation_date).split('+')[0]})
 
     temp_data['aaData'] = list(chain(temp_data['aaData'], data_list))
     return return_response(temp_data)

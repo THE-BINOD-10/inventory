@@ -49,7 +49,7 @@ def view_picklist(idpc, wh_id):
                 'qc_items': qc_items, 'warehouse_id': warehouse_id}
     return datum
 
-def picklist_confirmations(user, final_data_list, picklist_number, all_picklists, picks_all):
+def picklist_confirmations(user, final_data_list, picklist_number, all_picklists, picks_all, data_dict):
     request = ''
     st_time = datetime.datetime.now()
     all_data = {}
@@ -145,13 +145,13 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                         picking_count1 = 0  # picking_count
                         wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                         if not val.get('batchno', ''):
-                            total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', creation_date__lt='2020-12-01', **pic_check_data).\
+                            total_stock1 = StockDetail.objects.using('default').filter(batch_detail__batch_no='', **pic_check_data).\
                                                     distinct().select_for_update()
-                            total_stock2 = StockDetail.objects.using('default').filter(creation_date__lt='2020-12-01', **pic_check_data).\
+                            total_stock2 = StockDetail.objects.using('default').filter(**pic_check_data).\
                                                     exclude(batch_detail__batch_no='').distinct().select_for_update()
                             total_stock = total_stock1 | total_stock2
                         else:
-                            total_stock = StockDetail.objects.using('default').filter(creation_date__lt='2020-12-01', **pic_check_data).distinct().select_for_update()
+                            total_stock = StockDetail.objects.using('default').filter(**pic_check_data).distinct().select_for_update()
                         if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                             insert_order_serial(picklist, val)
                         if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -192,6 +192,8 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                         tot_quan = 0
                         for stock in total_stock:
                             tot_quan += float(stock.quantity)
+                            # if tot_quan < reserved_quantity1:
+                            # total_stock = create_temp_stock(picklist.stock.sku.sku_code, picklist.stock.location.zone, abs(reserved_quantity1 - tot_quan), list(total_stock), user.id)
 
                         seller_stock_objs = []
                         for stock in total_stock:
@@ -214,20 +216,10 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                             pre_stock = float(stock_quantity)
                             if picking_count == 0:
                                 break
-                            # new Code
-                            # print picking_count
-                            # conv_value = 1
-                            # if stock.batch_detail:
-                            #     conv_value = stock.batch_detail.pcf
-                            #     if not conv_value:
-                            #         uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
-                            #         conv_value = uom_dict.get('sku_conversion', 1)
-                            # new Code
                             if picking_count > stock_quantity:
                                 update_picked = float(stock_quantity)
                                 picking_count -= stock_quantity
                                 picklist.reserved_quantity -= stock_quantity
-
                                 stock.quantity = stock.quantity - stock_quantity
                             else:
                                 update_picked = picking_count
@@ -277,8 +269,8 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                                 grn_number_dict = update_stock_transfer_po_batch(user, stock_transfer, stock,
                                                                             update_picked_pack_qty,
                                                                order_typ = order_typ,
-                                                                                 grn_number_dict=grn_number_dict, last_change_date=last_change_date)
-                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock, transact_date=last_change_date)
+                                                                                 grn_number_dict=grn_number_dict, last_change_date=last_change_date, extra_params=data_dict)
+                                save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
                             else:
                                 # SKU Stats
                                 save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
@@ -305,6 +297,7 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                             picking_count1 += update_picked
                         picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                         if picklist.reserved_quantity == 0:
+                            # Auto Shipment check and Mapping the serial Number
                             if picklist.order and picklist.order.order_type == 'Transit':
                                 serial_order_mapping(picklist, user)
                             if picklist.status == 'batch_open':
@@ -319,7 +312,7 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                             create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
                                                         seller_stock_objs)
                         else:
-                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
+                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all, stock=stock)
                         picked_status = ""
                         if picklist.picked_quantity > 0 and picklist.order:
                             if merge_flag:
@@ -370,6 +363,8 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
                 order_ids = ','.join(order_ids)
                 invoice_data = get_invoice_data(order_ids, user, picklists_send_mail[ord_id])
                 invoice_data = modify_invoice_data(invoice_data, user)
+                # invoice_data['invoice_no'] = 'TI/1116/' + invoice_data['order_no']
+                # invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
                 offline_flag = False
                 if picklist.order.marketplace == "Offline":
                     offline_flag = True
@@ -399,7 +394,7 @@ def picklist_confirmations(user, final_data_list, picklist_number, all_picklists
     if status:
         return HttpResponse(status)
 
-def generate_picklist(data_dict, user):
+def auto_generate_picklist(data_dict, user):
     enable_damaged_stock = data_dict.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)
@@ -500,6 +495,6 @@ def generate_picklist(data_dict, user):
                         'count': dat['picked_quantity'], 'picklist_order_id': dat['order_id'],
                         'value': [dat], 'key': picklist.id})
         print final_data_list
-        datas = picklist_confirmations(user, final_data_list, picklist_number, all_picklists, picks_all)
+        datas = picklist_confirmations(user, final_data_list, picklist_number, all_picklists, picks_all, data_dict)
         print datas
 # self.stdout.write("Updation Completed")

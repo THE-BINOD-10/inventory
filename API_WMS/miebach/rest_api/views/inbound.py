@@ -7493,10 +7493,35 @@ def confirm_asn_order(request, user=''):
         log.debug(traceback.format_exc())
         log.info('ASN Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
-        results['message'] = str(e)
+        results['message'] = 'Failed'
         if not asn_obj and asn_count:
             dec_status = get_decremental(request_user, 'asn_number', asn_count)
     return HttpResponse(json.dumps(results))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_asn_qr_code(request, user=''):
+    from rest_api.views.qrcodes import generate_qr
+    warehouse_name = request.POST.get('warehouse_name', '')
+    asn_number = request.POST.get('asn_number', '')
+    po_number = request.POST.get("po_number", '')
+    request_user = request.user
+    data_list = []
+    asn_obj = ASNMapping.objects.filter(asn_number=asn_number, purchase_order__po_number=po_number, vendor=request_user.id)
+    if asn_obj:
+        supplier_obj = asn_obj[0].purchase_order.open_po.supplier
+        supplier_id_name = str(supplier_obj.supplier_id)+'/'+str(supplier_obj.name)
+        data_dict = {'asn_number':asn_number, 'po_num': po_number, 'supplier_name':supplier_obj.name, 
+                    'supplier_id':supplier_id_name, 'asn_date': get_local_date(user, asn_obj[0].creation_date),
+                    'qr_data':True}
+        data_list.append(data_dict)
+        response = generate_qr(user, data_list=data_list, display_dict={})
+        return response
+    else:
+        results = {'status': 'failed', 'data':[], 'message': 'Invalid Data'}
+        return HttpResponse(json.dumps(results))
+
 
 @csrf_exempt
 @login_required

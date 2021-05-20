@@ -4231,6 +4231,7 @@ class ConsumptionData(models.Model):
     consumption_number = models.CharField(max_length=64, default='')
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    cancel_user = models.ForeignKey(User, related_name="consumption_cancel_user", blank=True, null=True)
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)

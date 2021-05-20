@@ -197,7 +197,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
             formData.append('id', vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId);
             formData.append('suggested_qty', sugg_qty);
             formData.append('capacity', vm.dtInstance.DataTable.context[0].aoData[key]._aData['System Stock Qty']);
-            formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Monthly Consumption Qty']);
+            formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Daily Consumption Qty']);
             formData.append('openpr_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PR Qty']);
             formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
             non_zero_qty = true;

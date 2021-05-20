@@ -484,6 +484,7 @@ def get_pr_converted_po(start_index, stop_index, temp_data, search_term, order_t
     if search_term:
         results = results.filter(Q(pending_po__po_number__icontains=search_term) |
                                 Q(pending_po__full_po_number__icontains=search_term) |
+                                Q(pending_po__pending_prs__full_pr_number= search_term)|
                                 Q(pending_po__requested_user__username__icontains=search_term) |
                                 Q(pending_po__final_status__icontains=search_term) |
                                 Q(pending_po__pending_level__icontains=search_term) |

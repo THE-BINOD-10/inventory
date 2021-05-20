@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async, currency_supplier_mapping
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async, currency_supplier_mapping, get_pr_related_stock
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -817,24 +817,26 @@ def netsuite_validate_stock_availability(request, data, user=''):
             available_stock_check = True
             for row in data.get("line_items"):
                 sku_code = str(row['sku_code']).strip()
-                uom_dict = get_uom_with_sku_code(source_user, sku_code, uom_type='purchase')
-                if not uom_dict:
-                    error_message = 'Conversion Factor not defined for the SKU code '+str(sku_code)
-                    return {"status": "failed", "message": error_message, "sku_code":str(sku_code)}
+                includeStoreStock= True
+                search_params = { 'sku__user': source_user.id, 'sku__sku_code': sku_code}
+                stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(source_user, sku_code, search_params, includeStoreStock)
+                avlb_qty = (avail_qty+st_avail_qty)
+                # uom_dict = get_uom_with_sku_code(source_user, sku_code, uom_type='purchase')
+                # if not uom_dict:
+                #     error_message = 'Conversion Factor not defined for the SKU code '+str(sku_code)
+                #     return {"status": "failed", "message": error_message, "sku_code":str(sku_code)}
                 order_quantity= row.get("quantity", 0)
-                quantity = uom_dict.get('sku_conversion', 0) * order_quantity
-                availble_stockdetail_obj = StockDetail.objects.filter(sku__sku_code=sku_code, quantity__gt=0, sku__user= source_user.id).annotate(total=Sum('quantity'))
-                if availble_stockdetail_obj.exists():
-                    available_quantity = availble_stockdetail_obj[0].total
-                    print("SKU_code= ", sku_code , "available_quantity = ", available_quantity)
-                    if quantity > available_quantity:
-                        line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock"})
-                        available_stock_check= False
-                    else:
-                        line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Available"})
-                else:
+                # quantity = uom_dict.get('sku_conversion', 0) * order_quantity
+                # availble_stockdetail_obj = StockDetail.objects.filter(sku__sku_code=sku_code, quantity__gt=0, sku__user= source_user.id).annotate(total=Sum('quantity'))
+                print("SKU_code= ", sku_code , "available_quantity = ", avlb_qty)
+                if order_quantity > avlb_qty:
+                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock"})
                     available_stock_check= False
-                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock or SKU Code not present"})
+                else:
+                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Available"})
+                # else:
+                #     available_stock_check= False
+                #     line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock or SKU Code not present"})
             if line_items_error_list:
                 return {"status": available_stock_check, "line_items": line_items_error_list}
         else:
@@ -902,6 +904,20 @@ def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user='
             error_message = 'Destination Plant Code is Empty'
             update_error_message(failed_status, 5024, error_message, '', 'destination_plant')
             return failed_status.values()
+        for row in adjustment_data_list.get("line_items"):
+            sku_category = ''
+            sku, product_category = get_product_category_from_sku(user, row.get("sku_code", ""))
+            # if sku:
+            #     sku_category = sku.sku_category
+            if not sku_category:
+                sku_category = 'Default'
+            so_user_prefix = UserPrefixes.objects.filter(user=source_user.id, type_name="so_prefix", product_category=product_category,
+                                sku_category=sku_category)
+            so_grn_user_prefix = UserPrefixes.objects.filter(user=destination_user.id, type_name="so_grn_prefix", product_category=product_category,
+                                sku_category=sku_category)
+            if not so_user_prefix and not so_grn_user_prefix:
+                return [{'status': 0, 'message': 'so_prefix prefix is not present or so_grn_prefix prefix is not present for product_category= '+str(product_category)+ " sku_category= "+ str(sku_category)+ ",  please create"}]
+        user_prefix = UserPrefixes.objects.filter(user=source_user.id, type_name="so_prefix")
         source_seller, dest_seller =['']*2
         order_typ = request.POST.get('order_typ', 'ST_INTER')
         all_data = {}
@@ -946,3 +962,5 @@ def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user='
         log_err.info('Netsuite Sale Stock transfer failed for %s and params are %s and error statement is %s' % (str(request.user.username     ), str(request.body), str(e)))
         failed_status = [{'status': 0, 'message': 'Internal Server Error'}]
         return failed_status
+
+

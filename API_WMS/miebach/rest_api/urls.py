@@ -175,6 +175,7 @@ urlpatterns = [
     url(r'^search_distributor_codes/$', search_distributor_codes),
     url(r'^search_plants/$', search_plants),
     url(r'^get_supplier_data/$', get_supplier_data),
+    url(r'^get_purchase_orders/$',get_purchase_orders),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
@@ -260,6 +261,7 @@ urlpatterns = [
     url(r'^confirm_mr_request/$', confirm_mr_request),
     url(r'^view_pending_mr_details/$', view_pending_mr_details),
     url(r'^prepare_material_planning_pr_data/$', prepare_material_planning_pr_data),
+    url(r'^confirm_asn_order/$', confirm_asn_order),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -639,6 +641,7 @@ urlpatterns = [
     url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
     url(r'^get_praod_report/$', get_praod_report),
+    url(r'^get_asn_detail/$', get_asn_detail),
 ]
 
 # urlpatterns += patterns('rest_api.views',

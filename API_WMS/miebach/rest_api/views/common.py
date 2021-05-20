@@ -618,7 +618,7 @@ def get_search_params(request, user=''):
                       'search22': 'search_22', 'search23': 'search_23',
                       'search24': 'search_24', 'search25': 'search_25',
                       'search26': 'search_26',
-                      'cancel_invoice':'cancel_invoice', }
+                      'cancel_invoice':'cancel_invoice', 'single_warehouse': 'single_warehouse'}
     request_data = request.POST
     if not request_data:
         request_data = request.GET
@@ -5962,7 +5962,7 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_
     return sku_master, sku_master_ids
 
 
-def create_update_user(full_name, email, phone_number, password, username, role_name='customer'):
+def create_update_user(full_name, email, phone_number, password, username, role_name='customer', company=None):
     """
     Creating a new Customer User
     """
@@ -5981,6 +5981,8 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
+                if company:
+                    user_profile.company = company.id
                 user_profile.save()
             status = 'New Customer Added'
 
@@ -10127,12 +10129,15 @@ def get_supplier_info(request):
     supplier_user = ''
     supplier = ''
     supplier_parent = ''
-    profile = UserProfile.objects.get(user=request.user)
-    if profile.user_type == 'supplier':
-        supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
-        supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
-        supplier_parent = User.objects.get(id = supplier.user)
-        return True, supplier_data, supplier, supplier_parent
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        if profile.user_type == 'supplier':
+            supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
+            supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
+            supplier_parent = User.objects.get(id = supplier.user)
+            return True, supplier_data, supplier, supplier_parent
+    except Exception as e:
+        return False, supplier_user, supplier, supplier_parent
     return False, supplier_user, supplier, supplier_parent
 
 def create_new_supplier(user, supp_id, supplier_dict=None):
@@ -10972,6 +10977,27 @@ def get_incremental(user, type_name, default_val=''):
     else:
         IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
+    return count
+
+
+def get_incremental_with_lock(user, type_name, default_val=''):
+    # custom sku counter
+    if not default_val:
+        default = 1001
+    else:
+        default = default_val
+    with transaction.atomic('default'):
+        inc_recod = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+        if inc_recod:
+            data = IncrementalTable.objects.using('default').select_for_update().filter(id__in=list(inc_recod.values_list('id', flat=True)))
+            if data:
+                data = data[0]
+                count = data.value + 1
+                data.value = data.value + 1
+                data.save()
+        else:
+            IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
+            count = default
     return count
 
 
@@ -14631,4 +14657,31 @@ def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_
                 pass
         wb.save(path)
     return path_to_file
+
+
+def get_pr_number_from_po(pend_po):
+    pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
+    return pr_numbers
+
+
+def get_sku_code_inc_number(user, instanceName, category, check=False):
+    if instanceName == AssetMaster:
+        type_name = 'ASS'
+    elif instanceName == ServiceMaster:
+        type_name = 'SER'
+    elif instanceName == OtherItemsMaster:
+        if 'marketing' in category.lower():
+            category = 'marketing'
+        type_name = SKU_CREATION_INC_MAPPING_OT.get(category.lower(), None)
+    else:
+        type_name = SKU_CREATION_INC_MAPPING_KC.get(category.lower(), None)
+    if not type_name:
+        return False, ''
+    elif check:
+        return True, ''
+    ftype_name = 'sku_' + type_name
+    main_user = get_company_admin_user(user)
+    inc_value = get_incremental_with_lock(main_user, ftype_name)
+    sku_code = '%s%s' % (type_name, str(inc_value).zfill(6))
+    return True, sku_code
 

@@ -13,6 +13,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.model_data = {};
+    vm.selected = {};
+    vm.supplier_name = Session.user_profile.first_name;
+
 
     vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
                   'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': true}
@@ -45,16 +48,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     var columns = ['PO No', 'Store', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
+                   'PO Remarks', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';
     var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
-                   return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
+                   vm.selected[meta.row] = false;
+       return '<input style="display: block;margin: auto;" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected);showCase.invoiceSelectionCheck(showCase.selected)">';
                  })
     row_click_bind = 'td:not(td:first)';
-    //vm.dtColumns.unshift(toggle);
+    vm.dtColumns.unshift(toggle);
 
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -63,6 +67,85 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $(elem).addClass('fa fa-plus-square');
       Service.showNoty('Something went wrong')
     }
+
+    function toggleAll (selectAll, selectedItems, event) {
+      for (var id in selectedItems) {
+                if (selectedItems.hasOwnProperty(id)) {
+                    selectedItems[id] = selectAll;
+          }
+      }
+    }
+   function toggleOne (selectedItems) {
+       for (var id in selectedItems) { 
+         if (selectedItems.hasOwnProperty(id)) {
+             if(!selectedItems[id]) {
+                 vm.selectAll = false;
+                 return;
+              }
+          }
+        }
+  vm.selectAll = true;
+    }
+   vm.generate_data = []
+   vm.reloadData = reloadData;
+    function reloadData () {
+      vm.dtInstance.reloadData();
+    };
+    vm.invoiceSelectionCheck = function(data){
+    var multiple_check = []
+    angular.forEach(data, function(key, val){
+      if (key){
+        if (multiple_check.length > 0){
+           vm.service.showNoty("Only one PO allowed");
+           data[val] = false; }
+           else{
+           multiple_check.push(vm.dtInstance.DataTable.context[0].aoData[parseInt(val)]['_aData']['Store'])
+           }
+        }
+       });
+    }
+
+   vm.asn_popup = asn_popup;
+   function asn_popup() {
+    var data = [];
+    for(var key in vm.selected){
+       console.log(vm.selected[key]);
+       if (vm.selected[key]) {
+          vm.generate_data = []
+          vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
+          data.push({name: 'order_id', value: vm.generate_data[0]['DT_RowId']},
+                {name: 'warehouse_id', value: vm.generate_data[0]['warehouse_id']},
+                {name: 'prefix', value: vm.generate_data[0]['prefix']},
+                {name: 'po_number', value: vm.generate_data[0]['PO No']})
+        }
+     }
+    var mod_data = {data:data}
+    $scope.open = function (size) {
+
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/toggle/common_asn.html',
+        controller: 'ASNPOP',
+        controllerAs: 'pop',
+        size: size,
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+
+      modalInstance.result.then(function (selectedItem) {
+        var data = selectedItem;
+        reloadData();
+      }, function () {
+        $log.info('Modal dismissed at: ' + new Date());
+      });
+    };
+   $scope.open('lg');
+     vm.generate_data = [];
+   }
     vm.addRowData = function(event, data) {
       console.log(data);
       var elem = event.target;

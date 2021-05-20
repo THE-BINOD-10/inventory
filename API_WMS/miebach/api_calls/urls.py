@@ -31,6 +31,7 @@ urlpatterns = [
     url(r'^putaway_list/$',putaway_list),
     url(r'^putaway_detail/$',putaway_detail),
     url(r'^get_confirmed_po/$',get_confirmed_po),
+    url(r'^get_asn_details/$',get_asn_details),
     url(r'^get_supplier_data/$',get_supplier_data),
     url(r'^get_misc_value/$',get_misc_value),
     url(r'^get_api_misc_value/$',get_api_misc_value),
@@ -58,4 +59,7 @@ urlpatterns = [
     url(r'^update_supplier/$', update_supplier),
     url(r'^netsuite/sale_stock_transfer/$', netsuite_sales_stock_transfer),
     url(r'^netsuite/stock_validation/$', check_stock_availability),
+    url(r'^update_gate_in/$', update_gate_in),
+    url(r'^srn/update_image/$', update_image),
+    url(r'^get_user_warehouses/$', get_user_object)
 ]

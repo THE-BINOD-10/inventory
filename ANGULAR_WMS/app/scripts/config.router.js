@@ -3524,7 +3524,13 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/supplier_purchase_order.js'
                   ])
-                });
+                }).then( function() {
+                return $ocLazyLoad.load([
+                  {
+                  serie: true,
+                        files: ['scripts/controllers/inbound/pop_jos/common_asn.js']}
+                ])
+              });
               }]
           },
           data: {
@@ -3535,6 +3541,19 @@ var app = angular.module('urbanApp')
             url: '/SKUDetails',
             templateUrl: 'views/inbound/toggle/supplier_po_sku_data.html'
           })
+      //ASN Report
+       .state('app.reports.ASNReport', {
+          url: '/ASNReport',
+          templateUrl: 'views/reports/asn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/asn_report.js');
+              }]
+          },
+          data: {
+            title: 'ASN Report',
+          }
+        })
 
       //register
       .state('app.Register', {

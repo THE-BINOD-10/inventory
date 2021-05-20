@@ -17,7 +17,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.warehouse_type = Session.user_profile.warehouse_type
     vm.central_po = true
-    vm.grn_allow = true
     if (vm.warehouse_type == "CENTRAL_ADMIN"){
       vm.central_po = false
     }
@@ -231,7 +230,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     var date_cnf = new Date();
                     vm.current_month = vm.months[date_cnf.getMonth()];
                     vm.last_two_months = []
-                    vm.grn_allow = vm.model_data.grn_not_allow;
                     // if (vm.current_month == 'January'){
                     //   vm.last_two_months = ['December', 'November', 'October']
                     // } else if (vm.current_month == 'February') {

@@ -5600,7 +5600,6 @@ def get_supplier_data(request, users=''):
     carrier_name = ''
     grn_date = ''
     tcs = 0
-    grn_not_allow = 'false'
     asn_count = 0
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
@@ -5632,10 +5631,6 @@ def get_supplier_data(request, users=''):
             po_ids = list(purchase_orders.values_list('id',flat = True))
             advance_payment = OrderMapping.objects.filter(mapping_id__in=po_ids, order__user=user.id).aggregate(Sum('order__payment_received'))
             payment_received = advance_payment['order__payment_received__sum']
-        asn_obj = ASNMapping.objects.filter(purchase_order__po_number=full_po_number, user=user.id)
-        if asn_obj:
-            grn_not_allow = 'true'
-            asn_count = len(asn_obj)
     if not purchase_orders:
         st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id, po__prefix=order_pre,
                                                    open_st__sku_id__in=sku_master_ids). \
@@ -5832,8 +5827,8 @@ def get_supplier_data(request, users=''):
                                     'expected_date': expected_date, 'remarks': remarks, 'grn_date': grn_date, 'tcs': tcs,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,'discrepancy_reasons':discrepancy_reasons,
-                                    'dc_date': dc_date, 'dc_grn': dc_level_grn, 'carrier_name': carrier_name, 'asn_count':asn_count,
-                                    'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount, 'grn_not_allow':grn_not_allow,
+                                    'dc_date': dc_date, 'dc_grn': dc_level_grn, 'carrier_name': carrier_name,
+                                    'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items, 'invoice_quantity': invoice_quantity,
                                     'returnable_serials': returnable_serials,'lr_number': lr_number, 'payment_received': payment_received}))
 

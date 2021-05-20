@@ -7504,9 +7504,9 @@ def confirm_asn_order(request, user=''):
 @get_admin_user
 def get_asn_qr_code(request, user=''):
     from rest_api.views.qrcodes import generate_qr
-    warehouse_name = request.POST.get('warehouse_name', '')
-    asn_number = request.POST.get('asn_number', '')
-    po_number = request.POST.get("po_number", '')
+    warehouse_name = request.GET.get('warehouse_name', '')
+    asn_number = request.GET.get('asn_number', '')
+    po_number = request.GET.get("po_number", '')
     request_user = request.user
     data_list = []
     asn_obj = ASNMapping.objects.filter(asn_number=asn_number, purchase_order__po_number=po_number, vendor=request_user.id)

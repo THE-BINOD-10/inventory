@@ -40,7 +40,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           }
         });
   }
-  }
 
   vm.report_data = {};
 

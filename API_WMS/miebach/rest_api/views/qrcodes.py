@@ -47,7 +47,7 @@ def generate_qr(user='', data_list=None, display_dict=None, qr_name=''):
         qr_width = qr_code_sizes[0] * mm
         qr_height = qr_code_sizes[1] * mm
         qr_position = qr_code_sizes[2] * mm
-    show_fields = ast.literal_eval("[{'mapping':0,'mapping_type':'address','x':2,'y':5,'text':'Metropolise Health care' , 'font_size':4},{'mapping': 1,'mapping_type': 'supplier_id','x': 2,'y': 9,'text': ' ','extra_text': '','font_size': 4},{'mapping':1,'mapping_type':'po_num','x':2,'y':42,'text': '','name': 'ASN Number: ', 'font_size': 4},{'mapping': 1,'mapping_type': 'asn_number','x': 2,'y': 35,'text': ' ','name': 'ASN Number: ','font_size': 4},{'mapping': 1,'mapping_type': 'asn_date','x': 2,'y': 47,'text': ' ','extra_text': '','font_size': 4}]")
+    show_fields = ast.literal_eval("[{'mapping':0,'mapping_type':'address','x':2,'y':5,'text':'Metropolise Health care' , 'font_size':4},{'mapping': 1,'mapping_type': 'supplier_id','x': 2,'y': 9,'text': ' ','extra_text': '','font_size': 4},{'mapping':1,'mapping_type':'po_num','x':2,'y':42,'text': '','name': 'PO Number: ', 'font_size': 4},{'mapping': 1,'mapping_type': 'asn_number','x': 2,'y': 35,'text': ' ','name': 'ASN Number: ','font_size': 4},{'mapping': 1,'mapping_type': 'asn_date','x': 2,'y': 47,'text': ' ','extra_text': '','font_size': 4}]")
 
     if display_dict:
         total_text_height += (len(display_dict.keys())*text_height_space)
@@ -105,7 +105,7 @@ def generate_qr(user='', data_list=None, display_dict=None, qr_name=''):
                             c.drawString(x_value, y_value, str(item))
                             y_value -= 5 * mm
                     else:
-                        display_text = str(name)+str(data)+str(extra_text)
+                        display_text = str(field_name)+str(data)+str(extra_text)
                         c.drawString(x_value, y_value,display_text)
             else:
                 c.setFontSize(font_size)

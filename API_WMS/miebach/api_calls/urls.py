@@ -56,4 +56,6 @@ urlpatterns = [
     url(r'^get_shipmentinfo/$', get_shipmentinfo),
     url(r'^invoice_pdf/$', invoice_pdf),
     url(r'^update_supplier/$', update_supplier),
+    url(r'^netsuite/sale_stock_transfer/$', netsuite_sales_stock_transfer),
+    url(r'^netsuite/stock_validation/$', check_stock_availability),
 ]

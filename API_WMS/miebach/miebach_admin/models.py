@@ -279,6 +279,17 @@ class LocationMaster(models.Model):
     def __unicode__(self):
         return self.location
 
+class CurrencyMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    currency_code = models.CharField(max_length=16, default='INR')
+    netsuite_currency_internal_id = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CURRENCY_MASTER'
+        unique_together = ('currency_code', 'netsuite_currency_internal_id')
+        index_together = ('currency_code', 'netsuite_currency_internal_id')
 
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=128, primary_key=True)
@@ -323,8 +334,9 @@ class SupplierMaster(models.Model):
     reference_id = models.CharField(max_length=64, default='')
     subsidiary = models.CharField(max_length=512, default='')
     place_of_supply = models.CharField(max_length=64, default='')
-    currency_code = models.CharField(max_length=16, default='')
-    netsuite_currency_internal_id = models.IntegerField(default=1)
+    currency = models.ManyToManyField(CurrencyMaster, default="", related_name = "supplier_master_currency")
+    # currency_code = models.CharField(max_length=16, default='')
+    # netsuite_currency_internal_id = models.IntegerField(default=1)
     is_contracted = models.BooleanField(default=False)
 
     class Meta:

@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async, currency_supplier_mapping
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -23,6 +23,7 @@ import reversion
 import itertools
 from netsuitesdk import NetSuiteConnection
 from netsuitesdk.internal.utils import PaginatedSearch
+from api_calls.auto_picklist_putaway import *
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/netsuite_integrations_' + today + '.log')
@@ -590,20 +591,21 @@ def netsuite_validate_supplier(request, supplier, user=''):
         else:
             error_message = 'supplier id missing'
             update_error_message(failed_status, 5024, error_message, '', 'supplierid')
-
+        if "currency" not in supplier:
+            supplier.update({ "currency": []})    
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
 		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
-                                 'currency_code': 'currency_code', 'netsuite_currency_internal_id': 'currency_internal_id',
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
-                         'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
+                         'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid',  "currency": "currency",
 		                }
         number_field = {'credit_period':0, 'lead_time':0, 'po_exp_duration':0}
         data_dict = {}
         supplier_count = 0
         gst_check = []
+        currency_array = []
         for address in supplier['addresses']:
             # if supplier_count and address['gstno'] not in gst_check:
             supplier_id = orignal_supplier_id + '-' + str(address['addressid'])
@@ -665,7 +667,16 @@ def netsuite_validate_supplier(request, supplier, user=''):
                             if not (row.has_key('reference_id') and row.has_key('description')):
                                 log_err.info("Required Parameter Missing In Net Terms for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                                 update_error_message(failed_status, 5024, 'Required Parameter Missing In Net Terms', supplier_id, 'supplierid')
-                    else:
+                    elif key == 'currency':
+                        currency_array = value
+                        if currency_array:
+                            for row in currency_array:
+                                if not (row.has_key('currencyid') and row.has_key('currencyname')):
+                                    log_err.info("Required Parameter Missing In Currency for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
+                                    update_error_message(failed_status, 5024, 'Required Parameter Missing In Currency', supplier_id, 'supplierid')
+                        else:
+                            currency_array = [{"currencyid": "1", "currencyname": "INR"}]
+                    else: 
                         data_dict[key] = value
 
                 # else:
@@ -679,7 +690,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         log_err.info("Enter valid secondary Email ID for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                         update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
             if not failed_status:
-                master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+                currency_objs = create_currency_master_data(currency_array)
+                master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id, currency_objs=currency_objs)
                 createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
                 try:
                   sync_supplier_async.apply_async(queue='queueB', args=[master_objs[user.id].id, user.id])
@@ -696,6 +708,21 @@ def netsuite_validate_supplier(request, supplier, user=''):
         log_err.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         failed_status = [{'status': 0,'message': 'Internal Server Error'}]
         return failed_status
+
+def create_currency_master_data(currency_array):
+  currency_objects = []
+  for currency in currency_array:
+      try:
+          if(currency.get('currencyid')):
+              currency_object = currency_supplier_mapping(
+                  currency.get('currencyid'),
+                  currency.get('currencyname'),
+              )
+              currency_objects.append(currency_object)
+      except Exception as e:
+          print(e)
+          log_err.info('Currencies Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+  return currency_objects
 
 def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
     for userId, supplier_obj in master_objs.iteritems():
@@ -719,3 +746,198 @@ def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
             except Exception as e:
                 print(e)
                 log_err.info('Net Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+
+
+@login_required
+@get_admin_user
+def netsuite_sales_stock_transfer(request, user=''):
+    try:
+        req_data = json.loads(request.body)
+        if not req_data:
+            return HttpResponse(json.dumps({'message': 'Data is empty'}))
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Netsuite Sales Stock Transfer API Request params for ' + request.user.username + ' is ' + str(req_data))
+    try:
+        status = netsuite_sales_stock_transfer_validate(request, req_data, user=request.user)
+        return HttpResponse(json.dumps(status))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Inventory Adjustment data failed for %s and params are %s and error statement is %s' % (str(request.user.username),
+            str(request.body), str(e)))
+        status = {'status': 0,'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
+
+
+@login_required
+@get_admin_user
+def check_stock_availability(request, user=''):
+    try:
+        req_data = json.loads(request.body)
+        if not req_data:
+            return HttpResponse(json.dumps({'message': 'Data is empty'}))
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Check Stock availability params for' + request.user.username + ' is ' + str(req_data))
+    try:
+        status= netsuite_validate_stock_availability(request, req_data, user=request.user)
+        return HttpResponse(json.dumps(status))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Stock Availability checking failed for %s and params are %s error statement is %s' % (str(request.user.username),str(request.body), str(e)))
+        status = {'status': 0,'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
+
+def netsuite_validate_stock_availability(request, data, user=''):
+    from rest_api.views.common import create_update_batch_data, add_ean_weight_to_batch_detail, get_uom_with_sku_code
+    failed_status = OrderedDict()
+    source_user= ""
+    try:
+        if not data.get("line_items", ""):
+            error_message =  'line Items are empty'
+            return {"status": "failed", "message": error_message}
+        if data.get('source_plant', None):
+            user_profile_obj = UserProfile.objects.filter(stockone_code=data['source_plant'])
+            if user_profile_obj:
+                source_user = user_profile_obj[0].user
+            else:
+                user_profile_obj = UserProfile.objects.filter(stockone_code="0" + str(data['source_plant']))
+                if user_profile_obj:
+                    source_user = user_profile_obj[0].user
+                else:
+                    error_message = 'source Plant Code is not present'
+                    return {"status": "failed", "message": error_message,  "plant_code": data.get('source_plant', "")}
+        else:
+            error_message = 'source Plant Code is empty'
+            return {"status": "failed", "message": error_message, "plant_code": data.get('source_plant', "")}
+        if source_user:
+            line_items_error_list= []
+            available_stock_check = True
+            for row in data.get("line_items"):
+                sku_code = str(row['sku_code']).strip()
+                uom_dict = get_uom_with_sku_code(source_user, sku_code, uom_type='purchase')
+                if not uom_dict:
+                    error_message = 'Conversion Factor not defined for the SKU code '+str(sku_code)
+                    return {"status": "failed", "message": error_message, "sku_code":str(sku_code)}
+                order_quantity= row.get("quantity", 0)
+                quantity = uom_dict.get('sku_conversion', 0) * order_quantity
+                availble_stockdetail_obj = StockDetail.objects.filter(sku__sku_code=sku_code, quantity__gt=0, sku__user= source_user.id).annotate(total=Sum('quantity'))
+                if availble_stockdetail_obj.exists():
+                    available_quantity = availble_stockdetail_obj[0].total
+                    print("SKU_code= ", sku_code , "available_quantity = ", available_quantity)
+                    if quantity > available_quantity:
+                        line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock"})
+                        available_stock_check= False
+                    else:
+                        line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Available"})
+                else:
+                    available_stock_check= False
+                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock or SKU Code not present"})
+            if line_items_error_list:
+                return {"status": available_stock_check, "line_items": line_items_error_list}
+        else:
+            error_message = 'Source Plant Code is not present'
+            return {"status": "failed", "message": error_message, "plant_code":data.get('source_plant', "")}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        log_err.debug(traceback.format_exc())
+        log_err.info('Update Inventory Adjustment failed for %s and params are %s and error statement is %s' % (str(request.user.username     ), str(request.body), str(e)))
+        failed_status = [{'status': 0, 'message': 'Internal Server Error'}]
+    return failed_status 
+
+def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user=''):
+    from rest_api.views.masters import *
+    failed_status = OrderedDict()
+    try:
+        all_data = {}
+        receipt_number= adjustment_data_list.get("transaction_number", 7777777)
+        transaction_id= adjustment_data_list.get("document_number", "")
+        po_number=  adjustment_data_list.get("po_number", "")
+        invoice_number = adjustment_data_list.get("invoice_number", "")
+        trasaction_date = adjustment_data_list.get("transaction_date", "")
+        if not po_number:
+            error_message = 'PO Number is Empty'
+            transaction_id= adjustment_data_list.get("document_number", "")
+            return failed_status.values()
+        if not adjustment_data_list.get("invoice_number", ""):
+            error_message =  'Invoice Number is empty'
+            update_error_message(failed_status, 5024, error_message, '')
+            return failed_status.values()
+        if not adjustment_data_list.get("line_items", ""):
+            error_message =  'line Items are empty'
+            update_error_message(failed_status, 5024, error_message, '')
+            return failed_status.values()
+        if adjustment_data_list.get('source_plant', None):
+            user_profile_obj = UserProfile.objects.filter(stockone_code=adjustment_data_list['source_plant'])
+            if user_profile_obj:
+                source_user = user_profile_obj[0].user
+            else:
+                user_profile_obj = UserProfile.objects.filter(stockone_code="0" + str(adjustment_data_list['source_plant']))
+                if user_profile_obj:
+                    source_user = user_profile_obj[0].user
+                else:
+                    error_message = 'Source Plant Code is not present'
+                    update_error_message(failed_status, 5024, error_message, '')
+                    return failed_status.values()
+        else:
+            error_message = 'Source Plant Code is Empty'
+            update_error_message(failed_status, 5024, error_message, '', 'source_plant')
+            return failed_status.values()
+        if adjustment_data_list.get('destination_plant', None):
+            user_profile_obj = UserProfile.objects.filter(stockone_code=adjustment_data_list['destination_plant'])
+            if user_profile_obj:
+                destination_user = user_profile_obj[0].user
+            else:
+                user_profile_obj = UserProfile.objects.filter(stockone_code="0" + str(adjustment_data_list['destination_plant']))
+                if user_profile_obj:
+                    destination_user  = user_profile_obj[0].user
+                else:
+                    error_message = 'Destination Plant Code is not present'
+                    update_error_message(failed_status, 5024, error_message, '')
+                    return failed_status.values()
+        else:
+            error_message = 'Destination Plant Code is Empty'
+            update_error_message(failed_status, 5024, error_message, '', 'destination_plant')
+            return failed_status.values()
+        source_seller, dest_seller =['']*2
+        order_typ = request.POST.get('order_typ', 'ST_INTER')
+        all_data = {}
+        for row in adjustment_data_list.get("line_items"):
+            if not row.get("sku_code", ""):
+                continue
+            data_id= ''
+            cgst = row.get('cgst', 0)
+            sgst = row.get('sgst', 0)
+            igst = row.get('igst', 0)
+            cess = row.get('cess', 0)
+            mrp = row.get('mrp', 0)
+            price= row.get('price', 0)
+            order_quantity= row.get("quantity", 0)
+            wms_code= row.get("sku_code")
+            cond = (source_user.username, destination_user.id, source_seller, dest_seller)
+            all_data.setdefault(cond, [])
+            all_data[cond].append(
+                [wms_code, order_quantity, price, cgst ,
+                 sgst, igst , cess , data_id, mrp, order_typ])
+        f_name = 'stock_transfer_' + destination_user.username + '_'
+        status = validate_st(all_data, destination_user)
+        if not status:
+           all_data = insert_st_gst(all_data, destination_user)
+           status = confirm_stock_transfer_gst(all_data, source_user.username, order_typ = order_typ, ns_po_number=po_number)
+           data_dict= {"st_order_id":po_number}
+           aa = generate_picklist(data_dict, source_user)
+           failed_status = {'message': 'Success'}
+           return failed_status
+        else:
+            update_error_message(failed_status, 5024, status, '')
+            return failed_status.values()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        log_err.debug(traceback.format_exc())
+        log_err.info('Netsuite Sale Stock transfer failed for %s and params are %s and error statement is %s' % (str(request.user.username     ), str(request.body), str(e)))
+        failed_status = [{'status': 0, 'message': 'Internal Server Error'}]
+        return failed_status

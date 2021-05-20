@@ -11888,7 +11888,7 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_type=''):
+def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_type='', ns_po_number=''):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     incremental_prefix = 'st_prefix'
     if order_typ == 'MR':
@@ -11910,7 +11910,11 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_ty
             creation_date = value[0][11]
             batch_no = value[0][12]
         st_po_id = po_id#get_st_purchase_order_id(user)
-        order_id = full_po_number
+        if ns_po_number:
+            order_id= ns_po_number
+            full_po_number = ns_po_number
+        else:
+            order_id = full_po_number
         # prefix = get_misc_value('st_po_prefix', user.id)
         if not prefix:
             prefix = 'STPO'
@@ -12208,10 +12212,10 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
                                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
-                # elif order_typ == 'ST_INTRA' and stock_transfer.upload_type == 'UI':
-                #     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
-                #                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
-                #     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
+                elif order_typ == 'ST_INTER' and stock_transfer.upload_type == 'UI':
+                    grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
+                                              order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
+                    grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
@@ -13302,11 +13306,12 @@ def sync_supplier_async(id, user_id):
     data_dict.pop('user')
     payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
     net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
-    master_objs = sync_supplier_master({}, user, data_dict, filter_dict, force=True)
+    currency_objs = supplier.currency.filter()
+    master_objs = sync_supplier_master({}, user, data_dict, filter_dict, force=True, currency_objs= currency_objs)
     createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
     print("Sync Completed For %s" % supplier.supplier_id)
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[]):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[], currency_objs =[]):
     supplier_sync = get_misc_value('supplier_sync', user.id)
     if (supplier_sync == 'true' or force) and not current_user :
         user_ids = get_related_users(user.id)
@@ -13357,6 +13362,8 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         master_objs[user_id] = supplier_master
         upload_master_file(request, user, supplier_master.id, "SupplierMaster")
         supplier_master.save()
+        if currency_objs:
+            supplier_master.currency.set(currency_objs, clear=True)
         master_email_map = MasterEmailMapping.objects.filter(user=user_id, master_id=supplier_master.id,
                                                                 master_type='supplier')
         if master_email_map:
@@ -13688,6 +13695,15 @@ def net_terms_supplier_mapping(net_code, net_desc, supplier):
     }
     netterm_obj, created = NetTerms.objects.get_or_create(**filters)
     return netterm_obj
+
+def currency_supplier_mapping(currencyid, currencyname):
+    filters = {
+        'currency_code': currencyname,
+        'netsuite_currency_internal_id': currencyid,
+        # 'supplier': supplier
+    }
+    currency_obj, created = CurrencyMaster.objects.get_or_create(**filters)
+    return currency_obj
 
 def get_warehouses_data(user):
     ware_houses_list = []

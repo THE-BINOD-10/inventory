@@ -262,6 +262,7 @@ urlpatterns = [
     url(r'^view_pending_mr_details/$', view_pending_mr_details),
     url(r'^prepare_material_planning_pr_data/$', prepare_material_planning_pr_data),
     url(r'^confirm_asn_order/$', confirm_asn_order),
+    url(r'^get_asn_qr_code/$', get_asn_qr_code),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

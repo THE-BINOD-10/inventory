@@ -18222,7 +18222,7 @@ def get_asn_data(search_params, user, sub_user):
             status = 'Fully Delivered'
         if 'grn-generated' and '' in po_status:
             status = 'Partially Delivered'
-        ord_dict = OrderedDict((('ASN Number', result['asn_number']), ('PO Number', result['purchase_order__po_number'])
+        ord_dict = OrderedDict((('ASN Number', result['asn_number']), ('PO Number', result['purchase_order__po_number']),
                                 ('PO Remarks', purchase_order[0].remarks), ('Status', status), ('Plant', wh_user.first_name)))
         temp_data['aaData'].append(ord_dict)
 

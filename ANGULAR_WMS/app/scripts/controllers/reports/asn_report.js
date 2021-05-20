@@ -21,20 +21,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.download_invoice_url = Session.url + 'download_grn_invoice_mapping/';
 
   vm.row_call = function(aData) {
-    if (!vm.toggle_sku_wise) {
-        if(aData.receipt_type == "Hosted Warehouse") {
-
-          vm.title = "Stock transfer Note";
+    var dataDict = {
+          'asn_number': aData['ASN Number'],
+          'warehouse_name': aData['Plant'] ,
+          'po_number': aData['PO Number']
         }
-        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id, {withCredential: true}).success(function(data, status, headers, config) {
-            var html = $(data);
-            vm.print_page = $(html).clone();
-            //html = $(html).find(".modal-body > .form-group");
-            //$(html).find(".modal-footer").remove()
-            $(".modal-body").html(html);
-          });
-          $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
-    }
+        vm.service.apiCall('get_asn_qr_code/', 'GET', dataDict).then(function(res){
+          if(res.message) {
+            if (res.data.status == 'failed') {
+             vm.service.pop_msg(res.data.message);
+            }
+            else {
+              const file = new Blob([res.data], { type: 'application/pdf' })
+              const fileURL = URL.createObjectURL(file)
+              $('#proceedModal').modal('hide');
+              window.open(fileURL)
+            }
+          }
+        });
   }
 
   vm.report_data = {};
@@ -62,6 +66,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           angular.copy(vm.empty_data, vm.model_data);
           vm.dtOptions = datam.dtOptions;
           vm.dtColumns = datam.dtColumns;
+          var qr_button = DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px').renderWith(function(data, type, full, meta) {return "<button type='submit' class='btn btn-success pull-right'" +"style='margin: auto;display: block;'" +"ng-click='showCase.print_qr($event, data)'" +">Print QRCode</button>";})
+          vm.dtColumns.push(qr_button)
           vm.datatable = true;
           vm.dtInstance = {};
           vm.report_data['excel2'] = false;
@@ -102,6 +108,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   function print() {
     console.log(vm.print_page);
     vm.service.print_data(vm.print_page, "Good Receipt Note");
+  }
+  function print_qr(event, data) {
+    var dataDict = {
+          'asn_number': data['ASN Number'],
+          'warehouse_name': data['Plant'] ,
+          'po_number': data['PO Number']
+        }
+        vm.service.apiCall('get_asn_qr_code/', 'GET', dataDict).then(function(res){
+          if(res.message) {
+            if (res.data.status == 'failed') {
+             vm.service.pop_msg(res.data.message);
+            }
+            else {
+              const file = new Blob([res.data], { type: 'application/pdf' })
+              const fileURL = URL.createObjectURL(file)
+              $('#proceedModal').modal('hide');
+              window.open(fileURL)
+            }
+          }
+        });
   }
 
 }

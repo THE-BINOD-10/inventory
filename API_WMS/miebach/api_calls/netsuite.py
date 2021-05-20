@@ -927,8 +927,13 @@ def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user='
         if not status:
            all_data = insert_st_gst(all_data, destination_user)
            status = confirm_stock_transfer_gst(all_data, source_user.username, order_typ = order_typ, ns_po_number=po_number)
-           data_dict= {"st_order_id":po_number}
-           aa = generate_picklist(data_dict, source_user)
+           data_dict= {"st_order_id":po_number,
+             "transaction_number": receipt_number,
+              "transaction_date": trasaction_date,
+              "document_number": transaction_id,
+              "invoice_number": invoice_number,
+           }
+           response = auto_generate_picklist(data_dict, source_user)
            failed_status = {'message': 'Success'}
            return failed_status
         else:

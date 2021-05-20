@@ -1789,7 +1789,7 @@ def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, 
                 seller_stock.save()
 
 @fn_timer
-def create_order_summary(picklist,picked_count, pick_number, picks_all):
+def create_order_summary(picklist,picked_count, pick_number, picks_all, stock=None):
     # seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
     order = picklist.order
     st_order = picklist.storder_set.filter()
@@ -1799,8 +1799,11 @@ def create_order_summary(picklist,picked_count, pick_number, picks_all):
     if st_order.exists():
         invoice_value = picked_count
         if not pick_number: pick_number = 1
-        StockTransferSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=picked_count,
-                                          stock_transfer_id=st_order[0].stock_transfer.id, financial_year=financial_year)
+        stocksummarysummary_dict = {'picklist_id': picklist.id, 'pick_number': pick_number, 'quantity': picked_count,
+                                    'stock_transfer_id': st_order[0].stock_transfer.id, 'financial_year': financial_year}
+        if stock:
+            stocksummarysummary_dict['price'] = stock.sku.average_price
+        StockTransferSummary.objects.create(**stocksummarysummary_dict)
         return
     insert_quan = 0
     if order.original_quantity > picked_count:
@@ -2317,7 +2320,7 @@ def picklist_confirmation(request, user=''):
                             create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
                                                         seller_stock_objs)
                         else:
-                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
+                            create_order_summary(picklist, picking_count1, seller_pick_number, picks_all, stock=stock)
                         picked_status = ""
                         if picklist.picked_quantity > 0 and picklist.order:
                             if merge_flag:
@@ -17627,6 +17630,7 @@ def create_manual_test(request, user=''):
             uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, 'consumption',
                                              uom=request_data['uom'][i])
             pcf = uom_dict['sku_conversion']
+            pcf = 1
             if data_dict.get('sku_quantity', 0):
                 sku_stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE'). \
                     filter(sku_id=sku[0].id, quantity__gt=0).order_by('batch_detail__expiry_date')
@@ -17647,6 +17651,7 @@ def create_manual_test(request, user=''):
                 consumption = Consumption.objects.create(**consumption_dict)
                 # TempJson.objects.create(model_id=consumption.id, model_json=json.dumps(value),
                 #                         model_name='manual_test_sku_data')
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
                 for val in value:
                     sku = SKUMaster.objects.get(id=val['sku_id'])
                     quantity = val['needed_quantity']
@@ -17654,9 +17659,12 @@ def create_manual_test(request, user=''):
                         exclude(location__zone__zone='DAMAGED_ZONE').\
                         filter(sku_id=sku.id, quantity__gt=0).order_by('batch_detail__expiry_date')
                     consumption_data = ConsumptionData.objects.create(
+                        order_id=consumption_id,
+                        consumption_number=consumption_number,
                         sku_id=sku.id,
                         quantity=quantity,
-                        consumption_id=consumption.id
+                        consumption_id=consumption.id,
+                        consumption_type=1
                     )
                     update_stock_detail(sku_stocks, quantity, user,
                                         consumption_data.id, transact_type='consumption',

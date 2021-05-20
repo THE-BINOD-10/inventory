@@ -1702,8 +1702,8 @@ class MachineMaster(models.Model):
     user = models.ForeignKey(User,blank=True, null=True)
     machine_code = models.CharField(max_length=128)
     machine_name = models.CharField(max_length=128)
-    model_number = models.CharField(max_length=128)
-    serial_number = models.CharField(max_length=128)
+    model_number = models.CharField(max_length=128, default='')
+    serial_number = models.CharField(max_length=128, default='')
     brand = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -4156,6 +4156,39 @@ class StockMapping(models.Model):
     class Meta:
         db_table = 'STOCK_MAPPING'
 
+class OrgDeptMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True)
+    org_name = models.CharField(max_length=128, default='')
+    instrument_name = models.CharField(max_length=128, default='')
+    product_code = models.CharField(max_length=128, default='')
+    instrument_id =  models.IntegerField(default=None, blank=True, null=True)
+    tcode = models.CharField(max_length=128, default='')
+    tname = models.CharField(max_length=128, default='')
+    dept_name = models.CharField(max_length=128, default='')
+    server_location = models.CharField(max_length=128, default='')
+    
+    class Meta:
+        db_table = 'ORG_DEPT_MAPPING'
+
+class OrgInstrumentMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True)
+    org_name = models.CharField(max_length=128, default='', blank=True, null=True)
+    machine = models.ForeignKey(MachineMaster, default=None, blank=True, null=True)
+    instrument_name = models.CharField(max_length=128, default='', blank=True, null=True)
+    instrument_id =  models.CharField(max_length=128, default=None, blank=True, null=True)
+    instrument_mapping_id =  models.CharField(max_length=128, default=None, blank=True, null=True)
+    investigation_id =  models.IntegerField(default=None, blank=True, null=True)
+    tcode = models.CharField(max_length=128, default='', blank=True, null=True)
+    tname = models.CharField(max_length=128, default='', blank=True, null=True)
+    dept_name = models.CharField(max_length=128, default='', blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORG_INSTRUMENT_MAPPING'
+
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, related_name='consumption_user')
@@ -4177,15 +4210,29 @@ class Consumption(models.Model):
     consumption_type = models.CharField(max_length=32, default='auto')
     remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
+    run_date = models.DateTimeField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION'
 
+class ConsumptionMaterial(models.Model):
+    id = BigAutoField(primary_key=True)
+    consumption = models.ForeignKey(Consumption)
+    sku = models.ForeignKey(SKUMaster, related_name='material_sku')
+    consumption_quantity = models.FloatField(default=0)
+    consumed_quantity = models.FloatField(default=0)
+    pending_quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'CONSUMPTION_MATERIAL'
 
 class ConsumptionData(models.Model):
     id = BigAutoField(primary_key=True)
+    order_id = models.PositiveIntegerField(db_index=True, default=0)
+    consumption_number = models.CharField(max_length=64, default='')
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
     quantity = models.FloatField(default=0)
@@ -4194,12 +4241,36 @@ class ConsumptionData(models.Model):
     stock_mapping = models.ManyToManyField(StockMapping)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    consumption_type = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION_DATA'
         index_together = (('sku', 'creation_date'))
+
+
+class AdjustementConsumptionData(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, related_name="adjustment_main_user", blank=True, null=True)
+    order_id = models.PositiveIntegerField(db_index=True, default=0)
+    consumption = models.ForeignKey(ConsumptionData, related_name='adj_consumption', blank=True, null=True)
+    inv_adjustment = models.ForeignKey(InventoryAdjustment, related_name='inv_adjustment', blank=True, null=True)
+    machine_master = models.ForeignKey(MachineMaster, related_name='adj_machine', blank=True, null=True)
+    requested_user = models.ForeignKey(User, related_name="adjustment_user", blank=True, null=True)
+    machine_date = models.DateField(blank=True, null=True)
+    machine_time = models.CharField(max_length=12, default='')
+    adjustment_type = models.CharField(max_length=128, default='')
+    workload = models.FloatField(default=0)
+    workload_from = models.DateField(blank=True, null=True)
+    workload_to = models.DateField(blank=True, null=True)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ADJUSTMENT_CONSUMPTION_DATA'
+
 
 class AdjustmentData(models.Model):
     id = BigAutoField(primary_key=True)
@@ -4214,3 +4285,40 @@ class AdjustmentData(models.Model):
 
     class Meta:
         db_table = 'ADJUSTMENT_DATA'
+
+
+class MRP(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
+    user = models.ForeignKey(User, related_name='mrp_user')
+    avg_monthly_consumption = models.FloatField(default=0)
+    lead_time_qty = models.FloatField(default=0)
+    min_days_qty = models.FloatField(default=0)
+    max_days_qty = models.FloatField(default=0)
+    system_stock_qty = models.FloatField(default=0)
+    pending_pr_qty = models.FloatField(default=0)
+    pending_po_qty = models.FloatField(default=0)
+    total_stock_qty = models.FloatField(default=0)
+    suggested_qty = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MRP'
+        unique_together = ('user', 'sku')
+        index_together = ('user', 'sku')
+
+class ASNMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_number = models.CharField(max_length=128, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    total_quantity = models.FloatField(default=0)
+    received_quantity = models.FloatField(default=0)
+    status = models.PositiveIntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_MAPPING'
+

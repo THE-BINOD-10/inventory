@@ -263,7 +263,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
             batch_pcf = sku_conversion
             if po_batch_st.exists():
-                batch_pcf = po_batch[0].pcf
+                batch_pcf = po_batch_st[0].pcf
             putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
         intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
         if total:
@@ -302,11 +302,21 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         if sku_conversion == 0:
             sku_conversion = 1
         sku_avg_price = SKUMaster.objects.get(user=data[4], sku_code=data[0]).average_price
+        try:
+            cons_qty, monthly_cons_qty, days_cover_qty, day_cons_qty = [0]*4
+            consumption_user_data = get_last_three_months_consumption(filters={'sku__user__in':[sku_user.id], 'sku__sku_code__in': [data[0]]})
+            if consumption_user_data.exists():
+                cons_qty = consumption_user_data.aggregate(Sum('quantity'))['quantity__sum']
+                monthly_cons_qty = cons_qty/3
+                day_cons_qty = monthly_cons_qty/30
+                days_cover_qty = round((ptotal+putaway_pending)* sku_conversion, 5)/day_cons_qty    
+        except Exception as e:
+            monthly_cons_qty, days_cover_qty = 0, 0
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('SKU Conversion', sku_conversion),
                                                 ('sku_packs', sku_packs),
-                                                ('Available Qty', round(pquantity, 5)),
-                                                ('Reserved Qty', round(preserved, 5)), ('Purchase UOM Qty', round(ptotal, 3)),
+                                                ('Available Qty', round(pquantity, 2)),
+                                                ('Reserved Qty', round(preserved, 2)), ('Purchase UOM Qty', round(ptotal, 2)),
                                                 ('Pending Putaway Qty', putaway_pending),
                                                 ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 5)),
                                                 ('Base UOM Qty', round(ptotal * sku_conversion, 5)),
@@ -315,9 +325,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Purchase UOM', measurement_type),
                                                 ('Base UOM', base_uom),
                                                 ('Unit Purchase Qty Price', sku_avg_price),
-                                                ('In Stock Value', round(ptotal*sku_avg_price, 5)),
-                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 5)),
-                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 5)),
+                                                ('In Stock Value', round(ptotal*sku_avg_price, 2)),
+                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 2)),
+                                                ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 2)),
                                                 # ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),
@@ -325,6 +335,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Dept Name', dept_type),
                                                 ('Intransit Qty', intransit_qty),
                                                 ('Intransit Value', float('%.2f' % intransit_amt)),
+                                                ('Avg Monthly Consumption Qty', round(monthly_cons_qty, 2)),
+                                                ('Days of Cover', round(days_cover_qty, 2)),
                                                 ('DT_RowId', data[0]))))
         # temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
         #                                         ('SKU Category', data[2]), ('SKU Brand', data[3]),
@@ -2703,13 +2715,13 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
-           'sku__user', 'sku__user', 'sku__user', 'batch_detail__batch_no',
+           'sku__user', 'sku__user', 'sku__user', 'sku__user', 'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent', 'sku__average_price',
            'batch_detail__manufactured_date', 'batch_detail__expiry_date',
            'location__zone__zone', 'location__location', 'sku__sku_code',
            'quantity', 'quantity', 'quantity', 'quantity', 'quantity', 'receipt_type', 'creation_date', 'pallet_detail__pallet_code']
     filt_lis = copy.deepcopy(lis)
-    filt_lis[5:8] = ['plant_code', 'plant_name', 'dept_type']
+    filt_lis[5:9] = ['plant_code', 'plant_name', 'zone_code', 'dept_type']
     sub_zone_perm = get_permission(user, 'add_subzonemapping')
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'false' and 'pallet_detail__pallet_code' in lis:
@@ -2749,6 +2761,10 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
             users = users.filter(userprofile__stockone_code__in=dept_mapping.keys())
         else:
             users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code__icontains' in search_params.keys():
+        zone_code = search_params['zone_code__icontains']
+        del search_params['zone_code__icontains']
+        users = users.filter(userprofile__zone=zone_code)
 
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
@@ -2825,12 +2841,14 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         quantity_for_val = data.quantity/pcf
         sku_user = User.objects.get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
+        plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
         dept_type = ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
             plant_name = admin_user.first_name
+            plant_zone = admin_user.userprofile.zone
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         row_data = OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
@@ -2840,6 +2858,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('SKU Category', data.sku.sku_category),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Zone Code', plant_zone),
                                 ('dept_type', dept_type),
                                 ('Batch Number', batch_no), ('exp_date', exp_date),
                                 ('Batch ID', batch_id), ('mfg_date', mfg_date),
@@ -4035,14 +4054,35 @@ def insert_inventory_adjust(request, user=''):
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count + 1
+    machine_datum = {}
+    cycle_id, consumption_id, consumption_number = [0]*3
     request_data = dict(request.POST.iterlists())
     for i in range(0, len(request_data['wms_code'])):
+        qty = request_data['quantity'][i]
+        if float(qty) <= 0:
+            return HttpResponse("Quantity is Mandatory !")
+    reason = request_data['reason'][0]
+    if reason == 'Breakdown':
+        try:
+            machine_det = request_data.get('machine')[0].split(' : ')
+            machine_datum['machine_master'] = MachineMaster.objects.get(machine_code=machine_det[0], machine_name=machine_det[1])
+        except Exception as e:
+            return HttpResponse("machine Details are Missing")
+        if request_data.get('machine_date')[0]:
+            machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%m/%d/%Y").date()
+        machine_datum['machine_time'] = request_data.get('machine_time')[0]
+    if reason in ['Consumption', 'Breakdown', 'Caliberation', 'Damaged/Disposed']:
+        consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
+        if inc_status:
+            return HttpResponse("Consumption Prefix not defined")
+    else:
+        cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+        if not cycle_count:
+            cycle_id = 1
+        else:
+            cycle_id = cycle_count + 1
+    for i in range(0, len(request_data['wms_code'])):
+        sku_datum = {}
         wmscode = request_data['wms_code'][i]
         quantity = request_data['quantity'][i]
         reason = request_data['reason'][0]
@@ -4050,6 +4090,17 @@ def insert_inventory_adjust(request, user=''):
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]
+        remarks = request_data['remarks'][i]
+        sku_datum['adjustment_type'] = reason
+        sku_datum['remarks'] = remarks
+        sku_datum['requested_user_id'] = request.user.id
+        sku_datum['user_id'] = user.id
+        if request_data['workload'][i]:
+            sku_datum['workload'] = request_data['workload'][i]
+        if request_data['workload_from'][i]:
+            sku_datum['workload_from'] = datetime.datetime.strptime(request_data['workload_from'][i], "%m/%d/%Y").date()
+        if request_data['workload_to'][i]:
+            sku_datum['workload_to'] = datetime.datetime.strptime(request_data['workload_to'][i], "%m/%d/%Y").date()
         price = ''
         if 'price' in request_data.keys():
             price = request_data['price'][i]
@@ -4059,15 +4110,17 @@ def insert_inventory_adjust(request, user=''):
             stock_increase = False
         receipt_number = get_stock_receipt_number(user)
         stock_stats_objs = []
+        sku_datum.update(machine_datum)
         status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
-                                                             batch_no=batch_no, receipt_number=receipt_number,
-                                       receipt_type='inventory-adjustment', stock_increase=stock_increase,
-                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price)
+                                                batch_no=batch_no, receipt_number=receipt_number,
+                                                receipt_type='inventory-adjustment', stock_increase=stock_increase,
+                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price, consumption_id=consumption_id,
+                                                consumption_number = consumption_number, remarks=remarks, sku_datum=sku_datum)
     #netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
-    if data_id and 'success' in status.lower():
-        MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
+    # if data_id and 'success' in status.lower():
+    #     MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
     #update_filled_capacity([loc], user.id)
     return HttpResponse(status)
 
@@ -4247,7 +4300,11 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         consumption_qtys.setdefault(grp_key, {'qty': 0, 'value': 0})
         consumption_qtys[grp_key]['qty'] += cons.quantity
         consumption_qtys[grp_key]['value'] += (cons.quantity/sku_pcf) * cons.price
+    all_usrs = list(master_data.values_list('sku__user', flat=True))
+    all_usrs_skus = list(master_data.values_list('sku__sku_code', flat=True))
+    replenushment_data = ReplenushmentMaster.objects.filter(user_id__in = all_usrs, sku__sku_code__in = all_usrs_skus)
     for data in master_data:
+        max_norm_qty, max_norm_value, excess_stock_qty, excess_stock_value = [0]*4
         uom_dict = sku_uoms.get(data['sku__sku_code'], {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
@@ -4264,16 +4321,26 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         avg_per_day_cons_val = cons_value/30
         days_of_cover_bqty = (stock_qtyb/avg_per_day_cons) if avg_per_day_cons else 0
         days_of_cover_value = (stock_value/avg_per_day_cons_val) if avg_per_day_cons_val else 0
+        excess_data = replenushment_data.filter(user_id= data['sku__user'], sku__sku_code=data['sku__sku_code'])
+        if excess_data.exists():
+            max_norm_qty = avg_per_day_cons * excess_data[0].max_days
+            max_norm_value = avg_per_day_cons_val * excess_data[0].max_days
+        excess_stock_qty = days_of_cover_bqty - max_norm_qty
+        excess_stock_value = days_of_cover_value - max_norm_value
         data_dict = OrderedDict(( ('DT_RowId', data['sku__user']), ('Plant Code', user.userprofile.stockone_code),
                                   ('Plant Name', user.first_name),
                                   ('SKU Code', data['sku__sku_code']), ('SKU Description', data['sku__sku_desc']),
                                   ('SKU Brand', data['sku__sku_brand']), ('SKU Category', data['sku__sku_category']),
                                   ('Base UOM', uom_dict.get('base_uom', '')),
-                                  ('Current Stock Base UOM', stock_qtyb), ('Current Stock Value', stock_value),
-                                  ('Average Monthly Consumption Base Qty', cons_qtyb),
-                                  ('Average Monthly Consumption Value', cons_value),
-                                  ('Days of Cover Base Qty', round(days_of_cover_bqty,5)),
-                                  ('Days of Cover Value', round(days_of_cover_value,5)),
+                                  ('Current Stock Base UOM', round(stock_qtyb, 1)), ('Current Stock Value', round(stock_value, 1)),
+                                  ('Average Monthly Consumption Base Qty', round(cons_qtyb, 1)),
+                                  ('Average Monthly Consumption Value', round(cons_value, 1)),
+                                  ('Days of Cover Base Qty', round(days_of_cover_bqty,1)),
+                                  # ('Days of Cover Value', round(days_of_cover_value,1)),
+                                  ('Max Norm Qty', round(max_norm_qty, 1)),
+                                  # ('Max Norm Value', round(max_norm_value, 1)),
+                                  ('Excess Stock Qty', round(excess_stock_qty, 1)),
+                                  # ('Excess Stock Value', round(excess_stock_value, 1)),
                                   ('DT_RowAttr', {'data-id': data['sku__user']}),
                                 ))
         temp_data['aaData'].append(data_dict)
@@ -4285,3 +4352,158 @@ def reject_inventory_adjustment(request, user=''):
     data_id = request.POST['data_id']
     MastersDOA.objects.filter(id=data_id).update(doa_status='rejected', validated_by=request.user.username)
     return HttpResponse("Updated Successfully")
+
+
+@csrf_exempt
+def get_stock_plant_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, cus_filters={}):
+    from rest_api.views.common import get_last_three_months_consumption
+    headers1, filters, filter_params1 = get_search_params(request)
+    if cus_filters:
+        filters = copy.deepcopy(cus_filters)
+    lis = ['sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user']
+    if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'plant_code' in filters and filters['plant_code']:
+        plant_code = filters['plant_code']
+        users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'plant_name' in filters and filters['plant_name']:
+        plant_name = filters['plant_name']
+        users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in filters and filters['zone_code']:
+        zone_code = filters['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_params = {'sku__user__in': user_ids}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    main_user = get_company_admin_user(user)
+    search_params['quantity__gt'] = 0
+    master_data = StockDetail.objects.filter(**search_params).exclude(sku_id__in=AssetMaster.objects.all()).\
+        exclude(sku_id__in=ServiceMaster.objects.all()).\
+        exclude(sku_id__in=OtherItemsMaster.objects.all()).\
+        exclude(sku_id__in=TestMaster.objects.all()).values('sku__user').distinct().order_by(order_data)
+    master_sku_data = StockDetail.objects.filter(**search_params).exclude(sku_id__in=AssetMaster.objects.all()).\
+        exclude(sku_id__in=ServiceMaster.objects.all()).\
+        exclude(sku_id__in=OtherItemsMaster.objects.all()).\
+        exclude(sku_id__in=TestMaster.objects.all()).values('sku__user', 'sku__sku_code', 'sku__sku_brand',
+                                                            'sku__sku_category', 'sku__sku_desc',
+                                                            'sku__average_price').distinct().order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    master_data = master_data[start_index:stop_index]
+
+    res_plants = set()
+    for dat in master_data:
+        res_plants.add(dat['sku__user'])
+    usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_user_ids = list(dept_users.values_list('id', flat=True))
+    master_sku_data = StockDetail.objects.filter(sku__user__in=dept_user_ids, quantity__gt=0).exclude(sku_id__in=AssetMaster.objects.all()).\
+        exclude(sku_id__in=ServiceMaster.objects.all()).\
+        exclude(sku_id__in=OtherItemsMaster.objects.all()).\
+        exclude(sku_id__in=TestMaster.objects.all()).values('sku__user', 'sku__sku_code', 'sku__sku_brand',
+                                                            'sku__sku_category', 'sku__sku_desc',
+                                                            'sku__average_price').distinct().\
+                                                    order_by(order_data)
+
+    sku_codes = set()
+    for dat in master_sku_data:
+        sku_codes.add(dat['sku__sku_code'])
+    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+                                            values('sku__user', 'sku__sku_code').distinct().\
+                annotate(total=Sum('quantity'))
+    stock_qtys = {}
+    user_id_mapping = {}
+    for stock in stocks:
+        if stock['sku__user'] in user_id_mapping:
+           usr = user_id_mapping[stock['sku__user']]
+        else:
+            usr = User.objects.get(id=stock['sku__user'])
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[stock['sku__user']] = usr
+        grp_key = (usr.id, stock['sku__sku_code'])
+        stock_qtys.setdefault(grp_key, 0)
+        stock_qtys[grp_key] += stock['total']
+    replenushment_dict = {}
+    relenushment_data = ReplenushmentMaster.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes).\
+                                            values('sku__user', 'sku__sku_code', 'max_days').distinct()
+    for rep_data in relenushment_data:
+        if rep_data['sku__user'] in user_id_mapping:
+           usr = user_id_mapping[stock['sku__user']]
+        else:
+            usr = User.objects.get(id=rep_data['sku__user'])
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[stock['sku__user']] = usr
+        grp_key = (usr.id, rep_data['sku__sku_code'])
+        replenushment_dict.setdefault(grp_key, 0)
+        replenushment_dict[grp_key] = rep_data['max_days']
+    sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
+    consumption_qtys = {}
+    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
+    for cons in consumption_lt3.prefetch_related('sku').only('sku__user', 'sku__sku_code', 'quantity', 'price'):
+        uom_dict = sku_uoms.get(cons.sku.sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        if cons.sku.user in user_id_mapping:
+            usr = user_id_mapping[cons.sku.user]
+        else:
+            usr = User.objects.get(id=cons.sku.user)
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[cons.sku.user] = usr
+        grp_key = (usr.id, cons.sku.sku_code)
+        consumption_qtys.setdefault(grp_key, {'qty': 0, 'value': 0})
+        consumption_qtys[grp_key]['qty'] += cons.quantity
+        consumption_qtys[grp_key]['value'] += (cons.quantity/sku_pcf) * cons.price
+    final_data = OrderedDict()
+    final_user_mapping = {}
+    for data in master_sku_data:
+        uom_dict = sku_uoms.get(data['sku__sku_code'], {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        if data['sku__user'] in final_user_mapping:
+            user = final_user_mapping[data['sku__user']]
+        else:
+            user = User.objects.get(id=data['sku__user'])
+            final_user_mapping[data['sku__user']] = user
+        grp_key = (data['sku__user'], data['sku__sku_code'])
+        cons_dict = consumption_qtys.get(grp_key, {})
+        rpl_max_days = replenushment_dict.get(grp_key, 0)
+        cons_qtyb = round(cons_dict.get('qty', 0)/3, 5)
+        cons_qty = round(cons_qtyb/sku_pcf, 5)
+        stock_qtyb = stock_qtys.get(grp_key, 0)
+        stock_qty = round((stock_qtyb)/sku_pcf, 5)
+        stock_value = stock_qty * data['sku__average_price']
+        cons_value = round(cons_dict.get('value', 0)/3, 5)
+        cons_value_per_day = round(cons_value/30, 5)
+        excess_val = cons_value_per_day * rpl_max_days
+        final_data.setdefault(data['sku__user'], {'stock_value': 0, 'cons_value': 0, 'excess_value': 0})
+        final_data[data['sku__user']]['stock_value'] += stock_value
+        final_data[data['sku__user']]['cons_value'] += cons_value
+        final_data[data['sku__user']]['excess_value'] += excess_val
+    for data in master_data:
+        user = User.objects.get(id=data['sku__user'])
+        stock_value = final_data[data['sku__user']]['stock_value']
+        cons_value = final_data[data['sku__user']]['cons_value']
+        excess_value = final_data[data['sku__user']]['excess_value']
+        avg_per_day_cons_val = cons_value/30
+        days_of_cover_value = (stock_value/avg_per_day_cons_val) if avg_per_day_cons_val else 0
+        excess_stock_value = round(days_of_cover_value - excess_value, 0)
+        data_dict = OrderedDict(( ('DT_RowId', data['sku__user']), ('Plant Code', user.userprofile.stockone_code),
+                                  ('Plant Name', user.first_name),
+                                  ('Total Stock Value', round(stock_value,1)),
+                                  ('Average Monthly Consumption Value', round(cons_value,1)),
+                                  ('Days of Cover Value', round(days_of_cover_value,1)),
+                                  ('Excess Stock Value', round(excess_stock_value, 1)),
+                                  ('DT_RowAttr', {'data-id': data['sku__user']}),
+                                ))
+        temp_data['aaData'].append(data_dict)
+

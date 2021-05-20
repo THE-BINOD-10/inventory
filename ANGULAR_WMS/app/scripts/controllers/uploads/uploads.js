@@ -23,7 +23,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "sku_upload/",
                    dparam: "download-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: true, //Session.roles.permissions.is_staff,
                    perm: "add_skumaster"
                  }, {
                    title: "Asset Master Download/ Upload",
@@ -33,7 +33,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "asset_upload/",
                    dparam: "download-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: true, //Session.roles.permissions.is_staff,
                    perm: "add_assetmaster"
                  }, {
                    title: "Service Master Download/ Upload",
@@ -43,7 +43,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "service_upload/",
                    dparam: "download-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: true, //Session.roles.permissions.is_staff,
                    perm: "add_servicemaster"
                  }, {
                    title: "Machine Master Download/ Upload",
@@ -53,7 +53,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "machine_upload/",
                    dparam: "download-machine-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: true, //Session.roles.permissions.is_staff,
                    perm: "add_machinemaster"
                  }, {
                    title: "Test Master Download/ Upload",
@@ -63,7 +63,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "test_upload/",
                    dparam: "download-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: true, //Session.roles.permissions.is_staff,
                    perm: "add_testmaster"
                  }, {
                    title: "OtherItems Master Download/ Upload",
@@ -73,7 +73,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "otheritems_upload/",
                    dparam: "download-sku-file",
                    value: "",
-                   show: Session.roles.permissions.is_staff,
+                   show: true, //Session.roles.permissions.is_staff,
                    perm: "add_otheritemsmaster"
                  }, {
                    title: "Inventory Download/ Upload",
@@ -492,7 +492,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "uom_master_upload/",
                    dparam: "download-file",
                    value: "",
-                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                   show: true, //Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
                    perm: "add_uommaster",
                  },
                  {

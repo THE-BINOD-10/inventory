@@ -2750,7 +2750,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.buy_price == ''){
         sku_row_data.buy_price = 0;
       }
-      if (parseFloat(sku_row_data.buy_price) > parseFloat(sku_row_data.price)) {
+      if (!sku_row_data.is_stock_transfer && parseFloat(sku_row_data.buy_price) > parseFloat(sku_row_data.price)) {
         data.data[parent_index][index]['buy_price'] = sku_row_data.price;
         Service.showNoty("Buy Price Should not be Greater than Unit price");
         return

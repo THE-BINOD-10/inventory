@@ -1583,6 +1583,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/stockLocator/stock_summary/stock_summary_plant_sku.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/stockLocator/stock_summary/stock_summary_plant.js'
+                  ])
                 });
               }]
           },
@@ -2469,6 +2473,18 @@ var app = angular.module('urbanApp')
             title: 'SKU List',
           }
         })
+        .state('app.reports.IntegrationReport', {
+          url: '/IntegrationReport',
+          templateUrl: 'views/reports/integration_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/integration_report.js');
+              }]
+          },
+          data: {
+            title: 'Netsuite Integration Report',
+          }
+        })
         .state('app.reports.LocationWiseFilter', {
           url: '/LocationWiseFilter',
           templateUrl: 'views/reports/location_wise_filter.html',
@@ -3282,6 +3298,18 @@ var app = angular.module('urbanApp')
             title: 'Credit Note Form (Oracle Upload File)',
           }
         })
+        .state('app.reports.ConsumptionData', {
+          url: '/consumptionData',
+          templateUrl: 'views/reports/consumption_data.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/consumption_data.js');
+              }]
+          },
+          data: {
+            title: 'Test Data',
+          }
+        })
         .state('app.reports.ConsumptionReport', {
           url: '/consumptionReport',
           templateUrl: 'views/reports/consumption_report.html',
@@ -3488,13 +3516,23 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/supplier_purchase_order.js'
                   ])
-                });
+                }).then( function() {
+                return $ocLazyLoad.load([
+                  {
+                  serie: true,
+                        files: ['scripts/controllers/inbound/pop_jos/common_asn.js']}
+                ])
+              });
               }]
           },
           data: {
             title: 'Purchase Order'
           }
         })
+      .state('app.PurchaseOrder.SKUDetails', {
+            url: '/SKUDetails',
+            templateUrl: 'views/inbound/toggle/supplier_po_sku_data.html'
+          })
 
       //register
       .state('app.Register', {

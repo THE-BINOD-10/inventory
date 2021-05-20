@@ -23,6 +23,14 @@
                 </div>
                 <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
+                    <label class="control-label">Zone Code</label>
+                    <select name="zone_code" class="form-control" ng-model="showCase.model_data.zone_code">
+                      <option ng-repeat="zone in showCase.zone_codes_list" value="{{zone}}">{{zone}}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-4 col-xs-6">
+                  <div class="form-group">
                     <label class="control-label">SKU Code</label>
                     <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.sku_code,'search_wms_codes?', $event)" ng-model="showCase.model_data.sku_code">
                   </div>

@@ -94,10 +94,10 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
 
-    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
+    elif report_name in [ 'stock_transfer_report_main', 'pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
-                         'metropolis_po_detail_report', 'pr_po_grn_dict', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
-                         'sku_wise_consumption_report', 'closing_stock_report']:
+                         'metropolis_po_detail_report', 'pr_po_grn_dict', 'metropolis_pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
+                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -156,10 +156,21 @@ def get_report_data(request, user=''):
         if 'zone_code' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'zone_code' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ZONE_CODES
+        if 'consumption_type' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'consumption_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = CONSUMPTION_TYPE
 
+        if 'integration_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'integration_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = INTEGRATION_STATUS
+        if 'integration_type' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'integration_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = INTEGRATION_TYPES
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
-                         'zone_target_summary_report', 'zone_target_detailed_report',
+                         'zone_target_summary_report', 'zone_target_detailed_report', 
                          'corporate_reseller_mapping_report', 'financial_report', ''):
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
@@ -236,6 +247,14 @@ def get_po_filter(request, user=''):
     temp_data = get_po_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_integration_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_integration_report_data(request, search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -245,6 +264,14 @@ def get_pr_po_grn_filter(request, user=''):
     temp_data = get_pr_po_grn_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metropolis_pr_po_grn_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metropolis_pr_po_grn_filter_data(request, search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -1054,7 +1081,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
     search_parameters['cycle__sku__user__in'] = user_ids
     #search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
-        adjustments = InventoryAdjustment.objects.filter(**search_parameters)
+        adjustments = InventoryAdjustment.objects.filter(**search_parameters).order_by('-id')
     grouping_data = OrderedDict()
     industry_type = user.userprofile.industry_type
     user_type = user.userprofile.user_type
@@ -1170,6 +1197,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             adjustments = adjustments[start_index:stop_index]
         for data in adjustments:
             #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            price, order_id, store, dept, remarks = 0, '', '', '', ''
             base_quantity = data.adjusted_quantity
             uom_dict = get_uom_with_sku_code(user, data.cycle.sku.sku_code, uom_type='purchase')
             pcf = uom_dict['sku_conversion']
@@ -1177,25 +1205,34 @@ def get_adjust_filter_data(search_params, user, sub_user):
             #    pcf = data.stock.batch_detail.pcf
             quantity = base_quantity/pcf
             user_obj = User.objects.get(id=data.cycle.sku.user)
-            dept_name = ''
-            store_name = user_obj.first_name
+            store = user_obj
             if user_obj.userprofile.warehouse_type == 'DEPT':
-                dept_name = user_obj.first_name
-                store_name = get_admin(user_obj).first_name
-            temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
+                dept = user_obj
+                store = get_admin(user_obj)
+            if data.price:
+                price = data.price
+            else:
+                price = data.cycle.sku.average_price
+            order_id = "%s - %s %s" % (data.cycle.cycle, store.userprofile.stockone_code, dept.userprofile.stockone_code if dept else '')
+            datum = AdjustementConsumptionData.objects.filter(inv_adjustment_id=data.id)
+            if datum.exists():
+                remarks = datum[0].remarks
+            temp_data['aaData'].append(OrderedDict((('OrderId', order_id),
+                                                    ('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
                                                     ('Category', data.cycle.sku.sku_category),
                                                     ('Sub Category', data.cycle.sku.sub_category),
                                                     ('Location', data.cycle.location.location),
                                                     ('Quantity', quantity),
-                                                    ('Adjustment Value', '%.2f' % float(quantity*data.cycle.sku.average_price)),
+                                                    ('Adjustment Value', '%.2f' % float(quantity*price)),
                                                     ('Base Uom Quantity', base_quantity),
                                                     ('Pallet Code',
                                                      data.pallet_detail.pallet_code if data.pallet_detail else ''),
                                                     ('Date', get_local_date(user, data.creation_date)),
-                                                    ('Remarks', data.reason),
-                                                    ('Store', store_name),
-                                                    ('Department', dept_name)
+                                                    ('Reason', data.reason),
+                                                    ('Remarks', remarks),
+                                                    ('Store', store.first_name),
+                                                    ('Department', dept.first_name if dept else '')
                                                     )))
 
     return temp_data
@@ -1661,7 +1698,11 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
+    if 'excel_name=integration_report' in excel_name:
+        params = [request, search_params, user, request.user]
     if 'excel_name=pr_po_grn_dict' in excel_name:
+        params = [request, search_params, user, request.user]
+    if 'excel_name=metropolis_pr_po_grn_dict' in excel_name:
         params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
@@ -2918,6 +2959,15 @@ def get_sku_wise_cancel_grn_report(request, user=''):
 def get_sku_wise_consumption_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_consumption_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_consumption_data(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_consumption_data_(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

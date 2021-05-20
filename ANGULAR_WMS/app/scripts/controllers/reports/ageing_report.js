@@ -10,7 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_enable = false;
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
-
+    vm.zone_codes_list = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -30,6 +30,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.dtColumns = [
       DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
       DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
+      DTColumnBuilder.newColumn('Zone Code').withTitle('Zone'),
       DTColumnBuilder.newColumn('Material Code').withTitle('Material Code'),
 //        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
       DTColumnBuilder.newColumn('Material Description').withTitle('Material Description'),

@@ -2353,6 +2353,7 @@ def generated_actual_pr_data(request, user=''):
 def print_pending_po_form(request, user=''):
     purchase_id = request.GET.get('purchase_id', '')
     is_actual_pr = request.GET.get('is_actual_pr', '')
+    process_type= request.GET.get('type', '')
     warehouse = request.GET.get('warehouse', '')
     currency_rate = request.GET.get('currency_rate', 1)
     remarks = request.GET.get('remarks', '')
@@ -2393,9 +2394,16 @@ def print_pending_po_form(request, user=''):
                      'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if display_remarks == 'true':
         table_headers.append('Remarks')
-    values_list = ['quantity', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
+    values_list = ['quantity','id', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
         'sku__sku_code', 'sku__sku_desc', 'measurement_unit']
     for order in lineItems.values(*values_list):
+        supplier_code = ""
+        if process_type == "pr_report":
+            pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
+                                        model_id=order["id"])
+            if pr_supplier_data.exists():
+                json_data = eval(pr_supplier_data[0].model_json)
+                supplier_code = json_data['supplier_id']
         if currency_rate > 1:
             current_price = round((float(order['price']) / float(currency_rate)), 2)
         else:
@@ -2406,7 +2414,7 @@ def print_pending_po_form(request, user=''):
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (tax) * (amount / 100)
         total_sku_amt = total_tax_amt + amount
-        po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'],'',
+        po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'], supplier_code,
                         order['quantity'], order['measurement_unit'], current_price, amount,
                         order['sgst_tax'], order['cgst_tax'], order['igst_tax'],
                         order['utgst_tax'], total_sku_amt]

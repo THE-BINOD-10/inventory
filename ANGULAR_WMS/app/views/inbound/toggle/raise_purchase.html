@@ -142,7 +142,7 @@
                        ng-readonly="showCase.update" ng-if="showCase.update">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po" ng-show="!showCase.from_supplier_pos">
               <div class="form-group">
                 <label class="control-label">Ship to Address *</label>
                 <select ui-select2 class="form-control" name="plant" ng-model="showCase.model_data.shipment_address_select" ng-change = "showCase.ship_addr_change(showCase.model_data.shipment_address_select)" required>
@@ -341,15 +341,18 @@
                     </td>
                     <td>
 		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		               	<input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="(!showCase.from_supplier_pos && product.taxes.length!==0) || (showCase.from_supplier_pos && product.taxes[0].inter_state!=0)" ng-debounce size="12">
+		               	<input ng-if="!product.fields.edit_tax && !showCase.from_supplier_pos" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                        <input ng-if="showCase.from_supplier_pos" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="!(product.fields.gstin && product.fields.hsn_code && product.tax_data[0].tax_type=='intra_state')" ng-debounce size="12">
                     </td>
                     <td>
                       <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="(!showCase.from_supplier_pos && product.taxes.length!==0) || (showCase.from_supplier_pos && product.taxes[0].inter_state!=0)" ng-debounce size="12">
+		                 <input ng-if="!product.fields.edit_tax && !showCase.from_supplier_pos" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                         <input ng-if="showCase.from_supplier_pos" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="!(product.fields.gstin && product.fields.hsn_code && product.tax_data[0].tax_type=='intra_state')" ng-debounce size="12">
                     </td>
                     <td>
 		           	     <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="(!showCase.from_supplier_pos && product.taxes.length!==0) || (showCase.from_supplier_pos && product.taxes[0].inter_state==0)" ng-debounce size="12">
+		                 <input ng-if="!product.fields.edit_tax && !showCase.from_supplier_pos" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                         <input ng-if="showCase.from_supplier_pos" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="!(product.fields.gstin && product.fields.hsn_code && product.tax_data[0].tax_type=='inter_state')" ng-debounce size="12">
                     </td>
                     <td ng-if="!showCase.model_data.is_approval">
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
@@ -463,7 +466,7 @@
           <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="po_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
         </div>
       </div>
-      <div class="col-md-12 col-sm-12 col-xs-12" ng-init="showCase.supplier_mail_flag == 'true'" style="padding-top: 12px;">
+      <div class="col-md-12 col-sm-12 col-xs-12" ng-init="showCase.supplier_mail_flag == 'true'" style="padding-top: 12px;" ng-show="!showCase.from_supplier_pos">
         <div class="form-group">
           <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
             <strong>Send Mail To Supplier :</strong>

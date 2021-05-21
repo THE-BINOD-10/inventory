@@ -274,7 +274,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 data.fields.sku_supplier_price = data.tax_data[0].sku_supplier_price;
                 data.taxes = {};
                 if(data.tax_data[0].taxes.length){
-                  data.taxes = data.tax_data[0].taxes
+                  data.taxes = data.tax_data[0].taxes;
                 }
               });
               vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;

@@ -1785,6 +1785,7 @@ def generated_pr_data(request, user=''):
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(record[0].wh_user, sku_code,
                                                     search_params, includeStoreStock=False)
         tax_data = get_supplier_sku_price_values(record[0].supplier.supplier_id, sku_code, record[0].wh_user)
+        sku_obj = SKUMaster.objects.get(id=sku_id)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'capacity': st_avail_qty+avail_qty,
                                             'intransit_quantity': intransitQty,
@@ -1797,7 +1798,8 @@ def generated_pr_data(request, user=''):
                                     'sku_conversion': sku_conversion,
                                     'sku_detail': sku_desc_edited, 'service_stdate': service_stdate, 'service_edate': service_edate,
                                     'temp_price': temp_price, 'temp_tax': temp_tax,
-                                    'temp_cess_tax': temp_cess_tax
+                                    'temp_cess_tax': temp_cess_tax,
+                                    'gstin': record[0].supplier.tin_number, 'hsn_code': sku_obj.hsn_code,
                                     }, 'pk': apprId,
                                     'tax_data': tax_data})
     if pr_id:
@@ -17070,6 +17072,7 @@ def update_po_values(request, user=''):
     pos = PurchaseOrder.objects.filter(po_number=po_number)
     pending_po = PendingPO.objects.filter(full_po_number=po_number)
     pend_po = None
+    main_user = get_company_admin_user(user)
     try:
         with transaction.atomic('default'):
             if pending_po:
@@ -17077,7 +17080,8 @@ def update_po_values(request, user=''):
                 pend_po.remarks = po_remarks
                 if payment_terms:
                     if not (pend_po.supplier_payment.payment_code == payment_code and pend_po.supplier_payment.payment_description == payment_description):
-                        terms_obj = PaymentTerms.objects.filter(supplier_id=pos[0].open_po.supplier_id, payment_code=payment_code, payment_description=payment_description)
+                        terms_obj = PaymentTerms.objects.filter(supplier__supplier_id=pos[0].open_po.supplier.supplier_id, supplier__user=main_user.id, 
+                                                                payment_code=payment_code, payment_description=payment_description)
                         if terms_obj:
                             pend_po.supplier_payment_id = terms_obj[0].id
                         else:
@@ -17114,9 +17118,9 @@ def update_po_values(request, user=''):
                 if pend_po:
                     line_item = pend_po.pending_polineItems.filter(sku__sku_code=wms_code)[0]
                     line_item.price = price
-                    line_item.cgst_price = cgst_tax
-                    line_item.sgst_price = sgst_tax
-                    line_item.igst_price = igst_tax
+                    line_item.cgst_tax = cgst_tax
+                    line_item.sgst_tax = sgst_tax
+                    line_item.igst_tax = igst_tax
                     line_item.save()
                 open_po.save()
             TempJson.objects.filter(model_id__in=pos.values_list('id', flat=True),model_name='PO').delete()

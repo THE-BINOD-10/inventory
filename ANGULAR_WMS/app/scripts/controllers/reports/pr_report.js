@@ -25,7 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         // vm.FileDownload(aData);
         vm.model_data.pr_number = aData["PR Number"]
         // print_pending_po_form/?purchase_id=21902&is_actual_pr=true&warehouse=
-        $http.get(Session.url+'print_pending_po_form/?purchase_id='+aData.pending_pr_id+'&is_actual_pr='+true, {withCredential: true})
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+aData.pending_pr_id+'&is_actual_pr='+true+'&type=pr_report', {withCredential: true})
         .success(function(data, status, headers, config) {
               $(".modal-body").html($(data).html());
               vm.print_page = $($(data).html()).clone();

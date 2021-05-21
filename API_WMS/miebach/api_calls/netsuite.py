@@ -815,8 +815,13 @@ def netsuite_validate_stock_availability(request, data, user=''):
         if source_user:
             line_items_error_list= []
             available_stock_check = True
+            duplicate_sku_dict= {}
             for row in data.get("line_items"):
                 sku_code = str(row['sku_code']).strip()
+                if sku_code in duplicate_sku_dict:
+                    duplicate_sku_dict[sku_code] += row["quantity"]
+                else:
+                    duplicate_sku_dict[sku_code] = row["quantity"]
                 includeStoreStock= True
                 search_params = { 'sku__user': source_user.id, 'sku__sku_code': sku_code}
                 stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(source_user, sku_code, search_params, includeStoreStock)
@@ -825,15 +830,15 @@ def netsuite_validate_stock_availability(request, data, user=''):
                 # if not uom_dict:
                 #     error_message = 'Conversion Factor not defined for the SKU code '+str(sku_code)
                 #     return {"status": "failed", "message": error_message, "sku_code":str(sku_code)}
-                order_quantity= row.get("quantity", 0)
+                order_quantity= duplicate_sku_dict[sku_code]
                 # quantity = uom_dict.get('sku_conversion', 0) * order_quantity
                 # availble_stockdetail_obj = StockDetail.objects.filter(sku__sku_code=sku_code, quantity__gt=0, sku__user= source_user.id).annotate(total=Sum('quantity'))
                 print("SKU_code= ", sku_code , "available_quantity = ", avlb_qty)
                 if order_quantity > avlb_qty:
-                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock"})
+                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": row["quantity"], "status": "Insufficient stock"})
                     available_stock_check= False
                 else:
-                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Available"})
+                    line_items_error_list.append({"sku_code": row['sku_code'], "quantity": row["quantity"], "status": "Available"})
                 # else:
                 #     available_stock_check= False
                 #     line_items_error_list.append({"sku_code": row['sku_code'], "quantity": order_quantity, "status": "Insufficient stock or SKU Code not present"})
@@ -862,8 +867,14 @@ def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user='
         trasaction_date = adjustment_data_list.get("transaction_date", "")
         if not po_number:
             error_message = 'PO Number is Empty'
-            transaction_id= adjustment_data_list.get("document_number", "")
+            update_error_message(failed_status, 5024, error_message, '')
             return failed_status.values()
+        else:
+            st_obj= StockTransfer.objects.filter(order_id = po_number)
+            if st_obj.exists():
+                error_message = 'PO Number is already present'
+                update_error_message(failed_status, 5024, error_message, '')
+                return failed_status.values()
         if not adjustment_data_list.get("invoice_number", ""):
             error_message =  'Invoice Number is empty'
             update_error_message(failed_status, 5024, error_message, '')
@@ -915,7 +926,7 @@ def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user='
                                 sku_category=sku_category)
             so_grn_user_prefix = UserPrefixes.objects.filter(user=destination_user.id, type_name="so_grn_prefix", product_category=product_category,
                                 sku_category=sku_category)
-            if not so_user_prefix and not so_grn_user_prefix:
+            if not so_user_prefix or not so_grn_user_prefix:
                 return [{'status': 0, 'message': 'so_prefix prefix is not present or so_grn_prefix prefix is not present for product_category= '+str(product_category)+ " sku_category= "+ str(sku_category)+ ",  please create"}]
         user_prefix = UserPrefixes.objects.filter(user=source_user.id, type_name="so_prefix")
         source_seller, dest_seller =['']*2
@@ -950,8 +961,7 @@ def netsuite_sales_stock_transfer_validate(request, adjustment_data_list, user='
               "invoice_number": invoice_number,
            }
            response = auto_generate_picklist(data_dict, source_user)
-           failed_status = {'message': 'Success'}
-           return failed_status
+           return {'status': 200, 'message': 'Success'}
         else:
             update_error_message(failed_status, 5024, status, '')
             return failed_status.values()

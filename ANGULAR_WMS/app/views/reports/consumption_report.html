@@ -32,7 +32,7 @@
 				</div>
       </tab>
 
-      <tab heading="Consumption Reversal" ng-controller="ConsumptionReversalCtrl as showCase">
+      <tab ng-show="showCase.permissions.change_consumptiondata" heading="Consumption Reversal" ng-controller="ConsumptionReversalCtrl as showCase">
         <div class="layout-sub-header">
 	        <form name="form" role="form" class="filters">
 	          <div class="clearfix">

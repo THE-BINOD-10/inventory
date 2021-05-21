@@ -11,10 +11,9 @@ function ServerSideProcessingCtrl($rootScope, $compile, $q, $timeout, $scope, $h
   vm.label = 'Consumption Reversal Confirm';
   vm.empty_data = {}
   vm.model_data = {};
-
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
-
+  vm.permissions = Session.roles.permissions;
   vm.toggle_sku_wise = true;
 
   vm.title = "Consumption Reversal";
@@ -30,20 +29,6 @@ function ServerSideProcessingCtrl($rootScope, $compile, $q, $timeout, $scope, $h
     vm.year = newdate.getFullYear();
   }
   vm.get_consumption_month();
-  // vm.row_call = function(aData) {
-  //   if (!vm.toggle_sku_wise) {
-  //       if(aData.receipt_type == "Hosted Warehouse") {
-
-  //         vm.title = "Stock transfer Note";
-  //       }
-  //       $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id, {withCredential: true}).success(function(data, status, headers, config) {
-  //           var html = $(data);
-  //           vm.print_page = $(html).clone();
-  //           $(".modal-body").html(html);
-  //         });
-  //         $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
-  //   }
-  // }
 
   vm.report_data = {};
   vm.reports = {}

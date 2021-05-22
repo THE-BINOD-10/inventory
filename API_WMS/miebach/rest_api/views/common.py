@@ -5982,7 +5982,7 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
                 if company:
-                    user_profile.company = company.id
+                    user_profile.company = company
                 user_profile.save()
             status = 'New Customer Added'
 
@@ -12201,7 +12201,7 @@ def get_warehouses_list_states(user):
     return user_states
 
 
-def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ='', grn_number_dict='', last_change_date=''):
+def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ='', grn_number_dict='', last_change_date='', extra_params={}):
     if not grn_number_dict:
         grn_number_dict = {}
     try:
@@ -12240,7 +12240,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 elif order_typ == 'ST_INTER' and stock_transfer.upload_type == 'UI':
                     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
-                                              order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
+                                              order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date, extra_params=extra_params)
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 if po.status == 'stock-transfer':
                     po.status = ''
@@ -13075,17 +13075,20 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type='', picking_price=0):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type='', picking_price=0, extra_params={}):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     batch_data = ''
     if data.batch_detail:
         batch_data = data.batch_detail
     NOW = datetime.datetime.now()
+    invoice_number= extra_params.get("invoice_number", "")
     purchase_data = get_purchase_order_data(po_data)
     if po_type == 'st':
         seller_receipt_id = get_st_seller_receipt_id(po_data)
         if order_typ == 'MR':
             receipt_type = 'material request'
+        elif order_typ == 'ST_INTER':
+            receipt_type = 'sale order'
         else:
             receipt_type = 'stock transfer'
     elif po_type == 'po':
@@ -13103,11 +13106,12 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
         grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(warehouse, grn_prefix,
                                                                                                    sku_code,
                                                                                                    dept_code=dept_code)
-    seller_po_summary = SellerPOSummary.objects.create(receipt_number=seller_receipt_id,
-                                                                       quantity=quantity,
+    seller_po_summary = SellerPOSummary.objects.create(receipt_number= seller_receipt_id,
+                                                                       quantity= quantity,
                                                                        putaway_quantity=quantity,
                                                                        purchase_order_id=po_data.id,
-                                                                       creation_date=NOW,
+                                                                       creation_date= NOW,
+                                                                       invoice_number= invoice_number,
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
     if last_change_date:

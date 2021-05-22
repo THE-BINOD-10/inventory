@@ -2354,6 +2354,7 @@ def generated_actual_pr_data(request, user=''):
 def print_pending_po_form(request, user=''):
     purchase_id = request.GET.get('purchase_id', '')
     is_actual_pr = request.GET.get('is_actual_pr', '')
+    process_type= request.GET.get('type', '')
     warehouse = request.GET.get('warehouse', '')
     currency_rate = request.GET.get('currency_rate', 1)
     currency_code = request.GET.get('currency_code', 'INR')
@@ -2395,9 +2396,16 @@ def print_pending_po_form(request, user=''):
                      'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if display_remarks == 'true':
         table_headers.append('Remarks')
-    values_list = ['quantity', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
+    values_list = ['quantity','id', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
         'sku__sku_code', 'sku__sku_desc', 'measurement_unit']
     for order in lineItems.values(*values_list):
+        supplier_code = ""
+        if process_type == "pr_report":
+            pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
+                                        model_id=order["id"])
+            if pr_supplier_data.exists():
+                json_data = eval(pr_supplier_data[0].model_json)
+                supplier_code = json_data['supplier_id']
         if currency_rate > 1:
             current_price = round((float(order['price']) / float(currency_rate)), 2)
         else:
@@ -2408,7 +2416,7 @@ def print_pending_po_form(request, user=''):
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (tax) * (amount / 100)
         total_sku_amt = total_tax_amt + amount
-        po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'],'',
+        po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'], supplier_code,
                         order['quantity'], order['measurement_unit'], current_price, amount,
                         order['sgst_tax'], order['cgst_tax'], order['igst_tax'],
                         order['utgst_tax'], total_sku_amt]
@@ -7506,9 +7514,9 @@ def confirm_asn_order(request, user=''):
 @get_admin_user
 def get_asn_qr_code(request, user=''):
     from rest_api.views.qrcodes import generate_qr
-    warehouse_name = request.POST.get('warehouse_name', '')
-    asn_number = request.POST.get('asn_number', '')
-    po_number = request.POST.get("po_number", '')
+    warehouse_name = request.GET.get('warehouse_name', '')
+    asn_number = request.GET.get('asn_number', '')
+    po_number = request.GET.get("po_number", '')
     request_user = request.user
     data_list = []
     asn_obj = ASNMapping.objects.filter(asn_number=asn_number, purchase_order__po_number=po_number, vendor=request_user.id)

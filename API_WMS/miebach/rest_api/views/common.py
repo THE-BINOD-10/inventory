@@ -5982,7 +5982,7 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
                 if company:
-                    user_profile.company = company.id
+                    user_profile.company = company
                 user_profile.save()
             status = 'New Customer Added'
 

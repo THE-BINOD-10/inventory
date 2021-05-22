@@ -140,19 +140,25 @@
               </div>
               <div class="col-md-4">
                 <div class="form-group">
+                    <label class="control-label"> Currency Code </label>
+                    <input type="text" class="form-control" ng-model="showCase.model_data.currency_code" maxlength="64">
+                </div>
+              </div>
+              <!-- <div class="col-md-4 hide">
+                <div class="form-group">
                   <label class="control-label"> Currency Code *</label>
-                  <select class="form-control" ng-model="showCase.model_data.currency_code" name="currency_code" required>
+                  <select class="form-control" ng-model="showCase.model_data.currency_code" required>
                     <option value=""> None </option>
                     <option ng-repeat="one in showCase.all_currency_codes" value="{{one}}" ng-selected="one == showCase.model_data.currency_code">{{one}}</option>
                   </select>
                 </div>
               </div>
-              <div class="col-md-4" ng-if= "showCase.model_data.currency_code">
+              <div class="col-md-4 hide" ng-if= "showCase.model_data.currency_code">
                 <div class="form-group">
                   <label class="control-label"> NetSuit Internal ID *</label>
-                  <input type="text" name="supplier_type" class="form-control" ng-model="showCase.model_data.netsuit_internal_id" name="netsuit_internal_id" maxlength="2" required>
+                  <input type="text" class="form-control" ng-model="showCase.model_data.netsuit_internal_id" maxlength="2" required>
                 </div>
-              </div>
+              </div> -->`
               <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> Days required to supply </label>

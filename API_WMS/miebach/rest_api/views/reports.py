@@ -2332,8 +2332,7 @@ def print_purchase_order_form(request, user=''):
                 supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
             full_pr_number = get_pr_number_from_po(pending_po_data)
-        if pm_order.open_po.supplier.currency_code:
-            supplier_currency = pm_order.open_po.supplier.currency_code
+        supplier_currency = pm_order.currency
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),

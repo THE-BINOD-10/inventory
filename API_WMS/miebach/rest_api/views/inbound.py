@@ -2008,11 +2008,12 @@ def generated_pr_data(request, user=''):
     supplier_id = ''
     supplier_name = ''
     supplier_payment_desc = ''
-    supplier_currency = ''
+    supplier_currency = ['INR']
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
-        supplier_currency = record[0].supplier.currency_code
+        if record[0].supplier.currency.filter().exists():
+            supplier_currency = list(record[0].supplier.currency.filter().values_list('currency_code', flat=True))
         if record[0].supplier_payment:
             supplier_payment_desc = "%s:%s" % (record[0].supplier_payment.payment_code, record[0].supplier_payment.payment_description)
 
@@ -2355,6 +2356,7 @@ def print_pending_po_form(request, user=''):
     is_actual_pr = request.GET.get('is_actual_pr', '')
     warehouse = request.GET.get('warehouse', '')
     currency_rate = request.GET.get('currency_rate', 1)
+    currency_code = request.GET.get('currency_code', 'INR')
     remarks = request.GET.get('remarks', '')
     if not currency_rate:
         currency_rate = 1
@@ -2423,7 +2425,7 @@ def print_pending_po_form(request, user=''):
         address = '\n'.join(address.split(','))
         telephone = order.supplier.phone_number
         name = order.supplier.name
-        supplier_currency = order.supplier.currency_code
+        supplier_currency = currency_code
         code = order.supplier.supplier_id
         gstin_no = order.supplier.tin_number
         telephone = order.supplier.phone_number
@@ -10125,6 +10127,9 @@ def confirm_add_po(request, sales_data='', user=''):
     terms_condition = request.POST.get('terms_condition', '')
     supplier_currency_value = request.POST.get('supplier_currency_rate', 1)
     supplier_payment_terms = request.POST.get('supplier_payment_terms', '')
+    supplier_currency_lat = request.POST.get('supplier_currency', '')
+    if not supplier_currency_lat:
+        return HttpResponse('Supplier Currency Missing, please refresh the page and check Again !!')
     if not request.POST.get('ship_to'):
         return HttpResponse('Ship to address mandatory !')
     if supplier_payment_terms:
@@ -10285,9 +10290,14 @@ def confirm_add_po(request, sales_data='', user=''):
             data['prefix'] = prefix
             data['po_number'] = full_po_number
             data['remarks'] = po_remarks
-            if purchase_order.supplier.currency_code:
-                data['currency'] = purchase_order.supplier.currency_code
-                data['currency_internal_id'] = purchase_order.supplier.netsuite_currency_internal_id
+            if purchase_order.supplier.currency.filter().exists():
+                datumm = purchase_order.supplier.currency.filter(currency_code=supplier_currency_lat).values('netsuite_currency_internal_id', 'currency_code')
+                if datumm.exists():
+                    data['currency'] = datumm[0]['currency_code']
+                    data['currency_internal_id'] = datumm[0]['netsuite_currency_internal_id']
+            else:
+                data['currency'] = supplier_currency_lat
+                data['currency_internal_id'] = 1
             data['currency_rate'] = supplier_currency_value
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
@@ -10444,7 +10454,7 @@ def confirm_add_po(request, sales_data='', user=''):
         company_name = profile.company.company_name
         title = 'Purchase Order'
         receipt_type = request.GET.get('receipt_type', '')
-        total_amt_in_words = str(purchase_order.supplier.currency_code) + ' ' + number_in_words(round(total)) + ' ONLY'
+        total_amt_in_words = str(supplier_currency_lat) + ' ' + number_in_words(round(total)) + ' ONLY'
         round_value = float(round(total) - float(total))
         company_details = {}
         company_logo=""
@@ -10468,9 +10478,7 @@ def confirm_add_po(request, sales_data='', user=''):
             company_details['cin_number'] = profile.company.cin_number
             company_details['pan_number'] = profile.company.pan_number
         # company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
-        supplier_currency = ''
-        if purchase_order.supplier.currency_code:
-            supplier_currency = purchase_order.supplier.currency_code
+        supplier_currency = supplier_currency_lat
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
         if purchase_order.supplier.lead_time:

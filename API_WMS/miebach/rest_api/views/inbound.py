@@ -16964,6 +16964,7 @@ def delete_consumption_data(request, user=''):
                 stock_map.quantity = 0
                 stock_map.save()
             cons.cancel_user=request.user
+            cons.cancelled_qty = float(temp_qty)
             cons.quantity = 0
             cons.save()
             sku_amt = {}

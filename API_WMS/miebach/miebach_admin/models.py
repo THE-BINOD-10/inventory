@@ -1722,7 +1722,7 @@ class BOMMaster(models.Model):
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku')
+        unique_together = ('material_sku', 'product_sku', 'machine_master')
 
 
 class PriceMaster(models.Model):

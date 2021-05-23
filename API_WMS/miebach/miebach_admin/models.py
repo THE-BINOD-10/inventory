@@ -4231,12 +4231,14 @@ class ConsumptionData(models.Model):
     consumption_number = models.CharField(max_length=64, default='')
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    cancel_user = models.ForeignKey(User, related_name="consumption_cancel_user", blank=True, null=True)
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4287,7 +4289,7 @@ class MRP(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
     user = models.ForeignKey(User, related_name='mrp_user')
-    avg_monthly_consumption = models.FloatField(default=0)
+    avg_sku_consumption_day = models.FloatField(default=0)
     lead_time_qty = models.FloatField(default=0)
     min_days_qty = models.FloatField(default=0)
     max_days_qty = models.FloatField(default=0)
@@ -4301,6 +4303,19 @@ class MRP(models.Model):
 
     class Meta:
         db_table = 'MRP'
-        unique_together = ('user', 'sku')
-        index_together = ('user', 'sku')
+        index_together = (('sku', 'user'), ('sku', 'creation_date'))
+
+class ASNMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_number = models.CharField(max_length=128, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    total_quantity = models.FloatField(default=0)
+    received_quantity = models.FloatField(default=0)
+    status = models.PositiveIntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_MAPPING'
 

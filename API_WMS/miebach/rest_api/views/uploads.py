@@ -1486,13 +1486,17 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     index_status = {}
     upload_file_skus = []
     ean_duplicate_check = []
+    instanceName = SKUMaster
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     if is_asset:
         sku_file_mapping = get_asset_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+        instanceName = AssetMaster
     if is_service:
         sku_file_mapping = get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+        instanceName = ServiceMaster
     if is_test:
         sku_file_mapping = get_test_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+        instanceName = TestMaster
     if is_item:
         instanceName = OtherItemsMaster
         sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
@@ -1527,11 +1531,11 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                     sku_code = str(int(cell_data))
                 if sku_code in upload_file_skus:
                     index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
-                else:
+                elif sku_code:
                     upload_file_skus.append(sku_code)
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('WMS Code missing')
+                #if not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('WMS Code missing')
             elif key == 'test_code' and is_test:
                 data_set = wms_data
                 data_type = 'WMS'
@@ -1697,7 +1701,14 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
             elif key == 'sku_category':
-                if cell_data and cell_data not in category_list:
+                if not sku_code:
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('SKU Category is Mandatory')
+                    elif instanceName.__name__ in ['OtherItemsMaster', 'SKUMaster']:
+                        sku_inc_status, check_sku = get_sku_code_inc_number(user, instanceName, cell_data, check=True)
+                        if not sku_inc_status:
+                            index_status.setdefault(row_idx, set()).add('Invalid SKU Category for SKU creation')
+                elif cell_data and cell_data not in category_list:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
             elif key == 'sku_class':
                 if cell_data and cell_data not in class_list:
@@ -1836,6 +1847,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             elif key not in temp_dict:
                 continue
             if key == 'wms_code':
+                if not cell_data:
+                    continue
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(xcode(cell_data))
@@ -1958,7 +1971,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not toggle_value:
                     cell_data = 0
                 if toggle_value:
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'batch_based':
                 svaed_value = str(cell_data).lower()
@@ -1969,7 +1983,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not svaed_value:
                     cell_data = 0
                 if svaed_value:
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'block_options':
                 if cell_data:
@@ -1977,7 +1992,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         cell_data = 'PO'
                     if str(cell_data).lower() in ['no', '']:
                         cell_data = ''
-                    setattr(sku_data, key, cell_data)
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'gl_code':
                 if cell_data:
@@ -2017,6 +2033,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
+        if instanceName != TestMaster:
+            sku_inc_status, wms = get_sku_code_inc_number(user, instanceName, data_dict['sku_category'])
+            data_dict['wms_code'] = wms
         if is_test:
             data_dict['test_code'] = data_dict['wms_code']
             data_dict['test_name'] = data_dict['sku_desc']

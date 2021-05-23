@@ -27,6 +27,16 @@ from django.db import transaction
 import urllib
 import base64
 
+import requests
+import json
+
+pr_po_grn_url = "http://65.21.93.111:7020/get_pr_po_grn_report/"
+headers = {
+  'accept': 'application/json',
+  'Content-Type': 'application/json'
+}
+
+
 # from inbound import *
 
 AJAX_DATA = {
@@ -653,7 +663,7 @@ INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name':
                         # {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
                         # {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
                         # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
-                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         # {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
                         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
@@ -662,8 +672,8 @@ INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name':
 
                     ],
 
-            'dt_headers': [
-              "Stockone Id",  "Plant Code", "Plant" , "Zone", "Module type", "Action Type", ""
+            'dt_headers': [ "Zone", "Plant Code", "Plant" ,
+              "Stockone Id",   "Module type", "Action Type", ""
               "Integration Date", "Integration Status", "Integration Error"
              ],
             'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
@@ -715,6 +725,55 @@ PR_PO_GRN_DICT = {'filters': [
             'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'dt_url': 'get_pr_po_grn_filter', 'excel_name': 'pr_po_grn_dict', 'print_url': '',
             }
+
+
+METROPOLIS_PR_PO_GRN_DICT = {'filters': [
+                        # {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
+                        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+                        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+                        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+                        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+                        # {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+                        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+                        # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+                        # {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
+                        # {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
+                    ],
+            
+            'dt_headers': [
+                "Zone", "Plant Code", "Plant Name",
+                "Department Name","PR raised By",
+                "PR Number","PR date","SKU Code",
+                "SKU Description","Conversion Factor","PR Purchase Quantity","PR Purchase UOM",
+                "PR Base Quantity","PR Base UOM","PR Price","PR Status","PR Approval Pending at",
+                "PO Number","PO Date","PO raised By","Vendor Name","Vendor Code","PO Purchase Quantity",
+                "PO Purchase UOM","PO Base Quantity","PO Base UOM","PO Price","PO amt(without Tax)",
+                "PO CGST TAX","PO SGST TAX","PO IGST TAX","PO CESS TAX","PO total tax Amt",
+                "PO Total amt(with Tax)","PO Status","Expected Delivery Date","PO Approval Pending at",
+                "GRN Number","GRN Date","GRN Purchase Quantity","Purchase UOM","GRN Base Quantity",
+                "Base UOM","Batch No","Expiry Date","GRN Price","GRN amt(without Tax)","GRN CGST TAX",
+                "GRN SGST TAX","GRN IGST TAX","GRN CESS TAX","TCS","GRN total tax Amt","GRN Total amt(with Tax)",
+                "HSN Code","Invoice Number","Invoice Value","Invoice Date","Invoice Quantity","GRN Status"
+
+              ],
+            'mk_dt_headers': [ "Zone", "Plant Code", "Plant Name",
+                "Department Name","PR raised By",
+                "PR Number","PR date","SKU Code",
+                "SKU Description","Conversion Factor","PR Purchase Quantity","PR Purchase UOM",
+                "PR Base Quantity","PR Base UOM","PR Price","PR Status","PR Approval Pending at",
+                "PO Number","PO Date","PO raised By","Vendor Name","Vendor Code","PO Purchase Quantity",
+                "PO Purchase UOM","PO Base Quantity","PO Base UOM","PO Price","PO amt(without Tax)",
+                "PO CGST TAX","PO SGST TAX","PO IGST TAX","PO CESS TAX","PO total tax Amt",
+                "PO Total amt(with Tax)","PO Status","Expected Delivery Date","PO Approval Pending at",
+                "GRN Number","GRN Date","GRN Purchase Quantity","Purchase UOM","GRN Base Quantity",
+                "Base UOM","Batch No","Expiry Date","GRN Price","GRN amt(without Tax)","GRN CGST TAX",
+                "GRN SGST TAX","GRN IGST TAX","GRN CESS TAX","TCS","GRN total tax Amt","GRN Total amt(with Tax)",
+                "HSN Code","Invoice Number","Invoice Value","Invoice Date","Invoice Quantity","GRN Status"],
+             'dt_url': 'get_metropolis_pr_po_grn_filter', 'excel_name': 'metropolis_pr_po_grn_dict', 'print_url': '',
+            }
+
 
 STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
@@ -991,7 +1050,6 @@ METRO_PO_REPORT_DICT = {
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
 
-
     ],
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
@@ -1022,7 +1080,7 @@ METROPOLIS_PO_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
-                   'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
+                   'Final Approver date','PO Number', 'PO Quantity', 'PO Created by', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
                    'Supplier ID', 'Supplier Name', "Integration Status", "Integration Reason", "Integration Date"],
 
@@ -1078,13 +1136,13 @@ METROPOLIS_PO_DETAIL_REPORT_DICT = {
 
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'Plant Code', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
+    'dt_headers': ['Zone', 'Plant Code', 'Plant Name', 'PR Number', 'PR Date',   'PR raised By ( User Name)', 'PR raised By ( User department name)', 
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Base UOM Qty', 'PO Base UOM', 'PO Received Qty', 'PO Receivable Qty', 'Pending PO Base UOM Qty', 'Pending PO Base UOM', 'PO Received Amt', 'PO Receivable Amt', 'PO Raised Date','Material Code',
                    'Material Description', 'Conversion Factor', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
                    'SKU Group', 'SKU Class', 'UOM', 'HSN Code', 'PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
-                   'Supplier ID', 'Supplier Name'],
+                   'Supplier ID', 'Supplier Name',  'Pending Status From(Days)'],
 
     'dt_url': 'get_metropolis_po_detail_report', 'excel_name': 'get_metropolis_po_detail_report',
     'print_url': 'get_metropolis_po_detail_report',
@@ -1541,14 +1599,20 @@ STOCK_TRANSFER_REPORT_DICT_MAIN = {
         {'label': 'From Date', 'name': 'st_from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'st_to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+
         {'label': 'Stock Transfer ID', 'name': 'order_id', 'type': 'input'},
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'}
+        # {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        
     ],
-    'dt_headers': ['Date', 'Order ID', 'Order Type', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 
-                      'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
+    'dt_headers': ['Zone', 'Plant Code', 'Source Warehouse', 'Destination Warehouse', 'Date', 'Order ID', 'Order Type', 'SKU Code', 'SKU Description',  
+                     'Conversion Factor', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Purchse UOM', 'Base UOM Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Status', 'Destination Received Quantity', 'Destination Received Value', 'Destination Receive PO Status', 'Destination Received By'],
-    'mk_dt_headers': ['Date', 'Order ID', 'Order Type', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 
-                      'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
+    'mk_dt_headers': ['Zone', 'Plant Code', 'Source Warehouse', 'Destination Warehouse', 'Date', 'Order ID', 'Order Type', 'SKU Code', 'SKU Description',  
+                      'Conversion Factor', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Invoice Quantity', 'Purchse UOM', 'Base UOM Quantity', 'Base UOM', 'Invoice Amount(w/o tax)',
                       'Status', 'Destination Received Quantity', 'Destination Received Value', 'Destination Receive PO Status', 'Destination Received By'],
     'dt_url': 'get_stock_transfer_report_main', 'excel_name': 'get_stock_transfer_report_main',
     'print_url': 'print_stock_transfer_report_main',
@@ -1903,6 +1967,22 @@ CONSUMPTION_REPORT_DICT = {
     'print_url': 'get_sku_wise_consumption_report',
 }
 
+CONSUMPTION_REVERSAL_DICT = {
+    'filters': [
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'},
+        {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
+    ],
+    'dt_headers': ['Consumption ID','Date', 'Plant Code', 'Department', 'Warehouse Username', 'SKU Code',
+                   'SKU Conversion', 'Base Quantity', 'Purchase Uom Quantity', 'Stock Value', 'Type'],
+    'dt_url': 'get_sku_wise_consumption_reversal', 'excel_name': 'get_sku_wise_consumption_reversal',
+    'print_url': 'get_sku_wise_consumption_reversal',
+}
+
 CONSUMPTION_DATA_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1970,7 +2050,10 @@ SUPPLIER_WISE_PO_REPORT = {
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
-                     'grn_report': GRN_DICT, 'pr_po_grn_dict': PR_PO_GRN_DICT, 'sku_wise_grn_report': SKU_WISE_GRN_DICT,
+                     'grn_report': GRN_DICT, 
+                     'pr_po_grn_dict': PR_PO_GRN_DICT,
+                     'metropolis_pr_po_grn_dict': METROPOLIS_PR_PO_GRN_DICT,
+                      'sku_wise_grn_report': SKU_WISE_GRN_DICT,
                      'integration_report': INTEGRATION_REPORT_DICT,
                      'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
@@ -2020,6 +2103,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'cancel_grn_report': CANCEL_GRN_REPORT_DICT,
                      'sku_wise_cancel_grn_report': SKU_WISE_CANCEL_GRN_REPORT_DICT,
                      'sku_wise_consumption_report': CONSUMPTION_REPORT_DICT,
+                     'get_sku_wise_consumption_reversal': CONSUMPTION_REVERSAL_DICT,
                      'closing_stock_report': CLOSING_STOCK_REPORT_DICT,
                      'supplier_wise_po_report': SUPPLIER_WISE_PO_REPORT,
                      'get_consumption_data': CONSUMPTION_DATA_DICT,
@@ -2667,6 +2751,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'goods_receipt': 'get_po_filter_data',
                         'integration_report': 'get_integration_report_data',
                         'pr_po_grn_dict': 'get_pr_po_grn_filter_data',
+                        'metropolis_pr_po_grn_dict': 'get_metropolis_pr_po_grn_filter_data',
                         'st_goods_receipt': 'get_st_po_filter_data',
                         'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
@@ -2733,6 +2818,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_cancel_grn_report': 'get_cancel_grn_report_data',
                         'get_sku_wise_cancel_grn_report': 'get_sku_wise_cancel_grn_report_data',
                         'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
+                        'get_sku_wise_consumption_reversal': 'get_sku_wise_consumption_reversal_data',
                         'closing_stock_report': 'get_closing_stock_report_data',
                         'supplier_wise_po_report': 'get_supplier_details_data',
                         'get_consumption_data': 'get_consumption_data_',
@@ -3699,6 +3785,10 @@ OPENING_STOCK_FILE_MAPPING = OrderedDict((('Opening Stock Date(YYYY-MM-DD)', 'op
                                           ))
 
 
+SKU_CREATION_INC_MAPPING_KC = {'accessories': 'ACC', 'reagent': 'REG', 'control': 'COT', 'chemical': 'CHE', 'consumable': 'CON', 'calibrator': 'CAL'}
+
+SKU_CREATION_INC_MAPPING_OT = {'printing stationary': 'PST', 'stationary': 'STA', 'marketing': 'MAR'}
+
 
 def fn_timer(function):
     @wraps(function)
@@ -3896,6 +3986,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
+    po_grn_numbers_list = []
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
@@ -3924,8 +4015,12 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if 'integration_type' in search_params:
         search_parameters['module_type__iexact'] = search_params['integration_type']
     if 'supplier' in search_params and ':' in search_params['supplier']:
-        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
-            search_params['supplier'].split(':')[0]
+        # search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
+        #     search_params['supplier'].split(':')[0]
+        grn_results= SellerPOSummary.objects.filter(purchase_order__open_po__supplier__supplier_id__iexact=search_params['supplier'].split(':')[0]).values("purchase_order__po_number", "grn_number").distinct()
+        for e_row in grn_results:
+            po_grn_numbers_list.append(e_row["purchase_order__po_number"])
+            po_grn_numbers_list.append(e_row["grn_number"])
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
@@ -3957,6 +4052,8 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if 'zone_code' not in search_params and 'plant_name' not in search_params.keys() and 'plant_code' not in search_params:
         user_ids.append(admin_user_id)
     search_parameters[field_mapping['user']] = user_ids
+    if po_grn_numbers_list:
+        search_parameters['stockone_reference__in']= po_grn_numbers_list
     model_data = model_name.objects.filter(**search_parameters).exclude(**excl_status)
     # model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
     #                                                                    total_received=Sum(rec_quan))
@@ -3980,6 +4077,11 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
     for data in model_data:
+        # json_data = json.loads(data.integration_data)
+        # date_format = "%Y-%m-%dT%H:%M:%SZ"
+        # grn_date, po_date, po_value, grn_value, invoice_number = "", "", "", "", ""
+        # datetime.datetime.strptime() 
+        # grn_date = 
         user = data.user
         if user:
             if user.userprofile.warehouse_type.lower() == 'dept':
@@ -4004,15 +4106,21 @@ def get_integration_report_data(request, search_params, user, sub_user):
         if integration_status == 'Failed':
             integration_error = data.integration_error
         integration_date = data.creation_date.strftime("%d %b, %Y")
-        temp_data['aaData'].append(OrderedDict((('Stockone Id', data.stockone_reference),
+        temp_data['aaData'].append(OrderedDict((
+                                                ("Zone", plant_zone),
+                                                ("Plant Code", plant_code),
+                                                ("Plant", plant),
+                                                ('Stockone Id', data.stockone_reference),
                                                 ('Module type', data.module_type),
+                                                # ('PO Date', ''),
+                                                # ('PO Value', ''),
+                                                # ('GRN Date', ''),
+                                                # ('GRN Value', ''),
+                                                # ('Invoice Number', ''),
                                                 ('Action Type', data.action_type),
                                                 ("Integration Date", integration_date),
                                                 ("Integration Status", integration_status), 
                                                 ("Integration Error", integration_error),
-                                                ("Plant Code", plant_code),
-                                                ("Plant", plant),
-                                                ("Zone", plant_zone),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': data.stockone_reference }),
                                                 ('key', 'Stockone Id'), ('receipt_type', 'Integration Report')
@@ -5858,6 +5966,371 @@ def get_po_grn_price_and_taxes(data, type=""):
             total_tax += (tmp_tax * tmp_price)/100
             total_price +=  tmp_price
     return total_qty, total_price, total_tax
+
+def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user):
+    import time
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
+        check_and_get_plants_wo_request, \
+        get_related_users_filters,truncate_float, get_uom_with_multi_skus,\
+        get_sku_master, get_po_reference, get_warehouse_user_from_sub_user, get_admin , get_all_department_data, check_and_get_plants_depts_wo_request
+    from rest_api.views.masters import gather_uom_master_for_sku
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = []
+    unsorted_dict = {}
+    model_name = SellerPOSummary
+    payload_dict = {
+        "limit": 0,
+        "offset": 0,
+        "zone": "",
+        "plant_code": "",
+        "plant_name": "",
+        # "from_date": "",
+        # "to_date": "",
+        "grn_number": "",
+        "po_number": ""
+    }
+    field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
+                     'order_id': 'purchase_order__order_id',
+                     'wms_code': 'pending_prlineItems__sku__sku_code',
+                     'user': 'purchase_order__open_po__sku__user__in',
+                     'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
+                     'po_number': 'pendingpo__full_po_number',
+                     'pr_number': 'full_pr_number',
+                      'grn_number': 'grn_number',
+                     'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
+                     'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
+                     'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
+                     'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
+                     'supplier_name': 'purchase_order__open_po__supplier__name','gst_num': 'purchase_order__open_po__supplier__tin_number'}
+    pr_field_mapping = {
+                     'user': 'pending_prlineItems__sku__user__in',
+                    }
+    pr_result_values= [
+            "full_pr_number", 'creation_date', 'requested_user__username',
+            "pending_prlineItems__cess_tax",
+            "pending_prlineItems__cgst_tax", "pending_prlineItems__sgst_tax",
+            "pending_prlineItems__igst_tax", 'pending_prlineItems__sku__sku_code',
+            "pending_prlineItems__sku__sku_desc",
+            "pending_prlineItems__quantity",
+            "pending_prlineItems__price",
+            "pending_prlineItems__measurement_unit",
+            "pending_prlineItems__purchase_type",
+            "wh_user__userprofile__stockone_code",
+            'wh_user__userprofile__zone',
+            "wh_user_id",
+            "final_status",
+            "sku_category",
+            "product_category",
+            "pendingpo__full_po_number",
+            "pendingpo__delivery_date",
+    ]
+    po_grn_result_values= [
+        "creation_date",
+        "open_po__sku__sku_code",
+        "po_number",
+        "open_po__supplier__supplier_id",
+        "open_po__supplier__name",
+        "open_po__price",
+        "open_po__order_quantity",
+        "open_po__cgst_tax",
+        "open_po__sgst_tax",
+        "open_po__igst_tax",
+        "open_po__cess_tax",
+        "sellerposummary__quantity",
+        "sellerposummary__price",
+        "sellerposummary__grn_number",
+        "sellerposummary__status",
+        "sellerposummary__cess_tax",
+        "sellerposummary__tcs_value",
+        "sellerposummary__creation_date",
+        "sellerposummary__batch_detail__batch_no",
+        "sellerposummary__batch_detail__expiry_date"
+    ]
+    pending_po_result_values= [
+        "pending_po__full_po_number",
+        "quantity",
+        "cgst_tax",
+        "sgst_tax",
+        "igst_tax",
+        "cess_tax",
+        "sku__sku_code",
+        "price",
+        "pending_po__supplier__supplier_id",
+        "pending_po__supplier__name",
+        "pending_po__final_status"
+    ]
+    excl_status = {'purchase_order__status': ''}
+    ord_quan = 'purchase_order__open_po__order_quantity'
+    rec_quan = 'purchase_order__received_quantity'
+    rec_quan1 = 'sellerposummary__quantity'
+    search_parameters = {}
+    search_parameters = {'pending_prlineItems__purchase_type': 'PR'}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    if 'pr_from_date' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
+        search_params['pr_from_date'] = datetime.datetime.combine(search_params['pr_from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['pr_from_date']
+        payload_dict["from_date"]= search_params['pr_from_date']
+    if 'priority_type' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
+        search_parameters['priority_type'] = search_params['priority_type']
+    if 'product_category' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
+        search_parameters['product_category'] = search_params['product_category']
+        if search_parameters['product_category'] == 'KitsConsumables':
+            search_parameters['product_category'] = 'Kits&Consumables'
+    if 'final_status' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
+        search_parameters['final_status'] = search_params['final_status'].lower()
+    if 'po_number' in search_params:
+        search_parameters[field_mapping['po_number']] = search_params['po_number']
+        payload_dict["po_number"]= search_params['po_number']
+    if 'pr_number' in search_params:
+        search_parameters[field_mapping['pr_number']] = search_params['pr_number']
+        payload_dict["pr_number"]= search_params['pr_number']
+    if 'sku_code' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
+        search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+        payload_dict["sku_code"]= search_params['sku_code']
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    if 'po_number' not in search_params and 'pr_number' not in search_params:
+        if 'plant_code' in search_params:
+            plant_code = search_params['plant_code']
+            payload_dict["plant_code"]= plant_code
+            plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                        userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+            if plant_users:
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            else:
+                users = User.objects.none()
+        if 'plant_name' in search_params.keys():
+            plant_name = search_params['plant_name']
+            payload_dict["plant_name"]= plant_name
+            plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                            values_list('username', flat=True))
+            if plant_users:
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            else:
+                users = User.objects.none()
+        if 'sister_warehouse' in search_params:
+            dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+            dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+            dept_type = search_params['sister_warehouse']
+            if dept_type.lower() != 'na':
+                users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+            else:
+                users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+        if 'zone_code' in search_params:
+            zone_code = search_params['zone_code']
+            payload_dict["zone"]= zone_code
+            users = users.filter(userprofile__zone=zone_code)
+    search_parameters['wh_user__in'] = list(users.values_list('id', flat=True))
+    search_parameters[pr_field_mapping['user']] = user_ids
+    start_time = time.time()
+    col_num = search_params.get('order_index', 25)
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        # start_index:stop_index
+        payload_dict["limit"]= stop_index - start_index
+        payload_dict["offset"]= start_index
+    payload = json.dumps(payload_dict)
+    response = requests.request("POST", pr_po_grn_url, headers=headers, data=payload)
+    if response.status_code in [200]:
+        final_data = json.loads(response._content)
+        if final_data["data"]:
+            temp_data['recordsTotal'] = final_data["data"][0].get("Total Records", 0)
+            temp_data['recordsFiltered'] = temp_data['recordsTotal']
+            temp_data['aaData']= final_data["data"]
+            return temp_data
+    return temp_data
+    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values).order_by('-id')
+    po_numbers_sku =[]
+    temp_data['recordsTotal'] = model_data_result.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    col_num = search_params.get('order_index', 25)
+    # order_term = search_params.get('order_term', 'asc')
+    # if order_term:
+    #     if col_num == 0:
+    #         col_num = 14
+    #         order_term = 'desc'
+    #     order_data = lis[col_num]
+    #     if order_term == 'desc':
+    #         order_data = "-%s" % order_data
+    #     if order_data:
+    #         model_data_result = model_data_result.order_by(order_data)
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        model_data = model_data_result[start_index:stop_index]
+    else:
+        model_data= model_data_result
+    po_numbers, sku_codes = [], []
+    for model_dat in model_data:
+        po_numbers.append(model_dat['pendingpo__full_po_number'])
+        sku_codes.append(model_dat['pending_prlineItems__sku__sku_code'])
+    pending_po_results = PendingLineItems.objects.filter(pending_po__full_po_number__in=po_numbers, sku__sku_code__in=sku_codes).values(*pending_po_result_values)
+    po_model_data= {}
+    for po_dat in pending_po_results:
+        pending_po_key = (po_dat["pending_po__full_po_number"], po_dat['sku__sku_code'])
+        po_model_data.setdefault(pending_po_key, {"quantity": po_dat["quantity"] ,
+                'cgst_tax': po_dat["cgst_tax"], 'sgst_tax': po_dat["sgst_tax"],
+                'igst_tax': po_dat["igst_tax"], 'cess_tax': po_dat["cess_tax"],
+                'supplier_id': po_dat["pending_po__supplier__supplier_id"], 'supplier__name': po_dat["pending_po__supplier__name"],
+                'price': po_dat["price"], 'po_final_status': po_dat["pending_po__final_status"]})
+    po_grn_results= PurchaseOrder.objects.filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
+    for record in model_data:
+        pending_po_key= (record.get("pendingpo__full_po_number", ""), record.get("pending_prlineItems__sku__sku_code", ""))
+        vendor_code, vendor_name, po_final_status, po_date = [""]*4
+        po_cgst_tax , po_sgst_tax, po_igst_tax , po_cess_tax, po_quantity, po_price= [0]*6
+        if pending_po_key in po_model_data:
+            vendor_code = po_model_data[pending_po_key]["supplier_id"]
+            vendor_name = po_model_data[pending_po_key]["supplier__name"]
+            po_final_status =po_model_data[pending_po_key]["po_final_status"]
+            po_cgst_tax = po_model_data[pending_po_key]["cgst_tax"]
+            po_sgst_tax = po_model_data[pending_po_key]["sgst_tax"]
+            po_igst_tax = po_model_data[pending_po_key]["igst_tax"]
+            po_cess_tax = po_model_data[pending_po_key]["cess_tax"]
+            po_quantity = po_model_data[pending_po_key]["quantity"]
+            po_price = po_model_data[pending_po_key]["price"]
+        pr_department= record.get("wh_user__userprofile__stockone_code", "")
+        if record.get("wh_user_id", ''):
+            pr_dept_obj = User.objects.get(id=record.get("wh_user_id", ''))
+        if pr_dept_obj:
+            pr_plant = get_admin(pr_dept_obj)
+            pr_plant_zone = pr_plant.userprofile.zone
+            if pr_plant.first_name:
+                pr_plant_name = pr_plant.first_name
+                pr_plant_code = pr_plant.userprofile.stockone_code
+            else:
+                pr_plant_name = pr_dept_obj.username
+                pr_plant_code = pr_dept_obj.userprofile.stockone_code
+        pr_date= record.get("creation_date").strftime("%d %b, %Y") if record.get("creation_date", '') else ''
+        exp_delivery_date= record.get("pendingpo__delivery_date").strftime("%d %b, %Y") if record.get("pendingpo__delivery_date", '') else ''
+        po_grn_check=False
+        pending_approval = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=record.get('full_pr_number', ""),
+        status='', pending_pr__final_status='pending').values("level", "approval_type", "validated_by")
+        next_approver_mail, pending_level, approval_type = [''] * 3
+        if pending_approval.exists():
+            pending_approval = pending_approval[0]
+            next_approver_mail = pending_approval["validated_by"]
+            pending_level = pending_approval["level"]
+            approval_type = pending_approval["approval_type"]
+        uom_dict = skus_uom_dict.get(record.get("pending_prlineItems__sku__sku_code", ""))
+        pcf = uom_dict.get('sku_conversion', 1)
+        for po_grn_dat in po_grn_results:
+            if pending_po_key and record.get("pendingpo__full_po_number")== po_grn_dat["po_number"] and record.get("pending_prlineItems__sku__sku_code")==po_grn_dat["open_po__sku__sku_code"]:
+                vendor_code = po_grn_dat.get("open_po__supplier__supplier_id", "")
+                vendor_name = po_grn_dat.get("open_po__supplier__name", "")
+                po_cgst_tax = po_grn_dat.get("open_po__cgst_tax", 0)
+                po_sgst_tax = po_grn_dat.get("open_po__sgst_tax", 0)
+                po_igst_tax = po_grn_dat.get("open_po__igst_tax", 0)
+                po_cess_tax = po_grn_dat.get("open_po__cess_tax", 0)
+                po_quantity = po_grn_dat.get("open_po__order_quantity", 0)
+                po_price = po_grn_dat.get("open_po__price", 0)
+                po_date= po_grn_dat.get("creation_date").strftime("%d %b, %Y") if po_grn_dat.get("creation_date", '') else ''
+                grn_date= po_grn_dat.get("sellerposummary__creation_date").strftime("%d %b, %Y") if po_grn_dat.get("sellerposummary__creation_date", '') else ''
+                expiry_date= po_grn_dat.get("sellerposummary__batch_detail__expiry_date").strftime("%d %b, %Y") if po_grn_dat.get("sellerposummary__batch_detail__expiry_date", '') else ''
+
+                po_amount_without_tax = po_quantity * po_price
+                po_total_tax_amount= (( po_amount_without_tax * (po_cgst_tax + po_sgst_tax + po_igst_tax + po_cess_tax))/100)
+                po_total_amount_with_tax= po_amount_without_tax + po_total_tax_amount
+
+                grn_quantity = po_grn_dat.get("sellerposummary__quantity", 0) if po_grn_dat.get("sellerposummary__quantity", 0) else 0
+                grn_price = po_grn_dat.get("sellerposummary__price", 0) if po_grn_dat.get("sellerposummary__price", 0) else 0
+                grn_cess_tax = po_grn_dat.get("sellerposummary__cess_tax", 0) if po_grn_dat.get("sellerposummary__cess_tax", 0) else 0
+                grn_amount_without_tax =  grn_quantity * grn_price
+
+                grn_total_tax_amount= ((grn_amount_without_tax * (po_cgst_tax + po_sgst_tax + po_igst_tax + grn_cess_tax))/100)
+                grn_total_amount_with_tax= grn_amount_without_tax + grn_total_tax_amount
+                grn_number= ""
+                grn_status= "Open"
+                if po_grn_dat.get("sellerposummary__grn_number", ""):
+                    grn_number = po_grn_dat.get("sellerposummary__grn_number", "")
+                    grn_status= "Cancelled" if po_grn_dat.get("sellerposummary__status", 0)==1 else "Received"
+
+                ord_dict = OrderedDict((
+                ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
+                ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
+                ("PR Category", record.get('product_category', '')),
+                ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Material Category", record.get('sku_category', '')),
+                ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ('Zone', pr_plant_zone), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
+                ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
+                ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
+                ("Conversion Factor", uom_dict.get('sku_conversion', 1)),
+                ("PR Base UOM", uom_dict["base_uom"]), ("PR Base UOM Qty", record.get('pending_prlineItems__quantity', 0) * pcf ), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
+
+                ("PO No", record.get("pendingpo__full_po_number", "") if vendor_code else ""), ("PO Date" , po_date if vendor_code else ""), ("Vendor Name", vendor_name),
+                ("Vendor Code", vendor_code),
+                ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
+                ("PO Purchase Qty", po_quantity if vendor_code else "") , ("PO Base UOM",  uom_dict["base_uom"] if vendor_code else ""), ("PO Base UOM Qty", po_quantity* pcf if vendor_code else ""),
+                ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
+                ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
+                ("PO CESS", po_cess_tax),
+                ("PO amt(without Tax)",  po_amount_without_tax), ("PO total tax Amt", po_total_tax_amount),
+                ("PO Total amount (with Tax)", po_total_amount_with_tax), ("PO Status", po_final_status), ("Expected Delivery Date", exp_delivery_date),
+
+                ("GRN No",  grn_number),
+                ("GRN Date", grn_date), ("GRN Purchase UOM", record.get('pending_prlineItems__measurement_unit', "")) ,
+                ("GRN Purchase Qty", grn_quantity) ,
+                ("GRN Base UOM", uom_dict["base_uom"] if grn_number else ""), ("GRN Base UOM Qty", grn_quantity* pcf if grn_number else ""),
+                ("Batch No", po_grn_dat.get("sellerposummary__batch_detail__batch_no", "")),
+                ("Expiry date", expiry_date),
+                ("GRN Basic Price", grn_price),
+                ("GRN amount( without Tax )", grn_amount_without_tax),
+                ("GRN IGST", po_igst_tax), ("GRN CGST", po_cgst_tax),
+                ("GRN SGST", po_sgst_tax ), ("GRN CESS", grn_cess_tax),
+                ("GRN TCS", po_grn_dat.get("sellerposummary__tcs_value", 0)),
+                ("GRN total tax Amount", grn_total_tax_amount),  ("GRN Total amount(with Tax)", grn_total_amount_with_tax), ("GRN Status",  grn_status)
+                ))
+                temp_data['aaData'].append(ord_dict)
+                po_grn_check=True
+        if not po_grn_check:
+            po_amount_without_tax = (po_price * po_quantity)
+            po_total_tax_amount= (((po_quantity * po_price) * (po_cgst_tax + po_sgst_tax + po_igst_tax + po_cess_tax))/100)
+            po_total_amount_with_tax= po_amount_without_tax + po_total_tax_amount
+            ord_dict = OrderedDict((
+            ("PR No", record.get('full_pr_number', '')), ("PR date",pr_date),
+            ("PR raised By", record.get('requested_user__username', '')), ("Department Name", pr_department),
+            ("PR Category", record.get('product_category', '')),
+            ("PR Qty", record.get('pending_prlineItems__quantity', 0)), ("Material Category", record.get('sku_category', '')),
+            ("Plant Name",  pr_plant_name), ("Plant Code",  pr_plant_code), ('Zone', pr_plant_zone), ("Materials Code", record.get("pending_prlineItems__sku__sku_code","")),
+            ("Material Desp", record.get("pending_prlineItems__sku__sku_desc","")), ("PR Purchase UOM" , record.get("pending_prlineItems__measurement_unit", "")) ,
+            ("PR Purchase Qty", record.get('pending_prlineItems__quantity', 0)),
+            ("Conversion Factor", uom_dict.get('sku_conversion', 1)),
+            ("PR Base UOM", uom_dict["base_uom"]), ("PR Base UOM Qty", record.get('pending_prlineItems__quantity', 0) * pcf ), ("PR Status", record.get("final_status", "")), ("PR Approval Pending at", next_approver_mail),
+
+            ("PO No", record.get("pendingpo__full_po_number", "") if vendor_code else ""), ("PO Date", po_date if vendor_code else ""), ("Vendor Name", vendor_name),
+            ("Vendor Code", vendor_code),
+            ("PO Purchase UOM", record.get('pending_prlineItems__measurement_unit', "") if vendor_code else "") , ("PO Purchase Qty", po_quantity) , ("PO Base UOM",uom_dict["base_uom"] if vendor_code else ""), ("PO Base UOM Qty", po_quantity* pcf if vendor_code else ""),
+            ("PO Basic Price", po_price),  ("PO IGST", po_igst_tax),
+            ("PO CGST",po_cgst_tax), ("PO SGST", po_sgst_tax),
+            ("PO CESS", po_cess_tax),
+            ("PO amt(without Tax)", po_amount_without_tax), ("PO total tax Amt", po_total_tax_amount),
+            ("PO Total amount (with Tax)", po_total_amount_with_tax), ("PO Status", po_final_status), ("Expected Delivery Date", exp_delivery_date),
+
+            ("GRN No", ""), ("GRN Date", ""), ("GRN Purchase UOM", "") , ("GRN Purchase Qty", 0) ,("GRN Base UOM", ""),
+            ("GRN Base UOM Qty", 0), ("Batch No", ""), ("Expiry date", ""), ("GRN Basic Price", 0),
+            ("GRN amount( without Tax )", 0), ("GRN IGST", 0), ("GRN CGST", 0), ("GRN SGST", 0), ("GRN CESS",0),
+            ("GRN TCS", 0), ("GRN total tax Amount",0),  ("GRN Total amount(with Tax)", 0), ("GRN Status", "Open")
+
+            ))
+            temp_data['aaData'].append(ord_dict)
+    print("--- %s seconds ---" % (time.time() - start_time))
+    return temp_data
+
 
 def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     import time
@@ -12343,13 +12816,13 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
 
 
 def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, get_uom_with_multi_skus, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data, \
         get_related_users_filters, check_and_get_plants_wo_request, check_and_get_plants_depts, get_filtered_params, get_uom_with_sku_code
     from miebach_admin.models import *
     from reversion.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
-    lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
+    lis = ['st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user','creation_date', 'order_id', 
            'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
            'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
            'st_po__open_st__sgst_tax',
@@ -12378,6 +12851,33 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         if request.POST.get('special_key', '') or search_params.get('special_key', ''):
             search_parameters['st_type'] = request.POST.get('special_key', '') if request.POST.get('special_key', '') else search_params.get('special_key', '')
         users = check_and_get_plants_wo_request(sub_user, user, users)
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -12409,7 +12909,13 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     time = str(datetime.datetime.now())
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    for data in (stock_transfer_data[start_index:stop_index]):
+    if stop_index:
+        stock_transfer_data = (stock_transfer_data[start_index:stop_index])
+    sku_codes_list = []
+    for each_row in stock_transfer_data:
+        sku_codes_list.append(each_row.sku.sku_code)
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes_list, uom_type='purchase')
+    for data in stock_transfer_data:
         send_accepted_user_dest = ''
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
@@ -12429,6 +12935,11 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         total_order_amount = order_wo_amount + order_tax_amount
         tax_percentage = cgst + sgst + igst
         manufacturer, searchable, bundle = '', '', ''
+        uom_dict = skus_uom_dict.get(data.sku.sku_code, {})
+        base_uom = uom_dict.get('base_uom')
+        pcf = uom_dict.get('sku_conversion')
+        purchase_uom = uom_dict.get('measurement_unit')
+        # pcf= uom_dict.get('pcf')
         if data.stocktransfersummary_set.filter():
             uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
             qty_conversion = uom_dict['sku_conversion']
@@ -12470,12 +12981,12 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 if accepted_user_dest.exists():
                     send_accepted_user_dest = accepted_user_dest[0]['validated_by']
             ord_dict = OrderedDict(
-                (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
-                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
-                 ('SKU Code', data.sku.sku_code),
+                (('Zone', user.userprofile.zone), ('Plant Code', user.userprofile.stockone_code), ('Source Warehouse',  user.first_name), ('Destination Warehouse', destination.first_name),('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
+                 # ('Source Warehouse', user.username), ('Destination Warehouse', destination.username),
+                 ('SKU Code', data.sku.sku_code),  ('SKU Description', data.sku.sku_desc), ('Conversion Factor', pcf),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                  ('Unit Price', price), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                 ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Base UOM', float(invoice_quantity)),
+                 ('Invoice Quantity', (float(invoice_quantity) / float(qty_conversion))), ('Purchse UOM', purchase_uom), ('Base UOM Quantity', float(invoice_quantity)), ('Base UOM', base_uom),
                  ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
             temp_data['aaData'].append(ord_dict)
         else:
@@ -12512,11 +13023,14 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 elif dest_received_qty < dest_ordered_qty and invoice_quantity > 0:
                     dest_receive_po_status = 'Partially Received'
             ord_dict = OrderedDict(
-                (('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
-                 ('Source Warehouse', user.username), ('Destination Warehouse', destination.username), ('SKU Code', data.sku.sku_code),
+                (('Zone', user.userprofile.zone), ('Plant Code', user.userprofile.stockone_code), ('Source Warehouse',  user.first_name), ('Destination Warehouse', destination.first_name), ('Date', date), ('Order ID', data.order_id), ('Order Type', data.st_type),
+                 # ('Source Warehouse', user.username), 
+                 # ('Destination Warehouse', destination.username), 
+                 ('SKU Code', data.sku.sku_code),
+                 ('SKU Description', data.sku.sku_desc), ('Conversion Factor', pcf),
                  ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
-                 ('Unit Price', price), ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                 ('Base UOM', float(invoice_quantity)), ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
+                 ('Unit Price', price), ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount), ('Purchse UOM', purchase_uom),('Base UOM Quantity', float(invoice_quantity)), ('Base UOM', base_uom),
+                 ('Status', status), ('Destination Received Quantity', dest_received_qty), ('Destination Received Value', round(dest_received_qty * price, 4)), ('Destination Receive PO Status', dest_receive_po_status), ('Destination Received By', send_accepted_user_dest)))
             temp_data['aaData'].append(ord_dict)
     return temp_data
 
@@ -14893,8 +15407,8 @@ def get_pr_report_data(search_params, user, sub_user):
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks','pending_pr__remarks',
-           'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number']
-    col_num = search_params.get('order_index', 0)
+           'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__updation_date']
+    col_num = search_params.get('order_index', -1)
     order_term = search_params.get('order_term')
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -14996,7 +15510,8 @@ def get_pr_report_data(search_params, user, sub_user):
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
     if order_term:
         pending_data = pending_data.order_by(order_data)
-
+    else:
+        pending_data = pending_data.order_by('-pending_pr__updation_date')
     resultsWithDate = dict(pl_main.values_list('pending_pr__pr_number', 'creation_date'))
     temp_data['recordsTotal'] = pending_data.count()
     temp_data['recordsFiltered'] = pending_data.count()
@@ -16620,9 +17135,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             'open_po__sku__sku_category', 'open_po__order_quantity', 'open_po__order_quantity',
             'open_po__pendingpos__requested_user__first_name', 'open_po__pendingpos__status',
             'open_po__pendingpos__updation_date', 'open_po__pendingpos__full_po_number',
-            'open_po__order_quantity', 'creation_date', 'open_po__order_quantity', 'open_po__order_quantity',
-            'open_po__order_quantity', 'open_po__pendingpos__full_po_number', 'updation_date', 'updation_date',
-            'open_po__pendingpos__delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__supplier__name'
+            'open_po__order_quantity', 'open_po__pendingpos__requested_user__first_name', 'creation_date', 'open_po__order_quantity', 'open_po__order_quantity',
+            'open_po__order_quantity', 'open_po__pendingpos__full_po_number',  'open_po__pendingpos__full_po_number', 'updation_date', 'updation_date',
+            'open_po__pendingpos__delivery_date', 'open_po__supplier__supplier_id', 'open_po__supplier__supplier__name',  'open_po__pendingpos__full_po_number',  'open_po__pendingpos__full_po_number', 'open_po__pendingpos__full_po_number'
           ]
            #'order_id', 'status', 'po_date', 'po_number', 'open_po__order_quantity', 'creation_date',
            #'open_po__price', 'open_po__price', 'open_po__price', 'po_number', 'order_id','updation_date',
@@ -16810,6 +17325,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
 
         if check_pr_data.exists():
             for pr_data in check_pr_data:
+                po_user = pr_data["pending_po__requested_user__username"]
                 pr_number = pr_data['pending_po__pending_prs__full_pr_number']
                 pr_user = pr_data['pending_po__pending_prs__requested_user__first_name']
                 pr_date = pr_data['pending_po__pending_prs__creation_date']
@@ -16915,6 +17431,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('Integration Reason', integration_error),
             ('Integration Date', integration_date),
             ('Last Updated by', updated_user_name),
+
             # ('Integration Status', integration_status),
             # ('Integration Reason', integration_error),
             # ('Integration Date', integration_date),
@@ -16925,6 +17442,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
 
 
 def get_metropolis_po_detail_report_data(search_params, user, sub_user):
+    from django.utils import timezone
     from miebach_admin.models import *
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin, get_warehouses_data
@@ -16942,7 +17460,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
     #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['po_number', 'order_id','creation_date','po_number', 'po_number', 'creation_date', 'po_number', 'po_number',
+    lis = ['po_number', 'po_number', 'po_number', 'order_id','creation_date', 'creation_date', 'po_number', 'po_number',
            'order_id', 'po_number',
            'open_po__sku__sku_category', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number',
            'po_number', 'po_number',
@@ -16952,7 +17470,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
            'open_po__sku__user__username', 'po_number', 'po_number',
            'open_po__sku__user__username', 'po_number', 'po_number',
            'open_po__sku__user__username', 'updation_date', 'updation_date',
-           'po_number', 'open_po__delivery_date', 'po_number', 'po_number']
+           'po_number', 'open_po__delivery_date', 'po_number', 'po_number', 'creation_date']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     results = ''
@@ -17058,6 +17576,8 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         delivery_date = result['open_po__delivery_date']
         po_update_date = result['updation_date']
         po_date = result['po_date']
+        delta_po_date = timezone.now() - po_date
+        po_delta_days = delta_po_date.days
         final_status = result['status']
         uom_dict = skus_uom_dict.get(sku_code)
         pcf = uom_dict.get('sku_conversion', 1)
@@ -17180,11 +17700,12 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('PR Date', pr_date),
             ('PR raised By ( User Name)',pr_request_user ),
             ('PR raised By ( User department name)', pr_department),
-            ('PR Plant', pr_plant),
+            ('Plant Name', pr_plant),
             ('Plant Code', pr_plant_code),
             ('Zone', plant_zone),
             ('Product Category', product_category),
             ('Category', sku_category),
+            ('Pending Status From(Days)', po_delta_days),
             # ('PR Approved Date', release_date),
             ('PO Number', po_number),
             ('PO Quantity', po_quantity),
@@ -17385,6 +17906,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         search_parameters['consumption_number'] = search_params['order_id']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['sku__user__in'] = user_ids
+    search_parameters['quantity__gt'] = 0
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -17427,6 +17949,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             consumption_type = 'Adjustment'
             try:
                 temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku__user=result['sku__user'])
+                consumption_type = consumption_type + '-' + temp_datum.adjustment_type
                 workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from.strftime("%d %b %Y") if temp_datum.workload_from else '', temp_datum.workload_to.strftime("%d %b %Y") if temp_datum.workload_to else ''
             except:
                 pass
@@ -17489,6 +18012,137 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
+
+
+def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    search_parameters = {}
+    status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
+    lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
+           'stock_mapping__stock__location__location','quantity', 'sku__measurement_type', 'quantity', 'price', 'sku__measurement_type', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'order_id', 'order_id', 'order_id', 'remarks', 'consumption_type']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    if 'consumption_type' in search_params:
+        search_parameters['consumption_type'] = status_keys[search_params['consumption_type']]
+    if 'order_id' in search_params:
+        search_parameters['consumption_number'] = search_params['order_id']
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['sku__user__in'] = user_ids
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    values_list = ['sku__user', 'sku__sku_code', 'id', 'consumption_number']
+    search_parameters['creation_date__gt'] = datetime.datetime.now().replace(day=1).date()
+    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, quantity__gt=0, **search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results:
+        consumption = ConsumptionData.objects.get(id=result['id'])
+        user_obj = User.objects.get(id=result['sku__user'])
+        department = ''
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone_code = user_obj.userprofile.zone
+        if int(consumption.consumption_type) == 0:
+            consumption_type = 'Closing Stock'
+        if int(consumption.consumption_type) == 2:
+            consumption_type = 'Auto Consumption'
+        if int(consumption.consumption_type) == 1:
+            consumption_type = 'Manual Consumption'
+        if int(consumption.consumption_type) == 3:
+            consumption_type = 'Adjustment'
+            try:
+                temp_datum = AdjustementConsumptionData.objects.get(consumption_id=consumption.id)
+                consumption_type = consumption_type + '-' + temp_datum.adjustment_type
+            except:
+                pass
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            department = user_obj.first_name
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+        uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        pcf = pcf if pcf else 1
+        base_uom = uom_dict['base_uom']
+        if consumption.sku_pcf:
+            pcf = consumption.sku_pcf
+        quantity = consumption.stock_mapping.filter().aggregate(Sum('quantity'))['quantity__sum']
+        if quantity < 0:
+            quantity = -1 * quantity
+        pqty = quantity/pcf
+        stock_value = pqty * consumption.price
+        ord_dict = OrderedDict((
+            ('id', consumption.id),
+            ('Date', get_local_date(user, consumption.creation_date)),
+            ('Plant Code', plant_code),
+            ('Department', department),
+            ('Warehouse Username', user_obj.username),
+            ('SKU Code', result['sku__sku_code']),
+            ('SKU Conversion', pcf),
+            ('Base Quantity', quantity),
+            ('Purchase Uom Quantity', pqty),
+            ('Stock Value', stock_value),
+            ('Consumption ID', result['consumption_number']),
+            ('Type', consumption_type)))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
+
 
 def get_consumption_data_(search_params, user, sub_user):
     from miebach_admin.models import *
@@ -17938,3 +18592,4 @@ def get_praod_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
+

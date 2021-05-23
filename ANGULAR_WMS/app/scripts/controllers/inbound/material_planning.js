@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Base UOM', 'Average Monthly Consumption Qty', 'Lead Time Qty',
+    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Base UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
                    'Min Days Qty', 'Max Days Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -197,7 +197,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
             formData.append('id', vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId);
             formData.append('suggested_qty', sugg_qty);
             formData.append('capacity', vm.dtInstance.DataTable.context[0].aoData[key]._aData['System Stock Qty']);
-            formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Monthly Consumption Qty']);
+            formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Daily Consumption Qty']);
             formData.append('openpr_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PR Qty']);
             formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
             non_zero_qty = true;

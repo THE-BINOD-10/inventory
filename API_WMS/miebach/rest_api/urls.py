@@ -95,6 +95,7 @@ urlpatterns = [
     url(r'^update_company_master/$', update_company_master),
     url(r'^get_company_list/$', get_company_list),
     url(r'^delete_uom_master/$', delete_uom_master),
+    url(r'^delete_consumption_data/$', delete_consumption_data),
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -175,6 +176,7 @@ urlpatterns = [
     url(r'^search_distributor_codes/$', search_distributor_codes),
     url(r'^search_plants/$', search_plants),
     url(r'^get_supplier_data/$', get_supplier_data),
+    url(r'^get_purchase_orders/$',get_purchase_orders),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
@@ -260,6 +262,7 @@ urlpatterns = [
     url(r'^confirm_mr_request/$', confirm_mr_request),
     url(r'^view_pending_mr_details/$', view_pending_mr_details),
     url(r'^prepare_material_planning_pr_data/$', prepare_material_planning_pr_data),
+    url(r'^confirm_asn_order/$', confirm_asn_order),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -514,6 +517,7 @@ urlpatterns = [
     url(r'^get_po_filter/$', get_po_filter),
     url(r'^get_integration_report/$', get_integration_report),
     url(r'^get_pr_po_grn_filter/$', get_pr_po_grn_filter),
+    url(r'^get_metropolis_pr_po_grn_filter/$', get_metropolis_pr_po_grn_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
@@ -634,6 +638,7 @@ urlpatterns = [
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
     url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
+    url(r'^get_sku_wise_consumption_reversal/$', get_sku_wise_consumption_reversal),
     url(r'^get_consumption_data/$', get_consumption_data),
     url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),

@@ -1013,8 +1013,9 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     rw_order_ids_list = rw_results_objs.filter(
         purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
         values_list('purchase_order_id', flat=True)
+    asn_pos = list(ASNMapping.objects.filter().values_list('purchase_order_id',flat=True))
     results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params). \
-        filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway'])
+        filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway']).exclude(id__in=asn_pos)
     po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids,
                                                        po_number__in=results_objs.values_list('po_number', flat=True))
     po_ord_qty = po_result_order_ids.values_list('order_id', 'prefix', 'po_number').distinct().annotate(total_order_qty=Sum('open_po__order_quantity'))
@@ -1684,12 +1685,13 @@ def generated_pr_data(request, user=''):
     validateFlag = 0
     uploaded_file_dict = {}
     if len(record) > 0:
+        if record[0].pending_prs.filter():
+            full_pr_number = get_pr_number_from_po(record[0])
         if record[0].remarks:
             pr_remarks = record[0].remarks
         elif record[0].pending_prs.filter():
             pr_rec = record[0].pending_prs.filter()[0]
             pr_remarks = pr_rec.remarks
-            full_pr_number = pr_rec.full_pr_number
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
@@ -2143,6 +2145,7 @@ def print_pending_po_form(request, user=''):
     supplier_currency = 'INR'
     purchase_number = int(purchase_id)
     filtersMap = {}
+    full_pr_number = ''
     if warehouse:
         wh_user = User.objects.filter(first_name=warehouse)
         filtersMap['wh_user'] = wh_user[0].id
@@ -2165,6 +2168,7 @@ def print_pending_po_form(request, user=''):
             lineItems = pendingPurchaseObj.pending_prlineItems
         else:
             lineItems = pendingPurchaseObj.pending_polineItems
+            full_pr_number = get_pr_number_from_po(pendingPurchaseObj)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     table_headers = ['SKU Code','SKU Desc','Supplier Code', 'Qty', 'UOM', 'Unit Price',
@@ -2315,6 +2319,7 @@ def print_pending_po_form(request, user=''):
         'title': title,
         'is_actual_pr': is_actual_pr,
         'remarks': remarks,
+        'full_pr_number': full_pr_number,
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
@@ -5493,7 +5498,7 @@ def get_supplier_data(request, users=''):
                                     'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                    'price':float("%.2f"% float(order_data.get('price',0))),
+                                    'price':round(float(order_data.get('price',0)), 4),
                                     'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
@@ -5506,7 +5511,7 @@ def get_supplier_data(request, users=''):
                                     'apmc_percent': temp_json.get('apmc_percent', 0),
                                     'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                     'tax_percent_copy': tax_percent_copy, 'temp_json_id': temp_json_obj.id,
-                                    'buy_price': temp_json.get('buy_price', 0),
+                                    'buy_price': round(temp_json.get('buy_price', 0), 4),
                                     'discount_percentage': temp_json.get('discount_percentage', 0),
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
@@ -5533,9 +5538,9 @@ def get_supplier_data(request, users=''):
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': rec_data,
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': float("%.2f"% float(order_data.get('price',0))),
-                                'grn_price':float("%.2f"% float(order_data.get('price',0))),
-                                'mrp': float("%.2f"% float(order_data.get('mrp',0))),
+                                'price': round(float(order_data.get('price',0)), 4),
+                                'grn_price':round(float(order_data.get('price',0)), 4),
+                                'mrp': round(float(order_data.get('mrp',0)), 4),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
                                 'dis': True,'wrong_sku':0, 'base_unit': sku_conversion,
@@ -5545,7 +5550,7 @@ def get_supplier_data(request, users=''):
                                 'apmc_percent': order_data['apmc_tax'],
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
+                                 'buy_price': round(order_data['price'], 4), 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
                                  'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
@@ -7147,6 +7152,83 @@ def validate_grn_wms(user, myDict):
     except Exception as e:
         status_msg = 'Something Went Worng, Please Contact to Stockone Team !'
     return status_msg
+
+@csrf_exempt
+@login_required
+@get_admin_multi_user
+def get_purchase_orders(request, users=''):
+    myDict = dict(request.GET.iterlists())
+    warehouse_users = myDict.get('warehouse_id')
+    order_id = myDict.get('order_id')
+    order_pre = myDict.get('prefix')
+    full_po_number = myDict.get('po_number')
+    orders = []
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users,
+                                                   received_quantity__lt=F('open_po__order_quantity'),
+                                                   order_id__in=order_id).exclude(status='location-assigned')
+    # if stop_index:
+    #     purchase_orders = purchase_orders[start_index:stop_index]
+    po_reference_no = ''
+    #admin_user = get_admin(user)
+    for order in purchase_orders:
+        po_reference_no = '%s%s_%s' % (
+            order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        customer_name, sr_number = '', ''
+        po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
+        po_date = get_local_date(request.user, order.creation_date)
+        ord_dict = OrderedDict((('sku_code', order.open_po.sku.wms_code), ('po_number', po_reference_no),
+                                ('sku_category', order.open_po.sku.sku_category),
+                                ('ordered_quantity', order.open_po.order_quantity),
+                                ('received_quantity', order.received_quantity),
+                                ('quantity', po_quantity), ('sku_desc', order.open_po.sku.sku_desc),
+                                ('customer_name', customer_name),
+                                ('warehouse_id', order.open_po.sku.user),
+                                ('po_date', po_date),
+                                ('order_id', order.order_id)))
+        orders.append(ord_dict)
+
+    return HttpResponse(json.dumps({'data': orders}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_asn_order(request, user=''):
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
+    data = {}
+    for key, value in request.POST.iterlists():
+        if key not in ['warehouse_id']:
+            name, order_id = key.rsplit('_', 1)
+            data.setdefault(order_id, [])
+            for index, val in enumerate(value):
+                if len(data[order_id]) < index + 1:
+                    data[order_id].append({})
+                data[order_id][index][name] = val
+    try:
+        data = OrderedDict(sorted(data.items(), reverse=True))
+        asn_number = get_incremental(user, 'asn_number')
+        for key, value in data.iteritems():
+            po_order_id = value[0]['order_id']
+            for i in range(0, len(value)):
+                sku_code = value[i]['sku_code']
+                quantity = value[i].get('current_quantity', 0)
+                if quantity:
+                    po_obj = PurchaseOrder.objects.filter(order_id=po_order_id,
+                                                     open_po__sku__user=user.id, 
+                                                     open_po__sku__sku_code=sku_code)
+                    ASNMapping.objects.create(**{'purchase_order':po_obj[0], 'total_quantity':quantity,
+                                             'asn_number': asn_number, 'user':user})
+                else:
+                    return HttpResponse('Quantity missing')
+        return HttpResponse('ASN Confirmed')
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('ASN Confirmation failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(data), str(e)))
+        return HttpResponse('ASN Failed')
 
 @csrf_exempt
 @login_required
@@ -9768,6 +9850,7 @@ def confirm_add_po(request, sales_data='', user=''):
     prQs = ''
     check_prefix = ''
     po_remarks = request.POST.get('po_remarks', '')
+    full_pr_number = ''
     try:
         if is_purchase_request == 'true':
             # pr_number = int(request.POST.get('pr_number'))
@@ -9780,6 +9863,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 po_creation_date = prObj.creation_date
                 po_id = prObj.po_number
                 full_po_number = prObj.full_po_number
+                full_pr_number = get_pr_number_from_po(prObj)
                 #po_remarks = prObj.remarks
                 prefix = prObj.prefix
                 delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
@@ -10120,7 +10204,8 @@ def confirm_add_po(request, sales_data='', user=''):
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan, 'remarks': po_remarks,
                      'company_address': company_address.encode('ascii', 'ignore'), 'company_details': company_details,
-                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+                     'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo,
+                     'full_pr_number': full_pr_number}
         netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs, request)
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
@@ -16765,7 +16850,8 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['user', 'user', 'sku_code', 'sku_desc', 'sku_category', 'user', 'user', 'user', 'user', 'user']
+    lis = ['id', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
+            'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
     else:
@@ -16785,129 +16871,30 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids}
     if 'sku_code' in filters and filters['sku_code']:
-        search_params['sku_code'] = filters['sku_code']
+        search_params['sku__sku_code'] = filters['sku_code']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    kandc_skus = list(SKUMaster.objects.filter(user=main_user.id).exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
-                                        exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).values_list('sku_code', flat=True))
-    search_params['sku_code__in'] = kandc_skus
-    master_data = SKUMaster.objects.filter(**search_params).order_by(order_data)
+    if MRP.objects.filter().exists():
+        search_params['creation_date__gte'] = MRP.objects.filter().order_by('-creation_date')[0].creation_date.strftime('%Y-%m-%d')
+    master_data = MRP.objects.filter(**search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     master_data = master_data[start_index:stop_index]
-    res_plants = set()
-    sku_codes = []
-    for dat in master_data:
-        res_plants.add(dat.user)
-        sku_codes.append(dat.sku_code)
-    usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
-    dept_user_ids = list(dept_users.values_list('id', flat=True))
-    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
-                                            values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
-    stock_qtys = {}
-    user_id_mapping = {}
-    for stock in stocks:
-        if stock['sku__user'] in user_id_mapping:
-            usr = user_id_mapping[stock['sku__user']]
-        else:
-            usr = User.objects.get(id=stock['sku__user'])
-            if usr.userprofile.warehouse_type == 'DEPT':
-                usr = get_admin(usr)
-            user_id_mapping[stock['sku__user']] = usr
-        grp_key = (usr.id, stock['sku__sku_code'])
-        stock_qtys.setdefault(grp_key, 0)
-        stock_qtys[grp_key] += stock['total']
-    consumption_qtys = {}
-    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
-    for cons in consumption_lt3:
-        if cons.sku.user in user_id_mapping:
-            usr = user_id_mapping[cons.sku.user]
-        else:
-            usr = User.objects.get(id=cons.sku.user)
-            if usr.userprofile.warehouse_type == 'DEPT':
-                usr = get_admin(usr)
-            user_id_mapping[cons.sku.user] = usr
-        grp_key = (usr.id, cons.sku.sku_code)
-        consumption_qtys.setdefault(grp_key, 0)
-        consumption_qtys[grp_key] += cons.quantity
-    repl_master = ReplenushmentMaster.objects.filter(user__in=dept_user_ids, sku__sku_code__in=sku_codes)
-    repl_dict = {}
-    for dat in repl_master:
-        grp_key = (dat.user.id, dat.sku.sku_code)
-        repl_dict.setdefault(grp_key, {})
-        repl_dict[grp_key]['lead_time'] = dat.lead_time
-        repl_dict[grp_key]['min_days'] = dat.min_days
-        repl_dict[grp_key]['max_days'] = dat.max_days
-    pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
-    pending_pr_dict = {}
-    for pr_pend in pr_pending:
-        if pr_pend.sku.user in user_id_mapping:
-            pr_user = user_id_mapping[pr_pend.sku.user]
-        else:
-            pr_user = User.objects.get(id=pr_pend.sku.user)
-            if pr_user.userprofile.warehouse_type == 'DEPT':
-                pr_user = get_admin(pr_user)
-            user_id_mapping[pr_pend.sku.user] = pr_user
-        grp_key = (pr_user.id, pr_pend.sku.sku_code)
-        pending_pr_dict.setdefault(grp_key, {'qty': 0})
-        pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
-    po_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes,
-                                                pending_po__final_status__in=['saved', 'pending', 'approved'],
-                                                pending_po__open_po__purchaseorder__isnull=True).distinct()
-    pending_po_dict = {}
-    for po_pend in po_pending:
-        if po_pend.sku.user in user_id_mapping:
-            po_user = user_id_mapping[po_pend.sku.user]
-        else:
-            po_user = User.objects.get(id=po_pend.sku.user)
-            if po_user.userprofile.warehouse_type == 'DEPT':
-                po_user = get_admin(po_user)
-            user_id_mapping[po_pend.sku.user] = po_user
-        grp_key = (po_user.id, po_pend.sku.sku_code)
-        pending_po_dict.setdefault(grp_key, {'qty': 0})
-        pending_po_dict[grp_key]['qty'] += po_pend.quantity
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=dept_user_ids, open_po__sku__sku_code__in=sku_codes,
-                                                    open_po__order_quantity__gt=F('received_quantity')).\
-                                            exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted'])
-    po_dict = {}
-    for purchase_order in purchase_orders:
-        grp_key = (purchase_order.open_po.sku.user, purchase_order.open_po.sku.sku_code)
-        po_dict.setdefault(grp_key, {'qty': 0})
-        po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
+    sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     for data in master_data:
-        uom_dict = sku_uoms.get(data.sku_code, {})
+        uom_dict = sku_uoms.get(data.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
-        user = User.objects.get(id=data.user)
-        grp_key = (data.user, data.sku_code)
-        cons_qtyb = (consumption_qtys.get(grp_key, 0)/3)/30
-        cons_qty = round(cons_qtyb/sku_pcf, 5)
-        sku_repl = repl_dict.get(grp_key, {})
-        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 2)
-        min_days = round(cons_qty * sku_repl.get('min_days', 0),2)
-        max_days = round(cons_qty * sku_repl.get('max_days', 0), 2)
-        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 2)
-        sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
-        sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
-        total_stock = stock_qty + sku_pending_pr + sku_pending_po
-        total_stock = round(total_stock, 2)
-        if (total_stock - lead_time) > min_days:
-            suggested_qty = 0
-        else:
-            suggested_qty = (max_days + lead_time - total_stock)
-            suggested_qty = math.ceil(suggested_qty)
-
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', user.userprofile.stockone_code), ('Plant Name', user.first_name),
-                                  ('SKU Code', data.sku_code), ('SKU Description', data.sku_desc), ('SKU Category', data.sku_category),
-                                  ('Base UOM', uom_dict.get('base_uom', '')), ('Average Monthly Consumption Qty', cons_qty),
-                                  ('Lead Time Qty', lead_time), ('Min Days Qty', min_days), ('Max Days Qty', max_days),
-                                  ('System Stock Qty', stock_qty), ('Pending PR Qty', sku_pending_pr), ('Pending PO Qty', sku_pending_po),
-                                  ('Total Stock Qty', total_stock), ('Suggested Qty', suggested_qty), ('DT_RowAttr', {'data-id': data.id}),
-                                  ('hsn_code', data.hsn_code)
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', data.user.userprofile.stockone_code), ('Plant Name', data.user.first_name),
+                                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
+                                  ('Base UOM', uom_dict.get('base_uom', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
+                                  ('Lead Time Qty', round(data.lead_time_qty, 2)), ('Min Days Qty', round(data.min_days_qty, 2)), ('Max Days Qty', round(data.max_days_qty, 2)),
+                                  ('System Stock Qty', round(data.system_stock_qty, 2)), ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
+                                  ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)), ('DT_RowAttr', {'data-id': data.id}),
+                                  ('hsn_code', data.sku.hsn_code)
                                 ))
         temp_data['aaData'].append(data_dict)
 
@@ -16931,7 +16918,7 @@ def prepare_material_planning_pr_data(request, user=''):
             sku_code = dat['SKU Code']
             capacity = dat['System Stock Qty']
             openpr_qty = dat['Pending PR Qty']
-            avg_consumption_qty = dat['Average Monthly Consumption Qty']
+            avg_consumption_qty = dat['Average Daily Consumption Qty']
             plant_username = User.objects.get(userprofile__stockone_code=dat['Plant Code']).username
             uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
             suggested_qty = dat['Suggested Qty']
@@ -16943,8 +16930,9 @@ def prepare_material_planning_pr_data(request, user=''):
                             'openpo_qty': openpo_qty})
     else:
         for i in range(len(request_data['id'])):
-            sku = SKUMaster.objects.get(id=request_data['id'][i])
-            plant_username = User.objects.get(id=sku.user).username
+            datum = MRP.objects.get(id=request_data['id'][i])
+            plant_username = datum.user.username
+            sku = datum.sku
             uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
             suggested_qty = request_data['suggested_qty'][i]
             capacity = request_data['capacity'][i]
@@ -16956,3 +16944,40 @@ def prepare_material_planning_pr_data(request, user=''):
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_consumption_data(request, user=''):
+    input_ids = request.POST.get('data', [])
+    consumption_ids = json.loads(input_ids)
+    if len(consumption_ids) > 0 :
+        cons_data = ConsumptionData.objects.filter(id__in = consumption_ids, quantity__gt=0).distinct()
+        for cons in cons_data:
+            temp_qty = 0
+            stock_mapping = cons.stock_mapping.filter()
+            for stock_map in stock_mapping:
+                stock = stock_map.stock
+                temp_qty = temp_qty + stock_map.quantity
+                stock.quantity = stock.quantity + stock_map.quantity
+                stock.save()
+                stock_map.quantity = 0
+                stock_map.save()
+            cons.cancel_user=request.user
+            cons.cancelled_qty = float(temp_qty)
+            cons.quantity = 0
+            cons.save()
+            sku_amt = {}
+            user = User.objects.get(id=cons.sku.user)
+            pcf = cons.sku_pcf
+            if not pcf:
+                uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+                pcf = uom_dict.get('sku_conversion', 1)
+            sku_amt[cons.sku.sku_code] = {'qty': (temp_qty/pcf), 'amount': (temp_qty/pcf) * cons.price, 'exclude_po_loc': []}
+            main_user = get_company_admin_user(user)
+            if user.userprofile.warehouse_type == 'DEPT':
+                store_user = get_admin(user)
+            else:
+                store_user = user
+            update_sku_avg_main(sku_amt, store_user, main_user)
+    return HttpResponse('Success')

@@ -2987,6 +2987,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict['sku_id'] = sku_id
     uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
     # remaining_quantity = quantity * uom_dict['sku_conversion']
+    if uom_dict.get('sku_conversion') == '' or uom_dict.get('sku_conversion') == 0:
+        uom_dict['sku_conversion'] = 1
     remaining_quantity = quantity
     data_dict['quantity'] = total_stock_quantity
     data_dict['seen_quantity'] = remaining_quantity
@@ -3103,6 +3105,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if price != '':
                 batch_dict['buy_price'] = float(price)
             batch_dict['pcf'] = uom_dict['sku_conversion']
+            quantity = float(quantity / uom_dict['sku_conversion'])
             batch_dict['pquantity'] = quantity
             batch_dict['puom'] = uom_dict['measurement_unit']
             if user.userprofile.industry_type == 'FMCG':
@@ -10939,6 +10942,27 @@ def get_incremental(user, type_name, default_val=''):
     return count
 
 
+def get_incremental_with_lock(user, type_name, default_val=''):
+    # custom sku counter
+    if not default_val:
+        default = 1001
+    else:
+        default = default_val
+    with transaction.atomic('default'):
+        inc_recod = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+        if inc_recod:
+            data = IncrementalTable.objects.using('default').select_for_update().filter(id__in=list(inc_recod.values_list('id', flat=True)))
+            if data:
+                data = data[0]
+                count = data.value + 1
+                data.value = data.value + 1
+                data.save()
+        else:
+            IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
+            count = default
+    return count
+
+
 def get_decremental(user, type_name, old_pack_ref_no):
     # custom sku counter
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
@@ -14419,7 +14443,8 @@ def check_block_pr_po_configuration():
     return status
 
 def get_last_three_months_consumption(filters):
-    end_date = datetime.datetime.today().replace(day=1)
+    # end_date = datetime.datetime.today().replace(day=1)
+    end_date = datetime.datetime.today()
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)
@@ -14579,4 +14604,31 @@ def async_excel(temp_data, headers, creation_date, excel_name='', user='', file_
                 pass
         wb.save(path)
     return path_to_file
+
+
+def get_pr_number_from_po(pend_po):
+    pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
+    return pr_numbers
+
+
+def get_sku_code_inc_number(user, instanceName, category, check=False):
+    if instanceName == AssetMaster:
+        type_name = 'ASS'
+    elif instanceName == ServiceMaster:
+        type_name = 'SER'
+    elif instanceName == OtherItemsMaster:
+        if 'marketing' in category.lower():
+            category = 'marketing'
+        type_name = SKU_CREATION_INC_MAPPING_OT.get(category.lower(), None)
+    else:
+        type_name = SKU_CREATION_INC_MAPPING_KC.get(category.lower(), None)
+    if not type_name:
+        return False, ''
+    elif check:
+        return True, ''
+    ftype_name = 'sku_' + type_name
+    main_user = get_company_admin_user(user)
+    inc_value = get_incremental_with_lock(main_user, ftype_name)
+    sku_code = '%s%s' % (type_name, str(inc_value).zfill(6))
+    return True, sku_code
 

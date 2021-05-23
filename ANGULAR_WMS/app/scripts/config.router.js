@@ -3314,8 +3314,14 @@ var app = angular.module('urbanApp')
           url: '/consumptionReport',
           templateUrl: 'views/reports/consumption_report.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/consumption_report.js');
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/reports/consumption_report.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/reports/consumption_reversal.js'
+                  ])
+                })
               }]
           },
           data: {
@@ -3516,7 +3522,13 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/supplier_purchase_order.js'
                   ])
-                });
+                }).then( function() {
+                return $ocLazyLoad.load([
+                  {
+                  serie: true,
+                        files: ['scripts/controllers/inbound/pop_jos/common_asn.js']}
+                ])
+              });
               }]
           },
           data: {

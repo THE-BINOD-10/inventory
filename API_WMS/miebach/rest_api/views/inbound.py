@@ -5498,7 +5498,7 @@ def get_supplier_data(request, users=''):
                                     'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                    'price':float("%.2f"% float(order_data.get('price',0))),
+                                    'price':round(float(order_data.get('price',0)), 4),
                                     'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
@@ -5511,7 +5511,7 @@ def get_supplier_data(request, users=''):
                                     'apmc_percent': temp_json.get('apmc_percent', 0),
                                     'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                     'tax_percent_copy': tax_percent_copy, 'temp_json_id': temp_json_obj.id,
-                                    'buy_price': temp_json.get('buy_price', 0),
+                                    'buy_price': round(temp_json.get('buy_price', 0), 4),
                                     'discount_percentage': temp_json.get('discount_percentage', 0),
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
@@ -5538,9 +5538,9 @@ def get_supplier_data(request, users=''):
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': rec_data,
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': float("%.2f"% float(order_data.get('price',0))),
-                                'grn_price':float("%.2f"% float(order_data.get('price',0))),
-                                'mrp': float("%.2f"% float(order_data.get('mrp',0))),
+                                'price': round(float(order_data.get('price',0)), 4),
+                                'grn_price':round(float(order_data.get('price',0)), 4),
+                                'mrp': round(float(order_data.get('mrp',0)), 4),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
                                 'dis': True,'wrong_sku':0, 'base_unit': sku_conversion,
@@ -5550,7 +5550,7 @@ def get_supplier_data(request, users=''):
                                 'apmc_percent': order_data['apmc_tax'],
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
+                                 'buy_price': round(order_data['price'], 4), 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
                                  'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
@@ -16850,7 +16850,8 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['user', 'user', 'sku_code', 'sku_desc', 'sku_category', 'user', 'user', 'user', 'user', 'user']
+    lis = ['id', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
+            'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
     else:
@@ -16870,129 +16871,30 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids}
     if 'sku_code' in filters and filters['sku_code']:
-        search_params['sku_code'] = filters['sku_code']
+        search_params['sku__sku_code'] = filters['sku_code']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    kandc_skus = list(SKUMaster.objects.filter(user=main_user.id).exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
-                                        exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).values_list('sku_code', flat=True))
-    search_params['sku_code__in'] = kandc_skus
-    master_data = SKUMaster.objects.filter(**search_params).order_by(order_data)
+    if MRP.objects.filter().exists():
+        search_params['creation_date__gte'] = MRP.objects.filter().order_by('-creation_date')[0].creation_date.strftime('%Y-%m-%d')
+    master_data = MRP.objects.filter(**search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     master_data = master_data[start_index:stop_index]
-    res_plants = set()
-    sku_codes = []
-    for dat in master_data:
-        res_plants.add(dat.user)
-        sku_codes.append(dat.sku_code)
-    usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
-    dept_user_ids = list(dept_users.values_list('id', flat=True))
-    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
-                                            values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
-    stock_qtys = {}
-    user_id_mapping = {}
-    for stock in stocks:
-        if stock['sku__user'] in user_id_mapping:
-            usr = user_id_mapping[stock['sku__user']]
-        else:
-            usr = User.objects.get(id=stock['sku__user'])
-            if usr.userprofile.warehouse_type == 'DEPT':
-                usr = get_admin(usr)
-            user_id_mapping[stock['sku__user']] = usr
-        grp_key = (usr.id, stock['sku__sku_code'])
-        stock_qtys.setdefault(grp_key, 0)
-        stock_qtys[grp_key] += stock['total']
-    consumption_qtys = {}
-    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
-    for cons in consumption_lt3:
-        if cons.sku.user in user_id_mapping:
-            usr = user_id_mapping[cons.sku.user]
-        else:
-            usr = User.objects.get(id=cons.sku.user)
-            if usr.userprofile.warehouse_type == 'DEPT':
-                usr = get_admin(usr)
-            user_id_mapping[cons.sku.user] = usr
-        grp_key = (usr.id, cons.sku.sku_code)
-        consumption_qtys.setdefault(grp_key, 0)
-        consumption_qtys[grp_key] += cons.quantity
-    repl_master = ReplenushmentMaster.objects.filter(user__in=dept_user_ids, sku__sku_code__in=sku_codes)
-    repl_dict = {}
-    for dat in repl_master:
-        grp_key = (dat.user.id, dat.sku.sku_code)
-        repl_dict.setdefault(grp_key, {})
-        repl_dict[grp_key]['lead_time'] = dat.lead_time
-        repl_dict[grp_key]['min_days'] = dat.min_days
-        repl_dict[grp_key]['max_days'] = dat.max_days
-    pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
-    pending_pr_dict = {}
-    for pr_pend in pr_pending:
-        if pr_pend.sku.user in user_id_mapping:
-            pr_user = user_id_mapping[pr_pend.sku.user]
-        else:
-            pr_user = User.objects.get(id=pr_pend.sku.user)
-            if pr_user.userprofile.warehouse_type == 'DEPT':
-                pr_user = get_admin(pr_user)
-            user_id_mapping[pr_pend.sku.user] = pr_user
-        grp_key = (pr_user.id, pr_pend.sku.sku_code)
-        pending_pr_dict.setdefault(grp_key, {'qty': 0})
-        pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
-    po_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes,
-                                                pending_po__final_status__in=['saved', 'pending', 'approved'],
-                                                pending_po__open_po__purchaseorder__isnull=True).distinct()
-    pending_po_dict = {}
-    for po_pend in po_pending:
-        if po_pend.sku.user in user_id_mapping:
-            po_user = user_id_mapping[po_pend.sku.user]
-        else:
-            po_user = User.objects.get(id=po_pend.sku.user)
-            if po_user.userprofile.warehouse_type == 'DEPT':
-                po_user = get_admin(po_user)
-            user_id_mapping[po_pend.sku.user] = po_user
-        grp_key = (po_user.id, po_pend.sku.sku_code)
-        pending_po_dict.setdefault(grp_key, {'qty': 0})
-        pending_po_dict[grp_key]['qty'] += po_pend.quantity
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=dept_user_ids, open_po__sku__sku_code__in=sku_codes,
-                                                    open_po__order_quantity__gt=F('received_quantity')).\
-                                            exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted'])
-    po_dict = {}
-    for purchase_order in purchase_orders:
-        grp_key = (purchase_order.open_po.sku.user, purchase_order.open_po.sku.sku_code)
-        po_dict.setdefault(grp_key, {'qty': 0})
-        po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
+    sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     for data in master_data:
-        uom_dict = sku_uoms.get(data.sku_code, {})
+        uom_dict = sku_uoms.get(data.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
-        user = User.objects.get(id=data.user)
-        grp_key = (data.user, data.sku_code)
-        cons_qtyb = (consumption_qtys.get(grp_key, 0)/3)/30
-        cons_qty = round(cons_qtyb/sku_pcf, 5)
-        sku_repl = repl_dict.get(grp_key, {})
-        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 2)
-        min_days = round(cons_qty * sku_repl.get('min_days', 0),2)
-        max_days = round(cons_qty * sku_repl.get('max_days', 0), 2)
-        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 2)
-        sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
-        sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
-        total_stock = stock_qty + sku_pending_pr + sku_pending_po
-        total_stock = round(total_stock, 2)
-        if (total_stock - lead_time) > min_days:
-            suggested_qty = 0
-        else:
-            suggested_qty = (max_days + lead_time - total_stock)
-            suggested_qty = math.ceil(suggested_qty)
-
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', user.userprofile.stockone_code), ('Plant Name', user.first_name),
-                                  ('SKU Code', data.sku_code), ('SKU Description', data.sku_desc), ('SKU Category', data.sku_category),
-                                  ('Base UOM', uom_dict.get('base_uom', '')), ('Average Monthly Consumption Qty', cons_qty),
-                                  ('Lead Time Qty', lead_time), ('Min Days Qty', min_days), ('Max Days Qty', max_days),
-                                  ('System Stock Qty', stock_qty), ('Pending PR Qty', sku_pending_pr), ('Pending PO Qty', sku_pending_po),
-                                  ('Total Stock Qty', total_stock), ('Suggested Qty', suggested_qty), ('DT_RowAttr', {'data-id': data.id}),
-                                  ('hsn_code', data.hsn_code)
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', data.user.userprofile.stockone_code), ('Plant Name', data.user.first_name),
+                                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
+                                  ('Base UOM', uom_dict.get('base_uom', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
+                                  ('Lead Time Qty', round(data.lead_time_qty, 2)), ('Min Days Qty', round(data.min_days_qty, 2)), ('Max Days Qty', round(data.max_days_qty, 2)),
+                                  ('System Stock Qty', round(data.system_stock_qty, 2)), ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
+                                  ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)), ('DT_RowAttr', {'data-id': data.id}),
+                                  ('hsn_code', data.sku.hsn_code)
                                 ))
         temp_data['aaData'].append(data_dict)
 
@@ -17016,7 +16918,7 @@ def prepare_material_planning_pr_data(request, user=''):
             sku_code = dat['SKU Code']
             capacity = dat['System Stock Qty']
             openpr_qty = dat['Pending PR Qty']
-            avg_consumption_qty = dat['Average Monthly Consumption Qty']
+            avg_consumption_qty = dat['Average Daily Consumption Qty']
             plant_username = User.objects.get(userprofile__stockone_code=dat['Plant Code']).username
             uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
             suggested_qty = dat['Suggested Qty']
@@ -17028,8 +16930,9 @@ def prepare_material_planning_pr_data(request, user=''):
                             'openpo_qty': openpo_qty})
     else:
         for i in range(len(request_data['id'])):
-            sku = SKUMaster.objects.get(id=request_data['id'][i])
-            plant_username = User.objects.get(id=sku.user).username
+            datum = MRP.objects.get(id=request_data['id'][i])
+            plant_username = datum.user.username
+            sku = datum.sku
             uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
             suggested_qty = request_data['suggested_qty'][i]
             capacity = request_data['capacity'][i]
@@ -17041,3 +16944,40 @@ def prepare_material_planning_pr_data(request, user=''):
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_consumption_data(request, user=''):
+    input_ids = request.POST.get('data', [])
+    consumption_ids = json.loads(input_ids)
+    if len(consumption_ids) > 0 :
+        cons_data = ConsumptionData.objects.filter(id__in = consumption_ids, quantity__gt=0).distinct()
+        for cons in cons_data:
+            temp_qty = 0
+            stock_mapping = cons.stock_mapping.filter()
+            for stock_map in stock_mapping:
+                stock = stock_map.stock
+                temp_qty = temp_qty + stock_map.quantity
+                stock.quantity = stock.quantity + stock_map.quantity
+                stock.save()
+                stock_map.quantity = 0
+                stock_map.save()
+            cons.cancel_user=request.user
+            cons.cancelled_qty = float(temp_qty)
+            cons.quantity = 0
+            cons.save()
+            sku_amt = {}
+            user = User.objects.get(id=cons.sku.user)
+            pcf = cons.sku_pcf
+            if not pcf:
+                uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+                pcf = uom_dict.get('sku_conversion', 1)
+            sku_amt[cons.sku.sku_code] = {'qty': (temp_qty/pcf), 'amount': (temp_qty/pcf) * cons.price, 'exclude_po_loc': []}
+            main_user = get_company_admin_user(user)
+            if user.userprofile.warehouse_type == 'DEPT':
+                store_user = get_admin(user)
+            else:
+                store_user = user
+            update_sku_avg_main(sku_amt, store_user, main_user)
+    return HttpResponse('Success')

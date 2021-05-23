@@ -3314,8 +3314,14 @@ var app = angular.module('urbanApp')
           url: '/consumptionReport',
           templateUrl: 'views/reports/consumption_report.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/consumption_report.js');
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/reports/consumption_report.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/reports/consumption_reversal.js'
+                  ])
+                })
               }]
           },
           data: {

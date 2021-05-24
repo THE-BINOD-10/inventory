@@ -781,6 +781,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     plant = models.ManyToManyField(TableLists, default=None)
     department_type = models.CharField(max_length=64, default='')
     user_role = models.ManyToManyField(CompanyRoles, default=None)
+    emails = models.ManyToManyField(TableLists, default=None, related_name='config_emails_list')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

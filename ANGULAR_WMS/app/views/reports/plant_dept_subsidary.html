@@ -1,0 +1,55 @@
+<div ng-controller="PlantDeptSubsidaryCtrl as showCase">
+  <div class="page-layout reports">
+  	<div class='layout-header'>
+      <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+      </div>
+    </div>
+    <div class="layout-sub-header">
+        <form name="form" role="form" class="filters">
+          <div class="clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Plant Code</label>
+                  <input type="text" autocomplete="off" name="plant_code" class="form-control" placeholder="Search Plant Code" typeahead="address.plant_code for address in showCase.service.getSearchValues($viewValue, 'search_plants?', 'plant_code')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.filters.plant_code">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Plant Name</label>
+                  <input type="text" autocomplete="off" name="plant_name" class="form-control" placeholder="Search Plant Name" typeahead="address.plant_name for address in showCase.service.getSearchValues($viewValue, 'search_plants?', 'STORE')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.filters.plant_name">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label"> Department Type </label>
+                  <select class="form-control" ng-model="showCase.model_data.filters.sister_warehouse" name="sister_warehouse">
+                    <option value=""></option>
+                    <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="dept_code==showCase.model_data.department_code">{{dept_type}}</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+            <div class="col-md-12">
+              <div class="filter-controls">
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
+                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.filters)"> Search </button>
+              </div>
+            </div>
+          </div>
+        </form>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-header">
+          <div ng-include="'views/common/excel.html'"></div>
+        </div>
+        <div ng-include="'views/common/datatable.html'"></div>
+      </div>
+    </div>
+  </div>
+</div>

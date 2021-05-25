@@ -5511,7 +5511,7 @@ def get_supplier_data(request, users=''):
                                     'apmc_percent': temp_json.get('apmc_percent', 0),
                                     'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                     'tax_percent_copy': tax_percent_copy, 'temp_json_id': temp_json_obj.id,
-                                    'buy_price': round(temp_json.get('buy_price', 0), 4),
+                                    'buy_price': round(float(temp_json.get('buy_price', 0)), 4),
                                     'discount_percentage': temp_json.get('discount_percentage', 0),
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
@@ -7142,10 +7142,10 @@ def validate_grn_wms(user, myDict):
                 if float(myDict['quantity'][i]) > 0 :
                     datum = PurchaseOrder.objects.get(id=myDict['id'][i])
                     if datum.open_po:
-                        if float(datum.open_po.order_quantity - datum.received_quantity) < float(myDict['quantity'][i]):
+                        if float(datum.open_po.order_quantity - datum.received_quantity) < round(float(myDict['quantity'][i]), 4):
                             status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
                     elif datum.stpurchaseorder_set.filter():
-                        if float(datum.stpurchaseorder_set.filter().values('open_st__order_quantity')[0]['open_st__order_quantity'] - datum.received_quantity) < float(myDict['quantity'][i]):
+                        if float(datum.stpurchaseorder_set.filter().values('open_st__order_quantity')[0]['open_st__order_quantity'] - datum.received_quantity) < round(float(myDict['quantity'][i]), 4):
                             status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
                 else:
                     continue

@@ -3340,6 +3340,18 @@ var app = angular.module('urbanApp')
             title: 'Closing Stock Report',
           }
         })
+        .state('app.reports.PlantMaster', {
+          url: '/PlantMaster',
+          templateUrl: 'views/reports/plant_dept_subsidary.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/plant_dept_sunsidarry_report.js');
+              }]
+          },
+          data: {
+            title: 'Subsidary - Plant - Department Master Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

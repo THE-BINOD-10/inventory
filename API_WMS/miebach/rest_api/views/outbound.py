@@ -17906,3 +17906,71 @@ def save_closing_stock_ui(request, user=''):
         return HttpResponse("Failed")
 
     return HttpResponse("Success")
+
+def get_plant_dept_subsidary_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
+    user = User.objects.get(username='mhl_admin')
+    users = get_related_users_filters(user.id)
+    headers1, search_params, filter_params1 = get_search_params(request)
+    search_parameters = {}
+    user_query = False
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'sister_warehouse' in search_params:
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_type)
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    user_ids = list(users.values_list('id', flat=True))
+    total_data = UserProfile.objects.filter(user_id__in = user_ids, warehouse_type__in = ['SUB_STORE', 'STORE', 'DEPT']).values('user_id').distinct()
+    temp_data['recordsTotal'] = total_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+    total_data = total_data[start_index: stop_index]
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    for source in total_data:
+        try:
+            user_obj = User.objects.get(id=source['user_id'])
+            department, subsidary, plant_addresss = '', '', ''
+            if user_obj.userprofile.warehouse_type == 'DEPT':
+                department = dept_mapping.get(user_obj.userprofile.stockone_code, user_obj.userprofile.stockone_code)
+                user_obj = get_admin(user_obj)
+            plant_code = user_obj.userprofile.stockone_code
+            plant_name = user_obj.first_name
+            dept, plant, subsidary = get_plant_subsidary_and_department(user_obj)
+            if subsidary:
+                subsidary = User.objects.get(id=subsidary)
+                subsidary = subsidary.first_name
+            plant_address = UserAddresses.objects.filter(user=user_obj, address_type='Shipment Address').order_by('-creation_date')
+            if plant_address.exists():
+                plant_address = plant_address[0]
+                plant_addresss = "%s - %s" %(plant_address.address, plant_address.pincode)
+            data_dict = OrderedDict((
+                                    ('Plant Code', plant_code),
+                                    ('Plant Name', plant_name),
+                                    ('Plant Internal ID', user_obj.userprofile.reference_id),
+                                    ('Plant Creation Date',get_local_date(user_obj, user_obj.date_joined)),
+                                    ('Plant Address', plant_addresss),
+                                    ('Subsidiary', subsidary),
+                                    ('Department', department),
+                                    ))
+            temp_data['aaData'].append(data_dict)
+            count += 1
+        except Exception as e:
+            pass

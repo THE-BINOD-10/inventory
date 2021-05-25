@@ -738,6 +738,7 @@ data_datatable = {  # masters
     'OrderAllocations': 'get_order_allocation_data',
     'ViewManualTest': 'view_manual_test_entries',
     'ClosingStockUI': 'get_closing_stock_ui_data',
+    'PlantDeptMaster': 'get_plant_dept_subsidary_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one

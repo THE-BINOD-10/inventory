@@ -12481,7 +12481,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
            'st_po__open_st__igst_tax',
            'st_po__open_st__price', 'status', 'st_po__open_st__igst_tax', 'st_po__open_st__price', 'status']
 
-    status_map = ['Pick List Generated', 'Pending', 'Dispatched']
+    status_map = ['Pick List Generated', 'Pending', 'Dispatched', 'Cancelled']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)

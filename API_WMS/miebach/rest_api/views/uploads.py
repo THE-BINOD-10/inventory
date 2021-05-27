@@ -2033,7 +2033,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-        if instanceName != TestMaster:
+        if instanceName != TestMaster and not data_dict['wms_code']:
             sku_inc_status, wms = get_sku_code_inc_number(user, instanceName, data_dict['sku_category'])
             data_dict['wms_code'] = wms
         if is_test:

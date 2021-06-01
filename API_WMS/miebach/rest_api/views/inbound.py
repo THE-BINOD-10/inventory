@@ -17126,21 +17126,23 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
                 if e_row["sku_code"] ==  wms_code:
                     if total_tax:
                         if cess_tax:
-                            e_row["hsn_code"] = hsn_list[str(total_tax)]["refrence_id"] + "_KL"
+                            e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"] + "_KL"
                         else:
-                            e_row["hsn_code"] = hsn_list[str(total_tax)]["refrence_id"]
+                            e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"]
                     e_row["unit_price"] = price
-            action = "upsert"
-            is_multiple =True
-            recordDict = {}
-            record = intObj.connectionObject.netsuite_create_po(response)
-            result = intObj.connectionObject.complete_transaction([record], is_multiple, action)
-            for e_row1 in result:
-                if hasattr(e_row1, 'error'):
-                    res= e_row1.error_msg
-                else:
-                    status =True
-                    res= "PO updated"
+        action = "upsert"
+        is_multiple =True
+        recordDict = {}
+        if "full_pr_number" in response:
+            del response["full_pr_number"]
+        record = intObj.connectionObject.netsuite_create_po(response)
+        result = intObj.connectionObject.complete_transaction([record], is_multiple, action)
+        for e_row1 in result:
+            if hasattr(e_row1, 'error'):
+                res= e_row1.error_msg
+            else:
+                status =True
+                res= "PO updated"
     return {"status": status, "message": res}
 
 

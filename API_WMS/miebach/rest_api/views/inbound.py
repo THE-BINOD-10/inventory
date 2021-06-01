@@ -10248,7 +10248,7 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
-def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request, replaceAll=''):
+def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request, replaceAll='', po_integration_data= False):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
@@ -10416,8 +10416,10 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'cgst_tax': cgst_tax , 'utgst_tax': utgst_tax , 'cess_tax': cess_tax,
                     'unitypeexid': unitexid, 'uom_name': purchaseUOMname }
             po_data['items'].append(item)
-        # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
+        # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO') 
         intObj = Integrations(user, 'netsuiteIntegration')
+        if po_integration_data:
+            return {"po_data": po_data, "netsuite_obj":intObj}
         intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
     except Exception as e:
         import traceback
@@ -17054,6 +17056,93 @@ def prepare_material_planning_pr_data(request, user=''):
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))
 
+def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_remarks, payment_code, pos, pending_po):
+    from stockone_integrations.views import Integrations
+    po_date= pos[0].creation_date
+    sku_id = SKUMaster.objects.filter(id=pos[0].open_po.sku.id)
+    status= False
+    product_category="Kits&Consumables"
+    hsn_list = {
+                "28": {"refrence_id": "978", "hsn_code": "8415"},
+                '12': {"refrence_id": "631", "hsn_code": "38220019_12"},
+                "18": {"refrence_id": "1020", "hsn_code": "38220019_18"},
+                "5": {"refrence_id": "1056", "hsn_code": "38220019_5"},
+            }
+    if sku_id:
+        sku= sku_id[0]
+        try:
+            if sku.assetmaster:
+                product_category="Assets"
+        except:
+            pass
+        try:
+            if sku.servicemaster:
+                product_category="Services"
+        except:
+            pass
+        try:
+            if sku.otheritemsmaster:
+                product_category="OtherItems"
+        except:
+            pass
+    delivery_date= po_date.strftime('%d-%m-%Y')
+    data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
+    netsuite_po_response= netsuite_po(pos[0].order_id, user, "open_po", data_dict, po_number, product_category, pending_po, request, po_integration_data=True)
+    res = ""
+    if netsuite_po_response:
+        response = netsuite_po_response["po_data"]
+        intObj = netsuite_po_response["netsuite_obj"]
+        if payment_code:
+            response["payment_code"] = payment_code
+        for i in range(0, len(request_data['wms_code'])):
+            wms_code = request_data['wms_code'][i]
+            price = request_data['price'][i]
+            cgst_tax = request_data['cgst_tax'][i]
+            sgst_tax = request_data['sgst_tax'][i]
+            igst_tax = request_data['igst_tax'][i]
+            cess_tax = request_data['cess_tax'][i]
+            try:
+                cgst_tax = float(cgst_tax)
+            except:
+                cgst_tax = 0
+            try:
+                sgst_tax = float(sgst_tax)
+            except:
+                sgst_tax = 0
+            try:
+                igst_tax = float(igst_tax)
+            except:
+                igst_tax = 0
+            try:
+                cess_tax = float(cess_tax)
+            except:
+                cess_tax = 0
+            try:
+                price = float(price)
+            except:
+                price = 0
+            total_tax = cgst_tax + sgst_tax + igst_tax
+            for e_row in response["items"]:
+                if e_row["sku_code"] ==  wms_code:
+                    if total_tax:
+                        if cess_tax:
+                            e_row["hsn_code"] = hsn_list[str(total_tax)]["refrence_id"] + "_KL"
+                        else:
+                            e_row["hsn_code"] = hsn_list[str(total_tax)]["refrence_id"]
+                    e_row["unit_price"] = price
+            action = "upsert"
+            is_multiple =True
+            recordDict = {}
+            record = intObj.connectionObject.netsuite_create_po(response)
+            result = intObj.connectionObject.complete_transaction([record], is_multiple, action)
+            for e_row1 in result:
+                if hasattr(e_row1, 'error'):
+                    res= e_row1.error_msg
+                else:
+                    status =True
+                    res= "PO updated"
+    return {"status": status, "message": res}
+
 
 @csrf_exempt
 @login_required
@@ -17066,6 +17155,7 @@ def update_po_values(request, user=''):
     po_number = request_data['po_number'][0]
     po_remarks = request_data['po_remarks'][0]
     payment_terms = request_data['payment_term'][0]
+    payment_code= ""
     log.info("Request Params for update_po_values for po number %s are %s by %s" % (po_number, str(request_data), request.user.username))
     if payment_terms:
         temp, payment_code, payment_description = payment_terms.split(':')
@@ -17075,6 +17165,9 @@ def update_po_values(request, user=''):
     main_user = get_company_admin_user(user)
     try:
         with transaction.atomic('default'):
+            res= po_update_integrate_to_netsuite(request, request_data, user, po_number, po_remarks, payment_code, pos, pending_po)
+            if not res["status"]:
+                return HttpResponse(res["message"])
             if pending_po:
                 pend_po = pending_po[0]
                 pend_po.remarks = po_remarks

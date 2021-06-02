@@ -69,7 +69,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         adjust_dict.setdefault(sku_code, {'adj_qty': 0, 'adj_value': 0})
         adjust_dict[sku_code]['adj_qty'] += float(adj.adjusted_quantity/sku_pcf)
         adjust_dict[sku_code]['adj_value'] += float(adj.price*(adj.adjusted_quantity/sku_pcf))
-    poss = SellerPOSummary.objects.prefetch_related('batch_detail').filter(purchase_order__open_po__sku__user=usr.id, creation_date__range=dates).\
+    poss = SellerPOSummary.objects.prefetch_related('batch_detail').filter(purchase_order__open_po__sku__user=usr.id, creation_date__range=dates, status=0).\
                                     only('purchase_order__open_po__sku__sku_code', 'quantity', 'batch_detail__pcf', 'batch_detail__tax_percent', 'batch_detail__cess_percent')
     for psp in poss:
         sku_code = psp.purchase_order.open_po.sku.sku_code

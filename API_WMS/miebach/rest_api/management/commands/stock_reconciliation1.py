@@ -53,6 +53,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
     cons_dict = {}
     stock_dict = {}
     closing_dict = {}
+    adjust_dict = {}
     opening_st = ClosingStock.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__date=opening_date).only('quantity', 'sku_avg_price', 'sku_pcf')
     if opening_st.exists():
         for cls in opening_st:
@@ -60,6 +61,14 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
             opening_dict.setdefault(sku_code, {'opening_qty': 0, 'opening_value': 0})
             opening_dict[sku_code]['opening_qty'] += cls.quantity/cls.sku_pcf
             opening_dict[sku_code]['opening_value'] += cls.sku_avg_price*(cls.quantity/cls.sku_pcf)
+    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates)
+    for adj in adjustment:
+        sku_code = adj.stock.sku.sku_code
+        uom_dict = sku_uoms.get(sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        adjust_dict.setdefault(sku_code, {'adj_qty': 0, 'adj_value': 0})
+        adjust_dict[sku_code]['adj_qty'] += float(adj.adjusted_quantity/sku_pcf)
+        adjust_dict[sku_code]['adj_value'] += float(adj.price*(adj.adjusted_quantity/sku_pcf))
     poss = SellerPOSummary.objects.prefetch_related('batch_detail').filter(purchase_order__open_po__sku__user=usr.id, creation_date__range=dates).\
                                     only('purchase_order__open_po__sku__sku_code', 'quantity', 'batch_detail__pcf', 'batch_detail__tax_percent', 'batch_detail__cess_percent')
     for psp in poss:
@@ -213,6 +222,9 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         sku_rtv = rtv_dict.get(sk, {})
         rtv_qty = sku_rtv.get('rtv_qty', 0)
         rtv_value = sku_rtv.get('rtv_value', 0)
+        sku_adj = adjust_dict.get(sk, {})
+        sku_adj_qty = sku_adj.get('adj_qty', 0)
+        sku_adj_value = sku_adj.get('adj_value', 0)
         sku_cons = cons_dict.setdefault(sk, {})
         cons_qty = sku_cons.get('cons_qty', 0)
         cons_value = sku_cons.get('cons_value', 0)
@@ -227,22 +239,23 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         #if round(mclosing_qty, 1) != round(total_denom_qty,1):
         #    print "Qty Issue"
         #    print user.username, sk
-        total_denom_qty1 = (opening_qty + po_grn_qty + st_grn_qty - st_out_qty - rtv_qty)
+        total_denom_qty1 = (opening_qty + po_grn_qty + st_grn_qty - st_out_qty - rtv_qty + sku_adj_qty)
         total_denom_qty1 = total_denom_qty1 if total_denom_qty1 else 1
-        total_value = (opening_value + po_grn_value + st_grn_value - st_out_value - rtv_value)
+        total_value = (opening_value + po_grn_value + st_grn_value - st_out_value - rtv_value + sku_adj_value)
         main_avg_price = total_value/total_denom_qty1
         main_avg_price = abs(float('%.5f' % main_avg_price))
         if round(main_avg_price, 5) != round(current_avg, 5):
             #print "Price Issue"
             #print user.username, sk, main_avg_price, current_avg
             pass
-        exp_closing_qty = opening_qty + po_grn_qty + st_grn_qty + mr_grn_qty - st_out_qty - rtv_qty - cons_qty - mr_out_qty
-        exp_closing_val = opening_value + po_grn_value + st_grn_value + mr_grn_value - st_out_value - rtv_value - cons_value - mr_out_value
+        exp_closing_qty = opening_qty + po_grn_qty + st_grn_qty + mr_grn_qty - st_out_qty - rtv_qty - cons_qty - mr_out_qty + sku_adj_qty
+        exp_closing_val = opening_value + po_grn_value + st_grn_value + mr_grn_value - st_out_value - rtv_value - cons_value - mr_out_value + sku_adj_value
         data_dict =  OrderedDict((
                                 ('Plant Code', user.userprofile.stockone_code), ('SKU Code', sk),
                                 ('Opening Qty', opening_qty), ('Opening Value', opening_value),
                                 ('GRN Qty', po_grn_qty), ('GRN Value', po_grn_value),
                                 ('RTV Qty', rtv_qty), ('RTV Value', rtv_value),
+                                ('Adjustment Qty', sku_adj_qty), ('Adjustment Value', sku_adj_value),
                                 ('Stock Transfer In Qty', st_grn_qty), ('Stock Transfer In Value', st_grn_value),
                                 ('Stock Transfer Out Qty', st_out_qty), ('Stock Transfer Out Value', st_out_value),
                                 ('MR In Qty', mr_grn_qty), ('MR In Value', mr_grn_value),
@@ -253,7 +266,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
                                 ('Consumption Qty', cons_qty), ('Consumption Value', cons_value),
                                 ('Expected Closing Qty', exp_closing_qty), ('Expected Closing Value', exp_closing_val),
                         ))
-        if (opening_qty+po_grn_qty+st_grn_qty+mr_grn_qty+mr_out_qty+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty+mr_pending_value):
+        if (opening_qty+po_grn_qty+st_grn_qty+mr_grn_qty+mr_out_qty+stock_qty+mclosing_qty+mr_pending_qty+mr_grn_qty+mr_pending_value+sku_adj_qty):
             data_list.append(data_dict)
     return data_list
 

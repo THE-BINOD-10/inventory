@@ -136,10 +136,10 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         mr_out_dict.setdefault(sku_code, {'mr_out_qty': 0, 'mr_out_value': 0})
         temp_mr_qty = (stock_transfer1.quantity/sku_pcf)
         mr_out_dict[sku_code]['mr_out_qty'] += temp_mr_qty
-        if stock_transfer1.price:
-            price = stock_transfer1.price
-        else:
-            price = stock_transfer1.stock_transfer.st_po.open_st.price
+        # if stock_transfer1.price:
+        #     price = stock_transfer1.price
+        # else:
+        price = stock_transfer1.stock_transfer.st_po.open_st.price
         mr_out_dict[sku_code]['mr_out_value'] += (temp_mr_qty * price)
     #RTVS
     rtvs = ReturnToVendor.objects.filter(creation_date__range=dates, seller_po_summary__purchase_order__open_po__sku__user=usr.id).exclude(rtv_number='')

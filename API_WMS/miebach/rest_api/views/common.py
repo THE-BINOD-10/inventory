@@ -14119,10 +14119,9 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
-                # uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'purchase',
-                #                                  uom=bom.unit_of_measurement)
-                # pcf = uom_dict['sku_conversion']
-                # pcf = pcf if pcf else 1
+                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, uom_type='purchase')
+                pcf = uom_dict['sku_conversion']
+                pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
                 # needed_quantity = consumption_qty * pcf
                 needed_quantity = total_test * bom.material_quantity
@@ -14139,6 +14138,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 create_consumption_material(consumption, bom.material_sku, qty_dict)
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
                                               'needed_quantity': needed_quantity,
+                                              'sku_pcf': pcf,
                                               'stocks': stocks}
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
@@ -14156,6 +14156,8 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     consumption_number=consumption_number,
                     consumption_id=consumption.id,
                     sku_id=sku.id,
+                    price=sku.average_price,
+                    sku_pcf=value['sku_pcf'],
                     quantity=value['consumption_qty'],
                     consumption_type = 2
                 )

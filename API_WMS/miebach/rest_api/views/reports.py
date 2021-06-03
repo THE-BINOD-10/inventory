@@ -1569,7 +1569,7 @@ def print_po_reports(request, user=''):
             po_reference = '%s/%s' % (po_reference, receipt_no)
         if purchase_order.sellerposummary_set.filter().exists():
             tcs_val = purchase_order.sellerposummary_set.filter(grn_number=grn_number).order_by('-creation_date')[0].tcs_value
-            seller_po_summary_date = purchase_order.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
+            seller_po_summary_date = purchase_order.sellerposummary_set.filter(grn_number=grn_number).order_by('-creation_date')[0].creation_date
             order_date = get_local_date(request.user, seller_po_summary_date)
         else:
             order_date = get_local_date(request.user, purchase_order.creation_date)

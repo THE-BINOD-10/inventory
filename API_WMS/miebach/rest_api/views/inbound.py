@@ -5642,7 +5642,7 @@ def get_supplier_data(request, users=''):
             advance_payment = OrderMapping.objects.filter(mapping_id__in=po_ids, order__user=user.id).aggregate(Sum('order__payment_received'))
             payment_received = advance_payment['order__payment_received__sum']
     if not purchase_orders:
-        st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id, po__prefix=order_pre,
+        st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id, po__prefix=order_pre, po__po_number=full_po_number,
                                                    open_st__sku_id__in=sku_master_ids). \
             exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
         one_assist_check = get_misc_value('dispatch_qc_check', user.id)
@@ -5760,6 +5760,30 @@ def get_supplier_data(request, users=''):
                 #     masterdoa = MastersDOA.objects.filter(model_id=datum[0].id, doa_status='pending', requested_user_id=user.id)
                 #     if masterdoa.exists():
                 #         request_button = True
+                is_stock_transfer = ''
+                open_st, picked_qty, rec_check_qty = '', 0, 0
+                batch_no, mfg_date, exp_date = ['']*3
+                if order.stpurchaseorder_set.filter().exists():
+                    open_st = order.stpurchaseorder_set.filter()[0].open_st
+                    ware = User.objects.get(id=open_st.sku.user)
+                    uom_dict = get_uom_with_sku_code(ware, open_st.sku.sku_code, uom_type='purchase')
+                    pcf = uom_dict.get('sku_conversion', 1)
+                    picked_qty = STOrder.objects.filter(stock_transfer__st_po__open_st__id=open_st.id).aggregate(Sum('picklist__picked_quantity'))['picklist__picked_quantity__sum']
+                    rec_check_qty = SellerPOSummary.objects.filter(purchase_order__id = order.id).aggregate(Sum('quantity'))['quantity__sum']
+                    if rec_check_qty  == None:
+                        rec_check_qty = 0
+                    if order.received_quantity == rec_check_qty:
+                        is_stock_transfer = 'true'
+                        rec_data = float(picked_qty/pcf) - float(order.received_quantity)
+                        if STOrder.objects.filter(stock_transfer__st_po__open_st__id=open_st.id).count() == 1:
+                            stock_id = STOrder.objects.filter(stock_transfer__st_po__open_st__id=open_st.id).values('picklist__stock_id')[0]['picklist__stock_id']
+                            sts_data = StockDetail.objects.get(id=stock_id)
+                            if sts_data.batch_detail.batch_no:
+                                batch_no = sts_data.batch_detail.batch_no
+                            if sts_data.batch_detail.manufactured_date:
+                                mfg_date = sts_data.batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                            if sts_data.batch_detail.expiry_date:
+                                exp_date = sts_data.batch_detail.expiry_date.strftime('%m/%d/%Y')
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
                                  'weight_copy':weight,
@@ -5781,8 +5805,8 @@ def get_supplier_data(request, users=''):
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
                                  'buy_price': round(order_data['price'], 4), 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
-                                 'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
-                                 'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
+                                 'discount_percentage': 0, 'batch_no': batch_no, 'batch_ref':'', 'mfg_date': mfg_date, 'exp_date': exp_date,
+                                 'pallet_number': '', 'is_stock_transfer': is_stock_transfer, 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:

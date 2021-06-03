@@ -64,7 +64,7 @@ class Command(BaseCommand):
         except:
             sending_mail('Error')
             # print 'Fail'
-        status = file_upload(tar_file_path, '/static_files/', 'u239654.your-storagebox.de', 'u239654', 'jb6k87AIEzRBvI9u', 1)
+        status = file_upload(tar_file_path, '/static_files/', 'u239654.your-storagebox.de', 'u239654', 'jb6k87AIEzRBvI9u', 1, 2)
         if not status:
             sending_mail('Error')
         else:

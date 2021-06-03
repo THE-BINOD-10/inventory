@@ -740,6 +740,7 @@ data_datatable = {  # masters
     'OrderAllocations': 'get_order_allocation_data',
     'ViewManualTest': 'view_manual_test_entries',
     'ClosingStockUI': 'get_closing_stock_ui_data',
+    'PlantDeptMaster': 'get_plant_dept_subsidary_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -3023,6 +3024,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict['sku_id'] = sku_id
     uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
     # remaining_quantity = quantity * uom_dict['sku_conversion']
+    if uom_dict.get('sku_conversion') == '' or uom_dict.get('sku_conversion') == 0:
+        uom_dict['sku_conversion'] = 1
     remaining_quantity = quantity
     data_dict['quantity'] = total_stock_quantity
     data_dict['seen_quantity'] = remaining_quantity
@@ -3139,6 +3142,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if price != '':
                 batch_dict['buy_price'] = float(price)
             batch_dict['pcf'] = uom_dict['sku_conversion']
+            quantity = float(quantity / uom_dict['sku_conversion'])
             batch_dict['pquantity'] = quantity
             batch_dict['puom'] = uom_dict['measurement_unit']
             if user.userprofile.industry_type == 'FMCG':
@@ -14501,7 +14505,7 @@ def check_block_pr_po_configuration():
     return status
 
 def get_last_three_months_consumption(filters):
-    #end_date = datetime.datetime.today().replace(day=1)
+    # end_date = datetime.datetime.today().replace(day=1)
     end_date = datetime.datetime.today()
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)

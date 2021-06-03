@@ -95,6 +95,7 @@ urlpatterns = [
     url(r'^update_company_master/$', update_company_master),
     url(r'^get_company_list/$', get_company_list),
     url(r'^delete_uom_master/$', delete_uom_master),
+    url(r'^delete_consumption_data/$', delete_consumption_data),
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -638,6 +639,7 @@ urlpatterns = [
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
     url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
+    url(r'^get_sku_wise_consumption_reversal/$', get_sku_wise_consumption_reversal),
     url(r'^get_consumption_data/$', get_consumption_data),
     url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),

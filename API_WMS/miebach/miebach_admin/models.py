@@ -1734,7 +1734,7 @@ class BOMMaster(models.Model):
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku')
+        unique_together = ('material_sku', 'product_sku', 'machine_master')
 
 
 class PriceMaster(models.Model):
@@ -4243,12 +4243,14 @@ class ConsumptionData(models.Model):
     consumption_number = models.CharField(max_length=64, default='')
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    cancel_user = models.ForeignKey(User, related_name="consumption_cancel_user", blank=True, null=True)
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

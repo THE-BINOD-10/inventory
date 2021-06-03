@@ -97,7 +97,7 @@ def get_report_data(request, user=''):
     elif report_name in [ 'stock_transfer_report_main', 'pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'metropolis_pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
-                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
+                         'sku_wise_consumption_report', 'get_sku_wise_consumption_reversal', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -1673,6 +1673,7 @@ def excel_reports(request, user=''):
             excel_name = dat
             if temp[1] == 'tally_report':
                 temp[1] = 'order_summary_report'
+            # import pdb; pdb.set_trace()
             func_name = eval(EXCEL_REPORT_MAPPING[temp[1]])
             continue
         if len(temp) > 1 and temp[1]:
@@ -2950,6 +2951,17 @@ def get_sku_wise_consumption_report(request, user=''):
     temp_data = get_sku_wise_consumption_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_consumption_reversal(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_consumption_reversal_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @csrf_exempt
 @login_required

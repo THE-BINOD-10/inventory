@@ -5728,7 +5728,7 @@ def get_supplier_data(request, users=''):
                                     'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                    'price':float("%.2f"% float(order_data.get('price',0))),
+                                    'price':round(float(order_data.get('price',0)), 4),
                                     'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
@@ -5741,7 +5741,7 @@ def get_supplier_data(request, users=''):
                                     'apmc_percent': temp_json.get('apmc_percent', 0),
                                     'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                     'tax_percent_copy': tax_percent_copy, 'temp_json_id': temp_json_obj.id,
-                                    'buy_price': temp_json.get('buy_price', 0),
+                                    'buy_price': round(float(temp_json.get('buy_price', 0)), 4),
                                     'discount_percentage': temp_json.get('discount_percentage', 0),
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
@@ -5768,9 +5768,9 @@ def get_supplier_data(request, users=''):
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': rec_data,
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': float("%.2f"% float(order_data.get('price',0))),
-                                'grn_price':float("%.2f"% float(order_data.get('price',0))),
-                                'mrp': float("%.2f"% float(order_data.get('mrp',0))),
+                                'price': round(float(order_data.get('price',0)), 4),
+                                'grn_price':round(float(order_data.get('price',0)), 4),
+                                'mrp': round(float(order_data.get('mrp',0)), 4),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
                                 'dis': True,'wrong_sku':0, 'base_unit': sku_conversion,
@@ -5780,7 +5780,7 @@ def get_supplier_data(request, users=''):
                                 'apmc_percent': order_data['apmc_tax'],
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
+                                 'buy_price': round(order_data['price'], 4), 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
                                  'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
@@ -7372,10 +7372,10 @@ def validate_grn_wms(user, myDict):
                 if float(myDict['quantity'][i]) > 0 :
                     datum = PurchaseOrder.objects.get(id=myDict['id'][i])
                     if datum.open_po:
-                        if float(datum.open_po.order_quantity - datum.received_quantity) < float(myDict['quantity'][i]):
+                        if float(datum.open_po.order_quantity - datum.received_quantity) < round(float(myDict['quantity'][i]), 4):
                             status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
                     elif datum.stpurchaseorder_set.filter():
-                        if float(datum.stpurchaseorder_set.filter().values('open_st__order_quantity')[0]['open_st__order_quantity'] - datum.received_quantity) < float(myDict['quantity'][i]):
+                        if float(datum.stpurchaseorder_set.filter().values('open_st__order_quantity')[0]['open_st__order_quantity'] - datum.received_quantity) < round(float(myDict['quantity'][i]), 4):
                             status_msg = 'Excess Qty Receiving .. Please Close this Window & Re-open '
                 else:
                     continue
@@ -17254,3 +17254,40 @@ def prepare_material_planning_pr_data(request, user=''):
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_consumption_data(request, user=''):
+    input_ids = request.POST.get('data', [])
+    consumption_ids = json.loads(input_ids)
+    if len(consumption_ids) > 0 :
+        cons_data = ConsumptionData.objects.filter(id__in = consumption_ids, quantity__gt=0).distinct()
+        for cons in cons_data:
+            temp_qty = 0
+            stock_mapping = cons.stock_mapping.filter()
+            for stock_map in stock_mapping:
+                stock = stock_map.stock
+                temp_qty = temp_qty + stock_map.quantity
+                stock.quantity = stock.quantity + stock_map.quantity
+                stock.save()
+                stock_map.quantity = 0
+                stock_map.save()
+            cons.cancel_user=request.user
+            cons.cancelled_qty = float(temp_qty)
+            cons.quantity = 0
+            cons.save()
+            sku_amt = {}
+            user = User.objects.get(id=cons.sku.user)
+            pcf = cons.sku_pcf
+            if not pcf:
+                uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+                pcf = uom_dict.get('sku_conversion', 1)
+            sku_amt[cons.sku.sku_code] = {'qty': (temp_qty/pcf), 'amount': (temp_qty/pcf) * cons.price, 'exclude_po_loc': []}
+            main_user = get_company_admin_user(user)
+            if user.userprofile.warehouse_type == 'DEPT':
+                store_user = get_admin(user)
+            else:
+                store_user = user
+            update_sku_avg_main(sku_amt, store_user, main_user)
+    return HttpResponse('Success')

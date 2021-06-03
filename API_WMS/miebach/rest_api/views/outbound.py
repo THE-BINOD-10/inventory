@@ -17953,10 +17953,10 @@ def get_plant_dept_subsidary_data(start_index, stop_index, temp_data, search_ter
                 user_obj = get_admin(user_obj)
             plant_code = user_obj.userprofile.stockone_code
             plant_name = user_obj.first_name
-            dept, plant, subsidary = get_plant_subsidary_and_department(user_obj)
-            if subsidary:
-                subsidary = User.objects.get(id=subsidary)
-                subsidary = subsidary.first_name
+            #dept, plant, subsidary = get_plant_subsidary_and_department(user_obj)
+            #if subsidary:
+            #    #subsidary = User.objects.get(id=subsidary)
+            subsidary = user_obj.userprofile.company.company_name
             plant_address = UserAddresses.objects.filter(user=user_obj, address_type='Shipment Address').order_by('-creation_date')
             if plant_address.exists():
                 plant_address = plant_address[0]

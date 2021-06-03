@@ -14126,17 +14126,19 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
         to_date = get_utc_start_date(to_date)
         search_parameters['creation_date__lt'] = to_date
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
-    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
+    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
-    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date', 'consumptiondata__quantity']
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id']
     model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct()
     for result in model_data:
         order_id = ''
-        # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
-        # if consumption_data:
-        #     order_id = consumption_data[0].consumption_number
-        if result['consumptiondata__consumption_number']:
-            order_id = result['consumptiondata__consumption_number']
+        consumed_qty = 0
+        consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        if consumption_data:
+            order_id = consumption_data[0].consumption_number
+            consumed_qty = consumption_data[0].quantity
+        #if result['consumptiondata__consumption_number']:
+            #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
         user_obj = User.objects.get(id=result['user'])
         department = ''
@@ -14157,6 +14159,7 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             machine_code = str(result['machine__machine_code'])
             machine_name = result['machine__machine_name']
         status = 'Pending'
+        uom = 'Test'
         reason = 'Mapping Not Found'
         if not result['status']:
             status = 'Consumption Booked'
@@ -14165,6 +14168,9 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             reason = 'Stock Not Found'
         if result['status'] == 3:
             reason = 'Bom Mapping Not Found'
+        bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        if bom_obj:
+            uom = bom_obj[0].unit_of_measurement
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -14184,8 +14190,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),('PN',result['n_time_process']),
             ('Q', result['quality_check']), ('NP', result['no_patient']),('TT', result['total_test']),('QNP', result['qnp']), ('TP', result['total_patients']),
-            ('Consumption Booked Qty', result['consumptiondata__quantity']),('Current Available Stock', stock_quantity),
-            ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),('Status', status),
+            ('Consumption Booked Qty', consumed_qty),('Current Available Stock', stock_quantity),
+            ('UOM', uom), ('Remarks', 'Auto - Consumption'),('Status', status),
             ('Consumption ID', order_id),
             ('Test Date', get_local_date(user_obj, result['run_date'])),
             ('Reason', reason)))

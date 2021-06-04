@@ -17982,8 +17982,12 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             quantity = -1 * quantity
         pqty = quantity/pcf
         stock_value = pqty * result['price']
+        try:
+            date = get_local_date(user, result['creation_date'])
+        except:
+            date = result['creation_date'].strftime("%d, %b, %Y")
         ord_dict = OrderedDict((
-            ('Date', get_local_date(user, result['creation_date'])),
+            ('Date', date),
             ('Plant Code', plant_code),
             ('Plant Name', plant_name),
             ('Department', department),

@@ -56,20 +56,26 @@
                   {% endif %}
                   <!-- <span><b>GSTIN :</b>{{ wh_gstin }}</span><br>
                   <span><b>Pan No :</b>{{ wh_pan }}</span><br> -->
-                  <span><b>PO Date:</b>{{ order_date }}</span><br>
+                  {% if is_actual_pr == 'true' %}
+                    <span><b>PR Date :</b>{{ order_date }}</span><br>
+                  {% else %}
+                    <span><b>PO Date:</b>{{ order_date }}</span><br>
+                  {% endif %}
+
                   {% if delivery_date %}
                     <span><b>Need By Date:</b>{{ delivery_date }}</span><br>
                   {% endif %}
-                  {% if supplier_currency %}
+                  {% if supplier_currency and is_actual_pr != 'true' %}
                      <span><b>Currency:</b>{{ supplier_currency }}</span><br>
                   {% endif %} 
-                  {% if supplier_payment_terms %}
+                  {% if supplier_payment_terms and is_actual_pr != 'true' %}
                      <span><b>PaymentTerms:</b>{{ supplier_payment_terms }}</span><br>
                   {% endif %}
                   {% if full_pr_number %}
                     <span><b>PR Number :</b>{{full_pr_number}}</span><br>
                   {% endif %}
                 </div>
+                {% if is_actual_pr != 'true' %}
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 fs14 p0">
                   <label><b>Supplier Details: </b></label><br>
                   <span><b>Supplier Code :</b></span>{{ code }}<br>
@@ -79,6 +85,7 @@
                   <span><b>GSTIN No. :</b>{{ gstin_no }}</span><br>
                   <span><b>PAN No. :</b>{{ supplier_pan }}</span><br>
                 </div>
+                {% endif %}
               </div>
             </td>
           </tr>
@@ -145,7 +152,11 @@
                       {% if round_total %}
                         <span>RoundOff value :</span> {{ round_total }}<br>
                       {% endif %}
-				  			      <span><b>Total PO Amt :</b></span> {{ total }} <br>
+                      {% if is_actual_pr == 'true' %}
+                        <span><b>Total PR Amt :</b>{{ total }}</span><br>
+                      {% else %}
+                        <span><b>Total PO Amt :</b></span> {{ total }} <br>
+                      {% endif %}
 							      </div>
 			  		      </div>
 					      </td>

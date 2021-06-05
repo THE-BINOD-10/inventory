@@ -35,15 +35,16 @@ class Integrations():
 
 
     def get_auth_dict(self, userObject, intType):
-        respObj = integmodel.objects.filter(user=userObject.id)
-        if respObj.exists():
-            respObj= respObj[0]
+        respObj = ""
+        respObj1 = integmodel.objects.filter(user=userObject.id)
+        if respObj1.exists():
+            respObj= respObj1[0]
         else:
             userObject = User.objects.filter(username= "mhl_admin")
             if userObject:
-                respObj = integmodel.objects.filter(user=userObject[0].id)
-                if respObj.exists():
-                    respObj= respObj[0]
+                respObj1 = integmodel.objects.filter(user=userObject[0].id)
+                if respObj1.exists():
+                    respObj= respObj1[0]
         return respObj.__dict__
 
 

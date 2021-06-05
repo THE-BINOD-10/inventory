@@ -18165,8 +18165,8 @@ def get_consumption_data_(search_params, user, sub_user):
     lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
           'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
           'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
-          'total_test','qnp','total_patients', 'consumptiondata__quantity','total_test', 'creation_date', 'creation_date',
-          'status','run_date', 'consumptiondata__consumption_number', 'status']
+          'total_test','qnp','total_patients', 'total_test','total_test', 'creation_date', 'creation_date',
+          'status','run_date', 'id', 'status']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -18217,9 +18217,9 @@ def get_consumption_data_(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
-    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
+    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
-    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date', 'consumptiondata__quantity']
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id']
     model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
@@ -18238,11 +18238,13 @@ def get_consumption_data_(search_params, user, sub_user):
     count = 0
     for result in results:
         order_id = ''
-        # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
-        # if consumption_data:
-        #     order_id = consumption_data[0].consumption_number
-        if result['consumptiondata__consumption_number']:
-            order_id = result['consumptiondata__consumption_number']
+        consumed_qty = 0
+        consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        if consumption_data:
+            order_id = consumption_data[0].consumption_number
+            consumed_qty = consumption_data[0].quantity
+        #if result['consumptiondata__consumption_number']:
+            #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
         user_obj = User.objects.get(id=result['user'])
         department = ''
@@ -18263,6 +18265,7 @@ def get_consumption_data_(search_params, user, sub_user):
             machine_code = str(result['machine__machine_code'])
             machine_name = result['machine__machine_name']
         status = 'Pending'
+        uom = 'Test'
         if not result['status']:
             status = 'Consumption Booked'
         reason = ''
@@ -18270,6 +18273,9 @@ def get_consumption_data_(search_params, user, sub_user):
             reason = 'Stock Not Found'
         if result['status'] == 3:
             reason = 'Bom Mapping Not Found'
+        bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        if bom_obj:
+            uom = bom_obj[0].unit_of_measurement
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -18287,8 +18293,8 @@ def get_consumption_data_(search_params, user, sub_user):
             ('TName', test_name),
             ('Device ID', machine_code),
             ('Device Name', machine_name),
-            ('Status', status),('Consumption Booked Qty', result['consumptiondata__quantity']),
-            ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),
+            ('Status', status),('Consumption Booked Qty', consumed_qty),
+            ('UOM', uom), ('Remarks', 'Auto - Consumption'),
             ('Consumption ID', order_id),('Current Available Stock', stock_quantity),
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),

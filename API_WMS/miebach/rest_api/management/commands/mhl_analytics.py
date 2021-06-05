@@ -48,7 +48,7 @@ class Command(BaseCommand):
         subject = '%s Reports dated on : %s for %s' % ('Analytics reports ', datetime.datetime.now().date(), 'Metropolis')
         text = 'Please find the scheduled reports in the below attachments dated: %s' % str(datetime.datetime.now().date())
         now =  datetime.datetime.now()
-        from_date = now + dateutil.relativedelta.relativedelta(minutes= -90)
+        from_date = now + dateutil.relativedelta.relativedelta(minutes= -45)
         search_params ={'from_date': from_date}
         data= get_pr_detail_report_data(search_params, user, user)
         data= get_po_detail_report_data(search_params, user, user)

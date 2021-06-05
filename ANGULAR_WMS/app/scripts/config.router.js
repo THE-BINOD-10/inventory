@@ -1026,6 +1026,10 @@ var app = angular.module('urbanApp')
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_pr/cancelled_rejected.js'
                   ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/pr_converted_to_po.js'
+                  ])
                 });
               }]
           },
@@ -3145,6 +3149,10 @@ var app = angular.module('urbanApp')
             title: 'PR Report',
           }
         })
+        .state('app.reports.PRReport.PRs', {
+            url: '/PRs',
+            templateUrl: 'views/reports/toggles/pr_details.html',
+          })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
@@ -3551,6 +3559,19 @@ var app = angular.module('urbanApp')
             url: '/SKUDetails',
             templateUrl: 'views/inbound/toggle/supplier_po_sku_data.html'
           })
+      //ASN Report
+       .state('app.reports.ASNReport', {
+          url: '/ASNReport',
+          templateUrl: 'views/reports/asn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/asn_report.js');
+              }]
+          },
+          data: {
+            title: 'ASN Report',
+          }
+        })
 
       //register
       .state('app.Register', {

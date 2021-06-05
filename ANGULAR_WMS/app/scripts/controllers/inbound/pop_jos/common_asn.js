@@ -5,6 +5,7 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
+  vm.date = new Date();
 
   if(items){
      vm.state_data = items;
@@ -45,7 +46,15 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
       Service.apiCall("confirm_asn_order/", "POST", elem, true).then(function(data){
         if(data.message) {
           vm.message = data.data;
-	  vm.service.pop_msg(data.data);
+          if (data.data.status == 'failed') {
+	         vm.service.pop_msg(data.data);
+          }
+          else {
+            const file = new Blob([data.data], { type: 'application/pdf' })
+            const fileURL = URL.createObjectURL(file)
+            $('#proceedModal').modal('hide');
+            window.open(fileURL)
+          }
           vm.ok();
 
           if(data.data.search("<div") != -1) {
@@ -53,6 +62,7 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
                 var html = $(vm.html).closest("form").clone();
                 angular.element(".modal-body").html($(html));
                 vm.print_enable = true;
+
            } else {
              vm.service.pop_msg(data.data);
            }
@@ -64,6 +74,13 @@ function ASNPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $
   vm.print_grn = function() {
 
     vm.service.print_data(vm.html, "Purchase Order");
+  }
+
+  vm.check_qty = function(record) {
+    var avilable_qty = record.ordered_quantity - record.received_quantity;
+    if (record.current_quantity > avilable_qty) {
+      record.current_quantity = avilable_qty;
+    }
   }
 
   vm.ok = function (msg) {

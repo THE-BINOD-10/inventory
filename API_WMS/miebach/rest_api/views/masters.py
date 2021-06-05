@@ -395,6 +395,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         if payments.exists():
             for datum in payments:
                payment_terms.append("%s:%s" %(str(datum.payment_code), datum.payment_description))
+        if data.currency.filter().exists():
+            currency_code = list(data.currency.filter().values_list('currency_code', flat=True))
+            currency_code = ', '.join([str(elem) for elem in currency_code])
+        else:
+            currency_code = 'INR'
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -420,8 +425,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 # ('markdown_percentage', data.markdown_percentage),
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
-                                                ('currency_code', data.currency_code),
-                                                ('netsuit_internal_id', data.netsuite_currency_internal_id),
+                                                ('currency_code', currency_code),
                                                 ('is_contracted', data.is_contracted),
                                                 ('payment_terms', payment_terms),
                                                 )))
@@ -1631,6 +1635,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['supplier_id']
         data = get_or_none(SupplierMaster, {'supplier_id': data_id, 'user': user.id})
         old_name = data.name
+        company = None
         upload_master_file(request, user, data.id, "SupplierMaster")
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1686,8 +1691,10 @@ def update_supplier_values(request, user=''):
             MasterEmailMapping.objects.create(**master_data_dict)'''
 
         if create_login == 'true':
+            if user.userprofile.company:
+                company = user.userprofile.company
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
-                                                         password, username, role_name='supplier')
+                                                         password, username, role_name='supplier', company=company)
             if 'already' in status_msg:
                 return HttpResponse(status_msg)
             UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,

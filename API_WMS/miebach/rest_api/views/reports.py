@@ -2333,8 +2333,7 @@ def print_purchase_order_form(request, user=''):
                 supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
             full_pr_number = get_pr_number_from_po(pending_po_data)
-        if pm_order.open_po.supplier.currency_code:
-            supplier_currency = pm_order.open_po.supplier.currency_code
+        supplier_currency = pm_order.currency
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
@@ -2967,12 +2966,20 @@ def get_sku_wise_consumption_reversal(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_asn_detail(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_asn_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_consumption_data(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_consumption_data_(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
-
 
 @csrf_exempt
 @login_required

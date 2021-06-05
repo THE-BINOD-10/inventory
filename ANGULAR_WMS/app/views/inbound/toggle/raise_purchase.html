@@ -206,10 +206,13 @@
               </div>
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
               <div class="form-group">
-                <label class="control-label">Supplier Currency</label>
-                <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true">
+                <label class="control-label">Supplier Currency *</label>
+                <!-- <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true"> -->
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-init="showCase.model_data.supplier_currency=''" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                    <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
+                </select>
               </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">

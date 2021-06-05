@@ -1,6 +1,9 @@
 <div class="page-layout" ng-controller="SupplierPOCtrl as showCase">
   <div class='layout-header'>
-    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+    <div class="pull-left">
+      <offscreen class="visible-xs fa fa-bars pull-left" style="font-size: 22px;padding: 8px 12px 0px 5px;"></offscreen>
+      <h4 class="pull-left">{{showCase.supplier_name}}</h4>
+    </div>
      <div ng-include="'views/common/excel.html'"></div>
   </div>
   <div class="layout-body">

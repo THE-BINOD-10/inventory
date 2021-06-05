@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePendingPurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
+  .controller('PRConvertedtoPO',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal, Data) {
 
@@ -25,7 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.supplier_mail_flag = true;
-    vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'PRConvertedPO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -58,11 +58,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", 
+    var columns = [ "PR No", "Product Category", "PR Raise By", "PR Created Date",  "Store", "Department", "PO Number",  "Supplier ID", "Supplier Name",
                     "Category", "Total Quantity", "Total Amount",
-                    "PO Created Date", "PO Delivery Date", "Store", "Department",
-                     "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
-                    "Last Updated By", "Last Updated At", "Remarks"];
+                    "PO Created Date", "PO Delivery Date",
+                     "PO Raise By",  "PO Validation Status", "PO Pending Level", "PO To Be Approved By",
+                    "PO Last Updated By", "PO Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -140,131 +140,127 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
 
+
+
     vm.close = function () {
       vm.base();
-      $state.go('app.inbound.RaisePo');
+      $state.go('app.inbound.RaisePr');
       vm.display_purchase_history_table = false;
     }
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
-      vm.data_id = aData['id']?aData['id']:''
-      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], id:vm.data_id };
-      vm.is_direct_po = true;
-      if (aData['PR No'] != "None") {
-        vm.is_direct_po = false;
-      }
-
-      vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
+      var p_data = {requested_user: aData["PR Request User"], purchase_id:aData['Purchase Id'],
+                    po_number : aData["PO Number"],
+                    pr_number : aData["PR No"],
+                    type: "pr_converted_to_po",
+                    };
+      vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           if (typeof(data.data) == 'string') {
             vm.service.showNoty(data.data);
-            return;
+            return
           }
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
-          var empty_data = {"supplier_id":vm.supplier_id,
-            "po_name": "",
-            "supplier_payment_terms": data.data.supplier_payment_desc,
-            "supplier_currencyes": data.data.supplier_currency,
-            "supplier_currency": '',
-            "supplier_currency_rate": '',
-            "ship_to": data.data.ship_to,
-            "terms_condition": data.data.terms_condition,
-            "receipt_type": data.data.receipt_type,
-            "seller_types": [],
-            'is_approval':data.data.is_approval,
-            "validateFlag": data.data.validateFlag,
-            "total_price": 0,
-            "tax": "",
-            "cess_tax": 0,
-            "sub_total": "",
-            "pr_delivery_date": data.data.pr_delivery_date,
-            "full_pr_number": data.data.full_pr_number,
-            "pr_created_date": data.data.pr_created_date,
-            "product_category": data.data.product_category,
-            "store": data.data.store,
-            "department": data.data.department,
-            "sku_category": data.data.sku_category,
-            "supplier_name": data.data.supplier_name,
-            "warehouse": data.data.warehouse,
-            "data": data.data.data,
-            "send_sku_dict": data.data.central_po_data,
-            "uploaded_file_dict": data.data.uploaded_file_dict,
-            "pr_uploaded_file_dict": data.data.pr_uploaded_file_dict,
-            "pa_uploaded_file_dict": data.data.pa_uploaded_file_dict,
-            "approval_remarks": data.data.approval_remarks,
+          var empty_data = { //"supplier_id":vm.supplier_id,
+                  "po_name": "",
+                  "ship_to": data.data.ship_to,
+                  "terms_condition": data.data.terms_condition,
+                  "receipt_type": data.data.receipt_type,
+                  "seller_types": [],
+                  'is_approval':data.data.is_approval,
+                  "validateFlag": data.data.validateFlag,
+                  "total_price": 0,
+                  "tax": "",
+                  "sub_total": "",
+                  "pr_delivery_date": data.data.pr_delivery_date,
+                  "pr_created_date": data.data.pr_created_date,
+                  "product_category": data.data.product_category,
+                  "priority_type": data.data.priority_type,
+                  "sku_category": data.data.sku_category,
+                  'uploaded_file_dict': data.data.uploaded_file_dict,
+                  // "supplier_name": data.data.supplier_name,
+                  "store": data.data.store,
+                  "store_id": data.data.store_id,
+                  "department": data.data.department,
+                  "data": data.data.data,
           };
           vm.model_data = {};
+          vm.resubmitCheckObj = {};
+          vm.is_resubmitted = false;
+          vm.is_pa_resubmitted = false;
+          if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+          }
+          vm.resubmitting_user = data.data.resubmitting_user;
           angular.copy(empty_data, vm.model_data);
+
           if (vm.model_data.supplier_id){
             vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
-            var supplier_data = {'supplier_id':vm.model_data.supplier_id}
-            if (aData['Validation Status'] == 'Saved'){
-              vm.service.apiCall('get_supplier_payment_terms/', 'POST', supplier_data).then(function(data){
-                if (data.data) {
-                  vm.model_data.supplier_payment_terms = data.data;
-                } else {
-                  vm.model_data.supplier_payment_terms = '';
-                }
-              })
-            }
           } else {
             vm.model_data['supplier_id_name'] = '';
           }
+
           if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
             vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
           }
-          if(vm.model_data.pr_uploaded_file_dict && Object.keys(vm.model_data.pr_uploaded_file_dict).length > 0) {
-            vm.model_data.pr_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pr_uploaded_file_dict.file_url);
-          }
-          if(vm.model_data.pa_uploaded_file_dict && Object.keys(vm.model_data.pa_uploaded_file_dict).length > 0) {
-            vm.model_data.pa_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pa_uploaded_file_dict.file_url);
-          }
-          // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
+
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
           vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
           vm.model_data.validated_users = data.data.validated_users;
+          vm.model_data.approval_remarks = data.data.approval_remarks;
           angular.forEach(vm.model_data.data, function(data){
-            if (!data.fields.cess_tax) {
-              data.fields.cess_tax = 0;
-            }
+//            if (!data.fields.cess_tax) {
+//              if (data.fields.temp_cess_tax){
+//                data.fields.cess_tax = data.fields.temp_cess_tax;
+//              }
+//            }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
-            if (!data.fields.utgst_tax) {
-              data.fields.utgst_tax = 0;
+            if (!data.fields.tax) {
+              if (data.fields.temp_tax){
+                data.fields.tax = data.fields.temp_tax;
+              }
             }
+            data.fields.sku['conversion'] = data.fields.conversion;
+            vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
-          vm.getTotals();
+          console.log(vm.resubmitCheckObj);
+
+          // vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
-              vm.confirm_disabled = false;
               var seller_data = data.data.sellers;
               vm.model_data.tax = data.data.tax;
-              vm.model_data.ship_addr_names = data.data.shipment_add_names;
-              vm.model_data.shipment_addresses = data.data.shipment_addresses;
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
-              vm.ship_addr_change(vm.model_data.ship_to);
               vm.model_data["receipt_types"] = data.data.receipt_types;
-              vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
               vm.model_data.seller_type = vm.dedicated_seller;
-              vm.model_data.warehouse_names = data.data.warehouse
+              vm.model_data.warehouse_names = data.data.warehouse;
+              vm.model_data.prodcatg_map = data.data.prodcatg_map;
+              vm.model_data.product_categories = Object.keys(vm.model_data.prodcatg_map);
               angular.forEach(seller_data, function(seller_single){
                 vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
               });
+
               angular.forEach(vm.model_data.data, function(data){
+
                 data.fields.dedicated_seller = vm.dedicated_seller;
-              });
+              })
+
               vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
               vm.getCompany();
               vm.seller_change1 = function(type) {
+
                 if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+
                   angular.forEach(vm.model_data.data, function(data){
+
                     data.fields.dedicated_seller = type;
-                  });
+                  })
                 } else {
                   vm.selected_seller = type;
                   vm.default_status = false;
@@ -274,30 +270,81 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
+          vm.resubmit_sku_check = function() {
+            vm.is_resubmitted = false;
+            var status = true;
+            var saved_sku_list = Object.keys(vm.resubmitCheckObj)
+            if (saved_sku_list.length != vm.model_data.data.length){
+              vm.is_resubmitted = true;
+              status = false;
+            } else {
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (!saved_sku_list.includes(eachField.fields.sku.wms_code)) {
+                  vm.is_resubmitted = true;
+                  status = false;
+                }
+              })
+            }
+            return status;
+          }
+
+          vm.checkResubmit = function(sku_data){
+            if (sku_data.order_quantity && vm.resubmit_sku_check()){
+              angular.forEach(vm.model_data.data, function(eachField){
+                var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+                if (oldQty != parseInt(eachField.fields.order_quantity)){
+                  vm.is_resubmitted = true
+                  vm.update = true;
+                }
+              })
+            }
+          }
+
+          vm.checkResubmitPurchaseApprover = function(sku_data) {
+            if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+              return;
+            }
+            vm.is_pa_resubmitted = false;
+            if (vm.permissions.change_pendinglineitems){
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (sku_data.preferred_supplier != eachField.fields.supplier_id_name){
+                  vm.is_pa_resubmitted = true;
+                }
+              })
+            }
+          }
+
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
-          vm.model_data['pr_number'] = aData['PR Number'];
+          vm.model_data['pr_number'] = aData['PR No'];
           vm.model_data['purchase_id'] = aData['Purchase Id']
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
-          vm.title = 'Validate PO';
+          vm.title = 'Validate PR';
           // vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
+          vm.convertPoFlag = data.data.convertPoFlag
           vm.pending_level = aData['LevelToBeApproved']
-          vm.pop_up_status = aData['Validation Status']
-          if (aData['Validation Status'] == 'Approved'){
-            $state.go('app.inbound.RaisePo.PurchaseOrder');
-          } else if (aData['Validation Status'] == 'Saved'){
-            vm.update = true;
-            $state.go('app.inbound.RaisePo.SavedPurchaseRequest');
-          } else {
-            $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');
-          }
+          vm.update = true;
+          vm.print_enable = true
+          $state.go('app.inbound.RaisePr.SavedPurchaseRequest');
+          // if (aData['Validation Status'] == 'Approved'){
+          //   $state.go('app.inbound.RaisePr.ConvertPRtoPO');
+          // } else if (aData['Validation Status'] == 'Store_Sent'){
+          //   $state.go('app.inbound.RaisePr.ConvertPRtoPO');
+          // } else if (aData['Validation Status'] == 'Saved'){
+          //   vm.update = true;
+          //   $state.go('app.inbound.RaisePr.SavedPurchaseRequest');
+          // } else {
+          //   $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');
+          // }
         }
-      });
+    });
+
     }
     if ($rootScope.$current_po != '') {
       vm.supplier_id = $rootScope.$current_po['Supplier ID'];
@@ -705,7 +752,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.print_pending_po = function(form, validation_type) {
       if (form.$valid) {
-        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks + '&currency_code=' + vm.model_data.supplier_currency, {withCredential: true})
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks, {withCredential: true})
         .success(function(data, status, headers, config) {
           vm.service.print_data(data, vm.model_data.purchase_id);
         });
@@ -713,11 +760,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.service.showNoty('Please Fill * fields !!');
       }
     }
-    vm.currency_change = function(currency){
-      if (currency == 'INR') {
-        vm.model_data.supplier_currency_rate = ''
-      }
-    }
+
     vm.barcode = function() {
 
       vm.barcode_title = 'Barcode Generation';

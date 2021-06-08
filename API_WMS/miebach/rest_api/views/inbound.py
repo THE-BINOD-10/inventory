@@ -2495,7 +2495,7 @@ def print_pending_po_form(request, user=''):
     company_logo=""
     if profile.company.logo:
         try:
-            _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+            _logo_url = profile.company.logo.url.replace('/media/static/', 'static/')
             _logo_url =  urllib.url2pathname(_logo_url)
             with open(_logo_url, "rb") as image_file:
                 company_logo = base64.b64encode(image_file.read())
@@ -5397,7 +5397,7 @@ def submit_pending_approval_enquiry(request, user=''):
         emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
         admin_user = None
         user = pendingPurchaseObj.wh_user
-        prApprIds = PendingPR.objects.get(id=pendingPurchaseObj.id).pending_prApprovals.exclude(status='resubmitted').values_list('id', flat=True)
+        '''prApprIds = PendingPR.objects.get(id=pendingPurchaseObj.id).pending_prApprovals.exclude(status='resubmitted').values_list('id', flat=True)
         validatedEmails = PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds,
                             pr_approval__status='approved'). \
                             order_by('id').values_list('email', flat=True)
@@ -5405,7 +5405,7 @@ def submit_pending_approval_enquiry(request, user=''):
             userQs = User.objects.filter(email=eachMail)
             if userQs.exists():
                 userId = userQs[0].id
-                emailsOfApprovedUsersMap[eachMail] = userId
+                emailsOfApprovedUsersMap[eachMail] = userId'''
         receiver_userId = emailsOfApprovedUsersMap.get(enquiry_to, '')
         if not receiver_userId:
             return HttpResponse('Something Went Wrong')
@@ -10492,7 +10492,7 @@ def confirm_add_po(request, sales_data='', user=''):
         company_logo=""
         if profile.company.logo:
             try:
-                _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+                _logo_url = profile.company.logo.url.replace('/media/static/', 'static/')
                 _logo_url =  urllib.url2pathname(_logo_url)
                 with open(_logo_url, "rb") as image_file:
                     company_logo = base64.b64encode(image_file.read())

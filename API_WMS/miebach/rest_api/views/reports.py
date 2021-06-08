@@ -2480,7 +2480,7 @@ def print_purchase_order_form(request, user=''):
     company_logo=""
     if profile.company.logo:
         try:
-            _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+            _logo_url = profile.company.logo.url.replace('/media/static/', 'static/')
             _logo_url =  urllib.url2pathname(_logo_url)
             with open(_logo_url, "rb") as image_file:
                 company_logo = base64.b64encode(image_file.read())

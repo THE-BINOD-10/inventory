@@ -307,7 +307,7 @@ def add_user_permissions(request, response_data, user=''):
     if user_profile.company:
         company_name = user_profile.company.company_name
         if user_profile.company.logo:
-            response_data['data']['parent']['logo'] = user_profile.company.logo.url
+            response_data['data']['parent']['logo'] = user_profile.company.logo.name
     warehouse_type_name = get_warehouse_type_name(user_profile)
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,

@@ -4,57 +4,6 @@ angular.module('urbanApp', ['datatables'])
   .controller('GoodsReceiptNoteCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
-
-    /*var vm = this;
-    vm.colFilters = colFilters;
-    vm.service = Service;
-    vm.service.print_enable = false;
-
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'get_po_filter/',
-              type: 'GET',
-              data: vm.model_data,
-              xhrFields: {
-                withCredentials: true
-              },
-              data: vm.model_data
-           })
-       .withDataProp('data')
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
-
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
-        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-                $http.get(Session.url+'print_po_reports/?data='+aData.DT_RowAttr["data-id"], {withCredential: true}).success(function(data, status, headers, config) {
-
-                  console.log(data);
-                  var html = $(data);
-                  vm.print_page = $(html).clone();
-                  html = $(html).find(".modal-body > .form-group");
-                  $(html).find(".modal-footer").remove()
-                  $(".modal-body").html(html);
-                });
-                $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
-            });
-        });
-        return nRow;
-    }
-
-  */
   var vm = this;
   vm.host = Session.host;
   vm.service = Service;
@@ -72,14 +21,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.download_invoice_url = Session.url + 'download_grn_invoice_mapping/';
 
   vm.row_call = function(aData) {
+    vm.collect_row_data = {}
     if (!vm.toggle_sku_wise) {
         if(aData.receipt_type == "Hosted Warehouse") {
-
           vm.title = "Stock transfer Note";
         }
         vm.file_url = "";
         vm.consolated_file_url = "";
         vm.FileDownload(aData);
+        vm.collect_row_data = aData;
         $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id+'&grn_number='+aData['GRN Number'], {withCredential: true}).success(function(data, status, headers, config) {
             var html = $(data);
             vm.print_page = $(html).clone();
@@ -187,6 +137,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   function print() {
     console.log(vm.print_page);
     vm.service.print_data(vm.print_page, "Good Receipt Note");
+  }
+
+  vm.bulkUploadfiles = function() {
+    var form_data = new FormData();
+    var files = $(".approve_form").find('[name="files"]')[1].files;
+    $.each(files, function(i, file) {
+      form_data.append('files-' + i, file);
+    });
+    form_data.append('grn_number', vm.collect_row_data['GRN Number'])
+    form_data.append('receipt_no', vm.collect_row_data['receipt_no'])
+    form_data.append('warehouse_id', vm.collect_row_data['warehouse_id'])
+    Service.apiCall('bulk_grn_files_upload/', 'POST', form_data, true, true).then(function(data){
+      if(data.message){
+        vm.close();
+        vm.service.generate_report(vm.dtInstance, vm.model_data)
+      }
+    })
   }
 
   vm.download_invoice_zip = function() {

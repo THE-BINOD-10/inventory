@@ -3039,7 +3039,7 @@ def download_invoice_file(request, user=''):
                             files_list=list(invoice_data.values_list('uploaded_file', flat=True))
                             http_data = json.dumps(files_list)
                         else:
-                            invoice_details = invoice_data[0].uploaded_file.url
+                            invoice_details = invoice_data[0].uploaded_file.name
                             http_data = invoice_details
 
                 except IOError:

@@ -14556,13 +14556,186 @@ def validatePRNextApproval(request, user, reqConfigName, approval_type, level, a
     return mailsList
 
 
+def repush_grns(grns_list, user, type='GRN'):
+    po_wise_grn_list=[]
+    all_grns=[]
+    count=0
+    import dateutil.parser as DP
+    import json
+    import pandas as pd
+    from stockone_integrations.models import IntegrationMaster
+    from rest_api.views.inbound import netsuite_po
+    from datetime import datetime
+    from rest_api.views.masters import gather_uom_master_for_sku
+    from stockone_integrations.views import Integrations
+    for grn_row in grns_list:
+        grn_number= grn_row
+        print('GRN_NUMBER',grn_number)
+        s_po_s= SellerPOSummary.objects.filter(grn_number=grn_number)
+        if s_po_s:
+            print('present')
+            user=User.objects.get(id=s_po_s[0].purchase_order.open_po.sku.user)
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+            department= ''
+            invoice_date, dc_date, grn_date,invoice_receipt_date= '', '', '',''
+            if s_po_s[0].invoice_date:
+                invoice_date_string = s_po_s[0].invoice_date.strftime('%d-%m-%Y')
+                invoice_date= datetime.strptime(invoice_date_string, '%d-%m-%Y')
+                invoice_date= invoice_date.isoformat()
+            if s_po_s[0].challan_date:
+                challan_date_string= s_po_s[0].challan_date.strftime('%d-%m-%Y')
+                challan_date=datetime.strptime(challan_date_string, '%d-%m-%Y')
+                dc_date= challan_date.isoformat()
+            if s_po_s[0].creation_date:
+                grn_date_string= s_po_s[0].creation_date.strftime('%d-%m-%Y')
+                grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
+                grn_date= grn_date.isoformat()
+            if s_po_s[0].invoice_receipt_date:
+                invoice_receipt_string= s_po_s[0].invoice_receipt_date.strftime('%d-%m-%Y')
+                invoice_receipt_date= datetime.strptime(invoice_receipt_string, '%d-%m-%Y')
+                invoice_receipt_date= invoice_receipt_date.isoformat()
+            vendor_url=''
+            master_docs_obj = MasterDocs.objects.filter(master_id=s_po_s[0].purchase_order.po_number, user=user.id, master_type='GRN_PO_NUMBER', extra_flag=s_po_s[0].receipt_number).order_by('-creation_date')
+            if master_docs_obj:
+                vendor_url='https://mi.stockone.in/'+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+            if not vendor_url:
+                master_docs_obj = MasterDocs.objects.filter(extra_flag=s_po_s[0].receipt_number, master_id= s_po_s[0].purchase_order.order_id, master_type='GRN').order_by('-creation_date')
+                if master_docs_obj:
+                    vendor_url='https://mi.stockone.in/'+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+            credit_number, credit_date, credit_note_url = [''] * 3
+            credit_value, credit_quantity =[0] * 2
+            if s_po_s[0].credit:
+                credit_number=s_po_s[0].credit.credit_number
+                credit_value = s_po_s[0].credit.credit_value
+                credit_quantity = s_po_s[0].credit.quantity
+                if s_po_s[0].credit.credit_date:
+                    credit_date_temp=s_po_s[0].credit.credit_date.strftime('%d-%m-%Y')
+                    credit_date= datetime.strptime(credit_date_temp, '%d-%m-%Y')
+                    credit_date= credit_date.isoformat()
+                if(s_po_s[0].credit.id):
+                    master_docs_obj = MasterDocs.objects.filter(master_id=s_po_s[0].credit.id, user=user.id, master_type='PO_CREDIT_FILE')
+                    credit_note_url = 'https://mi.stockone.in/'+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+     
+            grn_data = {
+                'grn_number': s_po_s[0].grn_number,
+                'invoice_no': s_po_s[0].invoice_number,
+                'invoice_value': s_po_s[0].invoice_value,
+                'invoice_date': invoice_date,
+                'dc_number': s_po_s[0].challan_number,
+                'dc_date' : dc_date,
+                'vendorbill_url': vendor_url,
+                'credit_number': credit_number,
+                'credit_date': credit_date,
+                'credit_note_value': credit_value,
+                'credit_quantity': credit_quantity,
+                'credit_note_url': credit_note_url,
+                'inv_receipt_date': invoice_receipt_date,
+            }
+            if type=='GRN':
+                grn_data.update({
+                    'po_number': s_po_s[0].purchase_order.po_number,
+                    'department': department,
+                    'subsidiary': subsidary,
+                    'product_category':'',
+                    'plant': plant,
+                    'remarks':  s_po_s[0].purchase_order.remarks,
+                    'items':[],
+                    'grn_date': grn_date,
+                    })
+                received_sku_list=[]
+                data_order_idx=[]
+                check_batch_dict={}
+                for idx, data in enumerate(s_po_s):
+                    check_batch=False
+                    _open = data.purchase_order.open_po
+                    user_obj = User.objects.get(pk=_open.sku.user)
+                    unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+                    unitexid = unitdata.get('name', None)
+                    purchaseUOMname = None
+                    for row_1 in unitdata.get('uom_items', None):
+                        if row_1.get('unit_type', '') == 'Purchase':
+                            purchaseUOMname = row_1.get('unit_name', None)
+                    batch_number=''
+                    if data.batch_detail:
+                        batch_number= data.batch_detail.batch_no
+                    if _open.sku.sku_code in check_batch_dict:
+                        if check_batch_dict[_open.sku.sku_code] != batch_number:
+                            print('batch_num',batch_number, 'SKU', _open.sku.sku_code, 'quantity',data.quantity)
+                            for row_line in grn_data['items']:
+                                # import pdb;pdb.set_trace()
+                                if float(row_line['unit_price'])==float(data.price) and row_line['sku_code']== _open.sku.sku_code and row_line['open_po_id']==_open.id :
+                                    exp_date=''
+                                    if row_line['exp_date']:
+                                        if(data.batch_detail.expiry_date):
+                                            exp_date_obj = (data.batch_detail.expiry_date).strftime('%d-%m-%Y')
+                                            e_date=datetime.strptime(exp_date_obj, '%d-%m-%Y')
+                                            temp_exp_date= e_date.isoformat()
+                                            new_exp_date=DP.parse(temp_exp_date)
+                                            old_exp_date=DP.parse(row_line['exp_date'])
+                                            if new_exp_date<old_exp_date:
+                                                exp_date=temp_exp_date
+                                            else:
+                                                exp_date=row_line['exp_date']
+                                        else:
+                                            exp_date=row_line['exp_date']
+                                    if exp_date:
+                                        row_line.update({'exp_date': exp_date})
+                                    row_line.update({
+                                        'batch_no': str(row_line['batch_no'])+ ', '+str(batch_number),
+                                        'received_quantity': float(data.quantity)+float(row_line['received_quantity'])})
+                                    check_batch=True
+                            print('matched', batch_number, _open.sku.sku_code )
+                        else:
+                            for row_line in grn_data['items']:
+                                if float(row_line['unit_price'])==float(data.price) and row_line['sku_code']== _open.sku.sku_code and row_line['open_po_id']==_open.id :
+                                    row_line.update({
+                                                'batch_no': str(row_line['batch_no'])+ ', '+str(batch_number),
+                                                'received_quantity': float(data.quantity)+float(row_line['received_quantity'])
+                                                })
+                                    check_batch=True
+                    else:
+                        # print(_open.sku.sku_code, data.batch_detail.batch_no,'quantity' ,data.quantity, 'order_quantity', _open.order_quantity)
+                        check_batch_dict[_open.sku.sku_code]=batch_number
+                    if not check_batch:
+                        item = { 'sku_code': _open.sku.sku_code, 'sku_desc':_open.sku.sku_desc ,'order_idx': idx,
+                                    'open_po_id': _open.id,
+                                    'quantity': _open.order_quantity , 'unit_price': data.price,
+                                    'mrp':_open.mrp,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax, 'cess_tax': data.cess_tax,
+                                    'cgst_tax': _open.cgst_tax, 'utgst_tax':_open.utgst_tax, 'received_quantity': data.quantity,
+                                    'batch_no': batch_number, 'unitypeexid': unitexid, 'uom_name': purchaseUOMname, 'itemReceive': True}
+                        if(data.batch_detail):
+                            if data.batch_detail.manufactured_date:
+                                mfg_date = (data.batch_detail.manufactured_date).strftime('%d-%m-%Y')
+                                m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
+                                mfg_date= m_date.isoformat()
+                                item.update({'mfg_date':mfg_date})
+                            if data.batch_detail.expiry_date:
+                                exp_date = (data.batch_detail.expiry_date).strftime('%d-%m-%Y')
+                                e_date=datetime.strptime(exp_date, '%d-%m-%Y')
+                                exp_date= e_date.isoformat()
+                                item.update({'exp_date':exp_date})
+                        grn_data['items'].append(item)
+                    # print(grn_data['items'])
+            # all_grns.append(grn_data)
+            # grns_list.append(grn_data)
+            print('grn_number added to List', grn_number)
+            intObj = Integrations(user, 'netsuiteIntegration')
+            intObj.IntegrateGRN([grn_data], 'grn_number', is_multiple=True)
+
+
 @login_required
 @get_admin_user
 def bulk_grn_files_upload(request, user=''):
     success_data = []
     grn_number = request.POST.get('grn_number', '')
     warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
+    else:
+        user = request.user
     receipt_no = request.POST.get('receipt_no', '')
+    grns_list = []
     for i in request.FILES:
         file_obj = request.FILES.get(i, '')
         if file_obj:
@@ -14571,6 +14744,7 @@ def bulk_grn_files_upload(request, user=''):
             else:
                 grn_number = file_obj._name.split('.')[0]
                 datum = SellerPOSummary.objects.filter(grn_number=grn_number).values('purchase_order__po_number', 'receipt_number', 'purchase_order__id').distinct()
+            grns_list.append(grn_number)
             if datum.exists():
                 datum = datum[0]
                 master_docs_obj = MasterDocs.objects.filter(master_type='GRN_PO_NUMBER', master_id=datum['purchase_order__po_number'], extra_flag=datum['receipt_number'])
@@ -14585,6 +14759,7 @@ def bulk_grn_files_upload(request, user=''):
                     master_docs_obj.uploaded_file = file_obj
                     master_docs_obj.save()
                     success_data.append(grn_number)
+    repush_grns(grns_list, user, type= 'INVOICE_REUPLOAD')
     print success_data
     return HttpResponse(json.dumps({'msg': 1, 'data': 'success'}))
 

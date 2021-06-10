@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Base UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
+    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
                    'Min Days Qty', 'Max Days Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')

@@ -327,6 +327,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       // vm.dynamic_route(vm.current_pr);
       $rootScope.$current_pr = '';
+      $rootScope.$current_path = '';
     }
     vm.base = function() {
       vm.title = "Raise PR";

@@ -4069,7 +4069,10 @@ def insert_inventory_adjust(request, user=''):
         except Exception as e:
             return HttpResponse("machine Details are Missing")
         if request_data.get('machine_date')[0]:
-            machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%m/%d/%Y").date()
+            try:
+                machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%m/%d/%Y").date()
+            except:
+                machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%d/%m/%Y").date()
         machine_datum['machine_time'] = request_data.get('machine_time')[0]
     if reason in ['Consumption', 'Breakdown', 'Caliberation', 'Damaged/Disposed']:
         consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)

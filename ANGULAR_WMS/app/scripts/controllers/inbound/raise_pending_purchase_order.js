@@ -1240,7 +1240,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (data.data) {
             vm.model_data.supplier_payment_terms = data.data;
           } else {
-            vm.model_data.supplier_payment_terms = '';
+            vm.model_data.supplier_payment_terms = [];
           }
         })
       }

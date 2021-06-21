@@ -53,7 +53,7 @@ var app = angular.module('urbanApp')
          })
          $http.get(Session.url + tmp_route +'/'+data).then(function (resp) {
           resp = resp.data
-          if (localStorage.getItem('username') != null && resp.data.userName != localStorage.getItem('username')) {
+          if (localStorage.getItem('username') == null || resp.data.userName != localStorage.getItem('username')) {
             if (tmp_route == 'pending_pr_request') {
               localStorage.setItem('current_pr', JSON.stringify(resp.aaData['aaData'][0]));
             } else if (tmp_route == 'pendingPREnquiry') {
@@ -62,6 +62,7 @@ var app = angular.module('urbanApp')
               localStorage.setItem('current_po', JSON.stringify(resp.aaData['aaData'][0]));
             }
             $rootScope.$current_path = resp['pr_data']['path'];
+            localStorage.setItem('username', resp.data.userName);
             localStorage.setItem('route', $rootScope.$current_path);
             localStorage.setItem('route_type', tmp_route);
             swal2.close();

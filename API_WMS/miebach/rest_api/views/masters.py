@@ -1304,7 +1304,7 @@ def check_update_hot_release(data, value):
 def update_sku(request, user=''):
     """ Update SKU Details"""
     reversion.set_user(request.user)
-    reversion.set_comment("update_sku")
+    reversion.set_comment("update_sku: %s" % str(get_user_ip(request)))
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
@@ -2389,7 +2389,7 @@ def insert_sku_pack(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_replenushment(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("insert_replenushment")
+    reversion.set_comment("insert_replenushment: %s" % str(get_user_ip(request)))
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
     sku_code = request.POST['wms_code']
@@ -3214,7 +3214,7 @@ def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
-    reversion.set_comment("insert_sku")
+    reversion.set_comment("insert_sku: %s" % str(get_user_ip(request)))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     admin_user = get_admin(user)
     try:
@@ -4856,7 +4856,7 @@ def insert_po_terms(request, user=''):
 def insert_staff(request, user=''):
     """ Add New Staff"""
     reversion.set_user(request.user)
-    reversion.set_comment("insert_staff")
+    reversion.set_comment("insert_staff: %s" % str(get_user_ip(request)))
     log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
@@ -4948,7 +4948,7 @@ def insert_staff(request, user=''):
 def update_staff_values(request, user=''):
     """ Update Staff values"""
     reversion.set_user(request.user)
-    reversion.set_comment("update_staff_values")
+    reversion.set_comment("update_staff_values: %s" % str(get_user_ip(request)))
     log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
@@ -6139,7 +6139,7 @@ def insert_sku_doa(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
-    reversion.set_comment("insert_sku")
+    reversion.set_comment("insert_sku: %s" % str(get_user_ip(request)))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     admin_user = get_admin(user)
 

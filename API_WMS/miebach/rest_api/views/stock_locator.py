@@ -1423,7 +1423,7 @@ def insert_move_inventory(request, user=''):
     #     cycle_id = data[0].cycle + 1
 
     reversion.set_user(request.user)
-    reversion.set_comment("insert_move_inv")
+    reversion.set_comment("insert_move_inv: %s" % str(get_user_ip(request)))
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -4050,7 +4050,7 @@ def stock_detail_update(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_inventory_adjust(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("insert_inv_adj")
+    reversion.set_comment("insert_inv_adj: %s" % str(get_user_ip(request)))
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)

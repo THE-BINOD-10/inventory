@@ -1522,7 +1522,7 @@ app.directive('discountNumber', function () {
     });
 
 
-  app.config(['$httpProvider', function($httpProvider) {
+  app.config(['$httpProvider', 'IdleProvider', 'KeepaliveProvider', function($httpProvider, IdleProvider, KeepaliveProvider) {
 
     $httpProvider.responseInterceptors.push(function($q, $rootScope) {
       return function(promise) {
@@ -1531,6 +1531,13 @@ app.directive('discountNumber', function () {
             if(data.status == 200) {
               if (data.data.message == "invalid user") {
                 $rootScope.$broadcast('invalidUser');
+              }
+              if (data.data.message== "Success") {
+                if(data.data.data.idle_timeout){
+                   IdleProvider.idle(parseInt(data.data.data.idle_timeout)*60);
+                   IdleProvider.timeout(5);
+                   KeepaliveProvider.interval(10);
+                 }
               }
             }
           })

@@ -1762,6 +1762,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     if tally_report ==1:
         excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
+    if excel_name == 'PRApprovalTable':
+        excel_headers = temp_data['aaData'][0].keys()
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
     if excel_name:

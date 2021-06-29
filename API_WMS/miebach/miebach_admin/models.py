@@ -1729,12 +1729,14 @@ class BOMMaster(models.Model):
     material_quantity = models.FloatField(default=0)
     wastage_percent = models.FloatField(default=0)
     unit_of_measurement = models.CharField(max_length=10, default='')
+    wh_user = models.ForeignKey(User, related_name='bommaster', blank=True, null=True)
+    test_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku', 'machine_master')
+        unique_together = ('material_sku', 'product_sku', 'machine_master', 'wh_user', )
 
 
 class PriceMaster(models.Model):
@@ -4212,6 +4214,7 @@ class Consumption(models.Model):
     quality_check = models.FloatField(default=0)
     no_patient = models.FloatField(default=0)
     total_test = models.FloatField(default=0)
+    calculated_total_tests = models.FloatField(default=0)
     qnp = models.FloatField(default=0)
     total = models.FloatField(default=0)
     total_patients = models.FloatField(default=0)

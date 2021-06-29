@@ -14094,17 +14094,20 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
     #     consumptions = []
     if consumption_obj:
         with transaction.atomic(using='default'):
-            consumption = Consumption.objects.using('default').select_for_update().\
+	    consumption = Consumption.objects.using('default').select_for_update().\
                                             filter(id=consumption_obj.id, status=1)
             consumption = consumption[0]
-            user = consumption.user
-            main_user = get_company_admin_user(user)
-            bom_check_dict = {'product_sku__user': main_user.id,
+	    user = consumption.user
+	    main_user = user
+	    if str(user.userprofile.warehouse_type) == 'DEPT':
+            	main_user = get_admin(main_user)
+	    #main_user = get_company_admin_user(user)
+            bom_check_dict = {'wh_user_id': main_user.id,
                               'product_sku__sku_code': consumption.test.test_code}
             if consumption.machine:
                 bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
-            bom_master = BOMMaster.objects.filter(**bom_check_dict)
-            # if not bom_master.exists():
+	    bom_master = BOMMaster.objects.filter(**bom_check_dict)
+	    # if not bom_master.exists():
             #     if 'machine_master__machine_code' in bom_check_dict.keys():
             #         del bom_check_dict['machine_master__machine_code']
             #     bom_master = BOMMaster.objects.filter(**bom_check_dict)

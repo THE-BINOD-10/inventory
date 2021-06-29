@@ -51,8 +51,8 @@ def update_consumption(consumption_objss, user, company):
                         test_code, test_name = '', ''
                     consumption_filter = {}
                     machine_name =''
-                    if test_code:
-                        test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
+                    if test_code  or str(user.userprofile.stockone_code) in ["33044", "33036"]:
+			test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
                         if test_obj.exists():
                             data_dict['test'] = test_obj[0]
                         else:
@@ -86,7 +86,8 @@ def update_consumption(consumption_objss, user, company):
                             if consumption_dict.get(value, 0):
                                 data_dict[key] = float(consumption_dict.get(value, 0))
                         sum_ = data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['quality_check'] +data_dict['no_patient']
-                        diff = data_dict['total_test'] - sum_
+                        data_dict['calculated_total_tests']= data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['n_time_process'] +  data_dict['quality_check'] +data_dict['no_patient']
+			diff = data_dict['calculated_total_tests'] - sum_
                         n_time_process_val = 0
                         if diff and data_dict['n_time_process']:
                             n_time_process_val = diff/data_dict['n_time_process']
@@ -101,14 +102,16 @@ def update_consumption(consumption_objss, user, company):
                         #     machine_name = instrument_objs[0].instrument_name
                         if machine_name:
                             org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code, instrument_name=machine_name)
-                        else:
-                            org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
+                        #else:
+                            #org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
                         consumption_user = user
                         if org_objs:
                             org_dept = org_objs[0].dept_name
                             department = [key for key, value in department_mapping.items() if  value == org_dept]
                             if department:
                                 department = department[0]
+                                if department == 'IMMUNO':
+                                    department = 'IMMUN'
                             if department:
                                 user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type='DEPT', admin_user_id=user.id, user__userprofile__stockone_code=department)
                                 # if not user_groups:
@@ -121,22 +124,24 @@ def update_consumption(consumption_objss, user, company):
                         consumption_obj_ = Consumption.objects.filter(user=consumption_user.id, creation_date__gt=filter_date, **consumption_filter)
                         if consumption_obj_.exists():
                             status = 'Success'
-                            if consumption_obj_[0].status == 1 and department in ['BIOCHE', 'IMMUNO'] and user_groups:
-                                status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=data_dict['total_test'])
+                            if consumption_obj_[0].status and department and user_groups:
+                                status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=data_dict['calculated_total_tests'])
                             else:
-                                exist_total_test = consumption_obj_[0].total_test
-                                if exist_total_test < data_dict['total_test']:
-                                    diff_test = data_dict['total_test'] - exist_total_test
+                                exist_total_test = consumption_obj_[0].calculated_total_tests
+                                if exist_total_test < data_dict['calculated_total_tests']:
+                                    diff_test = data_dict['calculated_total_tests'] - exist_total_test
                                     status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=diff_test)
                                     if status == 'Success':
                                         consumption_obj.update(**data_dict)
                         else:
                             run_date = (datetime.date.today() - datetime.timedelta(days=1))
                             data_dict['run_date'] = run_date
-                            if department in ['BIOCHE', 'IMMUNO']:
-                                consumption_obj_ = Consumption.objects.create(**data_dict)
-                            if department in ['BIOCHE', 'IMMUNO'] and user_groups:
-                                status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['total_test'])
+                            #if department in ['BIOCHE', 'IMMUN']:
+                            consumption_obj_ = Consumption.objects.create(**data_dict)
+                            if department and user_groups:
+                                status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['calculated_total_tests'])
+                            else:
+                                status = 'Not in dept'
                         if status == 'Success':
                             log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
                         else:
@@ -152,7 +157,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         #users = User.objects.filter().exclude(userprofile__attune_id=None)
-        users = User.objects.filter(userprofile__attune_id=67).exclude(userprofile__attune_id=None)
+        users = User.objects.filter().exclude(userprofile__attune_id=None)
         self.stdout.write("Started Consumption call at"+ str(datetime.datetime.now().strftime('%y-%d-%m %H: %M')))
         for user in users:
             org_id = user.userprofile.attune_id
@@ -176,21 +181,23 @@ class Command(BaseCommand):
                 for server in servers:
                     consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
                     update_consumption(consumption_obj, user, company)
-            report_data = get_consumption_data(consumption_type='auto', from_date=datetime.date.today())
-            if report_data:
-                receivers = ["alap.christy@metropolisindia.com","pratip.patiyane@metropolisindia.com","flavia@metropolisindia.com","madhuri.bhosale@metropolisindia.com","jyotsna.naik@metropolisindia.com",
+        report_data = get_consumption_mail_data(consumption_type='auto', from_date=datetime.date.today())
+        #report_data=''
+        if report_data:
+            receivers = ["alap.christy@metropolisindia.com","pratip.patiyane@metropolisindia.com","flavia@metropolisindia.com","madhuri.bhosale@metropolisindia.com","jyotsna.naik@metropolisindia.com",
                             "thirupathi.battul@metropolisindia.com","nilesh.kamtekar@metropolisindia.com","nisha.dhabolkar@metropolisindia.com","rashid.farooqui@metropolisindia.com","amit.mishra@metropolisindia.com",
                             "kedar.shirodkar@metropolisindia.com","raviraj.deshpande@metropolisindia.com","nilam.tripathi@metropolisindia.com","surekha.kamble@metropolisindia.com","chaitali.berde@metropolisindia.com",
                             "vishal.yamagekar@metropolisindia.com","pravin.rajput@metropolisindia.com","jayant.rajani@metropolisindia.com","sunilpahuja@metropolisindia.com",
-                            "medha@metropolisindia.com","vikas.kere@metropolisindia.com","roshan.nagvekar@metropolisindia.com","mahesh.sable@metropolisindia.com"]
-                path = 'static/excel_files/consumption_report.csv'
-                df = pd.DataFrame(report_data)
-                df.to_csv(path, index=False)
-                email_subject = 'Consumption Report'
-                email_body = 'Please find the Consumption Report in the attachment'
-                attachments = [{'path': path, 'name': 'consumption_report.csv'}]
-                send_mail_attachment(receivers, email_subject, email_body, files=attachments)
-            else:
-                log.info('No report data')
-            log.info("succesfull Consumption call for %s" % user.username)
+                            "medha@metropolisindia.com","vikas.kere@metropolisindia.com","roshan.nagvekar@metropolisindia.com","mahesh.sable@metropolisindia.com", "ashish@metropolisindia.com","salunkhe.yogita@metropolisindia.com","pratibha.pawar@metropolisindia.com","shraddha.lokegaonkar@metropolisindia.com","medha@metropolisindia.com","jyothi.mathias@metropolisindia.com","reshma.haryan@metropolisindia.com","jinal.dedhia@metropolisindia.com","karthik@mieone.com","nagi@mieone.com", "avinash@mieone.com"]
+            receivers = ["naresh@mieone.com", "avinash@mieone.com","karthik@mieone.com","nagi@mieone.com"]
+            path = 'static/excel_files/consumption_report.csv'
+            df = pd.DataFrame(report_data)
+            df.to_csv(path, index=False)
+            email_subject = 'Auto Consumption Report'
+            email_body = 'Please find the consumption test data report in the attachment'
+            attachments = [{'path': path, 'name': 'consumption_report.csv'}]
+            send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        else:
+            log.info('No report data')
+        log.info("succesfull Consumption call for %s" % user.username)
         self.stdout.write("completed Consumption call at "+ str(datetime.datetime.now().strftime('%y-%d-%m %H: %M')))

@@ -13,7 +13,9 @@
         return $http.post(Session.url + "wms_login/", credentials)
                     .then(function (resp) {
           resp = resp.data;
-	  localStorage.clear();
+          if (localStorage.getItem('route') == null) {
+	        localStorage.clear();
+          }
           update_manifest(resp.data);
           if ((["Fail", "Password Expired", "Account Locked"]).indexOf(resp.message)  == -1) {
              //setloginStatus(resp);
@@ -47,7 +49,9 @@
       this.logout = function () {
 
         return $http.get(Session.url + "logout/", {withCredentials: true}).then(function () {
-          localStorage.clear();
+          if (localStorage.getItem('route') == null) {
+            localStorage.clear();
+          }
           Session.unset();
           if ($rootScope.$redirect) {
             deferredStatus = null;

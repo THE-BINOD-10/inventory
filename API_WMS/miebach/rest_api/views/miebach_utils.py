@@ -1994,7 +1994,7 @@ CONSUMPTION_DATA_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
     'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
-                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
+                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
                    'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
@@ -18181,7 +18181,7 @@ def get_consumption_data_(search_params, user, sub_user):
     lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
           'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
           'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
-          'total_test','qnp','total_patients', 'total_test','total_test', 'creation_date', 'creation_date',
+          'total_test','qnp','total_patients', 'total_test', 'total_test','total_test', 'creation_date', 'creation_date',
           'status','run_date', 'id', 'status']
 
     col_num = search_params.get('order_index', 0)
@@ -18202,9 +18202,10 @@ def get_consumption_data_(search_params, user, sub_user):
         search_parameters['test__sku_code'] = search_params['test_code']
     if 'machine_code' in search_params:
         search_parameters['machine__sku_code'] = search_params['machine_code']
-
+    user_filter_check =False
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
+	user_filter_check =True
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
@@ -18212,6 +18213,7 @@ def get_consumption_data_(search_params, user, sub_user):
         else:
             users = User.objects.none()
     if 'plant_name' in search_params.keys():
+	user_filter_check =True
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
@@ -18221,7 +18223,8 @@ def get_consumption_data_(search_params, user, sub_user):
             users = User.objects.none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        user_filter_check =True
+	dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
         dept_type = search_params['sister_warehouse']
         if dept_type.lower() != 'na':
             users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
@@ -18231,9 +18234,10 @@ def get_consumption_data_(search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
+    if not user.userprofile.warehouse_type == 'ADMIN' or  user_filter_check:
+	search_parameters['user__in']= user_ids
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
-    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
+    'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
     'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id']
     model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
@@ -18298,7 +18302,7 @@ def get_consumption_data_(search_params, user, sub_user):
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
         stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
-        
+        total_tests = result.get('calculated_total_tests', 0)
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
             ('Plant Code', plant_code),
@@ -18317,7 +18321,8 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
             ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
-            ('TT', result['total_test'])))
+            ('Total Tests', total_tests),
+	    ('TT', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

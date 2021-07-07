@@ -56,6 +56,7 @@ angular
         $scope.user = Session.get();
         $scope.permissions = Session.roles.permissions;
         console.log($scope.user);
+        localStorage.setItem('username', $scope.user.userName);
       });
 
       $scope.service = Service;
@@ -216,3 +217,4 @@ angular
    AnalyticsProvider.trackPages(true);
    AnalyticsProvider.setPageEvent('$accountCreationSuccess');
 }]).run(['Analytics', function(Analytics) { }]);
+

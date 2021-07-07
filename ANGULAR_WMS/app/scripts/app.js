@@ -11,6 +11,7 @@
 angular
   .module('urbanApp', [
     'ui.router',
+    'ngIdle',
     'ngAnimate',
     'ui.bootstrap',
     'oc.lazyLoad',

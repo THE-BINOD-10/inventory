@@ -1304,7 +1304,7 @@ def check_update_hot_release(data, value):
 def update_sku(request, user=''):
     """ Update SKU Details"""
     reversion.set_user(request.user)
-    reversion.set_comment("update_sku")
+    reversion.set_comment("update_sku: %s" % str(get_user_ip(request)))
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
@@ -2389,7 +2389,7 @@ def insert_sku_pack(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_replenushment(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("insert_replenushment")
+    reversion.set_comment("insert_replenushment: %s" % str(get_user_ip(request)))
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
     sku_code = request.POST['wms_code']
@@ -3214,7 +3214,7 @@ def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
-    reversion.set_comment("insert_sku")
+    reversion.set_comment("insert_sku: %s" % str(get_user_ip(request)))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     admin_user = get_admin(user)
     try:
@@ -4856,7 +4856,7 @@ def insert_po_terms(request, user=''):
 def insert_staff(request, user=''):
     """ Add New Staff"""
     reversion.set_user(request.user)
-    reversion.set_comment("insert_staff")
+    reversion.set_comment("insert_staff: %s" % str(get_user_ip(request)))
     log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
@@ -4948,7 +4948,7 @@ def insert_staff(request, user=''):
 def update_staff_values(request, user=''):
     """ Update Staff values"""
     reversion.set_user(request.user)
-    reversion.set_comment("update_staff_values")
+    reversion.set_comment("update_staff_values: %s" % str(get_user_ip(request)))
     log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
@@ -6030,43 +6030,52 @@ def get_sku_master_doa_record(request, user=''):
 
 
 def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
-    lis = ['display_name', 'product_category', 'plant__name', 'department_type', 'min_Amt', 'max_Amt']
-    order_data = lis[col_num]
-    filter_params = get_filtered_params(filters, lis)
-    company_list = get_companies_list(user, send_parent=True)
-    company_list = map(lambda d: d['id'], company_list)
-    department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-    purchase_type =  request.POST.get('special_key', '')
-    if order_term == 'desc':
-        order_data = '-%s' % order_data
-    purchase_approval_configs = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
-                                                                **filter_params)
-    if search_term:
-        mapping_results = purchase_approval_configs.filter(Q(display_name__icontains=search_term) |
-                                                                Q(product_category__icontains=search_term) |
-                                                                Q(plant__name__icontains=search_term) |
-                                                                Q(department_type__icontains=search_term)).\
-                                        values('display_name', 'product_category', 'department_type').distinct().\
-                                        order_by(order_data)
-
+    if request.POST.get('excel') == 'true':
+        pas = PurchaseApprovalConfig.objects.filter()
+        for pa in pas:
+            temp_data['aaData'].append(OrderedDict((('name', pa.display_name), ('plant', ','.join(pa.plant.filter().values_list('name', flat=True))),
+                                                    ('product_category', pa.product_category), ('SKU Category', pa.sku_category),
+                                                    ('department_type', pa.department_type), ('Approval Type', pa.approval_type),
+                                                    ('Level', pa.level), ('Min Amount', pa.min_Amt), ('Max Amount', pa.max_Amt),
+                                                    ('Roles', ','.join(pa.user_role.filter().values_list('role_name', flat=True))))))
     else:
-        mapping_results = purchase_approval_configs.\
-                                        values('display_name', 'product_category', 'department_type').distinct().\
-                                        order_by(order_data)
-    temp_data['recordsTotal'] = mapping_results.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    for result in mapping_results[start_index: stop_index]:
-        pac_objs = purchase_approval_configs.filter(**result)
-        plants = []
-        if pac_objs:
-            plants = list(pac_objs[0].plant.filter().values_list('name', flat=True))
-            plants = list(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
-        plant_names = ','.join(plants)
-        temp_data['aaData'].append(OrderedDict((('name', result['display_name']), ('product_category', result['product_category']),
-                                                ('plant', plant_names),
-                                                ('department_type', department_mapping.get(result['department_type'], '')),
-                                                ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result['display_name']))))
+        lis = ['display_name', 'product_category', 'plant__name', 'department_type', 'min_Amt', 'max_Amt']
+        order_data = lis[col_num]
+        filter_params = get_filtered_params(filters, lis)
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        purchase_type =  request.POST.get('special_key', '')
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        purchase_approval_configs = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
+                                                                    **filter_params)
+        if search_term:
+            mapping_results = purchase_approval_configs.filter(Q(display_name__icontains=search_term) |
+                                                                    Q(product_category__icontains=search_term) |
+                                                                    Q(plant__name__icontains=search_term) |
+                                                                    Q(department_type__icontains=search_term)).\
+                                            values('display_name', 'product_category', 'department_type').distinct().\
+                                            order_by(order_data)
+
+        else:
+            mapping_results = purchase_approval_configs.\
+                                            values('display_name', 'product_category', 'department_type').distinct().\
+                                            order_by(order_data)
+        temp_data['recordsTotal'] = mapping_results.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        for result in mapping_results[start_index: stop_index]:
+            pac_objs = purchase_approval_configs.filter(**result)
+            plants = []
+            if pac_objs:
+                plants = list(pac_objs[0].plant.filter().values_list('name', flat=True))
+                plants = list(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
+            plant_names = ','.join(plants)
+            temp_data['aaData'].append(OrderedDict((('name', result['display_name']), ('product_category', result['product_category']),
+                                                    ('plant', plant_names),
+                                                    ('department_type', department_mapping.get(result['department_type'], '')),
+                                                    ('DT_RowClass', 'results'),
+                                                    ('DT_RowId', result['display_name']))))
 
 
 @csrf_exempt
@@ -6139,7 +6148,7 @@ def insert_sku_doa(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
-    reversion.set_comment("insert_sku")
+    reversion.set_comment("insert_sku: %s" % str(get_user_ip(request)))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     admin_user = get_admin(user)
 

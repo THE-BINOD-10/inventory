@@ -2748,6 +2748,7 @@ def switches(request, user=''):
                        'show_image': 'show_image',
                        'back_order': 'back_order',
                        'online_percentage': 'online_percentage',
+                       'idle_timeout': 'idle_timeout',
                        'use_imei': 'use_imei',
                        'pallet_switch': 'pallet_switch',
                        'production_switch': 'production_switch',

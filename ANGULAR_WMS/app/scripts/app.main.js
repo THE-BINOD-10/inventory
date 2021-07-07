@@ -10,9 +10,63 @@ angular
 
 angular
   .module('urbanApp')
-  .controller('AppCtrl', ['$rootScope', '$scope', '$state','$http', '$localStorage', 'Session', 'myservice', "Auth", "AUTH_EVENTS", "Service", "$timeout", 'Analytics',
-        function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout, Analytics) {
+  .controller('AppCtrl', ['$rootScope', '$scope', '$state','$http', '$localStorage', 'Session', 'myservice', "Auth", "AUTH_EVENTS", "Service", "$timeout", 'Analytics', 'Idle', 'Keepalive', '$modal', '$window',
+        function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout, Analytics, Idle, Keepalive, $modal, $window) {
+      $scope.started = false;
+      function closeModals() {
+          if ($scope.warning) {
+              $scope.warning.close();
+              $scope.warning = null;
+          }
 
+          if ($scope.timedout) {
+              $scope.timedout.close();
+              $scope.timedout = null;
+          }
+      }
+
+      $scope.$on('IdleStart', function() {
+          closeModals();
+
+          $scope.warning = $modal.open({
+              templateUrl: 'warning-dialog.html',
+              windowClass: 'modal-warning'
+          });
+      });
+      
+      $scope.$on('IdleEnd', function() {
+          closeModals();
+          //Session.unset();
+          //$state.go("user.signin"); 
+	  //$window.location.reload();
+      });
+
+      $scope.$on('IdleTimeout', function() {
+          closeModals();
+          $scope.logout()
+          //Session.unset();
+          //$state.go("user.signin");
+          //$window.location.reload(); 
+	 // $scope.timedout = $modal.open({
+          //     templateUrl: 'timedout-dialog.html',
+          //     windowClass: 'modal-danger'
+          // });
+      });
+
+      $scope.start = function() {
+          console.log('start');
+          closeModals();
+          Idle.watch();
+          $scope.started = true;
+      };
+
+      $scope.stop = function() {
+          console.log('stop');
+          closeModals();
+          Idle.unwatch();
+          $scope.started = false;
+
+      }; 
       $rootScope.process = false;
       $scope.session = Session;
       $scope.stockone_loader = false;
@@ -217,4 +271,3 @@ angular
    AnalyticsProvider.trackPages(true);
    AnalyticsProvider.setPageEvent('$accountCreationSuccess');
 }]).run(['Analytics', function(Analytics) { }]);
-

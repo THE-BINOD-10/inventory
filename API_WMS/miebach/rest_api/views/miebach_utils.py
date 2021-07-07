@@ -6991,7 +6991,11 @@ def get_po_filter_data(request, search_params, user, sub_user):
             url_request = ""
             if invoice_data.exists():
                 invoice_details = invoice_data[0].uploaded_file
-                http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                if not request:
+                    http_data = "%s%s%s"%('https://mi.stockone.in',"/",invoice_details)
+                else:
+                    http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                # http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
                 # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
 
         except IOError:

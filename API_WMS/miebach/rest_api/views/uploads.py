@@ -12373,7 +12373,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2 or month != 5:
+                        if len(str(month)) > 2 or month != 6:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')

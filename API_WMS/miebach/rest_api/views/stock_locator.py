@@ -1423,7 +1423,7 @@ def insert_move_inventory(request, user=''):
     #     cycle_id = data[0].cycle + 1
 
     reversion.set_user(request.user)
-    reversion.set_comment("insert_move_inv")
+    reversion.set_comment("insert_move_inv: %s" % str(get_user_ip(request)))
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -4049,8 +4049,9 @@ def stock_detail_update(request, user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_inventory_adjust(request, user=''):
+    return HttpResponse("Inventory Adj Disable Due to Consumption Uploads!..")
     reversion.set_user(request.user)
-    reversion.set_comment("insert_inv_adj")
+    reversion.set_comment("insert_inv_adj: %s" % str(get_user_ip(request)))
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -4069,7 +4070,10 @@ def insert_inventory_adjust(request, user=''):
         except Exception as e:
             return HttpResponse("machine Details are Missing")
         if request_data.get('machine_date')[0]:
-            machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%m/%d/%Y").date()
+            try:
+                machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%m/%d/%Y").date()
+            except:
+                machine_datum['machine_date'] = datetime.datetime.strptime(request_data.get('machine_date')[0], "%d/%m/%Y").date()
         machine_datum['machine_time'] = request_data.get('machine_time')[0]
     if reason in ['Consumption', 'Breakdown', 'Caliberation', 'Damaged/Disposed']:
         consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)

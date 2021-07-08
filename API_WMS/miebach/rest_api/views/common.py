@@ -280,6 +280,11 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['userName'] = user.username
     parent_data['user_first_name'] = user.first_name
     admin_user = get_admin(user)
+    idle_timeout_value = 60
+    id_data = MiscDetail.objects.filter(misc_type="idle_timeout").order_by('-updation_date')
+    if id_data:
+        idle_timeout_value = id_data[0].misc_value
+    response_data['data']['idle_timeout'] = idle_timeout_value
     parent_data['parent_username'] = admin_user.get_username().lower()
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
@@ -1647,6 +1652,8 @@ def configurations(request, user=''):
 
     if config_dict['online_percentage'] == "false":
         config_dict['online_percentage'] = 0
+    if config_dict['idle_timeout'] == "false":
+        config_dict['idle_timeout'] = 0
     user_profile = UserProfile.objects.filter(user_id=user.id)
     config_dict['prefix'] = ''
     if user_profile:
@@ -1762,6 +1769,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     if tally_report ==1:
         excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
+    if excel_name == 'PRApprovalTable':
+        excel_headers = temp_data['aaData'][0].keys()
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
     if excel_name:

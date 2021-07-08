@@ -3462,7 +3462,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'grn_scan_option': 'grn_scan_option',
                         'show_imei_invoice': 'show_imei_invoice', 'style_headers': 'style_headers',
                         'picklist_sort_by': 'picklist_sort_by',
-                        'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage',
+                        'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage', 'idle_timeout': 'idle_timeout',
                         'mail_alerts': 'mail_alerts',
                         'detailed_invoice': 'detailed_invoice', 'invoice_titles': 'invoice_titles',
                         'show_image': 'show_image', 'repeat_po': 'repeat_po',
@@ -6991,7 +6991,11 @@ def get_po_filter_data(request, search_params, user, sub_user):
             url_request = ""
             if invoice_data.exists():
                 invoice_details = invoice_data[0].uploaded_file
-                http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                if not request:
+                    http_data = "%s%s%s"%('https://mi.stockone.in',"/",invoice_details)
+                else:
+                    http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                # http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
                 # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
 
         except IOError:

@@ -659,7 +659,7 @@ def get_picklist_locations(data_dict, user):
 @reversion.create_revision(atomic=False, using='reversion')
 def generate_picklist(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("generate_picklist")
+    reversion.set_comment("generate_picklist: %s" % str(get_user_ip(request)))
     remarks = request.POST['ship_reference']
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -774,7 +774,7 @@ def generate_picklist(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def batch_generate_picklist(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("generate_picklist")
+    reversion.set_comment("generate_picklist: %s" % str(get_user_ip(request)))
     remarks = request.POST.get('ship_reference', '')
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -2027,7 +2027,7 @@ def picklist_confirmation(request, user=''):
         cur_user = request.POST.get('source')
         user = User.objects.get(username=cur_user)
     reversion.set_user(request.user)
-    reversion.set_comment("picklist_confirmation")
+    reversion.set_comment("picklist_confirmation: %s" % str(get_user_ip(request)))
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}
@@ -2589,7 +2589,7 @@ def remove_sku(request):
 def update_invoice(request, user=''):
     """ update invoice data """
     reversion.set_user(request.user)
-    reversion.set_comment("update_invoice")
+    reversion.set_comment("update_invoice: %s" % str(get_user_ip(request)))
     try:
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
@@ -5287,7 +5287,7 @@ def check_backorder_compatibility(myDict, admin_user, user):
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_order_data(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("create_order")
+    reversion.set_comment("create_order: %s" % str(get_user_ip(request)))
     myDict = dict(request.POST.iterlists())
     order_id = ''
     # Sending mail and message
@@ -9342,7 +9342,7 @@ def get_central_order_detail(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def order_category_generate_picklist(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("generate_picklist")
+    reversion.set_comment("generate_picklist: %s" % str(get_user_ip(request)))
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))
@@ -9471,7 +9471,7 @@ def delete_order_data(request, user=""):
 def update_order_data(request, user=""):
     """ This code will update data if order is updated """
     reversion.set_user(request.user)
-    reversion.set_comment("update_order")
+    reversion.set_comment("update_order: %s" % str(get_user_ip(request)))
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
     myDict = dict(request.POST.iterlists())
@@ -12242,7 +12242,7 @@ def move_to_dc(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def move_to_inv(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("move_to_inv")
+    reversion.set_comment("move_to_inv: %s" % str(get_user_ip(request)))
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
     is_sample_option =  get_misc_value('create_order_po', user.id)
@@ -12322,7 +12322,7 @@ def move_to_inv(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice_tab(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("create_invoice")
+    reversion.set_comment("create_invoice: %s" % str(get_user_ip(request)))
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -12755,7 +12755,7 @@ def generate_stock_transfer_invoice(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("create_invoice")
+    reversion.set_comment("create_invoice: %s" % str(get_user_ip(request)))
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''

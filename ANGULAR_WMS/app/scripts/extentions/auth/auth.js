@@ -1,9 +1,9 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state","$rootScope", "$location", "$window",
+  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state","$rootScope", "$location", "$window", "Idle",
 
-    function ($q, $http, Session, $state, $rootScope, $location, $window) {
+    function ($q, $http, Session, $state, $rootScope, $location, $window, Idle) {
 
       var deferredStatus = null;
 
@@ -13,11 +13,14 @@
         return $http.post(Session.url + "wms_login/", credentials)
                     .then(function (resp) {
           resp = resp.data;
-	  localStorage.clear();
+          if (localStorage.getItem('route') == null) {
+	        localStorage.clear();
+          }
           update_manifest(resp.data);
           if ((["Fail", "Password Expired", "Account Locked"]).indexOf(resp.message)  == -1) {
              //setloginStatus(resp);
              Session.set(resp.data);
+             Idle.watch();
           }
           return resp;
         });
@@ -46,7 +49,9 @@
       this.logout = function () {
 
         return $http.get(Session.url + "logout/", {withCredentials: true}).then(function () {
-          localStorage.clear();
+          if (localStorage.getItem('route') == null) {
+            localStorage.clear();
+          }
           Session.unset();
           if ($rootScope.$redirect) {
             deferredStatus = null;
@@ -87,8 +92,8 @@
           update_manifest(resp.data);
           if (((["Fail", "Password Expired", "Account Locked"]).indexOf(resp.message) == -1) && resp.data.userId) {
              //setloginStatus(resp);
-             Session.set(resp.data);
-
+              Session.set(resp.data);
+              Idle.watch();
             if (resp.data.roles.permissions["setup_status"] == "true") {
 
               $state.go("app.Register");
@@ -114,6 +119,7 @@
           if ((resp.message != "Fail") && resp.data.userId) {
              /*setloginStatus(resp);*/
              Session.set(resp.data);
+             Idle.watch();
           }
 
           deferredStatus.resolve(resp.message);

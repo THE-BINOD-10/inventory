@@ -2640,7 +2640,7 @@ def validate_wms(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def modify_po_update(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("update_po")
+    reversion.set_comment("update_po: %s" % str(get_user_ip(request)))
     myDict = dict(request.POST.iterlists())
     terms_condition = request.POST.get('terms_condition','')
     wrong_wms = []
@@ -2748,6 +2748,7 @@ def switches(request, user=''):
                        'show_image': 'show_image',
                        'back_order': 'back_order',
                        'online_percentage': 'online_percentage',
+                       'idle_timeout': 'idle_timeout',
                        'use_imei': 'use_imei',
                        'pallet_switch': 'pallet_switch',
                        'production_switch': 'production_switch',
@@ -2963,7 +2964,7 @@ def delete_tax(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_po(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("raise_po")
+    reversion.set_comment("raise_po: %s" % str(get_user_ip(request)))
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
@@ -3529,7 +3530,7 @@ def get_raisepo_group_data(user, myDict):
 @reversion.create_revision(atomic=False, using='reversion')
 def add_po(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("raise_po")
+    reversion.set_comment("raise_po: %s" % str(get_user_ip(request)))
     status = 'Failed to Add PO'
     terms_condition = request.POST.get('terms_condition','')
     myDict = dict(request.POST.iterlists())
@@ -3909,7 +3910,7 @@ def approve_pr(request, user=''):
             mailSubTypePrefix = 'pr'
             poFor = False
             purchase_type = 'PR'
-            reversion.set_comment("ValidatePendingPR")
+            reversion.set_comment("ValidatePendingPR: %s" % str(get_user_ip(request)))
             purchase_number = 'pr_number'
         else:
             master_type = 'pr_approvals_conf_data'
@@ -3918,7 +3919,7 @@ def approve_pr(request, user=''):
             mailSubTypePrefix = 'po'
             poFor = True
             purchase_type = 'PO'
-            reversion.set_comment("ValidatePendingPO")
+            reversion.set_comment("ValidatePendingPO: %s" % str(get_user_ip(request)))
             purchase_number = 'po_number'
 
         currentUserEmailId = request.user.email
@@ -4452,7 +4453,7 @@ def checkPartialPR(existingPRObj, convertingSkus):
 @reversion.create_revision(atomic=False, using='reversion')
 def convert_pr_to_po(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("convertPRtoPO")
+    reversion.set_comment("convertPRtoPO: %s" % str(get_user_ip(request)))
     urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Converted PR to PO Successfully'
     try:
@@ -5286,10 +5287,10 @@ def save_pr(request, user=''):
                 return HttpResponse('Department Login not found')
         if myDict.get('is_actual_pr'):
             is_actual_pr = myDict.get('is_actual_pr')[0]
-            reversion.set_comment("SavePendingPR")
+            reversion.set_comment("SavePendingPR: %s" % str(get_user_ip(request)))
         else:
             is_actual_pr = 'false'
-            reversion.set_comment("SavePendingPO")
+            reversion.set_comment("SavePendingPO: %s" % str(get_user_ip(request)))
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         if myDict.get('purchase_id'):
@@ -5352,10 +5353,10 @@ def cancel_pr(request, user=''):
     filtersMap = {'id': pr_number}
     if is_actual_pr == 'true':
         model_name = PendingPR
-        reversion.set_comment("CancelPR")
+        reversion.set_comment("CancelPR: %s" % str(get_user_ip(request)))
     else:
         model_name = PendingPO
-        reversion.set_comment("CancelPO")
+        reversion.set_comment("CancelPO: %s" % str(get_user_ip(request)))
     prQs = model_name.objects.filter(**filtersMap)
     if prQs.exists():
         prQs.update(final_status='cancelled')
@@ -5991,7 +5992,7 @@ def update_putaway(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def close_po(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("close_po")
+    reversion.set_comment("close_po: %s" % str(get_user_ip(request)))
     if not request.POST:
         return HttpResponse('Updated Successfully')
     status = ''
@@ -7564,7 +7565,7 @@ def get_asn_qr_code(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("send_for_approval_confirm_grn")
+    reversion.set_comment("send_for_approval_confirm_grn: %s" % str(get_user_ip(request)))
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
     data_dict = ''
@@ -7733,7 +7734,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             request.user=User.objects.get(id=doa_obj.requested_user_id)
             user=request.user
     reversion.set_user(request.user)
-    reversion.set_comment("generate_grn")
+    reversion.set_comment("generate_grn: %s" % str(get_user_ip(request)))
     data_dict = ''
     owner_email = ''
     grn_po_number, warehouse_store = '', ''
@@ -9279,7 +9280,7 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @reversion.create_revision(atomic=False, using='reversion')
 def putaway_data(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("confirm_putaway")
+    reversion.set_comment("confirm_putaway: %s" % str(get_user_ip(request)))
     warehouse_id = request.POST['warehouse_id']
     user = User.objects.get(id=warehouse_id)
     purchase_order_id = ''
@@ -10150,7 +10151,7 @@ def confirm_add_po(request, sales_data='', user=''):
         if req_data.exists():
             return HttpResponse("%s - %s" % (request.POST.get('po_number', ''), 'Already Confirmed - Please Close this Window & Check'))
     reversion.set_user(request.user)
-    reversion.set_comment("raise_po")
+    reversion.set_comment("raise_po: %s" % str(get_user_ip(request)))
     ean_flag = False
     po_order_id = ''
     status = ''
@@ -12676,7 +12677,7 @@ def get_po_segregation_data(request, user=''):
 @reversion.create_revision(using='reversion')
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("confirm_primary_seg")
+    reversion.set_comment("confirm_primary_seg: %s" % str(get_user_ip(request)))
     data_dict = dict(request.POST.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(data_dict))
     try:
@@ -17104,7 +17105,7 @@ def get_pending_material_request_data(start_index, stop_index, temp_data, search
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_mr_request(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("confirm_mr_request")
+    reversion.set_comment("confirm_mr_request: %s" % str(get_user_ip(request)))
     log.info('Request params for ' + user.username + ' on ' + str(get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.POST.dict()))
     try:
         cnf_data = json.loads(request.POST.get('selected_orders', ''))

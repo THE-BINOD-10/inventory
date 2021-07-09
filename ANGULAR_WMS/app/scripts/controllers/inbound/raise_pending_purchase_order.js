@@ -25,6 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.supplier_mail_flag = true;
+    vm.from_supplier_pos = false;
     vm.confirm_btn_disable = true;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -142,9 +143,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     angular.copy(empty_data, vm.model_data);
 
     vm.close = function () {
-      vm.base();
-      $state.go('app.inbound.RaisePo');
-      vm.display_purchase_history_table = false;
+      if(vm.from_supplier_pos){
+        $rootScope.$current_po = '';
+        $state.go('app.reports.SupplierWisePOs');
+      }
+      else {
+        vm.base();
+        $state.go('app.inbound.RaisePo');
+        vm.display_purchase_history_table = false;
+      }
     }
 
     vm.b_close = vm.close;
@@ -197,16 +204,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "pr_uploaded_file_dict": data.data.pr_uploaded_file_dict,
             "pa_uploaded_file_dict": data.data.pa_uploaded_file_dict,
             "approval_remarks": data.data.approval_remarks,
+            "warehouse_id": data.data.warehouse_id,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
           if (vm.model_data.supplier_id){
             vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
             var supplier_data = {'supplier_id':vm.model_data.supplier_id}
-            if (aData['Validation Status'] == 'Saved'){
+            if (aData['Validation Status'] == 'Saved' || vm.from_supplier_pos){
               vm.service.apiCall('get_supplier_payment_terms/', 'POST', supplier_data).then(function(data){
                 if (data.data) {
                   vm.model_data.supplier_payment_terms = data.data;
+                  angular.forEach(vm.model_data.supplier_payment_terms, function(payment_term){
+                    if(payment_term.indexOf(vm.model_data.supplier_payment_term) != -1){
+                      vm.model_data.payment_term = payment_term;
+                    }
+                  });
                 } else {
                   vm.model_data.supplier_payment_terms = '';
                 }
@@ -260,6 +273,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               });
               angular.forEach(vm.model_data.data, function(data){
                 data.fields.dedicated_seller = vm.dedicated_seller;
+                data.fields.prev_price = data.fields.price;
+                data.fields.sku_supplier_price = data.tax_data[0].sku_supplier_price;
+                data.taxes = {};
+                if(data.tax_data[0].taxes.length){
+                  data.taxes = data.tax_data[0].taxes;
+                }
               });
               vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
               vm.getCompany();
@@ -304,6 +323,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     if ($rootScope.$current_po != '') {
       vm.supplier_id = $rootScope.$current_po['Supplier ID'];
+      if($rootScope.$current_po['from_supplier_wise_pos']){
+        vm.from_supplier_pos = $rootScope.$current_po['from_supplier_wise_pos'];
+      }
       vm.dynamic_route($rootScope.$current_po);
     }
     vm.base = function() {
@@ -1028,7 +1050,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
    vm.get_supplier_sku_prices = function(sku) {
      vm.cleared_data = true;
      var d = $q.defer();
-     var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id}
+     var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id, warehouse_id: vm.model_data.warehouse_id}
      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
 
        if(data.message) {
@@ -1494,6 +1516,42 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     });
   }
+
+  vm.checkSupplierSKUPrice = function(product, line_index) {
+    var dat = vm.model_data.data[line_index];
+    var line_index1 = line_index;
+    if(dat.fields.sku_supplier_price && dat.fields.sku_supplier_price != dat.fields.price){
+      vm.service.alert_msg("SKU price is not the same as in Supplier SKU mapping, Do you want to continue?").then(function(msg) {
+        if(msg=='true'){
+          console.log("Success");
+        } else {
+          dat.fields.price = dat.fields.sku_supplier_price;
+        }
+      });
+    }
+  }
+
+  vm.update_po_values = function() {
+    vm.bt_disable = true;
+    var that = vm;
+    var data = [];
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    vm.service.apiCall('update_po_values/', 'POST', elem, true).then(function(data){
+      if(data.message) {
+        if (data.data == 'Success') {
+          vm.bt_disable = true;
+          vm.service.showNoty(data.data);
+          vm.close()
+        } else {
+           vm.service.showNoty(data.data);
+        }
+      }
+    });
+  }
+
+
 }
 
 angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstance, $modal, items, Service, Session) {

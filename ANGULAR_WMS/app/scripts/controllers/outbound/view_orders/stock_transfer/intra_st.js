@@ -230,6 +230,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.state = data.data.wh_details.state;
         vm.creation_date = data.data.order_date;
         vm.pin = data.data.wh_details.pincode;
+        vm.warehouse_id = params['warehouse_id'];
 
         angular.forEach(vm.items_dict, function(item){
 
@@ -292,6 +293,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       var delete_data = {};
       delete_data['order_id'] = ord_id;
+      delete_data['warehouse_id'] = vm.warehouse_id;
       // delete_data['order_id_code'] = vm.order_id_code;
 
       vm.service.apiCall('stock_transfer_delete/', 'GET', delete_data).then(function(data){

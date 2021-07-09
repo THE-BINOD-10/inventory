@@ -51,6 +51,7 @@ from miebach.celery import app
 import git
 from lockout import LockedOut
 from ipware import get_client_ip
+import tarfile
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -279,6 +280,11 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['userName'] = user.username
     parent_data['user_first_name'] = user.first_name
     admin_user = get_admin(user)
+    idle_timeout_value = 60
+    id_data = MiscDetail.objects.filter(misc_type="idle_timeout").order_by('-updation_date')
+    if id_data:
+        idle_timeout_value = id_data[0].misc_value
+    response_data['data']['idle_timeout'] = idle_timeout_value
     parent_data['parent_username'] = admin_user.get_username().lower()
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
@@ -306,7 +312,7 @@ def add_user_permissions(request, response_data, user=''):
     if user_profile.company:
         company_name = user_profile.company.company_name
         if user_profile.company.logo:
-            response_data['data']['parent']['logo'] = user_profile.company.logo.url
+            response_data['data']['parent']['logo'] = user_profile.company.logo.name
     warehouse_type_name = get_warehouse_type_name(user_profile)
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
@@ -617,7 +623,7 @@ def get_search_params(request, user=''):
                       'search22': 'search_22', 'search23': 'search_23',
                       'search24': 'search_24', 'search25': 'search_25',
                       'search26': 'search_26',
-                      'cancel_invoice':'cancel_invoice', }
+                      'cancel_invoice':'cancel_invoice', 'single_warehouse': 'single_warehouse'}
     request_data = request.POST
     if not request_data:
         request_data = request.GET
@@ -683,6 +689,7 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
+    'PRConvertedPO': 'get_pr_converted_po',
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',
@@ -738,6 +745,7 @@ data_datatable = {  # masters
     'OrderAllocations': 'get_order_allocation_data',
     'ViewManualTest': 'view_manual_test_entries',
     'ClosingStockUI': 'get_closing_stock_ui_data',
+    'PlantDeptMaster': 'get_plant_dept_subsidary_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -1646,6 +1654,8 @@ def configurations(request, user=''):
 
     if config_dict['online_percentage'] == "false":
         config_dict['online_percentage'] = 0
+    if config_dict['idle_timeout'] == "false":
+        config_dict['idle_timeout'] = 0
     user_profile = UserProfile.objects.filter(user_id=user.id)
     config_dict['prefix'] = ''
     if user_profile:
@@ -1761,6 +1771,8 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     if tally_report ==1:
         excel_headers = headers
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
+    if excel_name == 'PRApprovalTable':
+        excel_headers = temp_data['aaData'][0].keys()
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
     if excel_name:
@@ -1773,6 +1785,22 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
     path_to_file = '../' + path
+    if 'excel_name=metropolis_pr_po_grn_dict' in excel_name:
+        excel_headers = METROPOLIS_PR_PO_GRN_DICT["dt_headers"]
+        save_to_excel(excel_headers, temp_data['aaData'], request, path, path_to_file)
+        new_paths = []
+        zip_subdir = ""
+        # for dat in report_file_names:
+            # print dat
+        zip_filename ='static/excel_files/'+ file_name + '.zip'
+        filename = zip_filename.split('/')[-1]
+        zipfile.ZipFile(zip_filename, mode='w').write(path, arcname=os.path.basename(path))
+        '''with tarfile.open(zip_filename, "w:gz") as tar:
+            tar.add(path, arcname=os.path.basename(path))
+        new_paths.append({'path': zip_filename, 'name': zip_filename.split('/')[-1]})
+        print new_paths'''
+        new_paths = "../"+ zip_filename
+        return HttpResponse(new_paths)
     if file_type == 'csv':
         with open(path, 'w') as mycsvfile:
             thedatawriter = csv.writer(mycsvfile, delimiter=',')
@@ -1810,6 +1838,24 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
         wb.save(path)
     return HttpResponse(path_to_file)
 
+
+def save_to_excel(headers, data, request, path, path_to_file):
+    wb=xlsxwriter.Workbook(path)
+    ws=wb.add_worksheet("New Sheet") #or leave it blank, default name is "Sheet 1"
+    header_style = wb.add_format({'bold': True})
+    first_row=0
+    for header in headers:
+        col=headers.index(header) # we are keeping order.
+        ws.write(first_row,col,header, header_style) # we have written first row which is the header of worksheet also.
+
+    row=1
+    for player in data:
+        for _key,_value in player.items():
+            if _key in ["Total Records"]:continue
+            col=headers.index(_key)
+            ws.write(row,col,_value)
+        row+=1 #enter the next row
+    wb.close()
 
 def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table_headers=None):
     data = '%s Orders for %s dated %s' % (user_name, f_name, order_date)
@@ -2989,6 +3035,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict['sku_id'] = sku_id
     uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
     # remaining_quantity = quantity * uom_dict['sku_conversion']
+    if uom_dict.get('sku_conversion') == '' or uom_dict.get('sku_conversion') == 0:
+        uom_dict['sku_conversion'] = 1
     remaining_quantity = quantity
     data_dict['quantity'] = total_stock_quantity
     data_dict['seen_quantity'] = remaining_quantity
@@ -3105,6 +3153,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if price != '':
                 batch_dict['buy_price'] = float(price)
             batch_dict['pcf'] = uom_dict['sku_conversion']
+            quantity = float(quantity / uom_dict['sku_conversion'])
             batch_dict['pquantity'] = quantity
             batch_dict['puom'] = uom_dict['measurement_unit']
             if user.userprofile.industry_type == 'FMCG':
@@ -5928,7 +5977,7 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_
     return sku_master, sku_master_ids
 
 
-def create_update_user(full_name, email, phone_number, password, username, role_name='customer'):
+def create_update_user(full_name, email, phone_number, password, username, role_name='customer', company=None):
     """
     Creating a new Customer User
     """
@@ -5947,6 +5996,8 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
+                if company:
+                    user_profile.company = company
                 user_profile.save()
             status = 'New Customer Added'
 
@@ -10093,12 +10144,15 @@ def get_supplier_info(request):
     supplier_user = ''
     supplier = ''
     supplier_parent = ''
-    profile = UserProfile.objects.get(user=request.user)
-    if profile.user_type == 'supplier':
-        supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
-        supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
-        supplier_parent = User.objects.get(id = supplier.user)
-        return True, supplier_data, supplier, supplier_parent
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        if profile.user_type == 'supplier':
+            supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
+            supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
+            supplier_parent = User.objects.get(id = supplier.user)
+            return True, supplier_data, supplier, supplier_parent
+    except Exception as e:
+        return False, supplier_user, supplier, supplier_parent
     return False, supplier_user, supplier, supplier_parent
 
 def create_new_supplier(user, supp_id, supplier_dict=None):
@@ -11875,7 +11929,7 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_type=''):
+def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_type='', ns_po_number=''):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     incremental_prefix = 'st_prefix'
     if order_typ == 'MR':
@@ -11897,7 +11951,11 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ='', upload_ty
             creation_date = value[0][11]
             batch_no = value[0][12]
         st_po_id = po_id#get_st_purchase_order_id(user)
-        order_id = full_po_number
+        if ns_po_number:
+            order_id= ns_po_number
+            full_po_number = ns_po_number
+        else:
+            order_id = full_po_number
         # prefix = get_misc_value('st_po_prefix', user.id)
         if not prefix:
             prefix = 'STPO'
@@ -12158,7 +12216,7 @@ def get_warehouses_list_states(user):
     return user_states
 
 
-def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ='', grn_number_dict='', last_change_date=''):
+def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ='', grn_number_dict='', last_change_date='', extra_params={}):
     if not grn_number_dict:
         grn_number_dict = {}
     try:
@@ -12195,10 +12253,10 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
                                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
                     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
-                # elif order_typ == 'ST_INTRA' and stock_transfer.upload_type == 'UI':
-                #     grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
-                #                               order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date)
-                #     grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
+                elif order_typ == 'ST_INTER' and stock_transfer.upload_type == 'UI':
+                    grn_number = auto_receive(destination_warehouse, po, 'st', update_picked, data=stock,
+                                              order_typ=order_typ, grn_number=grn_number, last_change_date=last_change_date, extra_params=extra_params)
+                    grn_number_dict[po.po_number] = {'grn_number': grn_number, 'warehouse': destination_warehouse}
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
@@ -13032,17 +13090,20 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type='', picking_price=0):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", grn_number='', last_change_date='', upload_type='', picking_price=0, extra_params={}):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     batch_data = ''
     if data.batch_detail:
         batch_data = data.batch_detail
     NOW = datetime.datetime.now()
+    invoice_number= extra_params.get("invoice_number", "")
     purchase_data = get_purchase_order_data(po_data)
     if po_type == 'st':
         seller_receipt_id = get_st_seller_receipt_id(po_data)
         if order_typ == 'MR':
             receipt_type = 'material request'
+        elif order_typ == 'ST_INTER':
+            receipt_type = 'sale order'
         else:
             receipt_type = 'stock transfer'
     elif po_type == 'po':
@@ -13060,11 +13121,12 @@ def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ="", g
         grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(warehouse, grn_prefix,
                                                                                                    sku_code,
                                                                                                    dept_code=dept_code)
-    seller_po_summary = SellerPOSummary.objects.create(receipt_number=seller_receipt_id,
-                                                                       quantity=quantity,
+    seller_po_summary = SellerPOSummary.objects.create(receipt_number= seller_receipt_id,
+                                                                       quantity= quantity,
                                                                        putaway_quantity=quantity,
                                                                        purchase_order_id=po_data.id,
-                                                                       creation_date=NOW,
+                                                                       creation_date= NOW,
+                                                                       invoice_number= invoice_number,
                                                                        price=purchase_data['price'],
                                                                        grn_number=grn_number)
     if last_change_date:
@@ -13289,11 +13351,12 @@ def sync_supplier_async(id, user_id):
     data_dict.pop('user')
     payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
     net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
-    master_objs = sync_supplier_master({}, user, data_dict, filter_dict, force=True)
+    currency_objs = supplier.currency.filter()
+    master_objs = sync_supplier_master({}, user, data_dict, filter_dict, force=True, currency_objs= currency_objs)
     createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
     print("Sync Completed For %s" % supplier.supplier_id)
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[]):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[], currency_objs =[]):
     supplier_sync = get_misc_value('supplier_sync', user.id)
     if (supplier_sync == 'true' or force) and not current_user :
         user_ids = get_related_users(user.id)
@@ -13344,6 +13407,8 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         master_objs[user_id] = supplier_master
         upload_master_file(request, user, supplier_master.id, "SupplierMaster")
         supplier_master.save()
+        if currency_objs:
+            supplier_master.currency.set(currency_objs, clear=True)
         master_email_map = MasterEmailMapping.objects.filter(user=user_id, master_id=supplier_master.id,
                                                                 master_type='supplier')
         if master_email_map:
@@ -13684,6 +13749,15 @@ def net_terms_supplier_mapping(net_code, net_desc, supplier):
     }
     netterm_obj, created = NetTerms.objects.get_or_create(**filters)
     return netterm_obj
+
+def currency_supplier_mapping(currencyid, currencyname):
+    filters = {
+        'currency_code': currencyname,
+        'netsuite_currency_internal_id': currencyid,
+        # 'supplier': supplier
+    }
+    currency_obj, created = CurrencyMaster.objects.get_or_create(**filters)
+    return currency_obj
 
 def get_warehouses_data(user):
     ware_houses_list = []
@@ -14054,17 +14128,20 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
     #     consumptions = []
     if consumption_obj:
         with transaction.atomic(using='default'):
-            consumption = Consumption.objects.using('default').select_for_update().\
+	    consumption = Consumption.objects.using('default').select_for_update().\
                                             filter(id=consumption_obj.id, status=1)
             consumption = consumption[0]
-            user = consumption.user
-            main_user = get_company_admin_user(user)
-            bom_check_dict = {'product_sku__user': main_user.id,
+	    user = consumption.user
+	    main_user = user
+	    if str(user.userprofile.warehouse_type) == 'DEPT':
+            	main_user = get_admin(main_user)
+	    #main_user = get_company_admin_user(user)
+            bom_check_dict = {'wh_user_id': main_user.id,
                               'product_sku__sku_code': consumption.test.test_code}
             if consumption.machine:
                 bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
-            bom_master = BOMMaster.objects.filter(**bom_check_dict)
-            # if not bom_master.exists():
+	    bom_master = BOMMaster.objects.filter(**bom_check_dict)
+	    # if not bom_master.exists():
             #     if 'machine_master__machine_code' in bom_check_dict.keys():
             #         del bom_check_dict['machine_master__machine_code']
             #     bom_master = BOMMaster.objects.filter(**bom_check_dict)
@@ -14079,10 +14156,9 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
-                # uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'purchase',
-                #                                  uom=bom.unit_of_measurement)
-                # pcf = uom_dict['sku_conversion']
-                # pcf = pcf if pcf else 1
+                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, uom_type='purchase')
+                pcf = uom_dict['sku_conversion']
+                pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
                 # needed_quantity = consumption_qty * pcf
                 needed_quantity = total_test * bom.material_quantity
@@ -14099,6 +14175,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 create_consumption_material(consumption, bom.material_sku, qty_dict)
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
                                               'needed_quantity': needed_quantity,
+                                              'sku_pcf': pcf,
                                               'stocks': stocks}
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
@@ -14116,6 +14193,8 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     consumption_number=consumption_number,
                     consumption_id=consumption.id,
                     sku_id=sku.id,
+                    price=sku.average_price,
+                    sku_pcf=value['sku_pcf'],
                     quantity=value['consumption_qty'],
                     consumption_type = 2
                 )
@@ -14145,17 +14224,19 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
         to_date = get_utc_start_date(to_date)
         search_parameters['creation_date__lt'] = to_date
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
-    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
+    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
-    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date', 'consumptiondata__quantity']
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id']
     model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct()
     for result in model_data:
         order_id = ''
-        # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
-        # if consumption_data:
-        #     order_id = consumption_data[0].consumption_number
-        if result['consumptiondata__consumption_number']:
-            order_id = result['consumptiondata__consumption_number']
+        consumed_qty = 0
+        consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        if consumption_data:
+            order_id = consumption_data[0].consumption_number
+            consumed_qty = consumption_data[0].quantity
+        #if result['consumptiondata__consumption_number']:
+            #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
         user_obj = User.objects.get(id=result['user'])
         department = ''
@@ -14176,6 +14257,7 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             machine_code = str(result['machine__machine_code'])
             machine_name = result['machine__machine_name']
         status = 'Pending'
+        uom = 'Test'
         reason = 'Mapping Not Found'
         if not result['status']:
             status = 'Consumption Booked'
@@ -14184,6 +14266,9 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             reason = 'Stock Not Found'
         if result['status'] == 3:
             reason = 'Bom Mapping Not Found'
+        bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        if bom_obj:
+            uom = bom_obj[0].unit_of_measurement
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -14203,8 +14288,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),('PN',result['n_time_process']),
             ('Q', result['quality_check']), ('NP', result['no_patient']),('TT', result['total_test']),('QNP', result['qnp']), ('TP', result['total_patients']),
-            ('Consumption Booked Qty', result['consumptiondata__quantity']),('Current Available Stock', stock_quantity),
-            ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),('Status', status),
+            ('Consumption Booked Qty', consumed_qty),('Current Available Stock', stock_quantity),
+            ('UOM', uom), ('Remarks', 'Auto - Consumption'),('Status', status),
             ('Consumption ID', order_id),
             ('Test Date', get_local_date(user_obj, result['run_date'])),
             ('Reason', reason)))
@@ -14465,7 +14550,8 @@ def check_block_pr_po_configuration():
     return status
 
 def get_last_three_months_consumption(filters):
-    end_date = datetime.datetime.today().replace(day=1)
+    # end_date = datetime.datetime.today().replace(day=1)
+    end_date = datetime.datetime.today()
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)
@@ -14507,15 +14593,195 @@ def validatePRNextApproval(request, user, reqConfigName, approval_type, level, a
     return mailsList
 
 
+def repush_grns(grns_list, user, type='GRN'):
+    po_wise_grn_list=[]
+    all_grns=[]
+    count=0
+    import dateutil.parser as DP
+    import json
+    import pandas as pd
+    from stockone_integrations.models import IntegrationMaster
+    from rest_api.views.inbound import netsuite_po
+    from datetime import datetime
+    from rest_api.views.masters import gather_uom_master_for_sku
+    from stockone_integrations.views import Integrations
+    for grn_row in grns_list:
+        grn_number= grn_row
+        print('GRN_NUMBER',grn_number)
+        s_po_s= SellerPOSummary.objects.filter(grn_number=grn_number)
+        if s_po_s:
+            print('present')
+            user=User.objects.get(id=s_po_s[0].purchase_order.open_po.sku.user)
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+            department= ''
+            invoice_date, dc_date, grn_date,invoice_receipt_date= '', '', '',''
+            if s_po_s[0].invoice_date:
+                invoice_date_string = s_po_s[0].invoice_date.strftime('%d-%m-%Y')
+                invoice_date= datetime.strptime(invoice_date_string, '%d-%m-%Y')
+                invoice_date= invoice_date.isoformat()
+            if s_po_s[0].challan_date:
+                challan_date_string= s_po_s[0].challan_date.strftime('%d-%m-%Y')
+                challan_date=datetime.strptime(challan_date_string, '%d-%m-%Y')
+                dc_date= challan_date.isoformat()
+            if s_po_s[0].creation_date:
+                grn_date_string= s_po_s[0].creation_date.strftime('%d-%m-%Y')
+                grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
+                grn_date= grn_date.isoformat()
+            if s_po_s[0].invoice_receipt_date:
+                invoice_receipt_string= s_po_s[0].invoice_receipt_date.strftime('%d-%m-%Y')
+                invoice_receipt_date= datetime.strptime(invoice_receipt_string, '%d-%m-%Y')
+                invoice_receipt_date= invoice_receipt_date.isoformat()
+            vendor_url=''
+            master_docs_obj = MasterDocs.objects.filter(master_id=s_po_s[0].purchase_order.po_number, user=user.id, master_type='GRN_PO_NUMBER', extra_flag=s_po_s[0].receipt_number).order_by('-creation_date')
+            if master_docs_obj:
+                vendor_url='https://mi.stockone.in/'+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+            if not vendor_url:
+                master_docs_obj = MasterDocs.objects.filter(extra_flag=s_po_s[0].receipt_number, master_id= s_po_s[0].purchase_order.order_id, master_type='GRN').order_by('-creation_date')
+                if master_docs_obj:
+                    vendor_url='https://mi.stockone.in/'+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+            credit_number, credit_date, credit_note_url = [''] * 3
+            credit_value, credit_quantity =[0] * 2
+            if s_po_s[0].credit:
+                credit_number=s_po_s[0].credit.credit_number
+                credit_value = s_po_s[0].credit.credit_value
+                credit_quantity = s_po_s[0].credit.quantity
+                if s_po_s[0].credit.credit_date:
+                    credit_date_temp=s_po_s[0].credit.credit_date.strftime('%d-%m-%Y')
+                    credit_date= datetime.strptime(credit_date_temp, '%d-%m-%Y')
+                    credit_date= credit_date.isoformat()
+                if(s_po_s[0].credit.id):
+                    master_docs_obj = MasterDocs.objects.filter(master_id=s_po_s[0].credit.id, user=user.id, master_type='PO_CREDIT_FILE')
+                    credit_note_url = 'https://mi.stockone.in/'+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+     
+            grn_data = {
+                'grn_number': s_po_s[0].grn_number,
+                'invoice_no': s_po_s[0].invoice_number,
+                'invoice_value': s_po_s[0].invoice_value,
+                'invoice_date': invoice_date,
+                'dc_number': s_po_s[0].challan_number,
+                'dc_date' : dc_date,
+                'vendorbill_url': vendor_url,
+                'credit_number': credit_number,
+                'credit_date': credit_date,
+                'credit_note_value': credit_value,
+                'credit_quantity': credit_quantity,
+                'credit_note_url': credit_note_url,
+                'inv_receipt_date': invoice_receipt_date,
+            }
+            if type=='GRN':
+                grn_data.update({
+                    'po_number': s_po_s[0].purchase_order.po_number,
+                    'department': department,
+                    'subsidiary': subsidary,
+                    'product_category':'',
+                    'plant': plant,
+                    'remarks':  s_po_s[0].purchase_order.remarks,
+                    'items':[],
+                    'grn_date': grn_date,
+                    })
+                received_sku_list=[]
+                data_order_idx=[]
+                check_batch_dict={}
+                for idx, data in enumerate(s_po_s):
+                    check_batch=False
+                    _open = data.purchase_order.open_po
+                    user_obj = User.objects.get(pk=_open.sku.user)
+                    unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+                    unitexid = unitdata.get('name', None)
+                    purchaseUOMname = None
+                    for row_1 in unitdata.get('uom_items', None):
+                        if row_1.get('unit_type', '') == 'Purchase':
+                            purchaseUOMname = row_1.get('unit_name', None)
+                    batch_number=''
+                    if data.batch_detail:
+                        batch_number= data.batch_detail.batch_no
+                    if _open.sku.sku_code in check_batch_dict:
+                        if check_batch_dict[_open.sku.sku_code] != batch_number:
+                            print('batch_num',batch_number, 'SKU', _open.sku.sku_code, 'quantity',data.quantity)
+                            for row_line in grn_data['items']:
+                                # import pdb;pdb.set_trace()
+                                if float(row_line['unit_price'])==float(data.price) and row_line['sku_code']== _open.sku.sku_code and row_line['open_po_id']==_open.id :
+                                    exp_date=''
+                                    if row_line['exp_date']:
+                                        if(data.batch_detail.expiry_date):
+                                            exp_date_obj = (data.batch_detail.expiry_date).strftime('%d-%m-%Y')
+                                            e_date=datetime.strptime(exp_date_obj, '%d-%m-%Y')
+                                            temp_exp_date= e_date.isoformat()
+                                            new_exp_date=DP.parse(temp_exp_date)
+                                            old_exp_date=DP.parse(row_line['exp_date'])
+                                            if new_exp_date<old_exp_date:
+                                                exp_date=temp_exp_date
+                                            else:
+                                                exp_date=row_line['exp_date']
+                                        else:
+                                            exp_date=row_line['exp_date']
+                                    if exp_date:
+                                        row_line.update({'exp_date': exp_date})
+                                    row_line.update({
+                                        'batch_no': str(row_line['batch_no'])+ ', '+str(batch_number),
+                                        'received_quantity': float(data.quantity)+float(row_line['received_quantity'])})
+                                    check_batch=True
+                            print('matched', batch_number, _open.sku.sku_code )
+                        else:
+                            for row_line in grn_data['items']:
+                                if float(row_line['unit_price'])==float(data.price) and row_line['sku_code']== _open.sku.sku_code and row_line['open_po_id']==_open.id :
+                                    row_line.update({
+                                                'batch_no': str(row_line['batch_no'])+ ', '+str(batch_number),
+                                                'received_quantity': float(data.quantity)+float(row_line['received_quantity'])
+                                                })
+                                    check_batch=True
+                    else:
+                        # print(_open.sku.sku_code, data.batch_detail.batch_no,'quantity' ,data.quantity, 'order_quantity', _open.order_quantity)
+                        check_batch_dict[_open.sku.sku_code]=batch_number
+                    if not check_batch:
+                        item = { 'sku_code': _open.sku.sku_code, 'sku_desc':_open.sku.sku_desc ,'order_idx': idx,
+                                    'open_po_id': _open.id,
+                                    'quantity': _open.order_quantity , 'unit_price': data.price,
+                                    'mrp':_open.mrp,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax, 'cess_tax': data.cess_tax,
+                                    'cgst_tax': _open.cgst_tax, 'utgst_tax':_open.utgst_tax, 'received_quantity': data.quantity,
+                                    'batch_no': batch_number, 'unitypeexid': unitexid, 'uom_name': purchaseUOMname, 'itemReceive': True}
+                        if(data.batch_detail):
+                            if data.batch_detail.manufactured_date:
+                                mfg_date = (data.batch_detail.manufactured_date).strftime('%d-%m-%Y')
+                                m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
+                                mfg_date= m_date.isoformat()
+                                item.update({'mfg_date':mfg_date})
+                            if data.batch_detail.expiry_date:
+                                exp_date = (data.batch_detail.expiry_date).strftime('%d-%m-%Y')
+                                e_date=datetime.strptime(exp_date, '%d-%m-%Y')
+                                exp_date= e_date.isoformat()
+                                item.update({'exp_date':exp_date})
+                        grn_data['items'].append(item)
+                    # print(grn_data['items'])
+            # all_grns.append(grn_data)
+            # grns_list.append(grn_data)
+            print('grn_number added to List', grn_number)
+            intObj = Integrations(user, 'netsuiteIntegration')
+            intObj.IntegrateGRN([grn_data], 'grn_number', is_multiple=True)
+
+
 @login_required
 @get_admin_user
 def bulk_grn_files_upload(request, user=''):
     success_data = []
+    grn_number = request.POST.get('grn_number', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
+    else:
+        user = request.user
+    receipt_no = request.POST.get('receipt_no', '')
+    grns_list = []
     for i in request.FILES:
         file_obj = request.FILES.get(i, '')
         if file_obj:
-            grn_number = file_obj._name.split('.')[0]
-            datum = SellerPOSummary.objects.filter(grn_number=grn_number).values('purchase_order__po_number', 'receipt_number', 'purchase_order__id').distinct()
+            if grn_number:
+                datum = SellerPOSummary.objects.filter(grn_number=grn_number, receipt_number=receipt_no, purchase_order__open_po__sku__user=warehouse_id).values('purchase_order__po_number', 'receipt_number', 'purchase_order__id').distinct()
+            else:
+                grn_number = file_obj._name.split('.')[0]
+                datum = SellerPOSummary.objects.filter(grn_number=grn_number).values('purchase_order__po_number', 'receipt_number', 'purchase_order__id').distinct()
+            grns_list.append(grn_number)
             if datum.exists():
                 datum = datum[0]
                 master_docs_obj = MasterDocs.objects.filter(master_type='GRN_PO_NUMBER', master_id=datum['purchase_order__po_number'], extra_flag=datum['receipt_number'])
@@ -14530,6 +14796,7 @@ def bulk_grn_files_upload(request, user=''):
                     master_docs_obj.uploaded_file = file_obj
                     master_docs_obj.save()
                     success_data.append(grn_number)
+    repush_grns(grns_list, user, type= 'INVOICE_REUPLOAD')
     print success_data
     return HttpResponse(json.dumps({'msg': 1, 'data': 'success'}))
 

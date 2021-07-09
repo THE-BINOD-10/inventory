@@ -918,7 +918,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 @reversion.create_revision(atomic=False, using='reversion')
 def order_upload(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("upload_order")
+    reversion.set_comment("upload_order: %s" % str(get_user_ip(request)))
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -2036,7 +2036,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-        if instanceName != TestMaster:
+        if instanceName != TestMaster and not data_dict['wms_code']:
             sku_inc_status, wms = get_sku_code_inc_number(user, instanceName, data_dict['sku_category'])
             data_dict['wms_code'] = wms
         if is_test:
@@ -2269,7 +2269,7 @@ def upload_netsuite_sku(data, user, instanceName=''):
 def sku_upload(request, user=''):
     try:
         reversion.set_user(request.user)
-        reversion.set_comment("upload_sku")
+        reversion.set_comment("upload_sku: %s" % str(get_user_ip(request)))
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -2303,7 +2303,7 @@ def sku_upload(request, user=''):
 def asset_upload(request, user=''):
     try:
         reversion.set_user(request.user)
-        reversion.set_comment("upload_asset")
+        reversion.set_comment("upload_asset: %s" % str(get_user_ip(request)))
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -2329,7 +2329,7 @@ def asset_upload(request, user=''):
 def service_upload(request, user=''):
     try:
         reversion.set_user(request.user)
-        reversion.set_comment("upload_service")
+        reversion.set_comment("upload_service: %s" % str(get_user_ip(request)))
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -2354,7 +2354,7 @@ def service_upload(request, user=''):
 def test_upload(request, user=''):
     try:
         reversion.set_user(request.user)
-        reversion.set_comment("upload_test")
+        reversion.set_comment("upload_test: %s" % str(get_user_ip(request)))
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -2410,7 +2410,7 @@ def machine_upload(request, user=''):
 def otheritems_upload(request, user=''):
     try:
         reversion.set_user(request.user)
-        reversion.set_comment("upload_item")
+        reversion.set_comment("upload_item: %s" % str(get_user_ip(request)))
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -4143,7 +4143,7 @@ def purchase_upload_mail(request, data_to_send, user):
 @reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("upload_po")
+    reversion.set_comment("upload_po: %s" % str(get_user_ip(request)))
     purchase_order_view = get_misc_value('purchase_order_preview', user.id)
     try:
         fname = request.FILES['files']
@@ -4168,7 +4168,7 @@ def purchase_order_upload(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload_preview(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("upload_po")
+    reversion.set_comment("upload_po: %s" % str(get_user_ip(request)))
     data_list = json.loads(request.POST.get('data_list', ''))
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
@@ -4519,7 +4519,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
 @reversion.create_revision(atomic=False, using='reversion')
 def move_inventory_upload(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("upload_move_inv")
+    reversion.set_comment("upload_move_inv: %s" % str(get_user_ip(request)))
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -5018,7 +5018,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 @reversion.create_revision(atomic=False, using='reversion')
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("upload_inv_adj")
+    reversion.set_comment("upload_inv_adj: %s" % str(get_user_ip(request)))
     count = 0
     try:
         fname = request.FILES['files']
@@ -12376,7 +12376,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2 or month != 5:
+                        if len(str(month)) > 2 or month != 7:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')

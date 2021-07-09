@@ -7,6 +7,17 @@
       <!-- body-->
       <div class="modal-body"></div>
       <div class="modal-footer">
+        <div class="col-lg-12 col-md-12" style="background-color: #fff;" align="center">
+          <h5><b>Re-upload GRN Document</b></h5>
+          <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="approve_form">
+            <div class="form-group col-md-8" style="padding-top: 30px;">
+              <span>
+                <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input"/>
+              </span>
+            </div>
+            <button type="button" class="btn btn-success btn-outline pull-left mr10" ng-click="showCase.bulkUploadfiles()" style="    margin-top: 25px;">upload</button>
+          </form>
+        </div>
         <button type="button" class="pull-left btn pop btn-primary" ng-if="showCase.file_url" ng-click="showCase.FileDownload('', 'download')">GRN File Download</button>
         <button type="button" class="pull-left btn pop pop-primary" ng-if="showCase.consolated_file_url" ng-click="showCase.FileDownload('', 'Mdownload')">Invoice File Download</button>
         <button type="button" class="pull-right btn pop pop-green" ng-click="showCase.print()">Print</button>

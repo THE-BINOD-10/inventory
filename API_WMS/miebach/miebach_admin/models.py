@@ -279,6 +279,17 @@ class LocationMaster(models.Model):
     def __unicode__(self):
         return self.location
 
+class CurrencyMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    currency_code = models.CharField(max_length=16, default='INR')
+    netsuite_currency_internal_id = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CURRENCY_MASTER'
+        unique_together = ('currency_code', 'netsuite_currency_internal_id')
+        index_together = ('currency_code', 'netsuite_currency_internal_id')
 
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=128, primary_key=True)
@@ -323,8 +334,9 @@ class SupplierMaster(models.Model):
     reference_id = models.CharField(max_length=64, default='')
     subsidiary = models.CharField(max_length=512, default='')
     place_of_supply = models.CharField(max_length=64, default='')
-    currency_code = models.CharField(max_length=16, default='')
-    netsuite_currency_internal_id = models.IntegerField(default=1)
+    currency = models.ManyToManyField(CurrencyMaster, default="", related_name = "supplier_master_currency")
+    # currency_code = models.CharField(max_length=16, default='')
+    # netsuite_currency_internal_id = models.IntegerField(default=1)
     is_contracted = models.BooleanField(default=False)
 
     class Meta:
@@ -1722,12 +1734,14 @@ class BOMMaster(models.Model):
     material_quantity = models.FloatField(default=0)
     wastage_percent = models.FloatField(default=0)
     unit_of_measurement = models.CharField(max_length=10, default='')
+    wh_user = models.ForeignKey(User, related_name='bommaster', blank=True, null=True)
+    test_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku')
+        unique_together = ('material_sku', 'product_sku', 'machine_master', 'wh_user', )
 
 
 class PriceMaster(models.Model):
@@ -4206,6 +4220,7 @@ class Consumption(models.Model):
     quality_check = models.FloatField(default=0)
     no_patient = models.FloatField(default=0)
     total_test = models.FloatField(default=0)
+    calculated_total_tests = models.FloatField(default=0)
     qnp = models.FloatField(default=0)
     total = models.FloatField(default=0)
     total_patients = models.FloatField(default=0)
@@ -4237,12 +4252,14 @@ class ConsumptionData(models.Model):
     consumption_number = models.CharField(max_length=64, default='')
     consumption = models.ForeignKey(Consumption, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    cancel_user = models.ForeignKey(User, related_name="consumption_cancel_user", blank=True, null=True)
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
     stock_mapping = models.ManyToManyField(StockMapping)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4288,12 +4305,55 @@ class AdjustmentData(models.Model):
     class Meta:
         db_table = 'ADJUSTMENT_DATA'
 
+class FileLocationMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    reference_key = models.IntegerField(null=False, blank=False)
+    reference_text = models.CharField(null=False, max_length=225)
+    document = models.FileField(upload_to='uploaded_data/')
 
+class GateIn(models.Model):
+    STATUS_DROPDOWN = (
+        ('default','None'),
+        ('Pending','Pending for Approval'),
+        ('Approved','Approved'),
+    )
+    TRUCK_TYPE_CHOICES =(
+        ('7', '7'), 
+        ('9', '9'), 
+        ('16', '16'), 
+        ('22', '22'),
+    )
+    REASON_TYPES = (
+        ('Inbound','Inbound'),
+        ('Outbound', 'Outbound'),
+        ('Returns','Returns'),
+        ('StockTransferIn', 'StockTransferIn'),
+        ('StockTransferOut','StockTransferOut')
+    )
+    id = BigAutoField(primary_key=True)
+    po_number = models.CharField(null=True, max_length=225, blank=True)
+    party = models.CharField(null=True, max_length=225, blank=True)
+    invoice_number = models.CharField(max_length=20, null=True, blank=True)
+    transport_company = models.CharField(max_length=20, null=True, blank=True)
+    truck_type = models.CharField(max_length=50, choices=TRUCK_TYPE_CHOICES, null=True, blank=True)
+    driver_name = models.CharField(max_length=50, default='', blank=True)
+    driver_number = models.CharField(blank=True, null=True, max_length=12)
+    reason = models.CharField(max_length=50, choices=REASON_TYPES, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_DROPDOWN, default='Pending', null=True, blank=True)
+    no_of_boxes = models.IntegerField(null=True, blank=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # dock_number = models.ForeignKey(DockDoorMaster, on_delete=models.CASCADE, null=True, blank=True)
+    in_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GATE_IN'
+        ordering    = ['-in_date']
 class MRP(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
     user = models.ForeignKey(User, related_name='mrp_user')
-    avg_monthly_consumption = models.FloatField(default=0)
+    avg_sku_consumption_day = models.FloatField(default=0)
     lead_time_qty = models.FloatField(default=0)
     min_days_qty = models.FloatField(default=0)
     max_days_qty = models.FloatField(default=0)
@@ -4307,20 +4367,22 @@ class MRP(models.Model):
 
     class Meta:
         db_table = 'MRP'
-        unique_together = ('user', 'sku')
-        index_together = ('user', 'sku')
+        index_together = (('sku', 'user'), ('sku', 'creation_date'))
 
 class ASNMapping(models.Model):
     id = BigAutoField(primary_key=True)
     asn_number = models.CharField(max_length=128, default='')
+    asn_id = models.PositiveIntegerField(default=0)
     user = models.ForeignKey(User, blank=True, null=True)
+    vendor = models.PositiveIntegerField(default=0)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     total_quantity = models.FloatField(default=0)
     received_quantity = models.FloatField(default=0)
     status = models.PositiveIntegerField(default=0)
+    invoice_number = models.CharField(max_length=128, default='')
+    expected_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'ASN_MAPPING'
-

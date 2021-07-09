@@ -20,6 +20,7 @@ var app = angular.module('urbanApp')
      $rootScope.$current_pr ='';
      $rootScope.$current_po = '';
      $rootScope.$current_raise_pr = '';
+     $rootScope.$current_path = '';
      $rootScope.$state = $state;
      $rootScope.$stateParams = $stateParams;
      $rootScope.$on('$stateChangeSuccess', function () {
@@ -51,23 +52,38 @@ var app = angular.module('urbanApp')
            showConfirmButton:false,
          })
          $http.get(Session.url + tmp_route +'/'+data).then(function (resp) {
-          if (resp) {
-           resp = resp.data;
-           var main_route = resp['pr_data']['path'];
-           if (tmp_route == 'pending_pr_request') {
-             $rootScope.$current_pr = resp.aaData['aaData'][0]
-           } else if (tmp_route == 'pendingPREnquiry') {
+          resp = resp.data
+          if (localStorage.getItem('username') == null || resp.data.userName != localStorage.getItem('username')) {
+            if (tmp_route == 'pending_pr_request') {
+              localStorage.setItem('current_pr', JSON.stringify(resp.aaData['aaData'][0]));
+            } else if (tmp_route == 'pendingPREnquiry') {
+              localStorage.setItem('current_pr_enq', JSON.stringify(resp.aaData['aaData'][0]));
+            } else {
+              localStorage.setItem('current_po', JSON.stringify(resp.aaData['aaData'][0]));
+            }
+            $rootScope.$current_path = resp['pr_data']['path'];
+            localStorage.setItem('username', resp.data.userName);
+            localStorage.setItem('route', $rootScope.$current_path);
+            localStorage.setItem('route_type', tmp_route);
+            swal2.close();
+            Auth.logout();
+          } else if (resp) {
+            $rootScope.$current_path = resp['pr_data']['path'];
+            if (tmp_route == 'pending_pr_request') {
+              $rootScope.$current_pr = resp.aaData['aaData'][0]
+            } else if (tmp_route == 'pendingPREnquiry') {
               $rootScope.$current_pr_enq = ''
-           } else {
-             $rootScope.$current_po = resp.aaData['aaData'][0]
-           }
-           localStorage.clear();
-           if (resp.message != "Fail") {
-             Session.set(resp.data)
-             swal2.close()
-             $state.go(main_route);
-             }
-           }
+            } else {
+              $rootScope.$current_po = resp.aaData['aaData'][0]
+            }
+            localStorage.clear();
+            localStorage.setItem('username', resp.data.userName);
+            if (resp.message != "Fail") {
+              Session.set(resp.data)
+              swal2.close()
+              $state.go($rootScope.$current_path);
+            }
+          }
        });
       }
      } else {
@@ -101,7 +117,23 @@ var app = angular.module('urbanApp')
                 ;(function (thisNext) {
 
                   Auth.status().then(function (resp) {
-
+                    if (localStorage.getItem('route') != null && localStorage.getItem('username') == Session.userName) {
+                      if (localStorage.getItem('route_type') == 'pending_pr_request') {
+                        $rootScope.$current_pr = JSON.parse(localStorage.getItem('current_pr'));
+                        localStorage.removeItem('current_pr');
+                      } else if (localStorage.getItem('route_type') == 'pendingPREnquiry') {
+                        $rootScope.$current_pr_enq = ''
+                        localStorage.removeItem('current_pr_enq');
+                      } else {
+                        $rootScope.$current_po = JSON.parse(localStorage.getItem('current_po'));
+                        localStorage.removeItem('current_po');
+                      }
+                      localStorage.removeItem('route_type');
+                      var current_redirect = localStorage.getItem('route');
+                      localStorage.removeItem('route');
+                      $state.go(current_redirect);
+                      return;
+                    }
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
                       return;
@@ -1025,6 +1057,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_pr/cancelled_rejected.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/pr_converted_to_po.js'
                   ])
                 });
               }]
@@ -3145,6 +3181,10 @@ var app = angular.module('urbanApp')
             title: 'PR Report',
           }
         })
+        .state('app.reports.PRReport.PRs', {
+            url: '/PRs',
+            templateUrl: 'views/reports/toggles/pr_details.html',
+          })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
@@ -3314,8 +3354,14 @@ var app = angular.module('urbanApp')
           url: '/consumptionReport',
           templateUrl: 'views/reports/consumption_report.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/consumption_report.js');
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/reports/consumption_report.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/reports/consumption_reversal.js'
+                  ])
+                })
               }]
           },
           data: {
@@ -3332,6 +3378,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Closing Stock Report',
+          }
+        })
+        .state('app.reports.PlantMaster', {
+          url: '/PlantMaster',
+          templateUrl: 'views/reports/plant_dept_subsidary.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/plant_dept_sunsidarry_report.js');
+              }]
+          },
+          data: {
+            title: 'Subsidary - Plant - Department Master Report',
           }
         })
       // configuration route
@@ -3533,6 +3591,19 @@ var app = angular.module('urbanApp')
             url: '/SKUDetails',
             templateUrl: 'views/inbound/toggle/supplier_po_sku_data.html'
           })
+      //ASN Report
+       .state('app.reports.ASNReport', {
+          url: '/ASNReport',
+          templateUrl: 'views/reports/asn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/asn_report.js');
+              }]
+          },
+          data: {
+            title: 'ASN Report',
+          }
+        })
 
       //register
       .state('app.Register', {

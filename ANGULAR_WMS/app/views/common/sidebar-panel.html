@@ -473,11 +473,11 @@
             <span>Manual Test</span>
           </a>
         </li>
-        <li ng-show="show_tab('change_consumptiondata')" ui-sref-active="active">
+        <!-- <li ng-show="show_tab('change_consumptiondata')" ui-sref-active="active">
           <a ui-sref="app.outbound.ClosingStock">
             <span>Closing Stock</span>
           </a>
-        </li>
+        </li> -->
         <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
           <a ui-sref="app.outbound.CreateCustomOrder">
             <span>Create Custom Order</span>
@@ -885,6 +885,11 @@
             <span>Closing Stock Report</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.PlantMaster">
+            <span>Plant Master report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.IntegrationReport">
             <span>Netsuite Integration Report</span>
@@ -931,6 +936,12 @@
       <a ui-sref="app.PurchaseOrder">
         <i class="fa fa-tasks"></i>
         <span>Purchase Order</span>
+      </a>
+    </li>
+    <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'supplier'">
+      <a ui-sref="app.reports.ASNReport">
+        <i class="fa fa-tasks"></i>
+        <span>ASN Report</span>
       </a>
     </li>
 

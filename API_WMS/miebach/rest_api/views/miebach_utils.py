@@ -1,4 +1,4 @@
-import datetime
+import  datetime
 import time
 from functools import wraps
 from collections import OrderedDict
@@ -731,7 +731,7 @@ METROPOLIS_PR_PO_GRN_DICT = {'filters': [
                         # {'label': 'PR From Date', 'name': 'pr_from_date', 'type': 'date'},
                         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
                         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
-                        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+                        {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
                         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
@@ -739,7 +739,7 @@ METROPOLIS_PR_PO_GRN_DICT = {'filters': [
                         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
                         # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
                         # {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
-                        # {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
+                        {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
                     ],
             
             'dt_headers': [
@@ -1967,6 +1967,22 @@ CONSUMPTION_REPORT_DICT = {
     'print_url': 'get_sku_wise_consumption_report',
 }
 
+CONSUMPTION_REVERSAL_DICT = {
+    'filters': [
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'Consumption Type', 'name': 'consumption_type', 'type': 'select'},
+        {'label': 'Consumption ID', 'name': 'order_id', 'type': 'input'}
+    ],
+    'dt_headers': ['Consumption ID','Date', 'Plant Code', 'Department', 'Warehouse Username', 'SKU Code',
+                   'SKU Conversion', 'Base Quantity', 'Purchase Uom Quantity', 'Stock Value', 'Type'],
+    'dt_url': 'get_sku_wise_consumption_reversal', 'excel_name': 'get_sku_wise_consumption_reversal',
+    'print_url': 'get_sku_wise_consumption_reversal',
+}
+
 CONSUMPTION_DATA_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1978,10 +1994,20 @@ CONSUMPTION_DATA_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
     'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
-                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
+                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
                    'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
+}
+
+ASN_DATA_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+    ],
+    'dt_headers': ['ASN Number', 'Plant', 'PO Number', 'PO Remarks', 'Status'],
+    'dt_url': 'get_asn_detail', 'excel_name': 'get_asn_detail',
+    'print_url': 'get_asn_detail',
 }
 
 CLOSING_STOCK_REPORT_DICT = {
@@ -2087,10 +2113,12 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'cancel_grn_report': CANCEL_GRN_REPORT_DICT,
                      'sku_wise_cancel_grn_report': SKU_WISE_CANCEL_GRN_REPORT_DICT,
                      'sku_wise_consumption_report': CONSUMPTION_REPORT_DICT,
+                     'get_sku_wise_consumption_reversal': CONSUMPTION_REVERSAL_DICT,
                      'closing_stock_report': CLOSING_STOCK_REPORT_DICT,
                      'supplier_wise_po_report': SUPPLIER_WISE_PO_REPORT,
                      'get_consumption_data': CONSUMPTION_DATA_DICT,
                      'PRAOD_report': PRAOD_REPORT_DICT,
+                     'get_asn_detail': ASN_DATA_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2801,10 +2829,12 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_cancel_grn_report': 'get_cancel_grn_report_data',
                         'get_sku_wise_cancel_grn_report': 'get_sku_wise_cancel_grn_report_data',
                         'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
+                        'get_sku_wise_consumption_reversal': 'get_sku_wise_consumption_reversal_data',
                         'closing_stock_report': 'get_closing_stock_report_data',
                         'supplier_wise_po_report': 'get_supplier_details_data',
                         'get_consumption_data': 'get_consumption_data_',
                         'PRAOD_report': 'get_praod_report_data',
+                        'get_asn_detail': 'get_asn_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -3433,7 +3463,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'grn_scan_option': 'grn_scan_option',
                         'show_imei_invoice': 'show_imei_invoice', 'style_headers': 'style_headers',
                         'picklist_sort_by': 'picklist_sort_by',
-                        'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage',
+                        'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage', 'idle_timeout': 'idle_timeout',
                         'mail_alerts': 'mail_alerts',
                         'detailed_invoice': 'detailed_invoice', 'invoice_titles': 'invoice_titles',
                         'show_image': 'show_image', 'repeat_po': 'repeat_po',
@@ -6071,6 +6101,9 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             search_parameters['product_category'] = 'Kits&Consumables'
     if 'final_status' in search_params  and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters['final_status'] = search_params['final_status'].lower()
+        payload_dict["pr_status"]= search_params['final_status']
+    if 'grn_number' in search_params:
+        payload_dict["grn_number"]=  search_params['grn_number']
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
         payload_dict["po_number"]= search_params['po_number']
@@ -6959,7 +6992,11 @@ def get_po_filter_data(request, search_params, user, sub_user):
             url_request = ""
             if invoice_data.exists():
                 invoice_details = invoice_data[0].uploaded_file
-                http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                if not request:
+                    http_data = "%s%s%s"%('https://mi.stockone.in',"/",invoice_details)
+                else:
+                    http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                # http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
                 # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
 
         except IOError:
@@ -15870,6 +15907,7 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Next Approver Email', next_approver_mail),
             ('Pending Approval Type', approval_type),
             ('Pending Level', pending_level),
+            ('pending_pr_id', result['pending_pr_id']),
             ('DT_RowClass', 'results')))
         count += 1
         temp_data['aaData'].append(ord_dict)
@@ -18046,6 +18084,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         search_parameters['consumption_number'] = search_params['order_id']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['sku__user__in'] = user_ids
+    search_parameters['quantity__gt'] = 0
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -18088,6 +18127,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             consumption_type = 'Adjustment'
             try:
                 temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku__user=result['sku__user'])
+                consumption_type = consumption_type + '-' + temp_datum.adjustment_type
                 workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from.strftime("%d %b %Y") if temp_datum.workload_from else '', temp_datum.workload_to.strftime("%d %b %Y") if temp_datum.workload_to else ''
             except:
                 pass
@@ -18120,8 +18160,12 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             quantity = -1 * quantity
         pqty = quantity/pcf
         stock_value = pqty * result['price']
+        try:
+            date = get_local_date(user, result['creation_date'])
+        except:
+            date = result['creation_date'].strftime("%d, %b, %Y")
         ord_dict = OrderedDict((
-            ('Date', get_local_date(user, result['creation_date'])),
+            ('Date', date),
             ('Plant Code', plant_code),
             ('Plant Name', plant_name),
             ('Department', department),
@@ -18151,7 +18195,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
 
     return temp_data
 
-def get_consumption_data_(search_params, user, sub_user):
+
+def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
@@ -18165,30 +18210,18 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
-          'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
-          'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
-          'total_test','qnp','total_patients', 'consumptiondata__quantity','total_test', 'creation_date', 'creation_date',
-          'status','run_date', 'consumptiondata__consumption_number', 'status']
+    status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
+    lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
+           'stock_mapping__stock__location__location','quantity', 'sku__measurement_type', 'quantity', 'price', 'sku__measurement_type', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date', 'order_id', 'order_id', 'order_id', 'remarks', 'consumption_type']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    if 'from_date' in search_params:
-        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
-        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
-        search_parameters['creation_date__gte'] = search_params['from_date']
-    if 'to_date' in search_params:
-        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
-                                                             datetime.time())
-        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
-        search_parameters['creation_date__lt'] = search_params['to_date']
-    if 'test_code' in search_params:
-        search_parameters['test__sku_code'] = search_params['test_code']
-    if 'machine_code' in search_params:
-        search_parameters['machine__sku_code'] = search_params['machine_code']
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
 
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
@@ -18214,15 +18247,161 @@ def get_consumption_data_(search_params, user, sub_user):
             users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
         else:
             users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    if 'consumption_type' in search_params:
+        search_parameters['consumption_type'] = status_keys[search_params['consumption_type']]
+    if 'order_id' in search_params:
+        search_parameters['consumption_number'] = search_params['order_id']
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['sku__user__in'] = user_ids
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    values_list = ['sku__user', 'sku__sku_code', 'id', 'consumption_number']
+    search_parameters['creation_date__gt'] = datetime.datetime.now().replace(day=1).date()
+    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, quantity__gt=0, **search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results:
+        consumption = ConsumptionData.objects.get(id=result['id'])
+        user_obj = User.objects.get(id=result['sku__user'])
+        department = ''
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone_code = user_obj.userprofile.zone
+        if int(consumption.consumption_type) == 0:
+            consumption_type = 'Closing Stock'
+        if int(consumption.consumption_type) == 2:
+            consumption_type = 'Auto Consumption'
+        if int(consumption.consumption_type) == 1:
+            consumption_type = 'Manual Consumption'
+        if int(consumption.consumption_type) == 3:
+            consumption_type = 'Adjustment'
+            try:
+                temp_datum = AdjustementConsumptionData.objects.get(consumption_id=consumption.id)
+                consumption_type = consumption_type + '-' + temp_datum.adjustment_type
+            except:
+                pass
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            department = user_obj.first_name
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+        uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
+        pcf = uom_dict['sku_conversion']
+        pcf = pcf if pcf else 1
+        base_uom = uom_dict['base_uom']
+        if consumption.sku_pcf:
+            pcf = consumption.sku_pcf
+        quantity = consumption.stock_mapping.filter().aggregate(Sum('quantity'))['quantity__sum']
+        if quantity < 0:
+            quantity = -1 * quantity
+        pqty = quantity/pcf
+        stock_value = pqty * consumption.price
+        ord_dict = OrderedDict((
+            ('id', consumption.id),
+            ('Date', get_local_date(user, consumption.creation_date)),
+            ('Plant Code', plant_code),
+            ('Department', department),
+            ('Warehouse Username', user_obj.username),
+            ('SKU Code', result['sku__sku_code']),
+            ('SKU Conversion', pcf),
+            ('Base Quantity', quantity),
+            ('Purchase Uom Quantity', pqty),
+            ('Stock Value', stock_value),
+            ('Consumption ID', result['consumption_number']),
+            ('Type', consumption_type)))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
+
+
+def get_consumption_data_(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    search_parameters = {}
+    lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
+          'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
+          'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
+          'total_test','qnp','total_patients', 'total_test', 'total_test','total_test', 'creation_date', 'creation_date',
+          'status','run_date', 'id', 'status']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'test_code' in search_params:
+        search_parameters['test__sku_code'] = search_params['test_code']
+    if 'machine_code' in search_params:
+        search_parameters['machine__sku_code'] = search_params['machine_code']
+    user_filter_check =False
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+	user_filter_check =True
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+	user_filter_check =True
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        user_filter_check =True
+	dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
     
     user_ids = list(users.values_list('id', flat=True))
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
+    if not user.userprofile.warehouse_type == 'ADMIN' or  user_filter_check:
+	search_parameters['user__in']= user_ids
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
-    'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 'consumptiondata__consumption_number',
+    'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
-    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date', 'consumptiondata__quantity']
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id']
     model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
@@ -18241,11 +18420,13 @@ def get_consumption_data_(search_params, user, sub_user):
     count = 0
     for result in results:
         order_id = ''
-        # consumption_data = ConsumptionData.objects.filter(consumption_id=result.id)
-        # if consumption_data:
-        #     order_id = consumption_data[0].consumption_number
-        if result['consumptiondata__consumption_number']:
-            order_id = result['consumptiondata__consumption_number']
+        consumed_qty = 0
+        consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        if consumption_data:
+            order_id = consumption_data[0].consumption_number
+            consumed_qty = consumption_data[0].quantity
+        #if result['consumptiondata__consumption_number']:
+            #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
         user_obj = User.objects.get(id=result['user'])
         department = ''
@@ -18266,6 +18447,7 @@ def get_consumption_data_(search_params, user, sub_user):
             machine_code = str(result['machine__machine_code'])
             machine_name = result['machine__machine_name']
         status = 'Pending'
+        uom = 'Test'
         if not result['status']:
             status = 'Consumption Booked'
         reason = ''
@@ -18273,13 +18455,16 @@ def get_consumption_data_(search_params, user, sub_user):
             reason = 'Stock Not Found'
         if result['status'] == 3:
             reason = 'Bom Mapping Not Found'
+        bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        if bom_obj:
+            uom = bom_obj[0].unit_of_measurement
         month = result['creation_date'].strftime('%b-%Y')
         stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
         stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
-        
+        total_tests = result.get('calculated_total_tests', 0)
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
             ('Plant Code', plant_code),
@@ -18290,19 +18475,86 @@ def get_consumption_data_(search_params, user, sub_user):
             ('TName', test_name),
             ('Device ID', machine_code),
             ('Device Name', machine_name),
-            ('Status', status),('Consumption Booked Qty', result['consumptiondata__quantity']),
-            ('UOM', 'Test'), ('Remarks', 'Auto - Consumption'),
+            ('Status', status),('Consumption Booked Qty', consumed_qty),
+            ('UOM', uom), ('Remarks', 'Auto - Consumption'),
             ('Consumption ID', order_id),('Current Available Stock', stock_quantity),
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
             ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
             ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
-            ('TT', result['total_test'])))
+            ('Total Tests', total_tests),
+	    ('TT', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
 
+def get_asn_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    search_parameters = {'vendor':user.id}
+    lis = ['asn_number', 'user', 'purchase_order__po_number', 'purchase_order__remarks','purchase_order__open_po__order_quantity', 'purchase_order__status']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    
+    user_ids = list(users.values_list('id', flat=True))
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['asn_number', 'user', 'purchase_order__po_number']
+    model_data = ASNMapping.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+
+    #if order_term:
+    #    results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = len(model_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results:
+        wh_user = User.objects.get(id=result['user'])
+        purchase_order = PurchaseOrder.objects.filter(po_number=result['purchase_order__po_number'], open_po__sku__user=result['user'])
+        po_status = list(purchase_order.values_list('status', flat=True))
+        status = 'Open'
+        if 'grn-generated' in po_status:
+            status = 'Fully Delivered'
+        if 'grn-generated' and '' in po_status:
+            status = 'Partially Delivered'
+        ord_dict = OrderedDict((('ASN Number', result['asn_number']), ('PO Number', result['purchase_order__po_number']),
+                                ('PO Remarks', purchase_order[0].remarks), ('Status', status), ('Plant', wh_user.first_name)))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
 
 def po_upload_amount_and_quantity(po_number):
     from miebach_admin.models import *
@@ -18599,3 +18851,4 @@ def get_praod_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
+

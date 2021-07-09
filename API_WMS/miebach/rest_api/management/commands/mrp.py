@@ -40,10 +40,10 @@ class Command(BaseCommand):
     Loading the MRP Table
     """
     help = "Loading MRP Module"
-
     def handle(self, *args, **options):
         self.stdout.write("Script Started")
-        user = User.objects.get(username='met_admin')
+        mrp_objs = []
+        user = User.objects.get(username='mhl_admin')
         if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
             users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
         else:
@@ -53,18 +53,15 @@ class Command(BaseCommand):
         user_ids = list(users.values_list('id', flat=True))
         search_params = {'user__in': user_ids}
         main_user = get_company_admin_user(user)
-        import pdb; pdb.set_trace()
         kandc_skus = list(SKUMaster.objects.filter(user=main_user.id).exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
                                             exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).values_list('sku_code', flat=True))
         search_params['sku_code__in'] = kandc_skus
         master_data = SKUMaster.objects.filter(**search_params)
-        master_data = master_data
         res_plants = set()
         sku_codes = []
         for dat in master_data:
             res_plants.add(dat.user)
             sku_codes.append(dat.sku_code)
-        import pdb; pdb.set_trace()
         usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
         dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
         dept_user_ids = list(dept_users.values_list('id', flat=True))
@@ -142,14 +139,15 @@ class Command(BaseCommand):
             po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
         sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
         for data in master_data:
-            import pdb; pdb.set_trace()
+            data_dict = {}
             uom_dict = sku_uoms.get(data.sku_code, {})
             sku_pcf = uom_dict.get('sku_conversion', 1)
             sku_pcf = sku_pcf if sku_pcf else 1
             user = User.objects.get(id=data.user)
             grp_key = (data.user, data.sku_code)
-            cons_qtyb = (consumption_qtys.get(grp_key, 0)/3)/30
-            cons_qty = round(cons_qtyb/sku_pcf, 5)
+            cons_qtybm = consumption_qtys.get(grp_key, 0)/3
+            cons_qtypd = (cons_qtybm/30)
+            cons_qty = round(cons_qtypd/sku_pcf, 5)
             sku_repl = repl_dict.get(grp_key, {})
             lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 2)
             min_days = round(cons_qty * sku_repl.get('min_days', 0),2)
@@ -164,14 +162,22 @@ class Command(BaseCommand):
             else:
                 suggested_qty = (max_days + lead_time - total_stock)
                 suggested_qty = math.ceil(suggested_qty)
-
-            data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', user.userprofile.stockone_code), ('Plant Name', user.first_name),
-                                      ('SKU Code', data.sku_code), ('SKU Description', data.sku_desc), ('SKU Category', data.sku_category),
-                                      ('Base UOM', uom_dict.get('base_uom', '')), ('Average Monthly Consumption Qty', cons_qty),
-                                      ('Lead Time Qty', lead_time), ('Min Days Qty', min_days), ('Max Days Qty', max_days),
-                                      ('System Stock Qty', stock_qty), ('Pending PR Qty', sku_pending_pr), ('Pending PO Qty', sku_pending_po),
-                                      ('Total Stock Qty', total_stock), ('Suggested Qty', suggested_qty), ('DT_RowAttr', {'data-id': data.id}),
-                                      ('hsn_code', data.hsn_code)
-                                    ))
-            temp_data['aaData'].append(data_dict)
+            if suggested_qty > 0:
+                data_dict = {
+                            'sku': data,
+                            'user': user,
+                            'avg_sku_consumption_day': cons_qty,
+                            'lead_time_qty': lead_time,
+                            'min_days_qty': min_days,
+                            'max_days_qty': max_days,
+                            'system_stock_qty': stock_qty,
+                            'pending_pr_qty': sku_pending_pr,
+                            'pending_po_qty': sku_pending_po,
+                            'total_stock_qty': total_stock,
+                            'suggested_qty': suggested_qty
+                }
+                mrp_obj = MRP(**data_dict)
+                mrp_objs.append(mrp_obj)
+        if mrp_objs:
+            MRP.objects.bulk_create(mrp_objs)
         self.stdout.write("Updating Completed")

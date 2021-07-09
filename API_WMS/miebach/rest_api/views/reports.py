@@ -97,7 +97,7 @@ def get_report_data(request, user=''):
     elif report_name in [ 'stock_transfer_report_main', 'pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'metropolis_pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
-                         'sku_wise_consumption_report', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
+                         'sku_wise_consumption_report', 'get_sku_wise_consumption_reversal', 'closing_stock_report', 'consumption_data', 'get_consumption_data']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -1579,7 +1579,7 @@ def print_po_reports(request, user=''):
             po_reference = '%s/%s' % (po_reference, receipt_no)
         if purchase_order.sellerposummary_set.filter().exists():
             tcs_val = purchase_order.sellerposummary_set.filter(grn_number=grn_number).order_by('-creation_date')[0].tcs_value
-            seller_po_summary_date = purchase_order.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
+            seller_po_summary_date = purchase_order.sellerposummary_set.filter(grn_number=grn_number).order_by('-creation_date')[0].creation_date
             order_date = get_local_date(request.user, seller_po_summary_date)
         else:
             order_date = get_local_date(request.user, purchase_order.creation_date)
@@ -1683,6 +1683,7 @@ def excel_reports(request, user=''):
             excel_name = dat
             if temp[1] == 'tally_report':
                 temp[1] = 'order_summary_report'
+            # import pdb; pdb.set_trace()
             func_name = eval(EXCEL_REPORT_MAPPING[temp[1]])
             continue
         if len(temp) > 1 and temp[1]:
@@ -2342,8 +2343,7 @@ def print_purchase_order_form(request, user=''):
                 supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
             full_pr_number = get_pr_number_from_po(pending_po_data)
-        if pm_order.open_po.supplier.currency_code:
-            supplier_currency = pm_order.open_po.supplier.currency_code
+        supplier_currency = pm_order.currency
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
@@ -2490,7 +2490,7 @@ def print_purchase_order_form(request, user=''):
     company_logo=""
     if profile.company.logo:
         try:
-            _logo_url = profile.company.logo.url.replace('/static/', 'static/')
+            _logo_url = profile.company.logo.url.replace('/media/static/', 'static/')
             _logo_url =  urllib.url2pathname(_logo_url)
             with open(_logo_url, "rb") as image_file:
                 company_logo = base64.b64encode(image_file.read())
@@ -2962,6 +2962,26 @@ def get_sku_wise_consumption_report(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_consumption_reversal(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_consumption_reversal_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_asn_detail(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_asn_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2970,7 +2990,6 @@ def get_consumption_data(request, user=''):
     temp_data = get_consumption_data_(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
-
 
 @csrf_exempt
 @login_required
@@ -3030,7 +3049,7 @@ def download_invoice_file(request, user=''):
                             files_list=list(invoice_data.values_list('uploaded_file', flat=True))
                             http_data = json.dumps(files_list)
                         else:
-                            invoice_details = invoice_data[0].uploaded_file.url
+                            invoice_details = invoice_data[0].uploaded_file.name
                             http_data = invoice_details
 
                 except IOError:

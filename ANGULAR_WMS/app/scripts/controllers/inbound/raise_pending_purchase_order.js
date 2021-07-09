@@ -26,6 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.blur_focus_flag = true;
     vm.supplier_mail_flag = true;
     vm.from_supplier_pos = false;
+    vm.confirm_btn_disable = true;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -155,9 +156,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
+      vm.final_po_data = {}
+      vm.confirm_btn_disable = true;
       vm.data_id = aData['id']?aData['id']:''
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], id:vm.data_id };
-      vm.is_direct_po = true;      
+      vm.is_direct_po = true;
       if (aData['PR No'] != "None") {
         vm.is_direct_po = false;
       }
@@ -172,9 +175,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
-            "supplier_payment_term": data.data.supplier_payment_desc,
-            "payment_term": data.data.supplier_payment_desc,
-            "supplier_currency": data.data.supplier_currency,
+            "supplier_payment_terms": data.data.supplier_payment_desc,
+            "supplier_currencyes": data.data.supplier_currency,
+            "supplier_currency": '',
             "supplier_currency_rate": '',
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
@@ -332,6 +335,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.update = false;
       vm.print_enable = false;
       vm.vendor_receipt = false;
+      vm.final_po_data = {};
       angular.copy(empty_data, vm.model_data);
       vm.model_data.seller_types = Data.seller_types;
       if (vm.service.is_came_from_raise_po) {
@@ -724,18 +728,28 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     })
   }
-
+    vm.final_print_data = function(option) {
+      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks + '&currency_code=' + vm.model_data.supplier_currency, {withCredential: true})
+        .success(function(data, status, headers, config) {
+          if (option == 'pre_review') {
+            vm.service.print_data(data, vm.model_data.purchase_id);
+          } else {
+            return data;
+          }
+      });
+    }
     vm.print_pending_po = function(form, validation_type) {
       if (form.$valid) {
-        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks, {withCredential: true})
-        .success(function(data, status, headers, config) {
-          vm.service.print_data(data, vm.model_data.purchase_id);
-        });
+        vm.final_print_data('pre_review');
       } else {
         vm.service.showNoty('Please Fill * fields !!');
       }
     }
-
+    vm.currency_change = function(currency){
+      if (currency == 'INR') {
+        vm.model_data.supplier_currency_rate = ''
+      }
+    }
     vm.barcode = function() {
 
       vm.barcode_title = 'Barcode Generation';
@@ -876,29 +890,75 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.raise_po = function(url, elem) {
-      vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
-        if (msg == "true") {
-          vm.service.apiCall(url, 'POST', elem).then(function(data){
-            if(data.message) {
-              vm.service.pop_msg(data.data);
-              vm.service.refresh(vm.dtInstance);
-              if(data.data.search("<div") != -1) {
-                if (vm.model_data.receipt_type == 'Hosted Warehouse') {
-                  vm.title = $(data.data).find('.modal-header h4').text().trim();
-
-                }
-                vm.extra_width = {'width': '1150px'};
-                vm.html = $(data.data);
-                angular.element(".modal-body").html($(data.data));
-                vm.print_enable = true;
-              } else {
-                vm.service.pop_msg(data.data);
-              }
-            }
-            vm.confirm_disabled = false;
-        });
-        }
+      vm.final_po_data = {'url': url, 'elem': elem};
+      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks + '&currency_code=' + vm.model_data.supplier_currency, {withCredential: true})
+        .success(function(data, status, headers, config) {
+          vm.extra_width = {'width': '1150px'};
+          vm.html = $(data);
+          angular.element(".modal-body").html($(data));
+          vm.print_enable = true;
+          vm.confirm_disabled = false;
       });
+    }
+
+    vm.final_po_confirmation = function() {
+      vm.confirm_disabled = true;
+      var url = vm.final_po_data['url'];
+      var elem = vm.final_po_data['elem'];
+      swal2({
+         title: 'Confirming Purchase Order',
+         text: 'please wait.. while we processing ..',
+         imageUrl: 'images/default_loader.gif',
+         imageWidth: 150,
+         imageHeight: 150,
+         imageAlt: 'Custom image',
+         showConfirmButton:false,
+         allowOutsideClick: false,
+      })
+      vm.service.apiCall(url, 'POST', elem).then(function(data){
+        if(data.message) {
+          // vm.service.pop_msg(data.data);
+          vm.service.refresh(vm.dtInstance);
+          if(data.data.search("<div") != -1) {
+            vm.title = 'Confirmed PO'
+            vm.extra_width = {'width': '1150px'};
+            vm.html = $(data.data);
+            angular.element(".modal-body").html($(data.data));
+            swal2.close()
+            vm.print_enable = true;
+            vm.confirm_btn_disable = false;
+          } else {
+            swal2.close()
+            vm.confirm_btn_disable = true;
+            vm.service.showNoty(data.data);
+            // vm.service.pop_msg(data.data);
+          }
+        }
+        vm.confirm_disabled = false;
+      });
+      // vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
+      //   if (msg == "true") {
+      //     vm.confirm_disabled = true;
+      //     vm.service.apiCall(url, 'POST', elem).then(function(data){
+      //       if(data.message) {
+      //         vm.service.pop_msg(data.data);
+      //         vm.service.refresh(vm.dtInstance);
+      //         if(data.data.search("<div") != -1) {
+      //           if (vm.model_data.receipt_type == 'Hosted Warehouse') {
+      //             vm.title = $(data.data).find('.modal-header h4').text().trim();
+      //           }
+      //           vm.extra_width = {'width': '1150px'};
+      //           vm.html = $(data.data);
+      //           angular.element(".modal-body").html($(data.data));
+      //           vm.print_enable = true;
+      //         } else {
+      //           vm.service.pop_msg(data.data);
+      //         }
+      //       }
+      //       vm.confirm_disabled = false;
+      //     });
+      //   }
+      // });
     }
 
     vm.confirm_print = false;
@@ -1202,7 +1262,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (data.data) {
             vm.model_data.supplier_payment_terms = data.data;
           } else {
-            vm.model_data.supplier_payment_terms = '';
+            vm.model_data.supplier_payment_terms = [];
           }
         })
       }

@@ -17,6 +17,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.report_data = {};
   vm.reports = {}
   vm.title = "PR Report";
+
+  vm.row_call = function(aData) {
+    if (!vm.toggle_sku_wise) {
+        vm.file_url = "";
+        vm.consolated_file_url = "";
+        // vm.FileDownload(aData);
+        vm.model_data.pr_number = aData["PR Number"]
+        // print_pending_po_form/?purchase_id=21902&is_actual_pr=true&warehouse=
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+aData.pending_pr_id+'&is_actual_pr='+true+'&type=pr_report', {withCredential: true})
+        .success(function(data, status, headers, config) {
+              $(".modal-body").html($(data).html());
+              vm.print_page = $($(data).html()).clone();
+              vm.print_enable = true;
+          });
+          $state.go('app.reports.PRReport.PRs');
+    }
+  }
   vm.toggle_po = function() {
     var send = {};
     var name ='';
@@ -44,13 +61,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             vm.dtColumns = datam.dtColumns;
             vm.datatable = true;
             vm.dtInstance = {};
-    		vm.report_data['row_click'] = true;
-    		if (name =="pr_detail_report")
-    		{
-            vm.report_data['excel_name'] = 'get_pr_detail_report'
+    		    vm.report_data['row_click'] = true;
+        		if (name =="pr_detail_report")
+        		{
+                vm.report_data['excel_name'] = 'get_pr_detail_report'
             }
             else{
-            vm.report_data['excel_name'] = 'get_pr_report'
+                vm.report_data['excel_name'] = 'get_pr_report'
             }
           })
         }

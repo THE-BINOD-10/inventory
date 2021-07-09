@@ -218,10 +218,13 @@
               </div>
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
               <div class="form-group">
-                <label class="control-label">Supplier Currency</label>
-                <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true">
+                <label class="control-label">Supplier Currency *</label>
+                <!-- <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true"> -->
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-init="showCase.model_data.supplier_currency=''" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                    <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
+                </select>
               </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != 'INR' && showCase.model_data.supplier_currency">
@@ -530,10 +533,9 @@
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
         <div class="modal-footer" ng-if="(showCase.is_purchase_request)">
-          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PREVIEW PO</button>
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_pendingpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Confirm PO</button>
-          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
-          <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button>
+          <button ng-if="showCase.print_enable" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_grn()">Print</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_pendingpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
+          <button ng-if="showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.final_po_confirmation()">Confirm PO</button>
         </div>
         <!-- <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>

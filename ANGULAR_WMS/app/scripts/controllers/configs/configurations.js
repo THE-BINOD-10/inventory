@@ -11,7 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.model_data = {
                     'send_message': false, 'batch_switch': false, 'fifo_switch': false, 'show_image': false,'sku_sync': false,
                     'back_order': false, 'use_imei': false, 'pallet_switch': false, 'production_switch': false,'stock_sync': false,
-                    'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
+                    'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'idle_timeout': 60, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '','all_order_fields':'','all_order_sku_fields':'',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,'grn_fields':'', 'po_fields':'', 'rtv_reasons':'',
@@ -123,7 +123,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      119: 'central_admin_level_po',
                      120: 'sku_attribute_grouping_key',
                      121: 'auto_putaway_grn',
-                     122: 'block_pr_po_transactions'
+                     122: 'block_pr_po_transactions',
+                     132: 'idle_timeout',
+
                      }
 
 
@@ -1389,6 +1391,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         });
         vm.model_data["mail_alerts"] = parseInt(vm.model_data["mail_alerts"]);
         vm.model_data["online_percentage"] = parseInt(vm.model_data["online_percentage"]);
+        vm.model_data["idle_timeout"] = parseInt(vm.model_data["idle_timeout"]);
         vm.model_data["order_header_inputs"] = Session.roles.permissions["order_headers"].split(",")
         $timeout(function () {
           $('.selectpicker').selectpicker();

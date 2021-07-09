@@ -659,7 +659,7 @@ def get_picklist_locations(data_dict, user):
 @reversion.create_revision(atomic=False, using='reversion')
 def generate_picklist(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("generate_picklist")
+    reversion.set_comment("generate_picklist: %s" % str(get_user_ip(request)))
     remarks = request.POST['ship_reference']
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -774,7 +774,7 @@ def generate_picklist(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def batch_generate_picklist(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("generate_picklist")
+    reversion.set_comment("generate_picklist: %s" % str(get_user_ip(request)))
     remarks = request.POST.get('ship_reference', '')
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -2027,7 +2027,7 @@ def picklist_confirmation(request, user=''):
         cur_user = request.POST.get('source')
         user = User.objects.get(username=cur_user)
     reversion.set_user(request.user)
-    reversion.set_comment("picklist_confirmation")
+    reversion.set_comment("picklist_confirmation: %s" % str(get_user_ip(request)))
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}
@@ -2589,7 +2589,7 @@ def remove_sku(request):
 def update_invoice(request, user=''):
     """ update invoice data """
     reversion.set_user(request.user)
-    reversion.set_comment("update_invoice")
+    reversion.set_comment("update_invoice: %s" % str(get_user_ip(request)))
     try:
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
@@ -5287,7 +5287,7 @@ def check_backorder_compatibility(myDict, admin_user, user):
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_order_data(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("create_order")
+    reversion.set_comment("create_order: %s" % str(get_user_ip(request)))
     myDict = dict(request.POST.iterlists())
     order_id = ''
     # Sending mail and message
@@ -9357,7 +9357,7 @@ def get_central_order_detail(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def order_category_generate_picklist(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("generate_picklist")
+    reversion.set_comment("generate_picklist: %s" % str(get_user_ip(request)))
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))
@@ -9486,7 +9486,7 @@ def delete_order_data(request, user=""):
 def update_order_data(request, user=""):
     """ This code will update data if order is updated """
     reversion.set_user(request.user)
-    reversion.set_comment("update_order")
+    reversion.set_comment("update_order: %s" % str(get_user_ip(request)))
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
     myDict = dict(request.POST.iterlists())
@@ -12257,7 +12257,7 @@ def move_to_dc(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def move_to_inv(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("move_to_inv")
+    reversion.set_comment("move_to_inv: %s" % str(get_user_ip(request)))
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
     is_sample_option =  get_misc_value('create_order_po', user.id)
@@ -12337,7 +12337,7 @@ def move_to_inv(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice_tab(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("create_invoice")
+    reversion.set_comment("create_invoice: %s" % str(get_user_ip(request)))
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -12770,7 +12770,7 @@ def generate_stock_transfer_invoice(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice(request, user=''):
     reversion.set_user(request.user)
-    reversion.set_comment("create_invoice")
+    reversion.set_comment("create_invoice: %s" % str(get_user_ip(request)))
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -17921,3 +17921,71 @@ def save_closing_stock_ui(request, user=''):
         return HttpResponse("Failed")
 
     return HttpResponse("Success")
+
+def get_plant_dept_subsidary_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
+    user = User.objects.get(username='mhl_admin')
+    users = get_related_users_filters(user.id)
+    headers1, search_params, filter_params1 = get_search_params(request)
+    search_parameters = {}
+    user_query = False
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+        user_query = True
+    if 'sister_warehouse' in search_params:
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_type)
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    user_ids = list(users.values_list('id', flat=True))
+    total_data = UserProfile.objects.filter(user_id__in = user_ids, warehouse_type__in = ['SUB_STORE', 'STORE', 'DEPT']).values('user_id').distinct()
+    temp_data['recordsTotal'] = total_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+    total_data = total_data[start_index: stop_index]
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    for source in total_data:
+        try:
+            user_obj = User.objects.get(id=source['user_id'])
+            department, subsidary, plant_addresss = '', '', ''
+            if user_obj.userprofile.warehouse_type == 'DEPT':
+                department = dept_mapping.get(user_obj.userprofile.stockone_code, user_obj.userprofile.stockone_code)
+                user_obj = get_admin(user_obj)
+            plant_code = user_obj.userprofile.stockone_code
+            plant_name = user_obj.first_name
+            #dept, plant, subsidary = get_plant_subsidary_and_department(user_obj)
+            #if subsidary:
+            #    #subsidary = User.objects.get(id=subsidary)
+            subsidary = user_obj.userprofile.company.company_name
+            plant_address = UserAddresses.objects.filter(user=user_obj, address_type='Shipment Address').order_by('-creation_date')
+            if plant_address.exists():
+                plant_address = plant_address[0]
+                plant_addresss = "%s - %s" %(plant_address.address, plant_address.pincode)
+            data_dict = OrderedDict((
+                                    ('Plant Code', plant_code),
+                                    ('Plant Name', plant_name),
+                                    ('Plant Internal ID', user_obj.userprofile.reference_id),
+                                    ('Plant Creation Date',get_local_date(user_obj, user_obj.date_joined)),
+                                    ('Plant Address', plant_addresss),
+                                    ('Subsidiary', subsidary),
+                                    ('Department', department),
+                                    ))
+            temp_data['aaData'].append(data_dict)
+            count += 1
+        except Exception as e:
+            pass

@@ -1370,12 +1370,14 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
 
             #roles = roles.split(',')
             update_pr_po_config_roles(company_id, eachConfig, roles)
+            if 'emails' in level_dat and level_dat['emails']:
+                update_paconfig_emails(eachConfig, level_dat['emails'].split(','))
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def add_update_pr_config(request,user=''):
-    toBeUpdateData = eval(request.POST.get('data', []))
+    toBeUpdateData = json.loads(request.POST.get('data', []))
     configFor = request.POST.get('type', 'pr_save') # pr_save is for existing Pending PO. actual_pr_save will be for new PR.
     if configFor == 'actual_pr_save':
         master_type = 'actual_pr_approvals_conf_data'
@@ -13599,6 +13601,9 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
     mail_list = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
+    if app_config.emails.filter():
+        mail_list = list(app_config.emails.filter().values_list('name', flat=True))
+        return mail_list
     for user_role in user_roles:
         emails = []
         staff_check = {'company_id__in': company_list, 'user': user,
@@ -13679,10 +13684,16 @@ def get_purchase_config_data(request, user=''):
                                                   'data_id': config.id,
                                                   'level_no': int(config.level.replace('level', ''))})
             else:
+                emails = list(config.emails.filter().values_list("name", flat=True))
+                display_emails = False
+                if emails:
+                    display_emails = True
                 config_dict['%s_level_data' % config.approval_type].append({'level': config.level, 'roles': roles,
                                                                             'min_Amt': config.min_Amt,
                                                                             'max_Amt': config.max_Amt,
-                                                                            'data_id': config.id})
+                                                                            'data_id': config.id,
+                                                                            'display_emails': display_emails,
+                                                                            'emails': emails})
         config_dict['ranges_level_data'] = ranges_dict.values()
     return HttpResponse(json.dumps({'data': config_dict}))
 
@@ -13906,6 +13917,20 @@ def update_staff_depts_list(model_obj, elements):
         elem_obj = TableLists.objects.filter(name=exist_elem)
         if elem_obj:
             model_obj.department_type.remove(elem_obj[0])
+
+
+def update_paconfig_emails(model_obj, elements):
+    exist_element_list = model_obj.emails.filter().values_list('name', flat=True)
+    exist_elements = [(str(e_elem)).lower() for e_elem in exist_element_list]
+    for elem in elements:
+        element_obj, created = TableLists.objects.get_or_create(name=elem)
+        model_obj.emails.add(element_obj)
+        if elem.lower() in exist_elements:
+            exist_elements.remove(elem.lower())
+    for exist_elem in exist_elements:
+        elem_obj = TableLists.objects.filter(name=exist_elem)
+        if elem_obj:
+            model_obj.emails.remove(elem_obj[0])
 
 
 def get_uom_conversion_value(sku, uom_type):

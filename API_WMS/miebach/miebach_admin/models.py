@@ -793,6 +793,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     plant = models.ManyToManyField(TableLists, default=None)
     department_type = models.CharField(max_length=64, default='')
     user_role = models.ManyToManyField(CompanyRoles, default=None)
+    emails = models.ManyToManyField(TableLists, default=None, related_name='config_emails_list')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -858,6 +859,10 @@ class PurchaseOrder(models.Model):
     class Meta:
         db_table = 'PURCHASE_ORDER'
         index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'))
+        permissions = [
+            ('update_purchaseorder', 'Update Purchase Order'),
+        ]
+
 
     def __unicode__(self):
         return str(self.id)
@@ -1912,6 +1917,7 @@ class StockTransfer(models.Model):
     original_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     picked_quantity = models.FloatField(default=0)
+    cancelled_quantity = models.FloatField(default=0)
     shipment_date = models.DateTimeField(auto_now_add=True)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

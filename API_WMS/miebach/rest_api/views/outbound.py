@@ -5955,20 +5955,35 @@ def create_stock_transfer(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def stock_transfer_delete(request,stock_transfer ='', user=""):
     """ This code will delete the stock tranfer and po selected"""
+    reversion.set_user(request.user)
+    reversion.set_comment("stock_transfer_delete")
+    user = User.objects.get(id=request.GET['warehouse_id'])
     st_time = datetime.datetime.now()
-    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     log.info("deletion of stock transfer order process started")
     transfer_order_id = request.GET.get("order_id", "")
 
     try:
-        stock_transfer = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=transfer_order_id)
-        st_po = stock_transfer[0].st_po
-        po = st_po.po
-        open_st = st_po.open_st
-        open_st.delete()
-        po.delete()
+        with transaction.atomic('default'):
+            stock_transfer_ids = list(StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=transfer_order_id).\
+                                                            values_list('id', flat=True))
+            stock_transfer_lock = StockTransfer.objects.using('default').select_for_update().filter(id__in=stock_transfer_ids)
+            for stock_transfer in stock_transfer_lock:
+                st_po = stock_transfer.st_po
+                po = st_po.po
+                open_st = st_po.open_st
+                stock_transfer.cancelled_quantity = stock_transfer.cancelled_quantity + stock_transfer.quantity
+                stock_transfer.quantity = 0#stock_transfer.original_quantity - stock_transfer.cancelled_quantity
+                stock_transfer.status = 0
+                if stock_transfer.original_quantity == stock_transfer.cancelled_quantity:
+                    stock_transfer.status = 3
+                    po.status = 'location-assigned'
+                    po.reason = 'Stock Transfer Cancelled'
+                    po.save()
+                stock_transfer.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -5978,7 +5993,7 @@ def stock_transfer_delete(request,stock_transfer ='', user=""):
     duration = end_time - st_time
     log.info("process completed")
     log.info("total time -- %s" % (duration))
-    return HttpResponse("Order is deleted")
+    return HttpResponse("Order is Cancelled")
 
 
 @csrf_exempt
@@ -9713,7 +9728,7 @@ def picklist_delete(request, user=""):
                         if stock_transfer_obj.quantity == stock_transfer_obj.original_quantity:
                             stock_transfer_obj.quantity = stock_transfer_obj.quantity - float(st_picked_quantity/pcf)
                         else:
-                            stock_transfer_obj.quantity = float(stock_transfer_obj.original_quantity - stock_transfer_obj.picked_quantity)
+                            stock_transfer_obj.quantity = float(stock_transfer_obj.original_quantity - stock_transfer_obj.picked_quantity - stock_transfer_obj.cancelled_quantity)
                         stock_transfer_obj.status = 1
                         stock_transfer_obj.save()
                         updated_st_ids.append(stock_transfer_obj.id)

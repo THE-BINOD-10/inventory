@@ -87,7 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   /**************************************/
   vm.update = false;
   var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '',
-  default_level_data: [{level: 'level0', roles: '', data_id: ''}],
+  default_level_data: [{level: 'level0', roles: '', data_id: '' , display_emails: false, emails: ''}],
    ranges_level_data: [{min_Amt: 0, max_Amt: 0, range_no: 0, 'range_levels': [{level: 'level0', roles: '', data_id: '', level_no: 0}] }],
   approved_level_data: [{level: 'level0', roles: '', data_id: ''}]};
   vm.model_data = {};
@@ -127,6 +127,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (data.$valid) {
       if(valid)
       {
+        var email_req = false;
+        angular.forEach(vm.model_data.default_level_data, function(record, index){
+          record.emails = $(".bootstrap-tagsinput .emails").eq(index).val();
+          if(record.roles.indexOf("Specify User") != -1 && !record.emails){
+            email_req = true;
+          }
+        });
+        if(email_req){
+          vm.service.showNoty("Email is Mandatory");
+          return
+        }
         vm.service.apiCall('add_update_pr_config/', 'POST', {'data':JSON.stringify(vm.model_data), 'type': 'actual_pr_save'}).then(function(data){
           if(data.message) {
             if(data.data == "Updated Successfully" || data.data == "Added Successfully") {
@@ -281,6 +292,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     return selected_val;
+  }
+
+  vm.check_for_mail = function(data, row_index){
+    if(data.roles.indexOf("Specify User") != -1){
+      if(data.roles.length > 1){
+        vm.service.showNoty("Can't select other roles if Specify User is selected");
+        data.roles.pop("Specify User");
+        $('.selectpicker-default').eq(row_index).find("[value="+"'Specify User']").prop('selected', false);
+        $('.selectpicker-default').selectpicker("refresh");
+        data.display_emails = false;
+      }
+      else {
+       data.display_emails = true;
+      }
+    }
+    else {
+      data.emails = "";
+      $(".bootstrap-tagsinput .emails").eq(row_index).val()
+      data.display_emails = false;
+    }
   }
 
   vm.delete_range_levels_data = function(index, range_data, level_dat) {

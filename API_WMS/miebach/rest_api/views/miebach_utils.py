@@ -12283,11 +12283,11 @@ def get_ageing_data(search_params, user, sub_user):
             ageing_days = date.today().toordinal() - grn_date_time.toordinal()
         else:
             ageing_days = date.today().toordinal() - data.creation_date.toordinal()
-        if ageing_days > 0  and ageing_days <= 30:
+        if ageing_days <= 30:
             ageing_range = "0-30"
-        elif ageing_days > 31  and ageing_days <= 60:
+        elif ageing_days <= 60:
             ageing_range = "31 - 60"
-        elif days_to_expired > 61  and days_to_expired <= 180:
+        elif ageing_days <= 180:
             ageing_range = "61 - 180"
         else:
             ageing_range = "  > 180"

@@ -28,9 +28,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        .withPaginationType('full_numbers');
 
     vm.dtColumns = [
+      DTColumnBuilder.newColumn('Zone Code').withTitle('Zone'),
       DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
       DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
-      DTColumnBuilder.newColumn('Zone Code').withTitle('Zone'),
+      DTColumnBuilder.newColumn('Dept Code').withTitle('Dept Code'),
+      DTColumnBuilder.newColumn('Dept Name').withTitle('Dept Name'),
       DTColumnBuilder.newColumn('Material Code').withTitle('Material Code'),
 //        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
       DTColumnBuilder.newColumn('Material Description').withTitle('Material Description'),
@@ -47,6 +49,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('Expiry Range').withTitle('Expiry Range'),
       DTColumnBuilder.newColumn('GRN Number').withTitle('GRN Number'),
       DTColumnBuilder.newColumn('GRN Date').withTitle('GRN Date'),
+      DTColumnBuilder.newColumn('Ageing Days').withTitle('Ageing Days'),
+      DTColumnBuilder.newColumn('Ageing Range').withTitle('Ageing Range'),
       DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
       DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
     ];

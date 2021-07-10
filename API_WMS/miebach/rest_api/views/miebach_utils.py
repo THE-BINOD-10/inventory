@@ -12244,7 +12244,7 @@ def get_ageing_data(search_params, user, sub_user):
         plant_code = sku_user.userprofile.stockone_code
         plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
-        dept_type = ''
+        dept_type, dept_name = '', ''
         if sku_user.userprofile.warehouse_type.lower() == 'dept':
             admin_user = get_admin(sku_user)
             plant_code = admin_user.userprofile.stockone_code
@@ -12252,6 +12252,7 @@ def get_ageing_data(search_params, user, sub_user):
             plant_zone = admin_user.userprofile.zone
             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
+            dept_name = "%s %s"%(sku_user.first_name, sku_user.last_name)
         expiry_range = ""
         if not expiry_date_obj:
             expiry_range = 'No Expiry'
@@ -12265,16 +12266,31 @@ def get_ageing_data(search_params, user, sub_user):
             expiry_range = "61 < 90"
         else:
             expiry_range = "  > 90"
+        ageing_days, ageing_range, grn_date_time = "", "", ""
+
         grn_number, grn_date= "", ""
         remarks = "Stock Adjustment"
         if data.receipt_type.lower() in ["closing stock", "opening stock"]:
             remarks = "Opening Stock"
         if grn_sku_key in grn_model_data:
             grn_number= data.grn_number
+            grn_date_time= grn_model_data[grn_sku_key]["creation_date"]
             temp_grn_date= get_local_date(user, grn_model_data[grn_sku_key]["creation_date"]).split(' ')
             grn_date= ' '.join(temp_grn_date[0:3])
             remarks = grn_model_data[grn_sku_key]["grn_type"]
         stock_creation_date = ' '.join(get_local_date(user, data.creation_date).split(' ')[0:3])
+        if grn_date_time:
+            ageing_days = date.today().toordinal() - grn_date_time.toordinal()
+        else:
+            ageing_days = date.today().toordinal() - data.creation_date.toordinal()
+        if ageing_days > 0  and ageing_days <= 30:
+            ageing_range = "0-30"
+        elif ageing_days > 31  and ageing_days <= 60:
+            ageing_range = "31 - 60"
+        elif days_to_expired > 61  and days_to_expired <= 180:
+            ageing_range = "61 - 180"
+        else:
+            ageing_range = "  > 180"
         row_data = OrderedDict((
                                 ('Material Code', data.sku.sku_code),
                                 # ('WMS Code', data.sku.wms_code),
@@ -12292,6 +12308,8 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Stock Value', '%.2f' % float(quantity_for_val * data.sku.average_price)),
                                 ('Plant Code', plant_code),
                                 ('Plant Name', plant_name),
+                                ('Dept Code', dept_name),
+                                ('Dept Name', dept_type),
                                 ('Zone Code', plant_zone),
                                 ('pcf', pcf),
                                 ('Conversion Factor', pcf),
@@ -12303,6 +12321,8 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('Expiry Range', expiry_range),
                                 ('GRN Number', grn_number),
                                 ('GRN Date', grn_date),
+                                ('Ageing Days', ageing_days),
+                                ('Ageing Range', ageing_range),
                                 ('days_to_expired', days_to_expired),
                                 ('Receipt Type', data.receipt_type),
                                 ('Remarks', remarks),
@@ -17409,7 +17429,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                                             values('po_number','open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
                                             'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
-                                            'open_po__sku__user', 'updation_date' , 'open_po__cess_tax')
+                                            'open_po__sku__user', 'updation_date' , 'open_po__cess_tax', 'status')
     open_po_data_dict= {}
     for open_po_row in open_po_data:
         if open_po_row["po_number"] in open_po_data_dict:
@@ -17418,6 +17438,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             temp_amt = (open_po_row['open_po__order_quantity']* open_po_row['open_po__price'])
             open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] += (temp_amt/100) * temp_tax
             open_po_data_dict[open_po_row["po_number"]]["po_amount"] += open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] + temp_amt
+            open_po_data_dict[open_po_row["po_number"]]["po_status"] = open_po_row["status"]
         else:
             po_quantity = open_po_row['open_po__order_quantity']
             temp_tax = open_po_row['open_po__cgst_tax'] + open_po_row['open_po__sgst_tax'] + open_po_row['open_po__igst_tax'] + open_po_row['open_po__cess_tax']
@@ -17440,11 +17461,11 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         product_category, category, final_status, plant_zone = '', '', '', ''
         pr_quantity = ''
         user_id= ''
-        open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).exclude(status='deleted').\
-                                            values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
-                                            'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
-                                            'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
-                                            'open_po__sku__user', 'updation_date' , 'open_po__cess_tax')
+        # open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).exclude(status='deleted').\
+        #                                     values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
+        #                                     'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
+        #                                     'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
+        #                                     'open_po__sku__user', 'updation_date' , 'open_po__cess_tax')
         # po_quantity,po_tax_amount, po_amount = 0,0,0
         supplier_id = open_po_data_dict.get(result['po_number'], {}).get("supplier_id", "")
         supplier_name = open_po_data_dict.get(result['po_number'], {}).get("supplier_name", "")
@@ -17500,7 +17521,6 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
          'pending_po__full_po_number', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__wh_user__userprofile__zone']
         check_pr_data = PendingLineItems.objects.filter(pending_po__full_po_number=po_number)\
                         .values(*pr_values_list).distinct()
-
         if check_pr_data.exists():
             for pr_data in check_pr_data:
                 po_user = pr_data["pending_po__requested_user__username"]
@@ -17578,6 +17598,12 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             integration_error = po_int_err.get(result['po_number'], '')
         integration_date = po_int_date[result['po_number']].strftime("%d %b, %Y") if po_int_date.get(
             result['po_number'], '') else ''
+        po_status= open_po_data_dict.get(result['po_number'], {}).get("po_status", "")
+        if not final_status.title():
+            if not po_status:
+                po_status= "Yet To Receive"
+        else:
+            po_status= final_status.title()
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),
@@ -17767,6 +17793,8 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             final_status = "%s - %s" % ('Partially Cancelled', result['reason'])
         elif result['received_quantity'] > 0:
             final_status = 'Partially Received'
+        elif result['received_quantity']==0 and final_status=="":
+            final_status = 'Yet To Receive'
         if pr_creation_date:
             pr_date = get_local_date(user, pr_creation_date)
         if delivery_date:

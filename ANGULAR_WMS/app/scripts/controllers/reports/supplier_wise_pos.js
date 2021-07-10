@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('SupplierWisePOsCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('SupplierWisePOsCtrl',['$scope', '$rootScope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $rootScope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
   var vm = this;
   vm.service = Service;
@@ -11,6 +11,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.empty_data = {}
   vm.model_data = {};
+  vm.model_data_row = {};
+  vm.display_edit = false;
+  vm.permissions = Session.roles.permissions;
 
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
@@ -49,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
 
   vm.row_call = function(aData) {
-    angular.copy(aData, vm.model_data);
+    angular.copy(aData, vm.model_data_row);
     vm.update = true;
     vm.title = "Purchase Order";
 
@@ -58,6 +61,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       $(".modal-body").html($(data).html());
       vm.print_page = $($(data).html()).clone();
       vm.print_enable = true;
+      if(aData['Status'] == 'Yet to Receive') {
+        vm.display_edit = true;
+      }
+      else {
+        vm.display_edit = false;
+      }
     });
     $state.go("app.reports.SupplierWisePOs.POs");
   }
@@ -76,7 +85,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.close = function() {
 
-      angular.copy(vm.empty_data, vm.model_data);
+      //angular.copy(vm.empty_data, vm.model_data);
       $state.go('app.reports.SupplierWisePOs');
     }
 
@@ -85,5 +94,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       console.log(vm.print_page);
       vm.service.print_data(vm.print_page, "Purchase Order");
     }
+
+    vm.editPO = function() {
+      var req_data = {'Requested User': vm.model_data_row['Requested User'], 'Purchase Id':vm.model_data_row['pend_po_id'],'Validation Status': 'Approved',
+                      'from_supplier_wise_pos': true, 'Supplier ID': vm.model_data_row['Supplier ID'], 'PO Number': vm.model_data_row['PO Number']};
+      $rootScope.$current_po = req_data;
+      $state.go('app.inbound.RaisePo.PurchaseOrder');
+  }
+
 
 }

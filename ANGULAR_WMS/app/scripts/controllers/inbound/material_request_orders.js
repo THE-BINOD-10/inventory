@@ -160,6 +160,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.state = data.data.wh_details.state;
         vm.creation_date = data.data.order_date;
         vm.pin = data.data.wh_details.pincode;
+        vm.warehouse_id = params['warehouse_id'];
 
         angular.forEach(vm.items_dict, function(item){
           item['default_status'] = true;
@@ -186,6 +187,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.delete_order_data = function(ord_id) {
       var delete_data = {};
       delete_data['order_id'] = ord_id;
+      delete_data['warehouse_id'] = vm.warehouse_id;
       vm.service.apiCall('stock_transfer_delete/', 'GET', delete_data).then(function(data){
         if (data.message) {
           colFilters.showNoty(data.data);

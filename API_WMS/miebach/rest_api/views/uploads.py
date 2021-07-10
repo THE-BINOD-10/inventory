@@ -1532,6 +1532,9 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if sku_code in upload_file_skus:
                     index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
                 elif sku_code:
+                    ins_obj = instanceName.objects.filter(user=user.id, sku_code=sku_code)
+                    if not ins_obj.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                     upload_file_skus.append(sku_code)
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 #if not cell_data:
@@ -2305,7 +2308,7 @@ def asset_upload(request, user=''):
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
             return HttpResponse(ex_status)
-        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_asset=True)
         if status != 'Success':
             return HttpResponse(status)
         sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_asset=True)
@@ -2331,7 +2334,7 @@ def service_upload(request, user=''):
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
             return HttpResponse(ex_status)
-        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_service=True)
         if status != 'Success':
             return HttpResponse(status)
         sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_service=True)
@@ -12373,7 +12376,7 @@ def validate_closing_stock_form(request, reader, user, no_of_rows, no_of_cols, f
                     try:
                         month = int(float(cell_data))
                         data_dict[key] = month
-                        if len(str(month)) > 2 or month != 6:
+                        if len(str(month)) > 2 or month != 7:
                             index_status.setdefault(row_idx, set()).add('Invalid Month')
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid Month')

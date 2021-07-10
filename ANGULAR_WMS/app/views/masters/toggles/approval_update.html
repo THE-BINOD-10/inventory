@@ -80,7 +80,8 @@
             <thead>
               <tr>
                 <th style="min-width: 140px;">Level</th>
-                <th style="width: 650px;">Roles</th>
+                <th style="width: 350px;">Roles</th>
+                <th style="width: 300px">Email</th>
                 <th class="plus"></th>
               </tr>
             </thead>
@@ -90,9 +91,14 @@
                    <input type="text" ng-model="level_dat.level" name="level" class="form-control" readonly>
                 </td>
                 <td>
-                   <select class="selectpicker-default show-menu-arrow form-control" multiple name="perms" ng-model="level_dat.roles">
-                    <option ng-selected="showCase.check_selected(level_dat, role)" ng-repeat="role in showCase.roles_list">{{role}}</option>
+                   <select class="selectpicker-default show-menu-arrow form-control" multiple name="perms" ng-model="level_dat.roles" ng-change="showCase.check_for_mail(level_dat, $index);">
+                    <option ng-selected="showCase.check_selected(level_dat, role);" ng-repeat="role in showCase.roles_list">{{role}}</option>
                   </select>
+                </td>
+                <td>
+                  <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()" ng-show="level_dat.display_emails">
+                    <input id="emails" class="form-control emails" type="text" value="{{level_dat.emails}}" ng-model="level_dat.emails" ui-jq="tagsInput"/>
+                  </div>
                 </td>
                 <td><i ng-if="$last" ng-click="showCase.update_data($index, 'default', level_dat.data_id)" class="fa fa-minus-square-o"></i></td>
               </tr>

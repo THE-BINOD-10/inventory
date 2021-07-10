@@ -770,6 +770,12 @@ def get_supplier_details_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone = user_obj.userprofile.zone
+        pend_po = PendingPO.objects.filter(full_po_number=po_obj.po_number)
+        requested_user = user_obj.username
+        pend_po_id = ''
+        if pend_po:
+            requested_user = pend_po[0].requested_user.username;
+            pend_po_id = pend_po[0].id
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.creation_date)),
                                                     ('Plant Code', plant_code),
                                                     ('Plant Name', plant_name),
@@ -782,7 +788,11 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status_var), ('order_id', po_obj.order_id),
-                                                    ('PO Pending Days', pending_days))))
+                                                    ('PO Pending Days', pending_days),
+                                                    ('Supplier ID', po_obj.open_po.supplier.supplier_id),
+                                                    ('Requested User', requested_user),
+                                                    ('pend_po_id', pend_po_id)
+                                                )))
     # supplier_data['total_charge'] = total_charge
     return supplier_data
 
@@ -2326,7 +2336,7 @@ def print_purchase_order_form(request, user=''):
             user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
-            #remarks = pending_po_data.remarks
+            remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
@@ -2362,7 +2372,7 @@ def print_purchase_order_form(request, user=''):
         table_headers.insert(table_headers.index('Total'), 'APMC (%)')
     for order in purchase_orders:
         open_po = order.open_po
-        remarks = order.remarks
+        #remarks = order.remarks
         total_qty += open_po.order_quantity
         if order.currency_rate > 1:
             currency_rate = round(open_po.price / order.currency_rate, 2)

@@ -896,9 +896,9 @@ PR_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR raised By ( User Name)', 'PR raised By ( User Plant name)',
                    'PR raised By ( User department name)', 'Zone', 'Product Category', 'Category', 'Quantity',
-                   'Priority Type', 'Total Amount','PR Status', 'Approver 1', 'Approver 1 Status', 'Approver 2',
-                   'Approver 2 Status','Approver 3','Approver 3 Status', 'Approver 4', 'Approver 4 Status',
-                   'Approver 5','Approver 5 Status', 'Approver 6', 'Approver 6 Status', 'Last Updated By', 'Last Updated Date',
+                   'Priority Type', 'Total Amount','PR Status', 'Approver 1', 'Approver 1 Approved Date', 'Approver 1 time', 'Approver 1 Status', 'Approver 2', 'Approver 2 Approved Date', 'Approver 2 time',
+                   'Approver 2 Status','Approver 3', 'Approver 3 Approved Date', 'Approver 3 time', 'Approver 3 Status', 'Approver 4', 'Approver 4 Approved Date', 'Approver 4 time', 'Approver 4 Status',
+                   'Approver 5', 'Approver 5 Approved Date', 'Approver 5 time', 'Approver 5 Status', 'Approver 6',  'Approver 6 Approved Date', 'Approver 6 time', 'Approver 6 Status', 'Last Updated By', 'Last Updated Date',
                    'Remarks', 'Next Approver Email', 'Pending Approval Type', 'Pending Level'
                    ],
 
@@ -15434,7 +15434,7 @@ def get_pr_report_data(search_params, user, sub_user):
     # from miebach_admin.models import *
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin
-    from rest_api.views.common import get_sku_master, get_local_date, get_filtered_params, \
+    from rest_api.views.common import dhms_from_seconds, date_diff_in_seconds, get_sku_master, get_local_date, get_filtered_params, \
         get_warehouse_user_from_sub_user, get_plant_and_department, get_warehouses_data, \
         get_all_department_data, get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -15444,7 +15444,10 @@ def get_pr_report_data(search_params, user, sub_user):
     lis = ['pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__sku_category','total_qty',
            'measurement_unit', 'pending_pr__priority_type','pending_pr__final_status', 'pending_pr__pr_number',
-           'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
+           'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
+           'pending_pr__pr_number',
+           'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
+           'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks','pending_pr__remarks',
            'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__updation_date']
@@ -15606,15 +15609,22 @@ def get_pr_report_data(search_params, user, sub_user):
             approval_type = pending_approval.approval_type
         final_status = result['pending_pr__final_status']
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status, approver6_status = '', '', '', '', '', ''
+        approver1_approved_date, approver2_approved_date, approver3_approved_date, approver4_approved_date, approver5_approved_date, approver6_approved_date = '', '', '', '', '', ''
+        approver1_time, approver2_time, approver3_time, approver4_time,  approver5_time, approver6_time = "", "", "", "", "",""
+
         approver_1_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],level="level0", approval_type="default").exclude(status='').values('level',
-                                'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
+                                'validated_by', 'creation_date', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         if approver_1_detail_data.exists():
             approver_1_detail_data = approver_1_detail_data.latest('level')
+            approver1_creation_date_obj = approver_1_detail_data.get('creation_date', '')
             if approver_1_detail_data.get('status') == 'approved':
                 approver1_status = 'Yes'
                 last_updated_by = approver_1_detail_data.get('validated_by')
                 approver_1_details = approver_1_detail_data.get('validated_by')
                 last_remarks = approver_1_detail_data.get('remarks', '')
+                approver1_approved_date_obj = approver_1_detail_data.get('updation_date', '')
+                approver1_approved_date = get_local_date(user, approver1_approved_date_obj)
+                approver1_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver1_approved_date_obj, approver1_creation_date_obj))
                 final_updated_time = approver_1_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -15628,16 +15638,20 @@ def get_pr_report_data(search_params, user, sub_user):
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
         approver_2_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'status', 'approval_type',
+                                                               'validated_by', 'creation_date','status', 'approval_type',
                                                                'updation_date', 'remarks',
                                                                'pending_pr__final_status')
         if approver_2_detail_data.exists():
             approver_2_detail_data = approver_2_detail_data.latest('level')
+            approver2_creation_date_obj = approver_2_detail_data.get('creation_date', '')
             if approver_2_detail_data.get('status') in ['approved', 'pr_converted_to_po']:
                 approver2_status = 'Yes'
                 last_updated_by = approver_2_detail_data.get('validated_by')
                 approver_2_details = approver_2_detail_data.get('validated_by')
                 last_remarks = approver_2_detail_data.get('remarks', '')
+                approver2_approved_date_obj = approver_2_detail_data.get('updation_date', '')
+                approver2_approved_date = get_local_date(user, approver2_approved_date_obj)
+                approver2_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver2_approved_date_obj, approver2_creation_date_obj))
                 final_updated_time = approver_2_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -15660,18 +15674,22 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver2_status, approver_2_details = '', ''
 
         approver_3_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2",approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'status', 'approval_type',
+                                                               'validated_by', 'creation_date', 'status', 'approval_type',
                                                                'updation_date', 'remarks',
                                                                'pending_pr__final_status')
 
 
         if approver_3_detail_data.exists():
             approver_3_detail_data = approver_3_detail_data.latest('level')
+            approver3_creation_date_obj = approver_3_detail_data.get('creation_date', '')
             if approver_3_detail_data.get('status') == 'approved':
                 approver3_status = 'Yes'
                 approver_3_details = approver_3_detail_data.get('validated_by')
                 last_updated_by = approver_3_detail_data.get('validated_by')
                 last_remarks = approver_3_detail_data.get('remarks', '')
+                approver3_approved_date_obj = approver_3_detail_data.get('updation_date', '')
+                approver3_approved_date = get_local_date(user, approver3_approved_date_obj)
+                approver3_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver3_approved_date_obj, approver3_creation_date_obj))
                 final_updated_time = approver_3_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -15706,15 +15724,19 @@ def get_pr_report_data(search_params, user, sub_user):
 
         approver_4_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",approval_type__in=["ranges", "approved"]).exclude(
                 Q(approval_type="default") | Q(status='')) \
-                .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'remarks',
+                .values('level', 'validated_by', 'status', 'updation_date', 'creation_date', 'approval_type', 'remarks',
                         'pending_pr__final_status')
         if approver_4_detail_data.exists():
             approver_4_detail_data = approver_4_detail_data.latest('level')
+            approver4_creation_date_obj = approver_4_detail_data.get('creation_date', '')
             if approver_4_detail_data.get('status') == 'approved':
                 approver4_status = 'Yes'
                 approver_4_details = approver_4_detail_data.get('validated_by')
                 last_updated_by = approver_4_detail_data.get('validated_by')
                 last_remarks = approver_4_detail_data.get('remarks', '')
+                approver4_approved_date_obj = approver_4_detail_data.get('updation_date', '')
+                approver4_approved_date = get_local_date(user, approver4_approved_date_obj)
+                approver4_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver4_approved_date_obj, approver4_creation_date_obj))
                 final_updated_time = approver_4_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -15756,17 +15778,21 @@ def get_pr_report_data(search_params, user, sub_user):
 
         approver_5_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1", approval_type__in=["ranges", "approved"])\
             .exclude(Q(approval_type="default") | Q(status='')) \
-                .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'remarks','pending_pr__final_status')
+                .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'creation_date', 'remarks','pending_pr__final_status')
 
         if approver_5_detail_data.exists():
             approver_5_detail_data = approver_5_detail_data.latest('level')
             approver_5 = approver_5_detail_data.get('level_approver5')
             approver_5_details = ''
+            approver5_creation_date_obj = approver_5_detail_data.get('creation_date', '')
             if approver_5_detail_data.get('status') == 'approved':
                 approver5_status = 'Yes'
                 approver_5_details = approver_5_detail_data.get('validated_by')
                 last_updated_by = approver_5_detail_data.get('validated_by')
                 last_remarks = approver_5_detail_data.get('remarks', '')
+                approver5_approved_date_obj = approver_5_detail_data.get('updation_date', '')
+                approver5_approved_date = get_local_date(user, approver5_approved_date_obj)
+                approver5_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver5_approved_date_obj, approver5_creation_date_obj))
                 final_updated_time = approver_5_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -15820,17 +15846,21 @@ def get_pr_report_data(search_params, user, sub_user):
 
         approver_6_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2", approval_type__in=["ranges", "approved"])\
             .exclude(Q(approval_type="default") | Q(status='')) \
-                .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'remarks','pending_pr__final_status')
+                .values('level', 'validated_by', 'status', 'updation_date', 'creation_date', 'approval_type', 'remarks','pending_pr__final_status')
 
         if approver_6_detail_data.exists():
             approver_6_detail_data = approver_6_detail_data.latest('level')
             approver_6 = approver_6_detail_data.get('level_approver5')
             approver_6_details = ''
+            approver6_creation_date_obj = approver_6_detail_data.get('creation_date', '')
             if approver_6_detail_data.get('status') == 'approved':
                 approver6_status = 'Yes'
                 approver_6_details = approver_6_detail_data.get('validated_by')
                 last_updated_by = approver_6_detail_data.get('validated_by')
                 last_remarks = approver_6_detail_data.get('remarks', '')
+                approver6_approved_date_obj = approver_6_detail_data.get('updation_date', '')
+                approver6_approved_date = get_local_date(user, approver6_approved_date_obj)
+                approver6_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver6_approved_date_obj, approver6_creation_date_obj))
                 final_updated_time = approver_6_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -15921,6 +15951,15 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Approver 4 Status', approver4_status),
             ('Approver 5 Status', approver5_status),
             ('Approver 6 Status', approver6_status),
+
+            ("Approver 1 time", approver1_time), ("Approver 2 time", approver2_time),
+            ("Approver 3 time", approver3_time), ("Approver 4 time", approver4_time),
+            ("Approver 5 time", approver5_time), ("Approver 6 time", approver6_time),
+
+            ("Approver 1 Approved Date", approver1_approved_date),("Approver 2 Approved Date", approver2_approved_date),
+            ("Approver 3 Approved Date", approver3_approved_date),("Approver 4 Approved Date", approver4_approved_date),
+            ("Approver 5 Approved Date", approver5_approved_date),("Approver 6 Approved Date", approver6_approved_date),
+
             ('Last Updated By', last_updated_by),
             ('Last Updated Date', last_updated_time),
             ('Remarks', last_remarks),

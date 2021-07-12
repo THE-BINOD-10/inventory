@@ -846,6 +846,19 @@ def get_filtered_params_search(filters, data_list):
     return filter_params1, filter_params2
 
 
+
+def date_diff_in_seconds(dt2, dt1):
+  timedelta = dt2 - dt1
+  return timedelta.days * 24 * 3600 + timedelta.seconds
+
+def dhms_from_seconds(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    # return (days, hours, minutes, seconds)
+    return (days, hours)
+
+
 @csrf_exempt
 def get_local_date(user, input_date, send_date=''):
     utc_time = input_date.replace(tzinfo=pytz.timezone('UTC'))

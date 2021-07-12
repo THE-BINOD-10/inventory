@@ -51,8 +51,8 @@ def update_consumption(consumption_objss, user, company):
                         test_code, test_name = '', ''
                     consumption_filter = {}
                     machine_name =''
-                    if test_code  or str(user.userprofile.stockone_code) in ["33044", "33036"]:
-			test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
+                    if test_code:
+                        test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
                         if test_obj.exists():
                             data_dict['test'] = test_obj[0]
                         else:
@@ -65,7 +65,7 @@ def update_consumption(consumption_objss, user, company):
                             data_dict['test'] = test_obj[0]
                         consumption_filter = {'test_id': str(test_obj[0].id)}
                         machine_code = consumption_dict.get('DEVICEID', '')
-                        machine_name = consumption_dict.get('DEVICEName', '')
+                        machine_name = consumption_dict.get('DEVICEName', '') 
                         if machine_code:
                             machine_obj = MachineMaster.objects.filter(user=company.id, machine_code=str(machine_code))
                             consumption_filter['machine__machine_code'] = str(machine_code)
@@ -77,6 +77,8 @@ def update_consumption(consumption_objss, user, company):
                                 data_dict['machine'] = machine_obj
                         name = consumption_dict.get('NAME', '')
                         orgid = consumption_dict.get('OrgID', '')
+                        if orgid:
+                            data_dict["org_id"]= int(orgid)
                         investigation_id = consumption_dict.get('InvestigationID', '')
                         number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
                         'n_time_process':'PN', 'rerun':'RR', 'quality_check':'Q', 'total_patients':'TP', 'total':'T', 'no_patient':'NP',
@@ -87,7 +89,7 @@ def update_consumption(consumption_objss, user, company):
                                 data_dict[key] = float(consumption_dict.get(value, 0))
                         sum_ = data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['quality_check'] +data_dict['no_patient']
                         data_dict['calculated_total_tests']= data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['n_time_process'] +  data_dict['quality_check'] +data_dict['no_patient']
-			diff = data_dict['calculated_total_tests'] - sum_
+                        diff = data_dict['calculated_total_tests'] - sum_
                         n_time_process_val = 0
                         if diff and data_dict['n_time_process']:
                             n_time_process_val = diff/data_dict['n_time_process']
@@ -125,11 +127,13 @@ def update_consumption(consumption_objss, user, company):
                         if consumption_obj_.exists():
                             status = 'Success'
                             if consumption_obj_[0].status and department and user_groups:
+                                #print("blocked")
                                 status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=data_dict['calculated_total_tests'])
                             else:
                                 exist_total_test = consumption_obj_[0].calculated_total_tests
                                 if exist_total_test < data_dict['calculated_total_tests']:
                                     diff_test = data_dict['calculated_total_tests'] - exist_total_test
+                                    #print("blocked")
                                     status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=diff_test)
                                     if status == 'Success':
                                         consumption_obj.update(**data_dict)
@@ -139,6 +143,7 @@ def update_consumption(consumption_objss, user, company):
                             #if department in ['BIOCHE', 'IMMUN']:
                             consumption_obj_ = Consumption.objects.create(**data_dict)
                             if department and user_groups:
+                                #print("blocked")
                                 status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['calculated_total_tests'])
                             else:
                                 status = 'Not in dept'
@@ -189,7 +194,7 @@ class Command(BaseCommand):
                             "kedar.shirodkar@metropolisindia.com","raviraj.deshpande@metropolisindia.com","nilam.tripathi@metropolisindia.com","surekha.kamble@metropolisindia.com","chaitali.berde@metropolisindia.com",
                             "vishal.yamagekar@metropolisindia.com","pravin.rajput@metropolisindia.com","jayant.rajani@metropolisindia.com","sunilpahuja@metropolisindia.com",
                             "medha@metropolisindia.com","vikas.kere@metropolisindia.com","roshan.nagvekar@metropolisindia.com","mahesh.sable@metropolisindia.com", "ashish@metropolisindia.com","salunkhe.yogita@metropolisindia.com","pratibha.pawar@metropolisindia.com","shraddha.lokegaonkar@metropolisindia.com","medha@metropolisindia.com","jyothi.mathias@metropolisindia.com","reshma.haryan@metropolisindia.com","jinal.dedhia@metropolisindia.com","karthik@mieone.com","nagi@mieone.com", "avinash@mieone.com"]
-            receivers = ["naresh@mieone.com", "avinash@mieone.com","karthik@mieone.com","nagi@mieone.com"]
+            receivers = ["naresh@mieone.com", "nagi@mieone.com"]
             path = 'static/excel_files/consumption_report.csv'
             df = pd.DataFrame(report_data)
             df.to_csv(path, index=False)

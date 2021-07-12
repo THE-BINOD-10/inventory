@@ -13335,9 +13335,18 @@ def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
     for userId, supplier_obj in master_objs.iteritems():
         for paymentTerm in paymentterms:
             try:
+                payment_code, description="", ""
+                if paymentTerm.get('reference_id'):
+                    payment_code= paymentTerm.get('reference_id')
+                elif paymentTerm.get('payment_code'):
+                    payment_code=paymentTerm.get('payment_code')
+                if paymentTerm.get("description"):
+                    description=paymentTerm.get('description')
+                elif paymentTerm.get("payment_description"):
+                    description = paymentTerm.get('payment_description')
                 payment_supplier_mapping(
-                paymentTerm.get('reference_id'),
-                paymentTerm.get('description'),
+                payment_code,
+                description,
                 supplier_obj
                 )
             except Exception as e:

@@ -434,8 +434,8 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
 @csrf_exempt
 def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     #sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['supplier__supplier_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price', 'margin_percentage',
-           'markup_percentage', 'sku__mrp', 'preference', 'moq', 'lead_time', 'sku__user']
+    lis = ['supplier__supplier_id', 'supplier__name','sku__sku_code', 'sku__sku_desc', 'supplier_code', 'costing_type', 'price', 'margin_percentage',
+           'markup_percentage', 'sku__mrp', 'preference', 'moq', 'lead_time', 'sku__user', 'sku__user']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
@@ -491,10 +491,12 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = 0
         warehouse_obj = User.objects.get(id=result.sku.user)
         warehouse = warehouse_obj.username
+        plant_code = warehouse_obj.userprofile.stockone_code
         warehouse_name = warehouse
         if warehouse_obj.first_name:
             warehouse_name = warehouse_obj.first_name
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
+                                                ('supplier_name', result.supplier.name), ('sku_desc', result.sku.sku_desc),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
                                                 ('costing_type', result.costing_type),('price', result.price),
@@ -502,6 +504,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('lead_time', result.lead_time),
                                                 ('warehouse', warehouse),
                                                 ('warehouse_name', warehouse_name),
+                                                ('plant_code', plant_code),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 

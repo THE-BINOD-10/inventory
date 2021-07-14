@@ -78,7 +78,7 @@ class Command(BaseCommand):
         elif report_name == "GRN_report_line_level":
             try:
                 search_params['grn_from_date'] = search_params['from_date']
-                grn_report_line_level = get_po_filter_data('', search_params, user, user)
+                grn_report_line_level = get_sku_wise_po_filter_data('', search_params, user, user)
                 if grn_report_line_level:
                     excel_name = 'GRN report Line level'
                     headers = grn_report_line_level['aaData'][0].keys()
@@ -175,7 +175,7 @@ class Command(BaseCommand):
             new_paths.append({'path': zip_filename, 'name': zip_filename.split('/')[-1]})
         print new_paths
         mails_list =  ['naresh@mieone.com', 'nagi@mieone.com', 'pradeep@mieone.com', 'jignesh.shah@metropolisindia.com',  'mahesh.sable@metropolisindia.com']
-        #mails_list = ['naresh@mieone.com']
+        # mails_list = ['naresh@mieone.com']
         send_sendgrid_mail('mhl_mail@stockone.in', mails_list, subject, text, files=new_paths)
         #send_mail_attachment(['naresh@mieone.com', 'nagi@mieone.com'], subject, text, files=new_paths)
         self.stdout.write("Report sent %s "% report_name)

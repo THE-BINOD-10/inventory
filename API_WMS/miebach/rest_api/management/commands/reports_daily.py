@@ -63,7 +63,8 @@ class Command(BaseCommand):
                 grn_report_header_level = get_po_filter_data('', search_params, user, user)
                 if grn_report_header_level:
                     excel_name = 'GRN report Header level'
-                    headers = grn_report_header_level['aaData'][0].keys()
+                    # headers = grn_report_header_level['aaData'][0].keys()
+                    headers = GRN_DICT['dt_headers']
                     excel_path = async_excel(grn_report_header_level, headers, today, excel_name=excel_name, user=user,
                                          file_type='', tally_report=0, automated_emails=True)
                     if '.xls' in excel_path.split('/')[-1]:
@@ -81,7 +82,8 @@ class Command(BaseCommand):
                 grn_report_line_level = get_sku_wise_po_filter_data('', search_params, user, user)
                 if grn_report_line_level:
                     excel_name = 'GRN report Line level'
-                    headers = grn_report_line_level['aaData'][0].keys()
+                    #headers = grn_report_line_level['aaData'][0].keys()
+                    headers = SKU_WISE_GRN_DICT['dt_headers']
                     excel_path = async_excel(grn_report_line_level, headers, today, excel_name=excel_name, user=user,
                                          file_type='', tally_report=0, automated_emails=True)
                     if '.xls' in excel_path.split('/')[-1]:
@@ -99,7 +101,8 @@ class Command(BaseCommand):
                 pr_report_header_level = get_pr_report_data(search_params, user, user)
                 if pr_report_header_level:
                     excel_name = 'PR report Header level'
-                    headers = pr_report_header_level['aaData'][0].keys()
+                    headers = PR_REPORT_DICT['dt_headers']
+                    # headers = pr_report_header_level['aaData'][0].keys()
                     excel_path = async_excel(pr_report_header_level, headers, today, excel_name=excel_name, user=user,
                                          file_type='', tally_report=0, automated_emails=True)
                     if '.xls' in excel_path.split('/')[-1]:
@@ -117,7 +120,8 @@ class Command(BaseCommand):
                 pr_report_line_level = get_pr_detail_report_data(search_params, user, user)
                 if pr_report_line_level:
                     excel_name = 'PR report Line level'
-                    headers = pr_report_line_level['aaData'][0].keys()
+                    headers = PR_DETAIL_REPORT_DICT['dt_headers']
+                    # headers = pr_report_line_level['aaData'][0].keys()
                     excel_path = async_excel(pr_report_line_level, headers, today, excel_name=excel_name, user=user,
                                          file_type='', tally_report=0, automated_emails=True)
                     if '.xls' in excel_path.split('/')[-1]:
@@ -135,7 +139,8 @@ class Command(BaseCommand):
                 po_report_header_level = get_metropolis_po_report_data(search_params, user, user)
                 if po_report_header_level:
                     excel_name = 'PO report Header level'
-                    headers = po_report_header_level['aaData'][0].keys()
+                    headers = METROPOLIS_PO_REPORT_DICT['dt_headers']
+                    # headers = po_report_header_level['aaData'][0].keys()
                     excel_path = async_excel(po_report_header_level, headers, today, excel_name=excel_name, user=user,
                                          file_type='', tally_report=0, automated_emails=True)
                     if '.xls' in excel_path.split('/')[-1]:
@@ -153,7 +158,8 @@ class Command(BaseCommand):
                 po_report_line_level = get_metropolis_po_detail_report_data(search_params, user, user)
                 if po_report_line_level:
                     excel_name = 'PO report Line level'
-                    headers = po_report_line_level['aaData'][0].keys()
+                    headers = METROPOLIS_PO_DETAIL_REPORT_DICT['dt_headers']
+                    # headers = po_report_line_level['aaData'][0].keys()
                     excel_path = async_excel(po_report_line_level, headers, today, excel_name=excel_name, user=user,
                                          file_type='', tally_report=0, automated_emails=True)
                     if '.xls' in excel_path.split('/')[-1]:
@@ -175,7 +181,7 @@ class Command(BaseCommand):
             new_paths.append({'path': zip_filename, 'name': zip_filename.split('/')[-1]})
         print new_paths
         mails_list =  ['naresh@mieone.com', 'nagi@mieone.com', 'pradeep@mieone.com', 'jignesh.shah@metropolisindia.com',  'mahesh.sable@metropolisindia.com']
-        # mails_list = ['naresh@mieone.com']
+        #mails_list = ['naresh@mieone.com']
         send_sendgrid_mail('mhl_mail@stockone.in', mails_list, subject, text, files=new_paths)
         #send_mail_attachment(['naresh@mieone.com', 'nagi@mieone.com'], subject, text, files=new_paths)
         self.stdout.write("Report sent %s "% report_name)

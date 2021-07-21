@@ -13215,12 +13215,12 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     if not send_parent:
         user_list2 = []
     all_users = list(set(user_list1 + user_list2))
-    all_user_objs = User.objects.filter(id__in=all_users)
+    all_user_objs = User.objects.filter(id__in=all_users, userprofile__visible_status=1)
     if company_id:
         if exclude_company == 'true':
-            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id)
+            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id, userprofile__visible_status=1)
         else:
-            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id)
+            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id, userprofile__visible_status=1)
     return all_user_objs
 
 
@@ -13978,7 +13978,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list, userprofile__visible_status=1).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -14003,7 +14003,7 @@ def check_and_get_plants(request, req_users, users=''):
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users)
+        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
     return req_users
 
 
@@ -14012,7 +14012,7 @@ def check_and_get_plants_depts(request, req_users, users=''):
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users)
+        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
     return req_users
 
 def check_and_get_plants_wo_request(request_user, user, req_users):
@@ -14021,7 +14021,7 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
         if not users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
@@ -14042,7 +14042,7 @@ def check_and_get_plants_depts_wo_request(request_user, user, req_users):
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
         if not plant_users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id

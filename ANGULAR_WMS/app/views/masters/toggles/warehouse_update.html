@@ -188,6 +188,12 @@
                 </div>
               </div>
             </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label">Visible Status</label>
+                <select class="form-control" ng-model="showCase.model_data.visible_status" ng-options="status for status in showCase.static_statusList"></select>
+              </div>
+            </div>
           </div>
           <div class="row" ng-if="(!(showCase.update)) && permissions.user_type=='central_admin' || showCase.warehouse_type=='admin'">
             <div class="col-md-4">

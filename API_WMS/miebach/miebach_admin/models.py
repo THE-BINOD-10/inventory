@@ -1428,6 +1428,7 @@ class UserProfile(models.Model):
     place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
     location_code = models.CharField(max_length=64, default='', null=True, blank=True)
     attune_id = models.IntegerField(default=None, blank=True, null=True)
+    visible_status = models.IntegerField(default=1)
 
 
     class Meta:

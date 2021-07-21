@@ -335,6 +335,7 @@ class SupplierMaster(models.Model):
     subsidiary = models.CharField(max_length=512, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency = models.ManyToManyField(CurrencyMaster, default="", related_name = "supplier_master_currency")
+    remarks = models.CharField(max_length=512, default='') 
     # currency_code = models.CharField(max_length=16, default='')
     # netsuite_currency_internal_id = models.IntegerField(default=1)
     is_contracted = models.BooleanField(default=False)

@@ -13404,12 +13404,18 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 admin_subsidiaries = [str(x) for x in admin_subsidiaries]
             except Exception as e:
                 continue
-
-        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) not in admin_subsidiaries):
-            continue
-        user_filter_dict = copy.deepcopy(filter_dict)
-        user_data_dict = copy.deepcopy(data_dict)
-        user_filter_dict['user'] = user_id
+	user_filter_dict = copy.deepcopy(filter_dict)
+	user_data_dict = copy.deepcopy(data_dict)
+	user_filter_dict['user'] = user_id
+        exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
+	print(user_obj.userprofile.stockone_code, user_obj.username)
+	if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) not in admin_subsidiaries):
+            if exist_supplier.exists():
+		exist_supplier.update(status=0, remarks="Subsidiary Mapping Removed")    	
+	    continue
+        #user_filter_dict = copy.deepcopy(filter_dict)
+        #user_data_dict = copy.deepcopy(data_dict)
+        #user_filter_dict['user'] = user_id
         if company_admin_id != user_id:
             if user_data_dict.get('tin_number', ''):
                 if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
@@ -13418,7 +13424,7 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                     user_data_dict['tax_type'] = 'inter_state'
             else:
                 user_data_dict['tax_type'] = ''
-        exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
+        #exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
         if not exist_supplier.exists():
             supplier_master = create_new_supplier(user_obj, filter_dict['supplier_id'], user_data_dict)
         else:

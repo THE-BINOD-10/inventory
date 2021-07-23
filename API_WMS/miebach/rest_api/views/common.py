@@ -14138,48 +14138,78 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
                                             'base_uom': sku_uom.base_uom}
     return sku_uom_dict
 
-def create_consumption_material(consumption, material_sku, qty_dict):
+def create_consumption_material(consumption, material_sku, qty_dict, average_price=0):
     pending_qty = qty_dict['pending_qty']
-    data_dict = {'consumption': consumption, 'sku': material_sku, 'pending_quantity':pending_qty,
-                'consumed_quantity': qty_dict['consumable_qty'], 'consumption_quantity':qty_dict['consumption_qty']}
-    if pending_qty:
-        data_dict['status'] = 2
+    data_dict = {'consumption': consumption, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+                'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty']}
+    if pending_qty==qty_dict['consumption_qty']:
+        data_dict['status'] = 4
+        #4. Stock Not Available
+    elif pending_qty:
+        data_dict['status'] = 5
+        #Insufficient Stock, Partially Booked
+    else:
+        data_dict['status'] = 0
+    creation_date= datetime.datetime.now().isoformat()
+    data_dict["json_data"]  = {"data": [{"creation_date": creation_date, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+                'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty'] }]}
     obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=material_sku.id)
     if obj:
+        if obj[0].json_data:
+            try:
+                ext_json= json.loads(obj[0].json_data)
+                new_json = ext_json["data"] + data_dict["json_data"]["data"]
+                data_dict["json_data"]["data"]= json.dumps(new_json)
+            except Exception as e:
+                log.info("ConsumptionMaterial json_data parse error %s and Test %s error is %s" %
+                         (str(consumption.id), str(consumption.test.test_code), str(e) ))
+                pass
+        data_dict["consumed_quantity"] = obj[0].consumed_quantity + qty_dict["consumed_quantity"]
         obj.update(**data_dict)
     else:
+        data_dict["json_data"] = json.dumps(data_dict["json_data"])
         ConsumptionMaterial.objects.create(**data_dict)
 
 
 def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
     #     consumptions = []
+    log.info("Consumption Booking for %s and Test %s total test %s" %
+                         (str(consumption_obj.id), str(consumption_obj.test.test_code), str(int(total_test))))
     if consumption_obj:
         with transaction.atomic(using='default'):
-	    consumption = Consumption.objects.using('default').select_for_update().\
-                                            filter(id=consumption_obj.id, status=1)
+            consumption = Consumption.objects.using('default').select_for_update().\
+                                            filter(id=consumption_obj.id, status__in=[1, 2, 3, 4])
             consumption = consumption[0]
-	    user = consumption.user
-	    main_user = user
-	    if str(user.userprofile.warehouse_type) == 'DEPT':
-            	main_user = get_admin(main_user)
-	    #main_user = get_company_admin_user(user)
-            bom_check_dict = {'wh_user_id': main_user.id,
+            user = consumption.user
+            main_user = user
+            if str(user.userprofile.warehouse_type) == 'DEPT':
+                main_user = get_admin(main_user)
+            #main_user = get_company_admin_user(user)
+            bom_check_dict = {'status': 1,
+			      'plant_user_id': main_user.id,
+			      'org_id': str(consumption_obj.org_id),
+			      'instrument_id': str(consumption_obj.instrument_id),
                               'product_sku__sku_code': consumption.test.test_code}
-            if consumption.machine:
-                bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
-	    bom_master = BOMMaster.objects.filter(**bom_check_dict)
-	    # if not bom_master.exists():
+           # if consumption.machine:
+           #     bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
+            bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            # if not bom_master.exists():
             #     if 'machine_master__machine_code' in bom_check_dict.keys():
             #         del bom_check_dict['machine_master__machine_code']
             #     bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True
-            pending_qty = 0
             if not bom_master:
+                #BOM Missing
                 consumption.status = 3
                 consumption.save()
+                return "BOM Missing"
+            consumption_book=False
             for bom in bom_master:
+		pending_qty = 0
+                user = bom.wh_user
+		each_line_stock_found = True
                 stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
@@ -14189,53 +14219,74 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
                 # needed_quantity = consumption_qty * pcf
-                needed_quantity = total_test * bom.material_quantity
+                total_consumption_qty = consumption_qty
+                print(consumption.id, "test Code", consumption.test.test_code, "RM ", bom.material_sku.sku_code, total_test,  bom.material_quantity)
+                consumption_material_obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=bom.material_sku.id, status__in=[2, 4])
+                if consumption_material_obj:
+                    if consumption_qty<=consumption_material_obj[0].consumed_quantity:
+                        continue
+                    if consumption_qty>consumption_material_obj[0].consumption_quantity:
+                        total_consumption_qty = total_consumption_qty+ ( consumption_qty - consumption_material_obj[0].consumption_quantity)
+                    consumption_qty = consumption_qty - consumption_material_obj[0].consumed_quantity
                 stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 stock_quantity = stock_quantity if stock_quantity else 0
-                if not stock_quantity:
+                if not stock_quantity or consumption_qty > stock_quantity:
                     stock_found = False
-                    break
-                consumable_qty = needed_quantity
-                if needed_quantity > stock_quantity:
-                    consumable_qty = needed_quantity - stock_quantity
-                    pending_qty = needed_quantity - consumable_qty
-                qty_dict = {'consumption_qty': consumption_qty, 'consumable_qty': consumable_qty, 'pending_qty':pending_qty}
-                create_consumption_material(consumption, bom.material_sku, qty_dict)
+                    each_line_stock_found= False
+                consumed_quantity = consumption_qty
+                if consumption_qty > stock_quantity:
+                    consumed_quantity = stock_quantity
+                    pending_qty = consumption_qty - consumed_quantity
+                # qty_dict = {'consumption_qty': consumption_qty, 'consumable_qty': consumable_qty, 'pending_qty':pending_qty}
+                # create_consumption_material(consumption, bom.material_sku, qty_dict)
+                if consumed_quantity>0:
+                    consumption_book=True
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
-                                              'needed_quantity': needed_quantity,
                                               'sku_pcf': pcf,
+                                              'status' : each_line_stock_found,
+                                              'qty_dict': {'consumption_qty': total_consumption_qty, 'stock_quantity':stock_quantity,
+                                              'consumed_quantity': consumed_quantity, 'pending_qty':pending_qty},
                                               'stocks': stocks}
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
                          (str(consumption.id), str(consumption.test.test_code)))
-                consumption.status = 2
+                consumption.status = 4
+                #Insufficient Stock, Partially Booked
                 consumption.save()
-                return "Stock not found"
-            consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
+	    consumption.user = user
+            if consumption_book:
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
+            
+            print("\nTest Code =", consumption.test.test_code, "consumption id ", consumption.id, "data ", bom_dict)
             for key, value in bom_dict.items():
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
-
-                consumption_data = ConsumptionData.objects.create(
-                    order_id=consumption_id,
-                    consumption_number=consumption_number,
-                    consumption_id=consumption.id,
-                    sku_id=sku.id,
-                    price=sku.average_price,
-                    sku_pcf=value['sku_pcf'],
-                    quantity=value['consumption_qty'],
-                    consumption_type = 2
-                )
-                update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
-                                    consumption_data.id, transact_type='consumption',
-                                    mapping_obj=consumption_data)
-            if bom_master:
+                average_price = sku.average_price
+		if value["qty_dict"]["consumed_quantity"]>0:
+                    consumption_data = ConsumptionData.objects.create(
+                        order_id=consumption_id,
+                        consumption_number=consumption_number,
+                        consumption_id=consumption.id,
+                        sku_id=sku.id,
+                        price=average_price,
+                        sku_pcf=value['sku_pcf'],
+                        quantity=value["qty_dict"]["consumed_quantity"],
+                        consumption_type = 2
+                    )
+                    update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data)
+                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price)
+            if bom_master and stock_found:
                 consumption.status = 0
-                cons_material = ConsumptionMaterial.objects.filter(consumption_id=consumption.id)
-                if cons_material:
-                    cons_material.update(status=0)
+                #Fully Booked
+                # cons_material = ConsumptionMaterial.objects.filter(consumption_id=consumption.id)
+                # if cons_material:
+                #     cons_material.update(status=0)
             consumption.save()
     return "Success"
+
+
 
 def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
     search_parameters = {}

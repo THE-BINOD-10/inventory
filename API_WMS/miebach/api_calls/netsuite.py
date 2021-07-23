@@ -633,7 +633,10 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     status = supplier.get(val, 'active')
                     value = 1
                     if status.lower() != 'active':
-                        value = 0
+			if status.lower()=="hold":
+			    value = 2
+                        else:
+			    value = 0
                 if key == 'subsidiary':
                     value = str(value)
 		if key == 'remarks':

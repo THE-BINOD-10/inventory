@@ -1732,17 +1732,23 @@ class BOMMaster(models.Model):
     material_sku = models.ForeignKey(SKUMaster, default=None)
     product_sku = models.ForeignKey(SKUMaster, related_name='product_sku', blank=True, null=True)
     machine_master = models.ForeignKey(MachineMaster, blank=True, null=True)
+    instrument_id= models.CharField(max_length=128, default='')
+    instrument_name= models.CharField(max_length=350, default='')
+    org_id = models.IntegerField(default=None, blank=True, null=True)
+    plant_user = models.ForeignKey(User, related_name='bommaster_plantuser', blank=True, null=True)
     material_quantity = models.FloatField(default=0)
     wastage_percent = models.FloatField(default=0)
     unit_of_measurement = models.CharField(max_length=10, default='')
     wh_user = models.ForeignKey(User, related_name='bommaster', blank=True, null=True)
     test_type = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1) # status 1=active and  0=inactive
+    remarks =  models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku', 'machine_master', 'wh_user', )
+        unique_together = ('material_sku', 'product_sku', 'instrument_id', 'wh_user', 'org_id')
 
 
 class PriceMaster(models.Model):
@@ -4230,6 +4236,7 @@ class Consumption(models.Model):
     status = models.IntegerField(default=1)
     run_date = models.DateTimeField(blank=True, null=True)
     org_id = models.IntegerField(default=None, blank=True, null=True)
+    instrument_id = models.CharField(max_length=128, default="")
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -4244,7 +4251,12 @@ class ConsumptionMaterial(models.Model):
     consumed_quantity = models.FloatField(default=0)
     pending_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
-
+    stock_quantity = models.FloatField(default=0)
+    price = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    json_data = models.TextField(blank=True, null=True, default=None)
+    
     class Meta:
         db_table = 'CONSUMPTION_MATERIAL'
 

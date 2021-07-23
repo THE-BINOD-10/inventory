@@ -28,8 +28,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Product SKU Code').withTitle('Product SKU Code'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description')
+        DTColumnBuilder.newColumn('Org Id').withTitle('Org Id'),
+        DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'),
+        DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'),
+        DTColumnBuilder.newColumn('Department Name').withTitle('Department Name'),
+        DTColumnBuilder.newColumn('Instrument Id').withTitle('Instrument Id'),
+        DTColumnBuilder.newColumn('Instrument Name').withTitle('Instrument Name'), 
+        DTColumnBuilder.newColumn('Test Code').withTitle('Test Code'),
+        DTColumnBuilder.newColumn('Test Description').withTitle('Test Description')
     ];
 
     vm.dtInstance = {};
@@ -51,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
-                vm.service.apiCall('get_bom_data/', 'GET', {data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
+                vm.service.apiCall('get_bom_data/', 'GET', {instrument_id : aData["Instrument Id"], org_id:aData["Org Id"], data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
                   if(data.message) {
                     vm.update = true;
                     vm.title = "Update BOM";

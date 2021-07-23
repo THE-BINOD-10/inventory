@@ -29,7 +29,7 @@ def init_logger(log_file):
 log = init_logger('logs/metropolis_consumption.log')
 log_err = init_logger('logs/metropolis_consumption_errors.log')
 
-def update_consumption(consumption_objss, user, company):
+def update_consumption(consumption_objss, user, company, filter_datetime_obj= "", run_date= ""):
     if consumption_objss and consumption_objss.get('STATUS_CODE', 0) == 200:
         status_time = consumption_objss.get('TIME', 0)
         if consumption_objss.keys() > 2:
@@ -55,16 +55,16 @@ def update_consumption(consumption_objss, user, company):
                         test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
                         if test_obj.exists():
                             data_dict['test'] = test_obj[0]
-                        else:
+                        '''else:
                             department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
                             dept_type = department_mapping.get(user.userprofile.stockone_code, '')
                             TestMaster.objects.create(**{'test_code':str(test_code), 'test_type':'', 'test_name':str(test_name),
                                                         'department_type':dept_type,'user':company.id, 
                                                         'sku_code':str(test_code), 'wms_code':str(test_code), 'sku_desc':str(test_name)})
                             test_obj = TestMaster.objects.filter(test_code=str(test_code), user=company.id)
-                            data_dict['test'] = test_obj[0]
+                            data_dict['test'] = test_obj[0] '''
                         consumption_filter = {'test_id': str(test_obj[0].id)}
-                        machine_code = consumption_dict.get('DEVICEID', '')
+                        '''machine_code = consumption_dict.get('DEVICEID', '')
                         machine_name = consumption_dict.get('DEVICEName', '') 
                         if machine_code:
                             machine_obj = MachineMaster.objects.filter(user=company.id, machine_code=str(machine_code))
@@ -74,9 +74,14 @@ def update_consumption(consumption_objss, user, company):
                                 data_dict['machine'] = machine_obj[0]
                             else:
                                 machine_obj = MachineMaster.objects.create(**{'machine_code': str(machine_code), 'user': user, 'machine_name': machine_name})
-                                data_dict['machine'] = machine_obj
+                                data_dict['machine'] = machine_obj '''
                         name = consumption_dict.get('NAME', '')
                         orgid = consumption_dict.get('OrgID', '')
+			instrument_id = consumption_dict.get('InstrumentID', '')
+			instrument_name = consumption_dict.get('DEVICEName', '')
+			if instrument_id:
+			    data_dict["instrument_id"]= str(instrument_id)
+			    consumption_filter["instrument_id"] = str(instrument_id)
                         if orgid:
                             data_dict["org_id"]= int(orgid)
                         investigation_id = consumption_dict.get('InvestigationID', '')
@@ -102,12 +107,11 @@ def update_consumption(consumption_objss, user, company):
                         #     consumption_filter['machine'] = instrument_objs[0].machine
                         #     data_dict['machine'] = instrument_objs[0].machine
                         #     machine_name = instrument_objs[0].instrument_name
-                        if machine_name:
-                            org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code, instrument_name=machine_name)
-                        #else:
-                            #org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code)
+                        #new code
+			##if machine_name:
+                        ##    org_objs = OrgDeptMapping.objects.filter(attune_id=orgid, tcode=test_code, instrument_name=machine_name)
                         consumption_user = user
-                        if org_objs:
+                        '''if org_objs:
                             org_dept = org_objs[0].dept_name
                             department = [key for key, value in department_mapping.items() if  value == org_dept]
                             if department:
@@ -120,33 +124,26 @@ def update_consumption(consumption_objss, user, company):
                                 #     continue
                                 if user_groups:
                                     consumption_user = User.objects.get(id = user_groups[0].user.id)
-                                    data_dict['user'] = consumption_user
-                        filter_date = datetime.date.today().strftime('%Y-%m-%d')
+                                    data_dict['user'] = consumption_user '''
+                        if not filter_datetime_obj:
+			    filter_date = datetime.date.today().strftime('%Y-%m-%d')
+			else:
+			    filter_date = filter_datetime_obj.date().strftime('%Y-%m-%d')
                         status = ''
-                        consumption_obj_ = Consumption.objects.filter(user=consumption_user.id, creation_date__gt=filter_date, **consumption_filter)
+			consumption_obj_ = Consumption.objects.filter(org_id=data_dict["org_id"], creation_date__gt=filter_date, **consumption_filter).exclude(status=9)
                         if consumption_obj_.exists():
-                            status = 'Success'
-                            if consumption_obj_[0].status and department and user_groups:
-                                #print("blocked")
-                                status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=data_dict['calculated_total_tests'])
-                            else:
-                                exist_total_test = consumption_obj_[0].calculated_total_tests
-                                if exist_total_test < data_dict['calculated_total_tests']:
-                                    diff_test = data_dict['calculated_total_tests'] - exist_total_test
-                                    #print("blocked")
-                                    status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=diff_test)
-                                    if status == 'Success':
-                                        consumption_obj.update(**data_dict)
+                            status = reduce_consumption_stock(consumption_obj=consumption_obj_[0], total_test=consumption_obj_[0].total_test)
                         else:
-                            run_date = (datetime.date.today() - datetime.timedelta(days=1))
+		 	    if not run_date:
+                            	run_date = (datetime.date.today() - datetime.timedelta(days=1))
                             data_dict['run_date'] = run_date
                             #if department in ['BIOCHE', 'IMMUN']:
                             consumption_obj_ = Consumption.objects.create(**data_dict)
-                            if department and user_groups:
-                                #print("blocked")
-                                status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['calculated_total_tests'])
-                            else:
-                                status = 'Not in dept'
+			    if filter_datetime_obj:
+			 	consumption_obj_.creation_date = filter_datetime_obj
+				consumption_obj_.updation_date = filter_datetime_obj
+				consumption_obj_.save()
+                            status = reduce_consumption_stock(consumption_obj=consumption_obj_, total_test=data_dict['total_test'])
                         if status == 'Success':
                             log.info("Reduced consumption stock for user %s and test code %s, plant %s" %  (str(consumption_user.username), str(test_code),str(user.username)))
                         else:
@@ -164,29 +161,38 @@ class Command(BaseCommand):
         #users = User.objects.filter().exclude(userprofile__attune_id=None)
         users = User.objects.filter().exclude(userprofile__attune_id=None)
         self.stdout.write("Started Consumption call at"+ str(datetime.datetime.now().strftime('%y-%d-%m %H: %M')))
-        for user in users:
-            org_id = user.userprofile.attune_id
-            today = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y%m%d')
-            #today = 20210502
-            subsidiary_id = user.userprofile.company_id
-            subsidiary = User.objects.get(id=subsidiary_id)
-            company = subsidiary
-            integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
-            if not integrations:
-                company = User.objects.get(id=subsidiary.userprofile.company_id)
+        i=1
+        while i>=1:
+            for user in users:
+                #if not user.userprofile.stockone_code=="27001":
+                #    continue
+                org_id = user.userprofile.attune_id
+                # to_date = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+                today_date = (datetime.date.today() - datetime.timedelta(days=i))
+                from_date= today_date.strftime('%Y%m%d')  #from_date
+                to_date = from_date
+                filter_date = (datetime.datetime.today() - datetime.timedelta(days=i-1))
+                run_date = today_date
+                subsidiary_id = user.userprofile.company_id
+                subsidiary = User.objects.get(id=subsidiary_id)
+                company = subsidiary
                 integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
-            #device_dict = {'date':today, 'org_id':org_id}
-            # get_devices(device_dict, company)
-            for integrate in integrations:
-                obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
-                #today = datetime.date.today().strftime('%Y%m%d')
-                # for i in range(1,15):
-                servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
-                data = {'FromDate':today, 'ToDate':today, 'OrgId':org_id}
-                for server in servers:
-                    consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
-                    update_consumption(consumption_obj, user, company)
-        report_data = get_consumption_mail_data(consumption_type='auto', from_date=datetime.date.today())
+                if not integrations:
+                    company = User.objects.get(id=subsidiary.userprofile.company_id)
+                    integrations = Integrations.objects.filter(user=company.id, status=1, name='metropolis')
+                #device_dict = {'date':today, 'org_id':org_id}
+                # get_devices(device_dict, company)
+                for integrate in integrations:
+                    obj = eval(integrate.api_instance)(company_name=integrate.name, user=company)
+                    #today = datetime.date.today().strftime('%Y%m%d') 
+                    # for i in range(1,15):
+                    servers = list(OrgDeptMapping.objects.filter(attune_id=org_id).values_list('server_location', flat=True).distinct())
+                    data = {'FromDate':from_date, 'ToDate':to_date, 'OrgId':org_id}
+                    for server in servers:
+                        consumption_obj = obj.get_consumption_data(data=data,user=company,server=server)
+                        update_consumption(consumption_obj, user, company, filter_datetime_obj=filter_date, run_date=run_date)
+            i-=1 
+	report_data = get_consumption_mail_data(consumption_type='auto', from_date=datetime.date.today())
         #report_data=''
         if report_data:
             receivers = ["alap.christy@metropolisindia.com","pratip.patiyane@metropolisindia.com","flavia@metropolisindia.com","madhuri.bhosale@metropolisindia.com","jyotsna.naik@metropolisindia.com",

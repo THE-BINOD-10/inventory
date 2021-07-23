@@ -1993,8 +1993,8 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'input'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Department', 'Material Code', 'Material Desp','TCode', 'TName','Device ID', 'Device Name',
-                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock',
+    'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Org Id', 'Instrument Id', 'Department', 'Material Code', 'Material Desp', 'TCode', 'TName','Device ID', 'Device Name',
+                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock','Consumption booking time Stock',
                    'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
@@ -18393,7 +18393,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_consumption_data_(search_params, user, sub_user):
+def get_consumption_data_old(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
@@ -18552,6 +18552,219 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
             ('Total Tests', total_tests),
 	    ('TT', result['total_test'])))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
+
+def get_consumption_data_(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
+        get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    search_parameters = {}
+    lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
+          'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
+          'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
+          'total_test','qnp','total_patients', 'total_test', 'total_test','total_test', 'creation_date', 'creation_date',
+          'status','run_date', 'id', 'status']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'test_code' in search_params:
+        search_parameters['test__sku_code'] = search_params['test_code']
+    if 'machine_code' in search_params:
+        search_parameters['machine__sku_code'] = search_params['machine_code']
+    user_filter_check =False
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+	user_filter_check =True
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+	user_filter_check =True
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        user_filter_check =True
+	dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    
+    user_ids = list(users.values_list('id', flat=True))
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    if not user.userprofile.warehouse_type == 'ADMIN' or  user_filter_check:
+	search_parameters['user__in']= user_ids
+    # search_parameters["test__sku_code"] = "P0035"
+    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
+    'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__status', 'consumptionmaterial__pending_quantity',
+     'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc','user', 
+    'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check',
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity']
+    model_data = Consumption.objects.filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
+
+    #if order_term:
+    #    results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = len(model_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    test_consumption_ids_list, sku_codes_list,  machine_code_list, test_code_list, user_ids= [], [], [], [], []
+    for row in results:
+        if row["id"]:
+            test_consumption_ids_list.append(row["id"])
+        if row['consumptionmaterial__sku__sku_code']:
+            sku_codes_list.append(row['consumptionmaterial__sku__sku_code'])
+        if row["test__sku_code"]:
+            test_code_list.append(row["test__sku_code"])
+        if row["machine__machine_code"]:
+            machine_code_list.append(row["machine__machine_code"])
+        if row["user"]:
+            user_ids.append(row["user"])
+    consumption_data_dict= {}
+    consumption_data_obj = ConsumptionData.objects.filter(quantity__gt=0, stock_mapping__isnull=False, is_valid=0, consumption_id__in=test_consumption_ids_list, sku__sku_code__in=sku_codes_list).values("sku__sku_code", "consumption_id", "consumption_number", "quantity")
+    for each_row in consumption_data_obj:
+        group = (each_row["consumption_id"], str(each_row["sku__sku_code"]))
+        consumption_data_dict[group] = {"consumption_number": each_row["consumption_number"],
+                                        "quantity": each_row["quantity"]
+                                        }
+    bom_data_dict= {}
+    bom_obj = BOMMaster.objects.filter(material_sku__sku_code__in=sku_codes_list, 
+                                       product_sku__sku_code__in=test_code_list, 
+                                       machine_master__machine_code__in=machine_code_list)
+    for each_bom in bom_obj:
+        group_by_bom= (each_bom.material_sku.sku_code, each_bom.product_sku.sku_code, each_bom.machine_master.machine_code)
+        bom_data_dict[group_by_bom] = each_bom.unit_of_measurement
+
+
+    stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
+                                                    sku__sku_code__in=sku_codes_list,
+                                                    quantity__gt=0).values('sku__user', "sku__sku_code").distinct().annotate(quantity_sum=Sum('quantity')).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+        # stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    for result in results:
+        order_id = ''
+        consumed_qty = 0
+        # consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        group = (result['id'], str(result['consumptionmaterial__sku__sku_code']))
+        order_id = consumption_data_dict.get(group, {}).get("consumption_number", "")
+        consumed_qty = consumption_data_dict.get(group, {}).get("quantity", 0)
+        #if result['consumptiondata__consumption_number']:
+            #order_id = result['consumptiondata__consumption_number']
+        test_code, machine_code, machine_name, test_name = [''] * 4
+        user_obj = User.objects.get(id=result['user'])
+        department = ''
+        plant_code = user_obj.userprofile.stockone_code
+        plant_name = user_obj.first_name
+        zone_code = user_obj.userprofile.zone
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            department = user_obj.first_name
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+
+        if result['test__sku_code']:
+            test_code = result['test__sku_code']
+            test_name = result['test__sku_desc']
+        if result['machine__machine_code']:
+            machine_code = str(result['machine__machine_code'])
+            machine_name = result['machine__machine_name']
+        status = 'Pending'
+        uom = 'Test'
+        if not result['status']:
+            status = 'Consumption Booked'
+        reason = ''
+        if (result["creation_date"].date().toordinal()- datetime.datetime.strptime('2021-07-01', '%Y-%m-%d').date().toordinal())>=0:
+            if result['status'] == 2:
+                reason = 'Org-Dept Mapping Missing'
+            elif result['status'] == 3:
+                reason = 'BOM Not Available'
+            elif result["consumptionmaterial__status"]==4:
+                reason = 'Stock Not Available'
+            elif result["consumptionmaterial__status"]==5:
+                reason= 'Insufficient Stock, Partially Booked'
+            if result['consumptionmaterial__status'] == 0:
+                status = 'Consumption Booked'
+        else:
+            if result['status'] == 2:
+                reason = 'Stock Not Found'
+            if result['status'] == 3:
+                reason = 'Bom Mapping Not Found'
+        #bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        #if bom_obj:
+        bom_group_by = (result['consumptionmaterial__sku__sku_code'], test_code, machine_code)
+        uom = bom_data_dict.get(bom_group_by, "")
+        month = result['creation_date'].strftime('%b-%Y')
+        stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+                                                    sku__sku_code=result['consumptionmaterial__sku__sku_code'],
+                                                    quantity__gt=0).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+        stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        total_tests = result.get('calculated_total_tests', 0)
+        ord_dict = OrderedDict((
+            ('Date', get_local_date(user, result['creation_date'])),
+            ('Plant Code', plant_code),
+            ('Plant Name', plant_name),
+            ('Org Id', result["org_id"]),
+            ('Department', department),
+	    ('Instrument Id', result["instrument_id"]),
+            ('Warehouse Username', user_obj.username),
+            ('TCode', test_code),
+            ('TName', test_name),
+            ('Device ID', machine_code),
+            ('Device Name', machine_name),
+            ('Status', status),('Consumption Booked Qty', consumed_qty),
+            ('UOM', uom), ('Remarks', 'Auto - Consumption'),
+            ('Consumption ID', order_id),('Current Available Stock', stock_quantity),('Consumption booking time Stock', result["consumptionmaterial__stock_quantity"]),
+            ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
+            ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
+            ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
+            ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
+            ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
+            ('Total Tests', total_tests),
+            ('TT', result['total_test'])))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

@@ -332,7 +332,7 @@ def get_machine_master_results(start_index, stop_index, temp_data, search_term, 
 
 
 def get_supplier_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    search_dict = {'active': 1, 'inactive': 0}
+    search_dict = {'active': 1, 'inactive': 0, 'hold': 2}
     order_data = SUPPLIER_MASTER_HEADERS.values()[0]
     search_params = get_filtered_params(filters, SUPPLIER_MASTER_HEADERS.values())
     if 'status__icontains' in search_params.keys():
@@ -376,9 +376,10 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         if uploads_obj:
             uploads_list = [(i, i.split("/")[-1]) for i in uploads_obj]
         status = 'Inactive'
-        if data.status:
+        if data.status==1:
             status = 'Active'
-
+	elif data.status ==2:
+	    status = 'Hold'
         login_created = False
         user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
         username = ""
@@ -831,32 +832,68 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                          ))
         temp_data['aaData'].append(data_dict)
 
-
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     #sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['product_sku__sku_code', 'product_sku__sku_desc']
-
+    lis = [ 'org_id', 'plant_user__userprofile__stockone_code','plant_user__first_name', 'wh_user__first_name', 'instrument_id' , 'instrument_name', 'product_sku__sku_code', 'product_sku__sku_desc']
+    excel_check = request.POST.get("excel", False)
+    print(excel_check, " excel_check")
+    if excel_check:
+        BOMMaster.objects.filter(product_sku__user=user.id)
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    search_params["status"] = 1 
+    if excel_check:
+        bom_objs = BOMMaster.objects.filter(product_sku__user=user.id, **search_params)
+	for each_row in bom_objs:
+	    temp_data['aaData'].append({ 'Org Id': each_row.org_id,
+		"Plant Code": each_row.plant_user.userprofile.stockone_code,
+	        "Plant Name": each_row.plant_user.first_name,
+		"Department Name": each_row.wh_user.first_name,
+		"Instrument Id": each_row.instrument_id,
+		'Instrument Name': each_row.instrument_name,
+                "Test Code": each_row.product_sku.sku_code,
+                "Test Description": each_row.product_sku.sku_desc,
+                "SKU Code": each_row.material_sku.sku_code,
+                "SKU Description": each_row.material_sku.sku_desc,
+                "Material Quantity": each_row.material_quantity,
+                "Unit of Measurement": each_row.unit_of_measurement,
+                "Test Type": each_row.test_type,
+		#'DT_RowClass': 'results',
+                #'DT_RowAttr': {'data-id': each_row.material_sku.sku_code},
+                "Creation Date": each_row.creation_date.strftime("%d-%m-%Y %H:%M:%S") ,
+                "Updation Date": each_row.updation_date.strftime("%d-%m-%Y %H:%M:%S")})
+        return temp_data
     if order_term:
-        master_data = BOMMaster.objects.filter(product_sku__user=user.id).filter(product_sku__user=user.id,
-                                                                                         **search_params).order_by(
+        master_data = BOMMaster.objects.filter(product_sku__user=user.id).filter(**search_params).order_by(
             order_data). \
-            values('product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
+            values('org_id', 'plant_user__userprofile__stockone_code', 'plant_user__first_name', 'wh_user__first_name', 'instrument_id' , 'instrument_name', 'product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
     if search_term:
         master_data = BOMMaster.objects.filter(product_sku__user=user.id).filter(
-            Q(product_sku__sku_code__icontains=search_term) |
-            Q(product_sku__sku_desc__icontains=search_term), product_sku__user=user.id, **search_params). \
-            values('product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
+            Q(instrument_id__icontains=search_term) |  
+            Q(instrument_name__icontains=search_term) |                                                           
+            Q(product_sku__sku_code__icontains=search_term) | 
+            Q(product_sku__sku_desc__icontains=search_term) |
+            Q(wh_user__first_name__icontains=search_term) | Q(plant_user__first_name__icontains=search_term) |
+            Q(plant_user__userprofile__stockone_code__icontains=search_term) | Q(org_id__icontains=search_term) , **search_params).values('org_id', 'plant_user__userprofile__stockone_code', 'plant_user__first_name', 'wh_user__first_name', 'instrument_id' , 'instrument_name', 'product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = master_data.count()
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
-            {'Product SKU Code': data['product_sku__sku_code'], 'Product Description': data['product_sku__sku_desc'],
-             'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data['product_sku__sku_code']}})
+            { 'Org Id': data["org_id"],
+            'Plant Code': data['plant_user__userprofile__stockone_code'],
+            'Plant Name': data['plant_user__first_name'],
+            'Department Name': data['wh_user__first_name'],
+            'Instrument Id': data["instrument_id"],
+            "Instrument Name": data["instrument_name"],
+            'Test Code': data['product_sku__sku_code'],
+            'Test Description': data['product_sku__sku_desc'],
+            'DT_RowClass': 'results',
+            'DT_RowAttr': {'data-id': data['product_sku__sku_code']}}
+            )
+
 
 
 def get_customer_sku_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -1588,7 +1625,9 @@ def get_machine_update(request):
 def get_bom_data(request, user=''):
     all_data = []
     data_id = request.GET['data_id']
-    bom_master = BOMMaster.objects.filter(product_sku__sku_code=data_id, product_sku__user=user.id)
+    instrument_id = request.GET['instrument_id']
+    org_id= request.GET['org_id']
+    bom_master = BOMMaster.objects.filter(org_id=org_id, product_sku__sku_code=data_id, instrument_id=instrument_id, product_sku__user=user.id, status=1)
     machine_code = ''
     if bom_master[0].machine_master:
         machine_code = bom_master[0].machine_master.machine_code
@@ -1598,6 +1637,13 @@ def get_bom_data(request, user=''):
         unit_list = map(lambda x: x['uom'], uom_data)
         all_data.append({"Material_sku": cond, "Material_Quantity": get_decimal_limit(user.id, bom.material_quantity),
                          "Units": bom.unit_of_measurement,
+			 "instrument_id": bom.instrument_id,
+			 "instrument_name": bom.instrument_name,
+			 "org_id": bom.org_id,
+			 "plant_code": bom.plant_user.userprofile.stockone_code,
+		 	 "plant_name": bom.plant_user.first_name,
+			 "department_name": bom.wh_user.first_name,
+			 "department_code": bom.wh_user.userprofile.stockone_code,
                          "BOM_ID": bom.id, "wastage_percent": bom.wastage_percent,
                          "unit_list": unit_list})
     title = 'Update BOM Data'

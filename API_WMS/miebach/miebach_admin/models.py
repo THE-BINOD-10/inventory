@@ -4275,6 +4275,7 @@ class ConsumptionData(models.Model):
     remarks = models.CharField(max_length=128, default='')
     cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
+    plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

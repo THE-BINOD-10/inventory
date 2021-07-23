@@ -14221,7 +14221,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 # needed_quantity = consumption_qty * pcf
                 total_consumption_qty = consumption_qty
                 print(consumption.id, "test Code", consumption.test.test_code, "RM ", bom.material_sku.sku_code, total_test,  bom.material_quantity)
-                consumption_material_obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=bom.material_sku.id, status__in=[2, 4])
+                consumption_material_obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=bom.material_sku.id)
                 if consumption_material_obj:
                     if consumption_qty<=consumption_material_obj[0].consumed_quantity:
                         continue
@@ -14271,7 +14271,8 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                         price=average_price,
                         sku_pcf=value['sku_pcf'],
                         quantity=value["qty_dict"]["consumed_quantity"],
-                        consumption_type = 2
+                        consumption_type = 2,
+			plant_user= main_user
                     )
                     update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
                                         consumption_data.id, transact_type='consumption',

@@ -18634,7 +18634,7 @@ def get_consumption_data_(search_params, user, sub_user):
      'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check',
     'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity']
-    model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+    model_data = Consumption.objects.filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -18716,7 +18716,7 @@ def get_consumption_data_(search_params, user, sub_user):
         if not result['status']:
             status = 'Consumption Booked'
         reason = ''
-        if (result["creation_date"].date().toordinal()- datetime.datetime.strptime('2021-07-21', '%Y-%m-%d').date().toordinal())>=0:
+        if (result["creation_date"].date().toordinal()- datetime.datetime.strptime('2021-07-01', '%Y-%m-%d').date().toordinal())>=0:
             if result['status'] == 2:
                 reason = 'Org-Dept Mapping Missing'
             elif result['status'] == 3:

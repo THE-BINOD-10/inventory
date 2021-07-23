@@ -592,7 +592,9 @@ def netsuite_validate_supplier(request, supplier, user=''):
             error_message = 'supplier id missing'
             update_error_message(failed_status, 5024, error_message, '', 'supplierid')
         if "currency" not in supplier:
-            supplier.update({ "currency": []})    
+            supplier.update({ "currency": []})
+	if "remarks" not in supplier:
+	    supplier.update({"remarks": ""})     
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
 		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',

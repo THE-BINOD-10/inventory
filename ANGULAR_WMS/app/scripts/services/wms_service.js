@@ -291,6 +291,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       var status = 'Active';
       var color = '#70cf32';
+      if (data == "Hold"){
+	status = 'Hold';
+	color = '#d96557';
+      }
       if (data != status) {
         status = 'Inactive';
         color = '#d96557';

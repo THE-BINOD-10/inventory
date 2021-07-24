@@ -80,7 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   var empty_data = {id: "", name: "", email_id: "", address: "", phone_number: "", status: "Active",
                     create_login: false, login_created: false, currency_code: ""};
-  vm.status_data = ["Inactive", "Active"];
+  vm.status_data = ["Inactive", "Active", 'Hold'];
   vm.title = "Add Supplier";
   vm.update = false;
   vm.message = "";

@@ -846,6 +846,19 @@ def get_filtered_params_search(filters, data_list):
     return filter_params1, filter_params2
 
 
+
+def date_diff_in_seconds(dt2, dt1):
+  timedelta = dt2 - dt1
+  return timedelta.days * 24 * 3600 + timedelta.seconds
+
+def dhms_from_seconds(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    # return (days, hours, minutes, seconds)
+    return (days, hours)
+
+
 @csrf_exempt
 def get_local_date(user, input_date, send_date=''):
     utc_time = input_date.replace(tzinfo=pytz.timezone('UTC'))
@@ -13202,12 +13215,12 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     if not send_parent:
         user_list2 = []
     all_users = list(set(user_list1 + user_list2))
-    all_user_objs = User.objects.filter(id__in=all_users)
+    all_user_objs = User.objects.filter(id__in=all_users, userprofile__visible_status=1)
     if company_id:
         if exclude_company == 'true':
-            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id)
+            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id, userprofile__visible_status=1)
         else:
-            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id)
+            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id, userprofile__visible_status=1)
     return all_user_objs
 
 
@@ -13322,9 +13335,18 @@ def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
     for userId, supplier_obj in master_objs.iteritems():
         for paymentTerm in paymentterms:
             try:
+                payment_code, description="", ""
+                if paymentTerm.get('reference_id'):
+                    payment_code= paymentTerm.get('reference_id')
+                elif paymentTerm.get('payment_code'):
+                    payment_code=paymentTerm.get('payment_code')
+                if paymentTerm.get("description"):
+                    description=paymentTerm.get('description')
+                elif paymentTerm.get("payment_description"):
+                    description = paymentTerm.get('payment_description')
                 payment_supplier_mapping(
-                paymentTerm.get('reference_id'),
-                paymentTerm.get('description'),
+                payment_code,
+                description,
                 supplier_obj
                 )
             except Exception as e:
@@ -13382,12 +13404,18 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 admin_subsidiaries = [str(x) for x in admin_subsidiaries]
             except Exception as e:
                 continue
-
-        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) not in admin_subsidiaries):
-            continue
-        user_filter_dict = copy.deepcopy(filter_dict)
-        user_data_dict = copy.deepcopy(data_dict)
-        user_filter_dict['user'] = user_id
+	user_filter_dict = copy.deepcopy(filter_dict)
+	user_data_dict = copy.deepcopy(data_dict)
+	user_filter_dict['user'] = user_id
+        exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
+	print(user_obj.userprofile.stockone_code, user_obj.username)
+	if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) not in admin_subsidiaries):
+            if exist_supplier.exists():
+		exist_supplier.update(status=0, remarks="Subsidiary Mapping Removed")    	
+	    continue
+        #user_filter_dict = copy.deepcopy(filter_dict)
+        #user_data_dict = copy.deepcopy(data_dict)
+        #user_filter_dict['user'] = user_id
         if company_admin_id != user_id:
             if user_data_dict.get('tin_number', ''):
                 if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
@@ -13396,7 +13424,7 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                     user_data_dict['tax_type'] = 'inter_state'
             else:
                 user_data_dict['tax_type'] = ''
-        exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
+        #exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
         if not exist_supplier.exists():
             supplier_master = create_new_supplier(user_obj, filter_dict['supplier_id'], user_data_dict)
         else:
@@ -13956,7 +13984,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list, userprofile__visible_status=1).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -13981,7 +14009,7 @@ def check_and_get_plants(request, req_users, users=''):
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users)
+        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
     return req_users
 
 
@@ -13990,7 +14018,7 @@ def check_and_get_plants_depts(request, req_users, users=''):
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users)
+        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
     return req_users
 
 def check_and_get_plants_wo_request(request_user, user, req_users):
@@ -13999,7 +14027,7 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
         if not users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
@@ -14020,7 +14048,7 @@ def check_and_get_plants_depts_wo_request(request_user, user, req_users):
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
         if not plant_users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
@@ -14110,48 +14138,78 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
                                             'base_uom': sku_uom.base_uom}
     return sku_uom_dict
 
-def create_consumption_material(consumption, material_sku, qty_dict):
+def create_consumption_material(consumption, material_sku, qty_dict, average_price=0):
     pending_qty = qty_dict['pending_qty']
-    data_dict = {'consumption': consumption, 'sku': material_sku, 'pending_quantity':pending_qty,
-                'consumed_quantity': qty_dict['consumable_qty'], 'consumption_quantity':qty_dict['consumption_qty']}
-    if pending_qty:
-        data_dict['status'] = 2
+    data_dict = {'consumption': consumption, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+                'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty']}
+    if pending_qty==qty_dict['consumption_qty']:
+        data_dict['status'] = 4
+        #4. Stock Not Available
+    elif pending_qty:
+        data_dict['status'] = 5
+        #Insufficient Stock, Partially Booked
+    else:
+        data_dict['status'] = 0
+    creation_date= datetime.datetime.now().isoformat()
+    data_dict["json_data"]  = {"data": [{"creation_date": creation_date, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+                'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty'] }]}
     obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=material_sku.id)
     if obj:
+        if obj[0].json_data:
+            try:
+                ext_json= json.loads(obj[0].json_data)
+                new_json = ext_json["data"] + data_dict["json_data"]["data"]
+                data_dict["json_data"]["data"]= json.dumps(new_json)
+            except Exception as e:
+                log.info("ConsumptionMaterial json_data parse error %s and Test %s error is %s" %
+                         (str(consumption.id), str(consumption.test.test_code), str(e) ))
+                pass
+        data_dict["consumed_quantity"] = obj[0].consumed_quantity + qty_dict["consumed_quantity"]
         obj.update(**data_dict)
     else:
+        data_dict["json_data"] = json.dumps(data_dict["json_data"])
         ConsumptionMaterial.objects.create(**data_dict)
 
 
 def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
     #     consumptions = []
+    log.info("Consumption Booking for %s and Test %s total test %s" %
+                         (str(consumption_obj.id), str(consumption_obj.test.test_code), str(int(total_test))))
     if consumption_obj:
         with transaction.atomic(using='default'):
-	    consumption = Consumption.objects.using('default').select_for_update().\
-                                            filter(id=consumption_obj.id, status=1)
+            consumption = Consumption.objects.using('default').select_for_update().\
+                                            filter(id=consumption_obj.id, status__in=[1, 2, 3, 4])
             consumption = consumption[0]
-	    user = consumption.user
-	    main_user = user
-	    if str(user.userprofile.warehouse_type) == 'DEPT':
-            	main_user = get_admin(main_user)
-	    #main_user = get_company_admin_user(user)
-            bom_check_dict = {'wh_user_id': main_user.id,
+            user = consumption.user
+            main_user = user
+            if str(user.userprofile.warehouse_type) == 'DEPT':
+                main_user = get_admin(main_user)
+            #main_user = get_company_admin_user(user)
+            bom_check_dict = {'status': 1,
+			      'plant_user_id': main_user.id,
+			      'org_id': str(consumption_obj.org_id),
+			      'instrument_id': str(consumption_obj.instrument_id),
                               'product_sku__sku_code': consumption.test.test_code}
-            if consumption.machine:
-                bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
-	    bom_master = BOMMaster.objects.filter(**bom_check_dict)
-	    # if not bom_master.exists():
+           # if consumption.machine:
+           #     bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
+            bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            # if not bom_master.exists():
             #     if 'machine_master__machine_code' in bom_check_dict.keys():
             #         del bom_check_dict['machine_master__machine_code']
             #     bom_master = BOMMaster.objects.filter(**bom_check_dict)
             bom_dict = OrderedDict()
             stock_found = True
-            pending_qty = 0
             if not bom_master:
+                #BOM Missing
                 consumption.status = 3
                 consumption.save()
+                return "BOM Missing"
+            consumption_book=False
             for bom in bom_master:
+		pending_qty = 0
+                user = bom.wh_user
+		each_line_stock_found = True
                 stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
@@ -14161,53 +14219,75 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
                 # needed_quantity = consumption_qty * pcf
-                needed_quantity = total_test * bom.material_quantity
+                total_consumption_qty = consumption_qty
+                print(consumption.id, "test Code", consumption.test.test_code, "RM ", bom.material_sku.sku_code, total_test,  bom.material_quantity)
+                consumption_material_obj = ConsumptionMaterial.objects.filter(consumption_id=consumption.id, sku=bom.material_sku.id)
+                if consumption_material_obj:
+                    if consumption_qty<=consumption_material_obj[0].consumed_quantity:
+                        continue
+                    if consumption_qty>consumption_material_obj[0].consumption_quantity:
+                        total_consumption_qty = total_consumption_qty+ ( consumption_qty - consumption_material_obj[0].consumption_quantity)
+                    consumption_qty = consumption_qty - consumption_material_obj[0].consumed_quantity
                 stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 stock_quantity = stock_quantity if stock_quantity else 0
-                if not stock_quantity:
+                if not stock_quantity or consumption_qty > stock_quantity:
                     stock_found = False
-                    break
-                consumable_qty = needed_quantity
-                if needed_quantity > stock_quantity:
-                    consumable_qty = needed_quantity - stock_quantity
-                    pending_qty = needed_quantity - consumable_qty
-                qty_dict = {'consumption_qty': consumption_qty, 'consumable_qty': consumable_qty, 'pending_qty':pending_qty}
-                create_consumption_material(consumption, bom.material_sku, qty_dict)
+                    each_line_stock_found= False
+                consumed_quantity = consumption_qty
+                if consumption_qty > stock_quantity:
+                    consumed_quantity = stock_quantity
+                    pending_qty = consumption_qty - consumed_quantity
+                # qty_dict = {'consumption_qty': consumption_qty, 'consumable_qty': consumable_qty, 'pending_qty':pending_qty}
+                # create_consumption_material(consumption, bom.material_sku, qty_dict)
+                if consumed_quantity>0:
+                    consumption_book=True
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
-                                              'needed_quantity': needed_quantity,
                                               'sku_pcf': pcf,
+                                              'status' : each_line_stock_found,
+                                              'qty_dict': {'consumption_qty': total_consumption_qty, 'stock_quantity':stock_quantity,
+                                              'consumed_quantity': consumed_quantity, 'pending_qty':pending_qty},
                                               'stocks': stocks}
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
                          (str(consumption.id), str(consumption.test.test_code)))
-                consumption.status = 2
+                consumption.status = 4
+                #Insufficient Stock, Partially Booked
                 consumption.save()
-                return "Stock not found"
-            consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
+	    consumption.user = user
+            if consumption_book:
+                consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'consumption_prefix', None)
+            
+            print("\nTest Code =", consumption.test.test_code, "consumption id ", consumption.id, "data ", bom_dict)
             for key, value in bom_dict.items():
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
-
-                consumption_data = ConsumptionData.objects.create(
-                    order_id=consumption_id,
-                    consumption_number=consumption_number,
-                    consumption_id=consumption.id,
-                    sku_id=sku.id,
-                    price=sku.average_price,
-                    sku_pcf=value['sku_pcf'],
-                    quantity=value['consumption_qty'],
-                    consumption_type = 2
-                )
-                update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
-                                    consumption_data.id, transact_type='consumption',
-                                    mapping_obj=consumption_data)
-            if bom_master:
+                average_price = sku.average_price
+		if value["qty_dict"]["consumed_quantity"]>0:
+                    consumption_data = ConsumptionData.objects.create(
+                        order_id=consumption_id,
+                        consumption_number=consumption_number,
+                        consumption_id=consumption.id,
+                        sku_id=sku.id,
+                        price=average_price,
+                        sku_pcf=value['sku_pcf'],
+                        quantity=value["qty_dict"]["consumed_quantity"],
+                        consumption_type = 2,
+			plant_user= main_user
+                    )
+                    update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data)
+                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price)
+            if bom_master and stock_found:
                 consumption.status = 0
-                cons_material = ConsumptionMaterial.objects.filter(consumption_id=consumption.id)
-                if cons_material:
-                    cons_material.update(status=0)
+                #Fully Booked
+                # cons_material = ConsumptionMaterial.objects.filter(consumption_id=consumption.id)
+                # if cons_material:
+                #     cons_material.update(status=0)
             consumption.save()
     return "Success"
+
+
 
 def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
     search_parameters = {}

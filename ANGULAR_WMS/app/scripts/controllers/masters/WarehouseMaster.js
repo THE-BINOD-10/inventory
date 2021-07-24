@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.statesList = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu Kashmir', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Orissa', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Tripura', 'Uttar Pradesh', 'West Bengal', 'Chhattisgarh', 'Uttarakhand', 'Jharkhand', 'Telangana'];
+    vm.statusList = {1:'Active', 0:'Inactive'};
     vm.warehouse_type = Session.user_profile.warehouse_type;
     vm.warehouse_type_name = Session.user_profile.warehouse_type_name;
     vm.warehouse_level = Session.user_profile.warehouse_level;
@@ -73,10 +74,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.update = true;
                 vm.message = "";
                 vm.title = "Update Warehouse";
-                //vm.status = (aData["Status"] == "Active") ? vm.status_data[0] : vm.status_data[1];
                 $http.get(Session.url+'get_warehouse_user_data/?username='+aData.Username).success(function(data, status, headers, config) {
-                   console.log(data)
                    angular.extend(vm.model_data, data.data);
+                   vm.model_data.visible_status = vm.statusList[vm.model_data.visible_status];
+                   vm.static_statusList = Object.values(vm.statusList);
                    vm.model_data.phone_number = parseInt(vm.model_data.phone_number);
                    vm.customer_name = (vm.model_data.customer_name)? true: false;
                    $state.go('app.masters.WarehouseMaster.Warehouse');
@@ -102,7 +103,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     vm.add = add;
     function add() {
-
       vm.title = "Add Warehouse";
       vm.message = "";
       vm.model_data = {};
@@ -116,6 +116,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.update_warehouse = update_warehouse;
   function update_warehouse() {
+    if (vm.model_data.visible_status == 'Inactive') {
+      vm.model_data.visible_status = 0;
+    } else {
+      vm.model_data.visible_status = 1;
+    }
     vm.service.apiCall("update_warehouse_user/", "POST", vm.model_data, true).then(function(data) {
       if(data.message) {
         if(data.data == "Updated Successfully") {
@@ -139,6 +144,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (!(vm.model_data)) {
         vm.model_data.phone_number = "";
       }
+      if (vm.model_data.visible_status == 'Inactive') {
+        vm.model_data.visible_status = 0;
+      } else {
+        vm.model_data.visible_status = 1;
+      }
       vm.service.apiCall("add_warehouse_user/", "POST", vm.model_data, true).then(function(data) {
         if(data.message) {
           if(data.data == "Added Successfully") {
@@ -156,7 +166,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = submit;
   function submit(form) {
     if(form.username.$valid && form.first_name.$valid) {
-
       if ("Add Warehouse" == vm.title) {
         create_warehouse(form);
       } else {

@@ -33,7 +33,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('supplier_id').withTitle('Supplier ID'),
+        DTColumnBuilder.newColumn('supplier_name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('wms_code').withTitle('SKU Code'),
+        DTColumnBuilder.newColumn('sku_desc').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('supplier_code').withTitle("Supplier's SKU Code"),
         DTColumnBuilder.newColumn('costing_type').withTitle("Costing Type"),
         DTColumnBuilder.newColumn('price').withTitle("Price"),
@@ -46,6 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     ];
     if(vm.warehouse_level==0) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse_name').withTitle('Warehouse'));
+      vm.dtColumns.push(DTColumnBuilder.newColumn('plant_code').withTitle('Plant Code'));
     }
 
     vm.dtInstance = {};

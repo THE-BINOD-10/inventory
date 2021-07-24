@@ -592,24 +592,28 @@ def netsuite_validate_supplier(request, supplier, user=''):
             error_message = 'supplier id missing'
             update_error_message(failed_status, 5024, error_message, '', 'supplierid')
         if "currency" not in supplier:
-            supplier.update({ "currency": []})    
+            supplier.update({ "currency": []})
+	if "remarks" not in supplier:
+	    supplier.update({"remarks": ""})     
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
 		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
-                         'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid',  "currency": "currency",
+                         'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid',  "currency": "currency", 'remarks': 'remarks'
 		                }
         number_field = {'credit_period':0, 'lead_time':0, 'po_exp_duration':0}
         data_dict = {}
         supplier_count = 0
         gst_check = []
         currency_array = []
+	temp_address_list = []
         for address in supplier['addresses']:
             # if supplier_count and address['gstno'] not in gst_check:
             supplier_id = orignal_supplier_id + '-' + str(address['addressid'])
-            filter_dict = {'supplier_id': supplier_id }
+            temp_address_list.append(str(address['addressid']))
+	    filter_dict = {'supplier_id': supplier_id }
             for key,val in supplier_dict.iteritems():
                 value = supplier.get(val, '')
                 if key in number_field.keys():
@@ -631,9 +635,15 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     status = supplier.get(val, 'active')
                     value = 1
                     if status.lower() != 'active':
-                        value = 0
+			if status.lower()=="hold":
+			    value = 2
+                        else:
+			    value = 0
                 if key == 'subsidiary':
                     value = str(value)
+		if key == 'remarks':
+		    if not value:
+			value= ""
                 if key == 'netsuite_currency_internal_id':
                     value= int(str(value))
                 if key == 'account_number':
@@ -700,7 +710,9 @@ def netsuite_validate_supplier(request, supplier, user=''):
 
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
-        return failed_status.values()
+	if orignal_supplier_id and temp_address_list:        
+	    supplier_objs = SupplierMaster.objects.filter(supplier_id__contains=str(orignal_supplier_id).strip()).exclude(address_id__in=temp_address_list).update(status=0, remarks= "Address id changed")
+	return failed_status.values()
 
     except Exception as e:
         traceback.print_exc()

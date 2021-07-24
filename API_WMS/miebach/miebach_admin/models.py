@@ -294,7 +294,7 @@ class CurrencyMaster(models.Model):
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=128, primary_key=True)
     supplier_id = models.CharField(max_length=128, default='', db_index=True)
-    user = models.PositiveIntegerField()
+    user = models.PositiveIntegerField(db_index=True)
     name = models.CharField(max_length=256, db_index=True)
     address_id = models.CharField(max_length=256, null=True)
     address = models.CharField(max_length=256)
@@ -4214,9 +4214,9 @@ class OrgInstrumentMapping(models.Model):
 
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, related_name='consumption_user')
+    user = models.ForeignKey(User, related_name='consumption_user',  db_index=True)
     machine = models.ForeignKey(MachineMaster, related_name='consumption_machine', blank=True, null=True)
-    test = models.ForeignKey(TestMaster, related_name='consumption_test',blank=True, null=True)
+    test = models.ForeignKey(TestMaster, related_name='consumption_test',blank=True, null=True, db_index=True)
     patient_samples = models.FloatField(default=0)
     rerun = models.FloatField(default=0)
     one_time_process = models.FloatField(default=0)
@@ -4235,18 +4235,19 @@ class Consumption(models.Model):
     remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
     run_date = models.DateTimeField(blank=True, null=True)
-    org_id = models.IntegerField(default=None, blank=True, null=True)
-    instrument_id = models.CharField(max_length=128, default="")
+    org_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
+    instrument_id = models.CharField(max_length=128, default="", db_index=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION'
+	index_together = (('instrument_id', 'user', 'org_id'), ('test', 'user'))
 
 class ConsumptionMaterial(models.Model):
     id = BigAutoField(primary_key=True)
-    consumption = models.ForeignKey(Consumption)
-    sku = models.ForeignKey(SKUMaster, related_name='material_sku')
+    consumption = models.ForeignKey(Consumption, db_index=True)
+    sku = models.ForeignKey(SKUMaster, related_name='material_sku', db_index=True)
     consumption_quantity = models.FloatField(default=0)
     consumed_quantity = models.FloatField(default=0)
     pending_quantity = models.FloatField(default=0)
@@ -4259,13 +4260,14 @@ class ConsumptionMaterial(models.Model):
     
     class Meta:
         db_table = 'CONSUMPTION_MATERIAL'
+	index_together = (('consumption', 'sku'), ('sku', ), ('consumption', ))
 
 class ConsumptionData(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True, default=0)
     consumption_number = models.CharField(max_length=64, default='')
-    consumption = models.ForeignKey(Consumption, blank=True, null=True)
-    sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    consumption = models.ForeignKey(Consumption, blank=True, null=True, db_index=True)
+    sku = models.ForeignKey(SKUMaster, related_name='consumption_sku', db_index=True)
     cancel_user = models.ForeignKey(User, related_name="consumption_cancel_user", blank=True, null=True)
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
@@ -4275,13 +4277,13 @@ class ConsumptionData(models.Model):
     remarks = models.CharField(max_length=128, default='')
     cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
-    plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True)
+    plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True, db_index=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION_DATA'
-        index_together = (('sku', 'creation_date'))
+        index_together = (('sku', 'creation_date'), ('sku', ), ('plant_user', ), ('consumption', ))
 
 
 class AdjustementConsumptionData(models.Model):

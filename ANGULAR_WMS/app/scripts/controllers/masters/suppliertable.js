@@ -40,7 +40,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     DTColumnBuilder.newColumn('email_id').withTitle('Email'),
     DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
       return vm.service.status(full.status);
-    }).withOption('width', '80px')
+    }).withOption('width', '80px'),
+    DTColumnBuilder.newColumn('remarks').withTitle('Remarks'),
+    DTColumnBuilder.newColumn('tin_number').withTitle('GST Number'),
+    DTColumnBuilder.newColumn('country').withTitle('Country'),
+    DTColumnBuilder.newColumn('state').withTitle('State'),
+    DTColumnBuilder.newColumn('pincode').withTitle('PIN Code'),
+    DTColumnBuilder.newColumn('tax_type').withTitle('TAX Type'),
   ];
 
   vm.dtInstance = {};

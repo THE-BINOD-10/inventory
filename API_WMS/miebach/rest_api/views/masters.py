@@ -409,7 +409,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('fulfillment_amt', data.fulfillment_amt),
                                                 ('credibility', data.credibility), ('uploads_list', uploads_list),
                                                 ('country', data.country), ('pincode', data.pincode),
-                                                ('status', status), ('supplier_type', data.supplier_type),
+                                                ('status', status),('remarks', data.remarks), ('supplier_type', data.supplier_type),
                                                 ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                 ('username', username), ('login_created', login_created),
                                                 ('DT_RowId', data.id), ('DT_RowClass', 'results'),

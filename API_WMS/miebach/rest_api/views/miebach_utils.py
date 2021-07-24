@@ -2226,7 +2226,8 @@ SKU_WH_MAPPING = OrderedDict(
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
     [('Supplier ID', 'supplier_id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
-     ('Email', 'email_id'), ('Status', 'status')])
+     ('Email', 'email_id'), ('Status', 'status'), ('Remarks', 'remarks'), ('GST Number', 'tin_number'), ('Country', 'country'),
+     ('State', 'state'), ('PIN Code', 'pin_code'), ('TAX Type', 'tax_type')])
 
 MACHINE_MASTER_HEADERS = OrderedDict(
     [('Machine Code', 'machine_code'), ('Machine Name', 'machine_name'),

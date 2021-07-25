@@ -43,9 +43,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }).withOption('width', '80px'),
     DTColumnBuilder.newColumn('remarks').withTitle('Remarks'),
     DTColumnBuilder.newColumn('tin_number').withTitle('GST Number'),
-    DTColumnBuilder.newColumn('country').withTitle('Country'),
+    //DTColumnBuilder.newColumn('country').withTitle('Country'),
     DTColumnBuilder.newColumn('state').withTitle('State'),
-    DTColumnBuilder.newColumn('pincode').withTitle('PIN Code'),
+    //DTColumnBuilder.newColumn('pincode').withTitle('PIN Code'),
     DTColumnBuilder.newColumn('tax_type').withTitle('TAX Type'),
   ];
 

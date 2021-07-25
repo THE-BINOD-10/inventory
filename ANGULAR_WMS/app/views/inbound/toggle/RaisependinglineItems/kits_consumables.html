@@ -15,6 +15,9 @@
           <th>Last 3M Avg Consumption</th>
           <th>Available Stock</th>
           <th>OpenPO Qty</th>
+          <th>Last Supplier-Price</th>
+          <th>Least Supplier-Price</th>
+          <th>Least Supplier-Price(Pan India)</th>
           <!-- <th>Suggested PR Qty</th> -->
           <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
           <th class="plus"></th>
@@ -72,6 +75,9 @@
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
           <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td> -->
+          <td class="text-center"> <span>{{product.fields.sku.last_supplier}}</span> </td>
+          <td class="text-center"> <span>{{product.fields.sku.least_supplier}}</span> </td>
+          <td class="text-center"> <span>{{product.fields.sku.least_supplier_pi}}</span> </td>
           <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
           <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

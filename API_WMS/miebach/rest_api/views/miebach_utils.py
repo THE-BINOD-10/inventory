@@ -2226,8 +2226,8 @@ SKU_WH_MAPPING = OrderedDict(
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
     [('Supplier ID', 'supplier_id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
-     ('Email', 'email_id'), ('Status', 'status'), ('Remarks', 'remarks'), ('GST Number', 'tin_number'), ('Country', 'country'),
-     ('State', 'state'), ('PIN Code', 'pin_code'), ('TAX Type', 'tax_type')])
+     ('Email', 'email_id'), ('Status', 'status'), ('Remarks', 'remarks'), ('GST Number', 'tin_number'),
+     ('State', 'state'), ('TAX Type', 'tax_type')])
 
 MACHINE_MASTER_HEADERS = OrderedDict(
     [('Machine Code', 'machine_code'), ('Machine Name', 'machine_name'),
@@ -17824,7 +17824,9 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         po_delta_days = delta_po_date.days
         final_status = result['status']
         uom_dict = skus_uom_dict.get(sku_code)
-        pcf = uom_dict.get('sku_conversion', 1)
+        if not uom_dict:
+	    uom_dict = {}
+	pcf = uom_dict.get('sku_conversion', 1)
         if result['received_quantity'] == result['open_po__order_quantity']:
             final_status = 'Received'
         elif result['status'] == 'location-assigned' and result['reason'] and result['received_quantity'] == 0:
@@ -17971,8 +17973,8 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('Conversion Factor', pcf),
             ('PO Base UOM Qty', po_quantity * pcf),
             ('Pending PO Base UOM Qty', po_receivable_qty * pcf),
-            ('Pending PO Base UOM', uom_dict["base_uom"]),
-            ('PO Base UOM', uom_dict["base_uom"]),
+            ('Pending PO Base UOM', uom_dict.get("base_uom", "")),
+            ('PO Base UOM', uom_dict.get("base_uom", "")),
             ('Material Description', sku_desc),
             ('SKU Class', sku_class),
             ('SKU Group', sku_group),

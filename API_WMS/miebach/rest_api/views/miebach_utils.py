@@ -12214,7 +12214,10 @@ def get_ageing_data(search_params, user, sub_user):
         mfg_date, exp_date = '', ''
         days_to_expired = ''
         uom_dict = skus_uom_dict.get(data.sku.sku_code)#get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
-        pcf = uom_dict.get('sku_conversion', 1)
+        if not uom_dict:
+	    log.info("UOM not present Error " +str(data.sku.sku_code) + " User = " + str(data.sku.user))
+	    uom_dict = {}
+	pcf = uom_dict.get('sku_conversion', 1)
         pcf_for_val = 1
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
@@ -12315,9 +12318,9 @@ def get_ageing_data(search_params, user, sub_user):
                                 ('pcf', pcf),
                                 ('Conversion Factor', pcf),
                                 ('dept_type', dept_type),
-                                ('Purchase UOM', uom_dict["measurement_unit"]),
+                                ('Purchase UOM', uom_dict.get("measurement_unit", '')),
                                 ('Purchase Quantity', get_decimal_limit(user.id, quantity)),
-                                ('Base UOM', uom_dict["base_uom"]),
+                                ('Base UOM', uom_dict.get("base_uom", '')),
                                 ('Base Quantity', get_decimal_limit(user.id, data.quantity)),
                                 ('Expiry Range', expiry_range),
                                 ('GRN Number', grn_number),

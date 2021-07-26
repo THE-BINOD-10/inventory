@@ -4256,6 +4256,7 @@ class ConsumptionMaterial(models.Model):
     pending_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     stock_quantity = models.FloatField(default=0)
+    sku_pcf = models.FloatField(default=0)
     price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

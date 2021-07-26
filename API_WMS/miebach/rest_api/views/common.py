@@ -14141,9 +14141,9 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
                                             'base_uom': sku_uom.base_uom}
     return sku_uom_dict
 
-def create_consumption_material(consumption, material_sku, qty_dict, average_price=0):
+def create_consumption_material(consumption, material_sku, qty_dict, average_price=0, sku_pcf=1):
     pending_qty = qty_dict['pending_qty']
-    data_dict = {'consumption': consumption, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+    data_dict = {'consumption': consumption, 'sku_pcf': sku_pcf, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
                 'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty']}
     if pending_qty==qty_dict['consumption_qty']:
         data_dict['status'] = 4
@@ -14280,7 +14280,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data)
-                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price)
+                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price, sku_pcf=value['sku_pcf'])
             if bom_master and stock_found:
                 consumption.status = 0
                 #Fully Booked

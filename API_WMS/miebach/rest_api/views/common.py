@@ -13175,10 +13175,13 @@ def get_company_id(user, level=''):
     return company.id
 
 
-def get_related_users(user_id, level=0, company_id=''):
+def get_related_users(user_id, level=0, company_id='', exclude_depts= False):
     """ this function generates all users related to a user """
     user = User.objects.get(id=user_id)
     main_company_id = get_company_id(user)
+    if exclude_depts:
+	user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) | Q(user__userprofile__warehouse_level=level), company_id=main_company_id)
+	user_groups = user_groups.filter(Q(user__userprofile__warehouse_type__in=["STORE"])| Q(admin_user__userprofile__warehouse_type__in=["STORE"]))
     if not level:
         user_groups = UserGroups.objects.filter(company_id=main_company_id)
     else:
@@ -13381,7 +13384,7 @@ def sync_supplier_async(id, user_id):
 def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[], currency_objs =[]):
     supplier_sync = get_misc_value('supplier_sync', user.id)
     if (supplier_sync == 'true' or force) and not current_user :
-        user_ids = get_related_users(user.id)
+        user_ids = get_related_users(user.id,level=1, exclude_depts= True)
     else:
         user_ids = [user.id]
     if userids_list:
@@ -14138,9 +14141,9 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
                                             'base_uom': sku_uom.base_uom}
     return sku_uom_dict
 
-def create_consumption_material(consumption, material_sku, qty_dict, average_price=0):
+def create_consumption_material(consumption, material_sku, qty_dict, average_price=0, sku_pcf=1):
     pending_qty = qty_dict['pending_qty']
-    data_dict = {'consumption': consumption, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+    data_dict = {'consumption': consumption, 'sku_pcf': sku_pcf, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
                 'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty']}
     if pending_qty==qty_dict['consumption_qty']:
         data_dict['status'] = 4
@@ -14277,7 +14280,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data)
-                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price)
+                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price, sku_pcf=value['sku_pcf'])
             if bom_master and stock_found:
                 consumption.status = 0
                 #Fully Booked
@@ -14781,7 +14784,6 @@ def repush_grns(grns_list, user, type='GRN'):
                         if check_batch_dict[_open.sku.sku_code] != batch_number:
                             print('batch_num',batch_number, 'SKU', _open.sku.sku_code, 'quantity',data.quantity)
                             for row_line in grn_data['items']:
-                                # import pdb;pdb.set_trace()
                                 if float(row_line['unit_price'])==float(data.price) and row_line['sku_code']== _open.sku.sku_code and row_line['open_po_id']==_open.id :
                                     exp_date=''
                                     if row_line['exp_date']:

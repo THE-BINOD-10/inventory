@@ -14511,6 +14511,7 @@ def update_sku_avg_from_rtv(user, rtv_number):
         price,tax = [0]*2
         sp = rtv.seller_po_summary
         pcf = ''
+        skucf = 1
         if sp.batch_detail:
             price = sp.batch_detail.buy_price
             tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent

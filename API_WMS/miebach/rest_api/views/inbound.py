@@ -602,36 +602,24 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO')
         pr_numbers = []
-        if pa_mails:
-            for pa_mail in pa_mails:
-                currentUserLevel = pa_mail.level
-                configName = pa_mail.pr_approval.configName
-                pr_numbers = list(PurchaseApprovals.objects.filter(
-                                configName=configName,
-                                level=currentUserLevel,
-                                purchase_type='PO',
-                                status='').distinct().values_list('pending_po_id', flat=True))
-                #pr_numbers = [pa_mail.pr_approval.pending_po_id]
-                filtersMap.setdefault('pending_po_id__in', [])
-                filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
-        # memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
-        # for memObj in memQs:
-        #     master_id = memObj.master_id
-        #     prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
-        #     if prApprObj.exists():
-        #         currentUserLevel = prApprObj[0].level
-        #         configName = prApprObj[0].name
+        pa_mails = list(PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO').values_list('pr_approval_id', flat=True).distinct())
+        if len(pa_mails) > 0:
+            pr_numbers = list(PurchaseApprovals.objects.filter(id__in = pa_mails).values_list('pending_po_id', flat=True).distinct())
+            filtersMap['pending_po_id__in'] = pr_numbers
+        # pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO')
+        # pr_numbers = []
+        # if pa_mails:
+        #     for pa_mail in pa_mails:
+        #         currentUserLevel = pa_mail.level
+        #         configName = pa_mail.pr_approval.configName
         #         pr_numbers = list(PurchaseApprovals.objects.filter(
         #                         configName=configName,
         #                         level=currentUserLevel,
-        #                         status='').distinct().values_list('purchase_number', flat=True))
-        #     else:
-        #         pr_numbers = []
-        #     filtersMap.setdefault('pending_po__po_number__in', [])
-        #     filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
-        #if not pa_mails.exists(): # Creator Sub Users
+        #                         purchase_type='PO',
+        #                         status='').distinct().values_list('pending_po_id', flat=True))
+        #         filtersMap.setdefault('pending_po_id__in', [])
+        #         filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
         if not filtersMap.get('pending_po_id__in', ''):
             filtersMap['pending_po__requested_user'] = request.user.id
             if filtersMap.has_key('pending_po_id__in'):

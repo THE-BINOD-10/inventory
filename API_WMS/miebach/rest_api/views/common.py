@@ -6894,27 +6894,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
         skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     is_contracted_supplier = findIfContractedSupplier(user, sku_code)
-    pr_extra_data = {'last_supplier': '', 'last_supplier_price': 0, 'least_supplier': '', 'least_supplier_price': '',
-                     'least_supplier_pi': '', 'least_supplier_pi_price': ''}
-    if send_supp_info == 'true':
-        current_date = datetime.datetime.now()
-        last_year_date = datetime.datetime.now() - relativedelta(years=1)
-        last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
-                                        creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
-        if last_po.exists():
-            last_po_obj = last_po.latest('creation_date')
-            pr_extra_data['last_supplier'] = last_po_obj .open_po.supplier.name
-            pr_extra_data['last_supplier_price'] = last_po_obj .open_po.price
-            least_po_obj = last_po.order_by('open_po__price')[0]
-            pr_extra_data['least_supplier'] = least_po_obj.open_po.supplier.name
-            pr_extra_data['least_supplier_price'] = least_po_obj.open_po.price
-        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
-        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
-                                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
-        if least_po.exists():
-            least_po_obj = least_po.order_by('open_po__price')[0]
-            pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
-            pr_extra_data['least_supplier_price_pi'] = least_po_obj.open_po.price
+    pr_extra_data = get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
@@ -15025,3 +15005,27 @@ def get_sku_code_inc_number(user, instanceName, category, check=False):
     sku_code = '%s%s' % (type_name, str(inc_value).zfill(6))
     return True, sku_code
 
+def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
+    pr_extra_data = {'last_supplier': '', 'last_supplier_price': 0, 'least_supplier': '', 'least_supplier_price': '',
+                     'least_supplier_pi': '', 'least_supplier_price_pi': ''}
+    if send_supp_info == 'true':
+        current_date = datetime.datetime.now()
+        last_year_date = datetime.datetime.now() - relativedelta(years=1)
+        last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
+                                        creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        if last_po.exists():
+            last_po_obj = last_po.latest('creation_date')
+            pr_extra_data['last_supplier'] = last_po_obj .open_po.supplier.name
+            pr_extra_data['last_supplier_price'] = last_po_obj .open_po.price
+            least_po_obj = last_po.order_by('open_po__price')[0]
+            pr_extra_data['least_supplier'] = least_po_obj.open_po.supplier.name
+            pr_extra_data['least_supplier_price'] = least_po_obj.open_po.price
+        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
+        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
+                                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        if least_po.exists():
+            least_po_obj = least_po.order_by('open_po__price')[0]
+            pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
+            pr_extra_data['least_supplier_price_pi'] = least_po_obj.open_po.price
+
+    return pr_extra_data

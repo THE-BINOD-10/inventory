@@ -2191,6 +2191,7 @@ def generated_actual_pr_data(request, user=''):
         resubmitting_user = False
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
                                         model_id=lineItemId)
+        pr_extra_data = get_pr_extra_supplier_data(user, storeObj.username, sku_code, 'true')
         if pr_supplier_data.exists() and not is_purchase_approver:
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
@@ -2340,6 +2341,7 @@ def generated_actual_pr_data(request, user=''):
                                     'supplierDetails': supplierDetailsMap,
                                     'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,
+                                    'pr_extra_data': pr_extra_data,
                                     }, 'pk': lineItemId})
     response_dict = {'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                     'pr_created_date': pr_created_date, 'store': store,
@@ -3487,6 +3489,9 @@ def get_raisepo_group_data(user, myDict):
             temp_tax = myDict['temp_tax'][i]
         if 'temp_cess_tax' in myDict.keys():
             temp_cess_tax = myDict['temp_cess_tax'][i]
+        pr_extra_data = ''
+        if 'pr_extra_data' in myDict.keys():
+            pr_extra_data = myDict['pr_extra_data'][i]
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
@@ -3519,7 +3524,7 @@ def get_raisepo_group_data(user, myDict):
                                    'description': description, 'service_start_date': service_start_date,
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
                                    'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax,
-                                   'temp_cess_tax': temp_cess_tax})
+                                   'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -4420,6 +4425,12 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 model_id=lineObj.id,
                 model_name='PendingLineItemMiscDetails',
                 model_json=misc_json
+            )
+        if value.get('pr_extra_data', ''):
+            TempJson.objects.create(
+                model_id=lineObj.id,
+                model_name='pr_extra_data',
+                model_json=value['pr_extra_data']
             )
 
     file_obj = request.FILES.get('files-0', '')

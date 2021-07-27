@@ -31,6 +31,9 @@
         <th>Last 3M Avg Consumption</th>
         <th>Available Stock</th>
         <th>OpenPO Qty</th>
+        <th>Last Supplier-Price</th>
+        <th>Least Supplier-Price</th>
+        <th>Least Supplier-Price(Pan India)</th>
         <!-- <th>Suggested PR Qty</th> -->
         <th class="plus" ng-if="showCase.quantity_editable"></th>
       </tr>
@@ -134,6 +137,9 @@
         <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
         <td class="text-center"> <span class="text_element">{{product.fields.sku.capacity}}</span> </td>
         <td class="text-center"> <span class="text_element">{{product.fields.sku.intransit_quantity}}</span> </td>
+        <td class="text-center"> <span>{{product.fields.pr_extra_data.last_supplier}}-{{product.fields.pr_extra_data.last_supplier_price}}</span> </td>
+        <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier}}-{{product.fields.pr_extra_data.least_supplier_price}}</span> </td>
+        <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier_pi}}-{{product.fields.pr_extra_data.least_supplier_price_pi}}</span></td>
         <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
           <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
           <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i></td>

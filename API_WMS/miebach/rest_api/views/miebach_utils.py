@@ -1994,7 +1994,7 @@ CONSUMPTION_DATA_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
     'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Org Id', 'Instrument Id', 'Department', 'Material Code', 'Material Desp', 'TCode', 'TName','Device ID', 'Device Name',
-                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Current Available Stock','Consumption booking time Stock',
+                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Pending Quantity', 'Consumption booking time Stock',
                    'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
@@ -18579,7 +18579,7 @@ def get_consumption_data_(search_params, user, sub_user):
     lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
           'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
           'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
-          'total_test','qnp','total_patients', 'total_test', 'total_test','total_test', 'creation_date', 'creation_date',
+          'total_test','qnp','total_patients', 'total_test', 'consumptionmaterial__pending_quantity', 'total_test','total_test', 'creation_date', 'creation_date',
           'status','run_date', 'id', 'status']
 
     col_num = search_params.get('order_index', 0)
@@ -18684,10 +18684,10 @@ def get_consumption_data_(search_params, user, sub_user):
         bom_data_dict[group_by_bom] = each_bom.unit_of_measurement
 
 
-    stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
-                                                    sku__sku_code__in=sku_codes_list,
-                                                    quantity__gt=0).values('sku__user', "sku__sku_code").distinct().annotate(quantity_sum=Sum('quantity')).\
-                    order_by('batch_detail__expiry_date', 'receipt_date')
+    #stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
+    #                                                sku__sku_code__in=sku_codes_list,
+    #                                                quantity__gt=0).values('sku__user', "sku__sku_code").distinct().annotate(quantity_sum=Sum('quantity')).\
+    #                order_by('batch_detail__expiry_date', 'receipt_date')
         # stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
     for result in results:
         order_id = ''
@@ -18743,11 +18743,11 @@ def get_consumption_data_(search_params, user, sub_user):
         bom_group_by = (result['consumptionmaterial__sku__sku_code'], test_code, machine_code)
         uom = bom_data_dict.get(bom_group_by, "")
         month = result['creation_date'].strftime('%b-%Y')
-        stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+        '''stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
-        stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+        stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']'''
         total_tests = result.get('calculated_total_tests', 0)
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
@@ -18763,7 +18763,7 @@ def get_consumption_data_(search_params, user, sub_user):
             ('Device Name', machine_name),
             ('Status', status),('Consumption Booked Qty', consumed_qty),
             ('UOM', uom), ('Remarks', 'Auto - Consumption'),
-            ('Consumption ID', order_id),('Current Available Stock', stock_quantity),('Consumption booking time Stock', result["consumptionmaterial__stock_quantity"]),
+            ('Consumption ID', order_id),('Pending Quantity', result["consumptionmaterial__pending_quantity"]),('Consumption booking time Stock', result["consumptionmaterial__stock_quantity"]),
             ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
             ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
             ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),

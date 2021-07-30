@@ -2082,7 +2082,7 @@ def generated_actual_pr_data(request, user=''):
     pr_created_date = ''
     approval_remarks = ''
     validateFlag = 0
-    uploaded_file_dict = {}
+    uploaded_file_dict = []
     log_full_pr_number = ''
     enquiryRemarks = []
     if len(record):
@@ -2102,9 +2102,9 @@ def generated_actual_pr_data(request, user=''):
             convertPoFlag = True
 
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
-    if master_docs.exists():
-        uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                              'file_url': '/' + master_docs[0].uploaded_file.name}
+    for master_doc in master_docs:
+        uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
+                              'file_url': '/' + master_doc.uploaded_file.name})
 
     pa_uploaded_file_dict = {}
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
@@ -4433,18 +4433,19 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 model_json=value['pr_extra_data']
             )
 
-    file_obj = request.FILES.get('files-0', '')
-    if file_obj:
+    file_objs = request.FILES
+    for file_obj_tup in file_objs.iteritems():
+        file_obj = file_obj_tup[1]
         master_docs_obj = MasterDocs.objects.filter(master_id=pendingPurchaseObj.id, master_type=apprType,
                                                     user_id=user.id)
-        if not master_docs_obj:
-            upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
-        else:
-            master_docs_obj = master_docs_obj[0]
-            if os.path.exists(master_docs_obj.uploaded_file.path):
-                os.remove(master_docs_obj.uploaded_file.path)
-            master_docs_obj.uploaded_file = file_obj
-            master_docs_obj.save()
+        #if not master_docs_obj:
+        upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
+        #else:
+        #    master_docs_obj = master_docs_obj[0]
+        #    if os.path.exists(master_docs_obj.uploaded_file.path):
+        #        os.remove(master_docs_obj.uploaded_file.path)
+        #    master_docs_obj.uploaded_file = file_obj
+        #    master_docs_obj.save()
     return totalAmt, pendingPurchaseObj
 
 

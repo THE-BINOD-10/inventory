@@ -4240,6 +4240,7 @@ class Consumption(models.Model):
     run_date = models.DateTimeField(blank=True, null=True)
     org_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
     instrument_id = models.CharField(max_length=128, default="", db_index=True)
+    instrument_name = models.CharField(max_length=512, default="", db_index=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -4407,3 +4408,28 @@ class ASNMapping(models.Model):
 
     class Meta:
         db_table = 'ASN_MAPPING'
+
+class AnalyticsIntegration(models.Model):
+    id = BigAutoField(primary_key=True)
+    zone = models.CharField(max_length=64, default='', db_index=True)
+    plant_code = models.CharField(max_length=64, default='', db_index=True)
+    plant_name = models.CharField(max_length=128, default='')
+    stockone_reference = models.CharField(max_length =128 , default ='', db_index=True)
+    integration_internal_id = models.CharField(max_length =128 , default ='')
+    integration_error = models.TextField()
+    integration_date = models.DateTimeField(blank=True, null=True)
+    total_quantity = models.FloatField(default=0)
+    total_amount_with_tax = models.FloatField(default=0)
+    total_amount_with_out_tax = models.FloatField(default=0)
+    status = models.IntegerField(default=0)
+    supplier_id= models.CharField(max_length=128, default='')
+    supplier_name = models.CharField(max_length=256, default='', db_index=True)
+    gst_number= models.CharField(max_length=64, default='')
+    integration_data = models.TextField()
+    transaction_type = models.CharField(max_length=32, default='')
+    stockone_reference_creation_date = models.DateTimeField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ANALYTICS_INTEGRATION'

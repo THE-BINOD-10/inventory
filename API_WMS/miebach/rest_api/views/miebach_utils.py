@@ -18633,7 +18633,7 @@ def get_consumption_data_(search_params, user, sub_user):
     'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__status', 'consumptionmaterial__pending_quantity',
      'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 'remarks',
-    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity']
+    'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity', 'consumptionmaterial__sku_pcf']
     model_data = Consumption.objects.filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
@@ -18669,16 +18669,15 @@ def get_consumption_data_(search_params, user, sub_user):
     for each_row in consumption_data_obj:
         group = (each_row["consumption_id"], str(each_row["sku__sku_code"]))
 	if group in consumption_data_dict:
-	    consumption_data_dict[group]["sku_pcf"] += each_row["sku_pcf"]
-	    consumption_data_dict[group]["total_prices_count"] +=1
-	    consumption_data_dict[group]["price"] += each_row["price"]
+	    if str(each_row["consumption_number"]) not in  consumption_data_dict[group]["consumption_number"]:
+		consumption_data_dict[group]["consumption_number"]+=", "+str(each_row["consumption_number"])
 	    consumption_data_dict[group]["quantity"] += each_row["stock_mapping__quantity"]
+	    consumption_data_dict[group]["total_price"] +=(each_row["stock_mapping__quantity"]/each_row["sku_pcf"])*each_row["price"]
 	else:
-            consumption_data_dict[group] = {"consumption_number": each_row["consumption_number"],
+            consumption_data_dict[group] = {"consumption_number": str(each_row["consumption_number"]),
                                         "quantity": each_row["stock_mapping__quantity"],
 					"sku_pcf": each_row["sku_pcf"],
-					"price": each_row["price"],
-					"total_prices_count": 1,
+					"total_price":(each_row["stock_mapping__quantity"]/each_row["sku_pcf"])*each_row["price"],
                                         }
     bom_data_dict= {}
     bom_obj = BOMMaster.objects.filter(Q(wh_user__in=user_ids) | Q(plant_user__in=user_ids), material_sku__sku_code__in= sku_codes_list, 
@@ -18697,12 +18696,6 @@ def get_consumption_data_(search_params, user, sub_user):
         consumed_qty = 0
         # consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
         group = (result['id'], str(result['consumptionmaterial__sku__sku_code']))
-	if consumption_data_dict.get(group, {}).get("total_prices_count", 1)>1:
-	    sku_pcf = (consumption_data_dict.get(group, {}).get("sku_pcf", 1))/consumption_data_dict.get(group, {}).get("total_prices_count", 1)
-	    price = (consumption_data_dict.get(group, {}).get("price", 0))/ consumption_data_dict.get(group, {}).get("total_prices_count", 1)
-	else:
- 	    sku_pcf = consumption_data_dict.get(group, {}).get("sku_pcf", 1)
-	    price = consumption_data_dict.get(group, {}).get("price", 0)
         order_id = consumption_data_dict.get(group, {}).get("consumption_number", "")
 	consumed_qty = consumption_data_dict.get(group, {}).get("quantity", 0)
         #if result['consumptiondata__consumption_number']:
@@ -18753,11 +18746,14 @@ def get_consumption_data_(search_params, user, sub_user):
         uom = bom_data_dict.get(bom_group_by, {}).get("uom", "")
 	average_price = bom_data_dict.get(bom_group_by, {}).get("average_price", 0)
 	pending_quantity, pending_value, consumed_value = 0,0,0
+	sku_pcf = consumption_data_dict.get(group, {}).get("sku_pcf", 1)
+	if not sku_pcf:
+	    sku_pcf = result.get("consumptionmaterial__sku_pcf") if result.get("consumptionmaterial__sku_pcf", 1) else 1
 	if result["consumptionmaterial__pending_quantity"]:
 	    pending_quantity = result["consumptionmaterial__pending_quantity"]
 	    pending_value = round((result["consumptionmaterial__pending_quantity"]/sku_pcf) * average_price, 3)
 	if consumed_qty:
-	    consumed_value = round((consumed_qty/sku_pcf)*price, 3)
+	    consumed_value = round(consumption_data_dict.get(group, {}).get("total_price", 0), 3)
         month = result['creation_date'].strftime('%b-%Y')
         '''stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],

@@ -1993,9 +1993,7 @@ CONSUMPTION_DATA_DICT = {
         {'label':'Machine Code', 'name': 'machine_code', 'type': 'input'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Date', 'Month', 'Plant Code', 'Plant Name', 'Org Id', 'Instrument Id', 'Department', 'Material Code', 'Material Desp', 'TCode', 'TName','Device ID', 'Device Name',
-                   'Patient Samples', 'RR', 'P1', 'P2', 'P3', 'PN', 'Q', 'NP', 'TT', 'Total Tests', 'QNP', 'TP','Consumption Booked Qty', 'Pending Quantity', 'Consumption booking time Stock',
-                   'UOM', 'Remarks','Status','Test Date', 'Consumption ID', 'Reason'],
+    'dt_headers': ['Month', 'Date', 'Plant Code', 'Plant Name', 'Org Id', 'Test Date', 'TCode', 'TName', 'Instrument Id', 'Instrument Name', 'Department', 'Patient Samples', 'P1', 'P2', 'P3', 'RR', 'PN', 'NP', 'Q', 'QNP', 'TP', 'TT', 'Total Tests', 'Stock Before Consumption', 'Material Code', 'Material Desp', 'Consumed Qty', 'Consumed Value', 'Pending Qty', 'Pending Value', 'UOM', 'Consumption ID', 'Status', 'Reason', 'Remarks'],
     'dt_url': 'get_consumption_data', 'excel_name': 'get_consumption_data',
     'print_url': 'get_consumption_data',
 }
@@ -18576,11 +18574,7 @@ def get_consumption_data_(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     search_parameters = {}
-    lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
-          'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
-          'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'quality_check', 'no_patient',
-          'total_test','qnp','total_patients', 'total_test', 'consumptionmaterial__pending_quantity', 'total_test','total_test', 'creation_date', 'creation_date',
-          'status','run_date', 'id', 'status']
+    lis = ['creation_date', 'creation_date', 'user', 'user', 'ogr_id', 'run_date', 'test__sku_code', 'test__sku_desc', 'instrument_id', 'instrument_name', 'user', 'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'rerun', 'n_time_process', 'no_patient', 'quality_check', 'qnp', 'total_patients', 'total_test',  'calculated_total_tests', 'consumptionmaterial__stock_quantity', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc', 'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumed_quantity', 'consumptionmaterial__pending_quantity', 'consumptionmaterial__pending_quantity', 'total_test', 'id', 'status', 'consumptionmaterial__status', 'remarks']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -18635,10 +18629,10 @@ def get_consumption_data_(search_params, user, sub_user):
     if not user.userprofile.warehouse_type == 'ADMIN' or  user_filter_check:
 	search_parameters['user__in']= user_ids
     # search_parameters["test__sku_code"] = "P0035"
-    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'machine__machine_name', 'machine__machine_code', 'total_test', 
+    values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'total_test',  'instrument_name',
     'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__status', 'consumptionmaterial__pending_quantity',
      'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc','user', 
-    'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check',
+    'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 'remarks',
     'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity']
     model_data = Consumption.objects.filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
 
@@ -18664,26 +18658,35 @@ def get_consumption_data_(search_params, user, sub_user):
             sku_codes_list.append(row['consumptionmaterial__sku__sku_code'])
         if row["test__sku_code"]:
             test_code_list.append(row["test__sku_code"])
-        if row["machine__machine_code"]:
-            machine_code_list.append(row["machine__machine_code"])
+	if row["instrument_id"]:
+	    machine_code_list.append(row["instrument_id"])
+        #if row["machine__machine_code"]:
+        #    machine_code_list.append(row["machine__machine_code"])
         if row["user"]:
             user_ids.append(row["user"])
     consumption_data_dict= {}
-    consumption_data_obj = ConsumptionData.objects.filter(quantity__gt=0, stock_mapping__isnull=False, is_valid=0, consumption_id__in=test_consumption_ids_list, sku__sku_code__in=sku_codes_list).values("sku__sku_code", "consumption_id", "consumption_number", "quantity")
+    consumption_data_obj = ConsumptionData.objects.filter(quantity__gt=0, stock_mapping__isnull=False, is_valid=0, consumption_id__in=test_consumption_ids_list, sku__sku_code__in=sku_codes_list).values("sku__sku_code", "consumption_id", "consumption_number", "stock_mapping__quantity", "sku_pcf", "price")
     for each_row in consumption_data_obj:
         group = (each_row["consumption_id"], str(each_row["sku__sku_code"]))
-        consumption_data_dict[group] = {"consumption_number": each_row["consumption_number"],
-                                        "quantity": each_row["quantity"]
+	if group in consumption_data_dict:
+	    consumption_data_dict[group]["sku_pcf"] += each_row["sku_pcf"]
+	    consumption_data_dict[group]["total_prices_count"] +=1
+	    consumption_data_dict[group]["price"] += each_row["price"]
+	    consumption_data_dict[group]["quantity"] += each_row["stock_mapping__quantity"]
+	else:
+            consumption_data_dict[group] = {"consumption_number": each_row["consumption_number"],
+                                        "quantity": each_row["stock_mapping__quantity"],
+					"sku_pcf": each_row["sku_pcf"],
+					"price": each_row["price"],
+					"total_prices_count": 1,
                                         }
     bom_data_dict= {}
-    bom_obj = BOMMaster.objects.filter(material_sku__sku_code__in=sku_codes_list, 
-                                       product_sku__sku_code__in=test_code_list, 
-                                       machine_master__machine_code__in=machine_code_list)
+    bom_obj = BOMMaster.objects.filter(Q(wh_user__in=user_ids) | Q(plant_user__in=user_ids), material_sku__sku_code__in= sku_codes_list, 
+                                       product_sku__sku_code__in= test_code_list, 
+                                       instrument_id__in= machine_code_list)
     for each_bom in bom_obj:
-        group_by_bom= (each_bom.material_sku.sku_code, each_bom.product_sku.sku_code, each_bom.machine_master.machine_code)
-        bom_data_dict[group_by_bom] = each_bom.unit_of_measurement
-
-
+        group_by_bom= (each_bom.material_sku.sku_code, each_bom.product_sku.sku_code, str(each_bom.instrument_id))
+        bom_data_dict[group_by_bom] = { "uom" : each_bom.unit_of_measurement, "average_price": each_bom.material_sku.average_price }
     #stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
     #                                                sku__sku_code__in=sku_codes_list,
     #                                                quantity__gt=0).values('sku__user', "sku__sku_code").distinct().annotate(quantity_sum=Sum('quantity')).\
@@ -18694,8 +18697,14 @@ def get_consumption_data_(search_params, user, sub_user):
         consumed_qty = 0
         # consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
         group = (result['id'], str(result['consumptionmaterial__sku__sku_code']))
+	if consumption_data_dict.get(group, {}).get("total_prices_count", 1)>1:
+	    sku_pcf = (consumption_data_dict.get(group, {}).get("sku_pcf", 1))/consumption_data_dict.get(group, {}).get("total_prices_count", 1)
+	    price = (consumption_data_dict.get(group, {}).get("price", 0))/ consumption_data_dict.get(group, {}).get("total_prices_count", 1)
+	else:
+ 	    sku_pcf = consumption_data_dict.get(group, {}).get("sku_pcf", 1)
+	    price = consumption_data_dict.get(group, {}).get("price", 0)
         order_id = consumption_data_dict.get(group, {}).get("consumption_number", "")
-        consumed_qty = consumption_data_dict.get(group, {}).get("quantity", 0)
+	consumed_qty = consumption_data_dict.get(group, {}).get("quantity", 0)
         #if result['consumptiondata__consumption_number']:
             #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
@@ -18714,9 +18723,9 @@ def get_consumption_data_(search_params, user, sub_user):
         if result['test__sku_code']:
             test_code = result['test__sku_code']
             test_name = result['test__sku_desc']
-        if result['machine__machine_code']:
-            machine_code = str(result['machine__machine_code'])
-            machine_name = result['machine__machine_name']
+        #if result['machine__machine_code']:
+        #    machine_code = str(result['machine__machine_code'])
+        #    machine_name = result['machine__machine_name']
         status = 'Pending'
         uom = 'Test'
         if not result['status']:
@@ -18739,9 +18748,16 @@ def get_consumption_data_(search_params, user, sub_user):
             if result['status'] == 3:
                 reason = 'Bom Mapping Not Found'
         #bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
-        #if bom_obj:
-        bom_group_by = (result['consumptionmaterial__sku__sku_code'], test_code, machine_code)
-        uom = bom_data_dict.get(bom_group_by, "")
+        #if bom_obj:round(po_total_qty,2)
+        bom_group_by = (result['consumptionmaterial__sku__sku_code'], test_code, str(result["instrument_id"]))
+        uom = bom_data_dict.get(bom_group_by, {}).get("uom", "")
+	average_price = bom_data_dict.get(bom_group_by, {}).get("average_price", 0)
+	pending_quantity, pending_value, consumed_value = 0,0,0
+	if result["consumptionmaterial__pending_quantity"]:
+	    pending_quantity = result["consumptionmaterial__pending_quantity"]
+	    pending_value = round((result["consumptionmaterial__pending_quantity"]/sku_pcf) * average_price, 3)
+	if consumed_qty:
+	    consumed_value = round((consumed_qty/sku_pcf)*price, 3)
         month = result['creation_date'].strftime('%b-%Y')
         '''stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
@@ -18749,28 +18765,42 @@ def get_consumption_data_(search_params, user, sub_user):
                     order_by('batch_detail__expiry_date', 'receipt_date')
         stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']'''
         total_tests = result.get('calculated_total_tests', 0)
-        ord_dict = OrderedDict((
-            ('Date', get_local_date(user, result['creation_date'])),
-            ('Plant Code', plant_code),
-            ('Plant Name', plant_name),
-            ('Org Id', result["org_id"]),
-            ('Department', department),
-	    ('Instrument Id', result["instrument_id"]),
-            ('Warehouse Username', user_obj.username),
-            ('TCode', test_code),
-            ('TName', test_name),
-            ('Device ID', machine_code),
-            ('Device Name', machine_name),
-            ('Status', status),('Consumption Booked Qty', consumed_qty),
-            ('UOM', uom), ('Remarks', 'Auto - Consumption'),
-            ('Consumption ID', order_id),('Pending Quantity', result["consumptionmaterial__pending_quantity"]),('Consumption booking time Stock', result["consumptionmaterial__stock_quantity"]),
-            ('Patient Samples',result['patient_samples']),('RR', result['rerun']),('PN',result['n_time_process']),
-            ('NP', result['no_patient']), ('Q', result['quality_check']), ('QNP', result['qnp']), ('TP', result['total_patients']),
-            ('Month', month),('Material Code', result['consumptionmaterial__sku__sku_code']),('Material Desp', result['consumptionmaterial__sku__sku_desc']),
-            ('P1', result['one_time_process']),('P2', result['two_time_process']),('P3', result['three_time_process']),
-            ('Test Date', get_local_date(user, result['run_date'])),('Reason', reason),
-            ('Total Tests', total_tests),
-            ('TT', result['total_test'])))
+        ord_dict = OrderedDict(( 
+			       ('Month', month),
+				('Date', get_local_date(user, result['creation_date'])),
+				('Plant Code', plant_code),
+				('Plant Name', plant_name),
+				('Org Id', result["org_id"]),
+				('Test Date', get_local_date(user, result['run_date'])),
+				('TCode', test_code),
+				('TName', test_name),
+				('Instrument Id', result["instrument_id"]),
+				('Instrument Name', result["instrument_name"]),
+				('Department', department),
+				('Patient Samples',result['patient_samples']),
+				('P1', result['one_time_process']),
+				('P2', result['two_time_process']),
+				('P3', result['three_time_process']),
+				('RR', result['rerun']),
+				('PN',result['n_time_process']),
+				('NP', result['no_patient']),
+				('Q', result['quality_check']), 
+				('QNP', result['qnp']),
+				('TP', result['total_patients']),
+				('TT', result['total_test']),
+				('Total Tests', total_tests),
+				('Stock Before Consumption', round(result["consumptionmaterial__stock_quantity"],3) if result["consumptionmaterial__stock_quantity"] else 0),
+				('Material Code', result['consumptionmaterial__sku__sku_code']),
+				('Material Desp', result['consumptionmaterial__sku__sku_desc']),
+				('Consumed Qty', consumed_qty),
+				('Consumed Value', consumed_value),
+				('Pending Qty', pending_quantity),
+				('Pending Value', pending_value),
+				('UOM', uom),
+				('Consumption ID', order_id), 
+				('Status', status),
+				('Reason', reason),
+				('Remarks', 'Auto - Consumption')))	
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

@@ -255,7 +255,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         temp_data['aaData'].append(OrderedDict(
             (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
-             ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
+             ('Zone', zone), ('SKU Class', data.sku_class),('SKU Brand', data.sku_brand), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
              ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),
              ('Creation Date', creation_date),

@@ -1426,7 +1426,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                       vm.service.refresh(vm.dtInstance);
                   });
                 } else {
-                  vm.service.showNoty(data.data);
+                  vm.service.showNoty(response['status']);
                 }
               }
             })

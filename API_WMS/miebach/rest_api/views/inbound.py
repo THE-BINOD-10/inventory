@@ -5197,7 +5197,7 @@ def add_pr(request, user=''):
                         totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                              prefix, full_pr_number, is_auto_pr=is_auto_pr)
                     else:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found"}))
                 else:
                     return HttpResponse("Purchase Approval Config not found")
             else:
@@ -5233,7 +5233,7 @@ def add_pr(request, user=''):
                                         pendingPRObj, master_type=master_type, product_category=product_category,
                                                     approval_type='default')
                 if not prObj and reqConfigName:
-                    return HttpResponse("Staff not found")
+                    return HttpResponse(json.dumps({"status": "Staff not found"}))
                 if mailsList:
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
@@ -5262,7 +5262,7 @@ def add_pr(request, user=''):
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             admin_user=admin_user, product_category=product_category)
                     if not prObj and reqConfigName:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found"}))
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
@@ -5274,7 +5274,7 @@ def add_pr(request, user=''):
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             product_category=product_category, approval_type='')
                     if not prObj and reqConfigName:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found"}))
             if mailsList:
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)

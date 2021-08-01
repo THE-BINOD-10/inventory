@@ -13640,7 +13640,7 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
     for user_role in user_roles:
         emails = []
         staff_check = {'company_id__in': company_list, 'user': user,
-                        'position': user_role}
+                        'position': user_role, 'status': 1}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
             staff_check['department_type__name'] = user.userprofile.stockone_code
@@ -13651,7 +13651,7 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
         if app_config.department_type:
             staff_check['department_type__name'] = app_config.department_type
         if user_role == 'Reporting Manager':
-            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list, status=1)
             if cur_staff_obj.exists():
                 emails = [cur_staff_obj[0].reportingto_email_id]
         if not emails:
@@ -13665,13 +13665,13 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                 if admin_user.id == prev_admin_user.id:
                     break_loop = False
                 emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__name=admin_user.username,
-                                                         department_type__isnull=True, position=user_role).\
+                                                         department_type__isnull=True, position=user_role, status=1).\
                         values_list('email_id', flat=True))
                 if emails:
                     break_loop = False
         if not emails:
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__isnull=True,
-                                                     department_type__isnull=True, position=user_role). \
+                                                     department_type__isnull=True, position=user_role, status=1). \
                           values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),

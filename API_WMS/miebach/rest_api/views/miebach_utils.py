@@ -18680,9 +18680,9 @@ def get_consumption_data_(search_params, user, sub_user):
 					"total_price":(each_row["stock_mapping__quantity"]/each_row["sku_pcf"])*each_row["price"],
                                         }
     bom_data_dict= {}
-    bom_obj = BOMMaster.objects.filter(Q(wh_user__in=user_ids) | Q(plant_user__in=user_ids), material_sku__sku_code__in= sku_codes_list, 
+    bom_obj = BOMMaster.objects.filter((Q(wh_user__in=user_ids) | Q(plant_user__in=user_ids)),(Q(instrument_id__in= machine_code_list) | Q(test_type="Manual")), material_sku__sku_code__in= sku_codes_list, 
                                        product_sku__sku_code__in= test_code_list, 
-                                       instrument_id__in= machine_code_list)
+                                      )
     for each_bom in bom_obj:
         group_by_bom= (each_bom.material_sku.sku_code, each_bom.product_sku.sku_code, str(each_bom.instrument_id))
         bom_data_dict[group_by_bom] = { "uom" : each_bom.unit_of_measurement, "average_price": each_bom.material_sku.average_price }
@@ -18796,7 +18796,7 @@ def get_consumption_data_(search_params, user, sub_user):
 				('Consumption ID', order_id), 
 				('Status', status),
 				('Reason', reason),
-				('Remarks', 'Auto - Consumption')))	
+				('Remarks', result["remarks"])))	
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

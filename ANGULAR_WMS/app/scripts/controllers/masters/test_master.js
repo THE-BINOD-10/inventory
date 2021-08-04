@@ -40,6 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('SKU Code').withTitle('Test Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Test Name'),
         DTColumnBuilder.newColumn('SKU Type').withTitle('Test Type'),
+        DTColumnBuilder.newColumn('Consumption Flag').withTitle('Consumption Flag'),
 //        DTColumnBuilder.newColumn('Department Type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
@@ -62,6 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         threshold_quantity:"",
                         online_percentage:"",
                         status:0,
+			consumption_flag:1,
                         qc_check:1,
                         sku_brand: "",
                         sku_size: "",
@@ -95,10 +97,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = {};
     vm.zone_id = "red";
-    vm.status_data = ['Inactive','Active'];
+    vm.status_data = ['Inactive', 'Active'];
+    vm.consumption_flags = ['False', 'True'];
     vm.block_for_po_list = ['Yes', 'No'];
     vm.sku_types = ['', 'FG', 'RM'];
     vm.status = vm.status_data[0];
+    vm.consumption_flag = vm.consumption_flags[0];
     vm.qc_data = ['Disable','Enable'];
     vm.qc = vm.qc_data[0];
     vm.block_options = vm.block_for_po_list[0];
@@ -206,6 +210,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sku_data.sku_type = vm.sku_types[index];
 
                   vm.model_data.sku_data.status = vm.status_data[vm.model_data.sku_data.status];
+		  vm.model_data.sku_data.consumption_flag = vm.consumption_flags[vm.model_data.sku_data.consumption_flag];
                   vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
 
                   vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
@@ -278,6 +283,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else if(elem[i].name == "measurement_type") {
           elem[i].value = (elem[i].value.indexOf("? ") != -1) ? "": elem[i].value;
         }
+	if (elem[i].name=="consumption_flag"){
+	  elem[i].value = vm.consumption_flags[parseInt(elem[i].value)];
+	}
       }
     }
     var formData = new FormData()
@@ -414,6 +422,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
     vm.model_data.sku_data.status = vm.status_data[1];
+    vm.model_data.sku_data.consumption_flag = vm.consumption_flags[1];
     vm.model_data.sku_data.qc_check = vm.qc_data[0];
     $state.go('app.masters.TestMaster.update');
   }

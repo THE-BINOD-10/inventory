@@ -117,7 +117,7 @@ ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': 0, 'store_id': '', 'a
 
 OTHERITEMS_SKU_DATA = {'item_type': ''}
 
-TEST_SKU_DATA = {'test_code': '', 'test_type': '', 'department_type': '', 'test_name': ''}
+TEST_SKU_DATA = {'test_code': '', 'test_type': '', 'department_type': '', 'test_name': '', 'consumption_flag': 1}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}

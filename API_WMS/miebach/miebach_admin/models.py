@@ -1752,7 +1752,7 @@ class BOMMaster(models.Model):
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku', 'instrument_id', 'wh_user', 'org_id')
+        unique_together = ('material_sku', 'product_sku', 'instrument_id', 'wh_user', 'org_id', 'test_type')
 
 
 class PriceMaster(models.Model):
@@ -4166,10 +4166,12 @@ class UOMMaster(models.Model):
 
 
 class TestMaster(SKUMaster):
-    test_code = models.CharField(max_length=128)
+    test_code = models.CharField(max_length=128, db_index=True)
     test_name = models.CharField(max_length=128)
     test_type = models.CharField(max_length=128)
     department_type = models.CharField(max_length=128)
+    consumption_flag = models.IntegerField(default=1)
+
 
     class Meta:
         db_table = 'TEST_MASTER'

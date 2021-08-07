@@ -6889,3 +6889,64 @@ def get_hlight_values(data_dict, check_dict, sku_code):
 #         return HttpResponse('Update SKU Failed')
 #
 #     return HttpResponse('Updated Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_pr_doa_staff_excel(request, user=''):
+    search_term = request.POST.get('search[value]', '')
+    company_id = get_company_id(user)
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name__icontains=search_term, purchase_type='PR').\
+                                    annotate(level_fullname=Concat('approval_type', Value(' '), 'min_Amt', Value(' '), 'max_Amt', Value(' '),'level', output_field=CharField()))
+    default_level_names = list(purchase_config_data.filter(approval_type='default').
+                                    annotate(level_fullname=Concat('approval_type', Value(' '), 'level', output_field=CharField())).\
+                                    values_list('level_fullname', flat=True).distinct())
+    ranges_level_names = list(purchase_config_data.filter(approval_type='ranges').values_list('level_fullname', flat=True).distinct())
+    approved_level_names = list(purchase_config_data.filter(approval_type='approved').\
+                                            annotate(level_fullname=Concat('approval_type', Value(' '), 'level', output_field=CharField())).\
+                                            values_list('level_fullname', flat=True).distinct())
+    level_names = default_level_names + ranges_level_names + approved_level_names
+    level_headers = ['Purchase Approval Name', 'Product Category', 'Category', 'Plant', 'Department']
+    headers = level_headers + list(map(lambda x: x.capitalize(), level_names))
+    doas = list(purchase_config_data.values_list('display_name', flat=True).distinct())
+    data_list = []
+    counter = 1
+    for doa in doas:
+        print counter
+        counter += 1
+        config_datas = purchase_config_data.filter(display_name=doa)
+        config_data = config_datas[0]
+        plants = config_data.plant.filter()
+        if not plants:
+            plants = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        for plant in plants:
+            dept_type = config_data.department_type
+            depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[plant.username])
+            if dept_type:
+                depts = depts.filter(userprofile__stockone_code=dept_type)
+            for dept in depts:
+                print plant, dept
+                data_dict = OrderedDict(( ('Purchase Approval Name', config_data.display_name), ('Product Category', config_data.product_category),
+                                          ('Category', config_data.sku_category), ('Plant', plant.first_name),
+                                          ('Department', dept_mapping.get(dept.userprofile.stockone_code, dept.userprofile.stockone_code)),
+                                       ))
+
+                for level_name in level_names:
+                    level_sps = level_name.split(' ')
+                    appr_type = level_sps[0]
+                    if len(level_sps) > 2:
+                        level = level_sps[3]
+                        col_data = config_datas.filter(approval_type=appr_type, level=level, min_Amt=level_sps[1], max_Amt=level_sps[2])
+                    else:
+                        level = level_sps[1]
+                        col_data = config_datas.filter(approval_type=appr_type, level=level)
+                    if col_data:
+                        app_config = col_data[0]
+                        emails = get_purchase_config_role_mailing_list(dept, dept, app_config, company_id)
+                        emails = '#'.join(emails)
+                        data_dict[level_name.capitalize()] = emails
+                data_list.append(data_dict)
+    excel_path = print_excel(request, {'aaData': data_list}, headers, user=user, excel_name='PRApprovals')
+    return HttpResponse(excel_path)

@@ -143,6 +143,7 @@ urlpatterns = [
     url(r'^pending_pr_request/$', pr_request),
     url(r'^pending_po_request/$', pr_request),
     url(r'^pendingPREnquiry/$', pr_enquiry_request),
+    url(r'^download_pr_doa_staff_excel/$', download_pr_doa_staff_excel),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

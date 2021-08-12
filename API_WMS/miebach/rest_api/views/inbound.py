@@ -1918,14 +1918,18 @@ def generated_pr_data(request, user=''):
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
-    pr_uploaded_file_dict = {}
+    pr_uploaded_file_dict = []
     pa_uploaded_file_dict = {}
     respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
     if respectivePrIds:
         master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='pending_pr')
-        if master_docs.exists():
-            pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                                  'file_url': '/' + master_docs[0].uploaded_file.name}
+        for master_doc in master_docs:
+            pr_uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
+                                  'file_url': '/' + master_doc.uploaded_file.name})
+
+        #if master_docs.exists():
+        #    pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+        #                          'file_url': '/' + master_docs[0].uploaded_file.name}
 
         pa_master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
         if pa_master_docs.exists():

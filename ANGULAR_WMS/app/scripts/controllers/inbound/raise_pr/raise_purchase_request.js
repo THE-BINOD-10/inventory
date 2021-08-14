@@ -149,6 +149,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     angular.copy(empty_data, vm.model_data);
 
     vm.close = function () {
+      vm.is_new_pr = false;
       if (vm.is_resubmitted) {
         vm.service.alert_msg('Your Changes Will Be Lost !').then(function(msg) {
           if (msg == "true") {
@@ -390,6 +391,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.seller_types = [];
       // vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';
+      vm.is_new_pr = true;
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -574,6 +576,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem = $(elem).serializeArray();
         if (is_resubmitted == 'true'){
           elem.push({name:'is_resubmitted', value:true})
+        }
+        if(vm.is_new_pr == true){
+          vm.is_resubmitted = false;
         }
         var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
         vm.service.apiCall('validate_product_wms/', 'POST', elem, true).then(function(data){

@@ -18584,12 +18584,12 @@ def get_consumption_data_(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_params['from_date'] = get_utc_start_date(search_params['from_date'])
-        search_parameters['creation_date__gte'] = search_params['from_date']
+        search_parameters['run_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
-        search_parameters['creation_date__lt'] = search_params['to_date']
+        search_parameters['run_date__lt'] = search_params['to_date']
     if 'test_code' in search_params:
         search_parameters['test__sku_code'] = search_params['test_code']
     if 'machine_code' in search_params:

@@ -856,7 +856,7 @@ class PurchaseOrder(models.Model):
     currency = models.TextField(default='INR')
     currency_internal_id = models.IntegerField(default=1)
     currency_rate = models.FloatField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
 
@@ -1116,8 +1116,8 @@ class OrderLabels(models.Model):
 
 class MiscDetail(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    misc_type = models.CharField(max_length=64)
+    user = models.PositiveIntegerField(db_index=True)
+    misc_type = models.CharField(max_length=64, db_index=True)
     misc_value = models.CharField(max_length=255)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1379,8 +1379,8 @@ class CustomerMaster(models.Model):
 
 class CustomerUserMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, blank=True, null=True)
-    customer = models.ForeignKey(CustomerMaster, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True, db_index=True)
+    customer = models.ForeignKey(CustomerMaster, blank=True, null=True, db_index=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1390,7 +1390,7 @@ class CustomerUserMapping(models.Model):
 
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, db_index=True)
     phone_number = models.CharField(max_length=32, default='', blank=True)
     birth_date = models.DateTimeField(auto_now=True)
     is_active = models.IntegerField(default=0)
@@ -1401,7 +1401,7 @@ class UserProfile(models.Model):
     prefix = models.CharField(max_length=64, default='')
     location = models.CharField(max_length=60, default='', blank=True)
     city = models.CharField(max_length=60, default='', blank=True)
-    state = models.CharField(max_length=60, default='', blank=True)
+    state = models.CharField(max_length=60, default='', blank=True, db_index=True)
     country = models.CharField(max_length=60, default='', blank=True)
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='', blank=True)
@@ -1414,24 +1414,24 @@ class UserProfile(models.Model):
     api_hash = models.CharField(max_length=256, default='', blank=True)
     setup_status = models.CharField(max_length=60, default='completed', blank=True)
     user_type = models.CharField(max_length=60, default='warehouse_user')
-    warehouse_type = models.CharField(max_length=60, default='', blank=True)
+    warehouse_type = models.CharField(max_length=60, default='', blank=True, db_index=True)
     warehouse_level = models.IntegerField(default=0, blank=True)
     min_order_val = models.PositiveIntegerField(default=0)
     level_name = models.CharField(max_length=64, default='', blank=True)
-    zone = models.CharField(max_length=64, default='', blank=True)
+    zone = models.CharField(max_length=64, default='', blank=True, db_index=True)
     cin_number = models.CharField(max_length=64, default='', blank=True)
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='', blank=True)
     bank_details = models.TextField(default='', blank=True)
     industry_type = models.CharField(max_length=32, default='', blank=True)
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
     pan_number = models.CharField(max_length=64, default='', blank=True)
-    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
-    stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    stockone_code = models.CharField(max_length=64, default='', null=True, blank=True, db_index=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
     place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
     location_code = models.CharField(max_length=64, default='', null=True, blank=True)
-    attune_id = models.IntegerField(default=None, blank=True, null=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
     visible_status = models.IntegerField(default=1)
 
 
@@ -2344,7 +2344,7 @@ class GroupStage(models.Model):
 
 
 class Integrations(models.Model):
-    user = models.PositiveIntegerField()
+    user = models.PositiveIntegerField(db_index=True)
     name = models.CharField(max_length=64, default='')
     api_instance = models.CharField(max_length=64, default='')
     client_id = models.CharField(max_length=64, default='')
@@ -2495,7 +2495,7 @@ class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
-    grn_number = models.CharField(max_length=64, default='')
+    grn_number = models.CharField(max_length=64, default='', db_index=True)
     invoice_date = models.DateField(blank=True, null=True)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
@@ -2521,7 +2521,7 @@ class SellerPOSummary(models.Model):
     credit_type = models.CharField(max_length=32, default='Invoice')
     credit_status = models.IntegerField(default=0)
     status = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -3646,7 +3646,7 @@ class FeedbackMaster(models.Model):
 
 class PushNotifications(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True, db_index=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3841,8 +3841,8 @@ class StockReconciliationFields(models.Model):
 
 class MiscDetailOptions(models.Model):
     id = BigAutoField(primary_key=True)
-    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None)
-    misc_key = models.CharField(max_length=64, default='')
+    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None, db_index=True)
+    misc_key = models.CharField(max_length=64, default='', db_index=True)
     misc_value = models.CharField(max_length=255)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4134,10 +4134,10 @@ class Discrepancy(models.Model):
 
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, db_index=True)
     product_category = models.CharField(max_length=128, default='')
-    sku_category = models.CharField(max_length=128, default='')
-    type_name = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='', db_index=True)
+    type_name = models.CharField(max_length=64, default='', db_index=True)
     prefix = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4179,7 +4179,7 @@ class TestMaster(SKUMaster):
 
 class StockMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    stock = models.ForeignKey(StockDetail)
+    stock = models.ForeignKey(StockDetail, db_index=True)
     quantity = models.FloatField(default=0)
 
     class Meta:
@@ -4240,7 +4240,7 @@ class Consumption(models.Model):
     consumption_type = models.CharField(max_length=32, default='auto')
     remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
-    run_date = models.DateTimeField(blank=True, null=True)
+    run_date = models.DateTimeField(blank=True, null=True, db_index=True)
     org_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
     instrument_id = models.CharField(max_length=128, default="", db_index=True)
     instrument_name = models.CharField(max_length=512, default="", db_index=True)
@@ -4280,13 +4280,13 @@ class ConsumptionData(models.Model):
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
-    stock_mapping = models.ManyToManyField(StockMapping)
+    stock_mapping = models.ManyToManyField(StockMapping, db_index=True)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
     cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
     plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True, db_index=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -4240,7 +4240,7 @@ class Consumption(models.Model):
     consumption_type = models.CharField(max_length=32, default='auto')
     remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
-    run_date = models.DateTimeField(blank=True, null=True)
+    run_date = models.DateTimeField(blank=True, null=True, db_index=True)
     org_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
     instrument_id = models.CharField(max_length=128, default="", db_index=True)
     instrument_name = models.CharField(max_length=512, default="", db_index=True)
@@ -4286,7 +4286,7 @@ class ConsumptionData(models.Model):
     cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
     plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True, db_index=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:

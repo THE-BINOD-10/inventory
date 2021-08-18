@@ -14669,13 +14669,15 @@ def validatePRNextApproval(request, user, reqConfigName, approval_type, level, a
     if approval_type:
         pacFiltersMap['approval_type'] = approval_type
     apprConfObj = PurchaseApprovalConfig.objects.filter(**pacFiltersMap)
+    user_roles = []
     if apprConfObj:
         apprConfObjId = apprConfObj[0].id
         if isinstance(request, User):
             mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
         else:
             mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
-    return mailsList
+        user_roles = list(apprConfObj[0].user_role.filter().values_list('role_name', flat=True))
+    return mailsList, user_roles
 
 
 def repush_grns(grns_list, user, type='GRN'):

@@ -3646,6 +3646,7 @@ def add_po(request, user=''):
 def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPRObj, master_type='pr_approvals_conf_data',
                     forPO=False, product_category='Kits&Consumables', admin_user=None, approval_type='', status=''):
     mailsList = []
+    user_roles = []
     company_id = get_company_id(user)
     pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
     if admin_user:
@@ -3662,12 +3663,13 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
             mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
         else:
             mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
+        user_roles = list(apprConfObj[0].user_role.filter().values_list('role_name', flat=True))
         #mailsList = MasterEmailMapping.objects.filter(**memFiltersMap).values_list('email_id', flat=True)
     if mailsList:
         validated_by = ", ".join(mailsList)
     else:
         #validated_by = ''
-        return None, []
+        return None, [], user_roles
     prApprovalsMap = {
                         'purchase_number': pr_number,
                         'pr_user': user,
@@ -3686,7 +3688,7 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
         prApprovalsMap['purchase_type'] = 'PR'
     prObj = PurchaseApprovals(**prApprovalsMap)
     prObj.save()
-    return prObj, mailsList
+    return prObj, mailsList, user_roles
 
 
 def updatePRApproval(pendingPRObj, user, level, validated_by, validation_type,
@@ -4177,10 +4179,10 @@ def approve_pr(request, user=''):
                 approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
                                                                      approval_type='approved')
                 if approval_obj.exists():
-                    prObj, mailsList = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
+                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
                                             master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
                     if not prObj and reqConfigName:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                     PRQs.update(final_status=validation_type)
                     # PRQs.update(remarks=remarks)
                     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
@@ -4222,10 +4224,10 @@ def approve_pr(request, user=''):
                                 requestedUserEmail, poFor=poFor, central_po_data=central_po_data,
                                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
             else:
-                prObj, mailsList = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
+                prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
                                         master_type=master_type, forPO=poFor, approval_type=approval_type)
                 if not prObj and reqConfigName:
-                    return HttpResponse("Staff not found")
+                    return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 PRQs.update(pending_level=nextLevel)
                 # PRQs.update(remarks=remarks)
                 updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
@@ -5196,12 +5198,12 @@ def add_pr(request, user=''):
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',product_category=product_category,
                                                     approval_type=approval_type, sku_category=sku_category)
                 if reqConfigName:
-                    mail_list_check = validatePRNextApproval(request, user, reqConfigName, approval_type, baseLevel, admin_user=None)
+                    mail_list_check, mail_roles = validatePRNextApproval(request, user, reqConfigName, approval_type, baseLevel, admin_user=None)
                     if mail_list_check:
                         totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                              prefix, full_pr_number, is_auto_pr=is_auto_pr)
                     else:
-                        return HttpResponse(json.dumps({"status": "Staff not found"}))
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 else:
                     return HttpResponse("Purchase Approval Config not found")
             else:
@@ -5233,11 +5235,11 @@ def add_pr(request, user=''):
                     reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type='default',
                                               sku_category=sku_category)
-                prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
+                prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
                                                     approval_type='default')
                 if not prObj and reqConfigName:
-                    return HttpResponse(json.dumps({"status": "Staff not found"}))
+                    return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 if mailsList:
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
@@ -5262,11 +5264,11 @@ def add_pr(request, user=''):
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
                 else:
-                    prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
+                    prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             admin_user=admin_user, product_category=product_category)
                     if not prObj and reqConfigName:
-                        return HttpResponse(json.dumps({"status": "Staff not found"}))
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
@@ -5274,11 +5276,11 @@ def add_pr(request, user=''):
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
-                    prObj, mailsList = createPRApproval(request, pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
+                    prObj, mailsList, mail_roles = createPRApproval(request, pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             product_category=product_category, approval_type='')
                     if not prObj and reqConfigName:
-                        return HttpResponse(json.dumps({"status": "Staff not found"}))
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             if mailsList:
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
@@ -16893,7 +16895,7 @@ def resubmit_prs(urlPath, pr_ids):
         reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                     product_category=product_category, approval_type='ranges',
                                     sku_category=sku_category)
-        prObj, mailsList = createPRApproval(request_user, user, reqConfigName, baseLevel, pr_id,
+        prObj, mailsList, mail_roles = createPRApproval(request_user, user, reqConfigName, baseLevel, pr_id,
                                 pendingPRObj, master_type=master_type, product_category=product_category,
                                             approval_type='ranges')
         for eachMail in mailsList:

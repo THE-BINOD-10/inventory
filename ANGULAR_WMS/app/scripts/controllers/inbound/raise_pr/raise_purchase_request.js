@@ -1431,7 +1431,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                       vm.service.refresh(vm.dtInstance);
                   });
                 } else {
-                  vm.service.showNoty(response['status']);
+                  //vm.service.showNoty(response['status']);
+                  swal2({
+                    title: 'Warning Message',
+                    text: response['status'],
+                    icon: "success",
+                    button: "OK",
+                    allowOutsideClick: false
+                  }).then(function (text) {
+                      //vm.service.refresh(vm.dtInstance);
+                      console.log("OK");
+                  });
+
                 }
               }
             })

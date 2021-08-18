@@ -630,8 +630,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 vm.close();
                 vm.service.refresh(vm.dtInstance);
               } else {
-                vm.close();
-                vm.service.showNoty(data.data, 'warning');
+                //vm.close();
+                var response = JSON.parse(data.data)
+                swal2({
+                      title: 'Warning Message',
+                      text: response.status,
+                      icon: "success",
+                      button: "OK",
+                      allowOutsideClick: false
+                    }).then(function (text) {
+                      console.log("OK");
+                });
+                //vm.service.showNoty(data.data, 'warning');
               }
             }
           })

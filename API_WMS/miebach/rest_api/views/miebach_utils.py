@@ -18565,7 +18565,7 @@ def get_consumption_data_(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
         get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
-        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin, get_uom_with_multi_skus
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -18631,7 +18631,7 @@ def get_consumption_data_(search_params, user, sub_user):
     # search_parameters["test__sku_code"] = "P0035"
     values_list = ['creation_date', 'test__sku_code', 'test__sku_desc', 'total_test',  'instrument_name',
     'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__status', 'consumptionmaterial__pending_quantity',
-     'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc','user', 
+     'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc', 'consumptionmaterial__sku__average_price', 'user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 'remarks',
     'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity', 'consumptionmaterial__sku_pcf']
     model_data = Consumption.objects.filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
@@ -18685,12 +18685,13 @@ def get_consumption_data_(search_params, user, sub_user):
                                       )
     for each_bom in bom_obj:
         group_by_bom= (each_bom.material_sku.sku_code, each_bom.product_sku.sku_code, str(each_bom.instrument_id))
-        bom_data_dict[group_by_bom] = { "uom" : each_bom.unit_of_measurement, "average_price": each_bom.material_sku.average_price }
+        bom_data_dict[group_by_bom] = { "uom" : each_bom.unit_of_measurement}
     #stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
     #                                                sku__sku_code__in=sku_codes_list,
     #                                                quantity__gt=0).values('sku__user', "sku__sku_code").distinct().annotate(quantity_sum=Sum('quantity')).\
     #                order_by('batch_detail__expiry_date', 'receipt_date')
         # stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes_list, uom_type='purchase')
     for result in results:
         order_id = ''
         consumed_qty = 0
@@ -18744,14 +18745,15 @@ def get_consumption_data_(search_params, user, sub_user):
         #if bom_obj:round(po_total_qty,2)
         bom_group_by = (result['consumptionmaterial__sku__sku_code'], test_code, str(result["instrument_id"]))
         uom = bom_data_dict.get(bom_group_by, {}).get("uom", "")
-	average_price = bom_data_dict.get(bom_group_by, {}).get("average_price", 0)
+	#average_price = bom_data_dict.get(bom_group_by, {}).get("average_price", 0)
 	pending_quantity, pending_value, consumed_value = 0,0,0
-	sku_pcf = consumption_data_dict.get(group, {}).get("sku_pcf", 1)
-	if not sku_pcf:
-	    sku_pcf = result.get("consumptionmaterial__sku_pcf") if result.get("consumptionmaterial__sku_pcf", 1) else 1
+	#sku_pcf = consumption_data_dict.get(group, {}).get("sku_pcf", 0)
+	#if not sku_pcf:
+	#sku_pcf = result.get("consumptionmaterial__sku_pcf") if result.get("consumptionmaterial__sku_pcf", 1) else 1
 	if result["consumptionmaterial__pending_quantity"]:
+	    uom_dict = skus_uom_dict.get(result['consumptionmaterial__sku__sku_code'],{})
 	    pending_quantity = result["consumptionmaterial__pending_quantity"]
-	    pending_value = round((result["consumptionmaterial__pending_quantity"]/sku_pcf) * average_price, 3)
+	    pending_value = round((result["consumptionmaterial__pending_quantity"]/uom_dict.get('sku_conversion', 1)) * result.get("consumptionmaterial__sku__average_price", 0), 3)
 	if consumed_qty:
 	    consumed_value = round(consumption_data_dict.get(group, {}).get("total_price", 0), 3)
         month = result['creation_date'].strftime('%b-%Y')

@@ -605,6 +605,7 @@ urlpatterns = [
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+    url(r'^download_pr_req_files/$', download_pr_req_files),
     url(r'^get_material_request_report/$', get_material_request_report),
     url(r'^get_stock_transfer_report_main/$', get_stock_transfer_report_main),
     url(r'^get_stock_transfer_report/$', get_stock_transfer_report),

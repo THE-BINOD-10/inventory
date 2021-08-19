@@ -17521,3 +17521,26 @@ def delete_consumption_data(request, user=''):
                 store_user = user
             update_sku_avg_main(sku_amt, store_user, main_user)
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_pr_req_files(request, user=''):
+    pr_number = request.GET["pr_number"]
+    record = PendingPR.objects.filter(full_pr_number=pr_number)
+    zip_subdir = ""
+    zip_filename = "%s.zip" % pr_number
+    stringio = StringIO.StringIO()
+    zf = zipfile.ZipFile(stringio, "w")
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
+    for master_doc in master_docs:
+        fname = ''.join(master_doc.uploaded_file.name.split('/')[3:])
+        file_obj = master_doc.uploaded_file
+        zip_path = os.path.join(zip_subdir, fname)
+        zf.write(file_obj.path, zip_path)
+    zf.close()
+    resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    return resp
+

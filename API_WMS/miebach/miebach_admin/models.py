@@ -1387,6 +1387,18 @@ class CustomerUserMapping(models.Model):
     class Meta:
         db_table = 'CUSTOMER_USER_MAPPING'
 
+class WarehouseCurrency(models.Model):
+    id = BigAutoField(primary_key=True)
+    currency_code = models.CharField(max_length=5, default='')
+    currency_word = models.CharField(max_length=20, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'WAREHOUSE_CURRENCY'
+        unique_together = ('currency_code', 'currency_word')
+        index_together = ('currency_code', 'currency_word')
+
 
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1426,6 +1438,7 @@ class UserProfile(models.Model):
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
     pan_number = models.CharField(max_length=64, default='', blank=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    currency = models.ForeignKey(WarehouseCurrency, blank=True, null=True)
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)

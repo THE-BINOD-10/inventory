@@ -2948,14 +2948,17 @@ def get_warehouse_user_data(request, user=''):
     username = request.GET['username']
     user_profile = UserProfile.objects.get(user__username=username)
     mapping = WarehouseCustomerMapping.objects.filter(warehouse=user_profile.user, status=1)
+    currency_list = list(WarehouseCurrency.objects.filter().values_list('currency_code', flat=True))
     customer_username = ''
-    customer_fullname = ''
+    customer_fullname, warehouse_currency = '', ''
     if mapping:
         mapping = mapping[0]
         customer_profile = CustomerUserMapping.objects.filter(customer__id=mapping.customer.id)
         if customer_profile:
             customer_username = customer_profile[0].user.username
             customer_fullname = customer_profile[0].user.first_name
+    if user_profile.currency:
+        warehouse_currency = user_profile.currency.currency_code
     data = {'username': user_profile.user.username, 'first_name': user_profile.user.first_name,
             'last_name': user_profile.user.last_name, 'phone_number': user_profile.phone_number,
             'email': user_profile.user.email, 'country': user_profile.country, 'state': user_profile.state,
@@ -2965,7 +2968,7 @@ def get_warehouse_user_data(request, user=''):
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
             'zone': user_profile.zone, 'reference_id': user_profile.reference_id, 'visible_status': user_profile.visible_status,
             'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code,
-            'company_id': user_profile.company_id}
+            'company_id': user_profile.company_id, 'warehouse_currency': warehouse_currency, 'currency_list': currency_list}
     return HttpResponse(json.dumps({'data': data}))
 
 

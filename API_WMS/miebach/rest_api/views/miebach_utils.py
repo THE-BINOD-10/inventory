@@ -2034,7 +2034,7 @@ PRAOD_REPORT_DICT = {
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
     'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'Product Category', 'SKU Category',
-        'Pending with Email Id', 'Pending Since from PR Raised(Days)'],
+        'Pending with Email Id', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
     'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
     'print_url': 'get_praod_report',
 }
@@ -19056,7 +19056,7 @@ def get_praod_report_data(search_params, user, sub_user):
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['creation_date', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'full_pr_number', 'product_category',
-            'sku_category', 'creation_date', 'creation_date']
+            'sku_category', 'creation_date', 'creation_date', 'creation_date', 'creation_date']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -19126,9 +19126,9 @@ def get_praod_report_data(search_params, user, sub_user):
         results = model_data
     pr_ids = map(lambda x: x['id'], results)
     pas_dict = {}
-    pas_objs = PurchaseApprovals.objects.filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by')
+    pas_objs = PurchaseApprovals.objects.filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by', 'creation_date', 'level')
     for pas in pas_objs:
-        pas_dict[pas.pending_pr_id] = pas.validated_by
+        pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     count = 0
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     counter = 0
@@ -19148,7 +19148,11 @@ def get_praod_report_data(search_params, user, sub_user):
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
         pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
-        pa_emails = pas_dict.get(result['id'], '')
+        pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
+	pa_data_since_from = ""
+	if pas_dict.get(result['id'], {}).get("creation_date", ""):
+            pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
+	level = pas_dict.get(result['id'], {}).get("level", "")
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
@@ -19160,6 +19164,8 @@ def get_praod_report_data(search_params, user, sub_user):
             ('Product Category', result['product_category']),
             ('SKU Category', result['sku_category']),
             ('Pending with Email Id', pa_emails),
+	    ('Pending since days', pa_data_since_from),
+	    ('Pending Level', level),
             ('Pending Since from PR Raised(Days)', pending_since),
         ))
         temp_data['aaData'].append(ord_dict)

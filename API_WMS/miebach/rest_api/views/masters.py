@@ -2906,6 +2906,14 @@ def update_warehouse_user(request, user=''):
             setattr(user_profile.user, key, value)
         if key in user_profile_dict.keys():
             setattr(user_profile, key, value)
+    warehouse_currency = request.POST.get('warehouse_currency', '')
+    if warehouse_currency and request.POST.get('username', ''):
+        related_admin_usr = User.objects.get(username=request.POST.get('username'))
+        currency_datum = WarehouseCurrency.objects.filter(currency_code=warehouse_currency)
+        temp_admins = get_linked_user_objs('true', related_admin_usr)
+        confirmed_admin_plant_depts = list(UserGroups.objects.filter(Q(admin_user__username__in = temp_admins) | Q(user__username__in  = temp_admins)).values_list('user_id', flat=True))
+        if currency_datum.exists():
+            UserProfile.objects.filter(user__in = confirmed_admin_plant_depts).update(currency_id=currency_datum[0].id)
     user_profile.user.save()
     user_profile.save()
     return HttpResponse("Updated Successfully")

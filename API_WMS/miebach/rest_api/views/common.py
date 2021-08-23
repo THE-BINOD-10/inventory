@@ -13905,6 +13905,7 @@ def get_user_groups_list(request, user=''):
 
 
 def update_user_groups(request, sub_user, selected_list, user=None):
+    exclude_name = ''
     main_user = request.user
     if user and user.userprofile.warehouse_type == 'ADMIN':
         main_user = user

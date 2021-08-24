@@ -16134,6 +16134,34 @@ def download_grn_invoice_mapping(request, user=''):
 
 @login_required
 @get_admin_user
+def download_pr_attachments(request , user =''):
+    pr_number = request.GET.get('pr_number', '')
+    master_docs = ""
+    if pr_number:
+	record = PendingPR.objects.filter(full_pr_number=pr_number)
+	master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type__in=['pending_pr', 'PENDING_PR_PURCHASE_APPROVER_FILE'])
+    if not pr_number or not master_docs:
+	return HttpResponse(json.dumps({"msg": 'Invalid PR Number', status:False}))
+    zip_subdir = ""
+    from os.path import basename
+    zip_filename = "static/excel_files/PR_Attachement.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as myzip:
+	for fname in master_docs:
+	    myzip.write(fname.uploaded_file.path, basename(fname.uploaded_file.path))
+	myzip.close()
+    #stringio = StringIO.StringIO()
+    #zf = zipfile.ZipFile(zip_filename, "w")
+    #for fname in master_docs:
+    #    zip_path = os.path.join(zip_subdir, fname.master_type)
+    #    zf.write(fname.uploaded_file.path, zip_path)
+    #zf.close()
+    #resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    #resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    url = request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+zip_filename
+    return  HttpResponse(json.dumps({"status":True, "data":url}))
+
+@login_required
+@get_admin_user
 def get_grn_extra_fields(request , user =''):
     extra_grn_fields = grn_extra_fields(user)
     return HttpResponse(json.dumps({'data':extra_grn_fields }))

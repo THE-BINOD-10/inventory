@@ -94,6 +94,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
 //  vm.filters_dt_data = {};
 //  angular.copy(vm.empty_data, vm.filters_dt_data);
+  vm.download_pr_files= download_pr_files;
+  function download_pr_files(){
+	console.log("test", vm.model_data)
+	vm.service.apiCall("download_pr_attachments/", "GET", {pr_number: vm.model_data.pr_number}).then(function(data) {
+	     if (data.data.status){
+	         var a = document.createElement('a');
+	         a.href = data.data.data
+	         a.download = "PR_files" + vm.model_data.pr_number+ ".zip";
+	         document.body.appendChild(a);
+	         a.click();
+	    }
+	    else{
+		vm.service.showNoty("No Attachments", 'warning');
+		console.log("No attachements")
+	    }
+	    // const blob = new Blob([data], {
+    	    //	type: 'application/zip'
+            // });
+  	    // const url = window.URL.createObjectURL(blob);
+ 	    // window.open(url);
+	    //onsole.log("data", data)			
+	})
+  } 
 
   vm.close = close;
   function close() {

@@ -847,6 +847,7 @@ class PurchaseOrder(models.Model):
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
+    product_category = models.CharField(max_length=64, default='')
     remarks = models.TextField(default='')
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)

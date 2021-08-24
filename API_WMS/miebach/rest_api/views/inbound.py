@@ -8012,8 +8012,12 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             if prQs:
                 product_category = prQs[0].product_category
             remarks=""
-            if "remarks" in myDict:
-                remarks= str(myDict["remarks"][0])
+	    try:
+            	if "remarks" in myDict:
+		    remarks= str(myDict["remarks"][0])
+		    remarks = remarks[0:998]
+	    except:
+		pass
             if s_po_s[0].creation_date:
                 grn_date_string= s_po_s[0].creation_date.strftime("%d-%m-%Y")
                 grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
@@ -10666,14 +10670,27 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
+	terms_condition, remarks = "", ""
+	try:
+	    terms_condition = data_dict.get('terms_condition', '')
+	    if terms_condition:
+	    	terms_condition = terms_condition[0:998]
+	except:
+	    pass
+	try:
+	    if _purchase_order.remarks:
+		remarks = _purchase_order.remarks
+		remarks = remarks[0:998]
+	except:
+	    pass
         po_data = { 'currency_internal_id': currency_internal_id, 'exchangerate': exchangerate, 'currency_code': currency_code,
                     'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                    'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
-                    'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
+                    'terms_condition':terms_condition, 'company_id':company_id, 'user_id':user.id,
+                    'remarks':remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number, 'replaceAll': 'replaceAll_'+str(replaceAll)}
         for purchase_order in purchase_objs:

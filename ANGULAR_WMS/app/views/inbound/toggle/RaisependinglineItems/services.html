@@ -16,6 +16,9 @@
           <th>Tax</th>
           <th>Cess Tax</th>
           <th>UOM</th>
+          <th>Last Supplier-Price</th>
+          <th>Least Supplier-Price</th>
+          <th>Least Supplier-Price(Pan India)</th>
           <th class="plus"></th>
         </tr>
       </thead>
@@ -83,6 +86,9 @@
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
+          <td class="text-center"> <span>{{product.fields.sku.last_supplier}}</span> </td>
+          <td class="text-center"> <span>{{product.fields.sku.least_supplier}}</span> </td>
+          <td class="text-center"> <span>{{product.fields.sku.least_supplier_pi}}</span> <input type="hidden" name="pr_extra_data" ng-model="product.fields.sku.pr_extra_data" value="{{product.fields.sku.pr_extra_data}}"></td>
           <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>

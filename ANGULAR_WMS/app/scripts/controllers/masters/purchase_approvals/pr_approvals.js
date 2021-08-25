@@ -334,4 +334,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
+  vm.download_excel_extra_info = function(headers, search){
+    var data = {};
+    angular.forEach(headers, function(value, key) {
+      if(value.mData) {
+        data[value.mData] = value.sTitle;
+      }
+    });
+    angular.extend(data, search);
+    data['search[value]'] = $(".dataTables_filter").find("input").val();
+    //data = $.param(data);
+    vm.service.apiCall('download_pr_doa_staff_excel/', 'POST', data).then(function(res_data){
+      if(res_data.message){
+        location.href = res_data.data;
+      }
+    });
+  }
+
 }

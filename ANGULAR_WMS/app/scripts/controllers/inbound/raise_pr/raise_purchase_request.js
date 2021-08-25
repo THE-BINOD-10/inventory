@@ -149,6 +149,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     angular.copy(empty_data, vm.model_data);
 
     vm.close = function () {
+      vm.is_new_pr = false;
       if (vm.is_resubmitted) {
         vm.service.alert_msg('Your Changes Will Be Lost !').then(function(msg) {
           if (msg == "true") {
@@ -390,6 +391,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.seller_types = [];
       // vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';
+      vm.is_new_pr = true;
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -574,6 +576,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem = $(elem).serializeArray();
         if (is_resubmitted == 'true'){
           elem.push({name:'is_resubmitted', value:true})
+        }
+        if(vm.is_new_pr == true){
+          vm.is_resubmitted = false;
         }
         var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
         vm.service.apiCall('validate_product_wms/', 'POST', elem, true).then(function(data){
@@ -872,8 +877,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
 
       var form_data = new FormData();
-      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
-        var files = $(".pr_form").find('[name="files"]')[0].files;
+      if ($(".pr_form").find('[name="files"]').length > 0) {
+        var files = $(".pr_form").find('[name="files"]')[1].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
@@ -1121,18 +1126,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       return tax;
    }
    vm.update_available_stock = function(sku_data) {
-      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant}
+      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant, "send_supp_info": "true"}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
         sku_data["skuPack_quantity"] = 0;
         sku_data["openpr_qty"] = 0;
+        sku_data["last_supplier"] = '';
+        sku_data["least_supplier"] = '';
+        sku_data["least_supplier_pi"] = '';
         if(data.message) {
           // if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
             sku_data["openpr_qty"] = data.data.openpr_qty;
             sku_data["avg_consumption_qty"] = data.data.consumption_dict.avg_qty;
+            sku_data["pr_extra_data"] = data.data.pr_extra_data;
+            sku_data["last_supplier"] = data.data.pr_extra_data.last_supplier + "-" + data.data.pr_extra_data.last_supplier_price;
+            sku_data["least_supplier"] = data.data.pr_extra_data.least_supplier + "-" + data.data.pr_extra_data.least_supplier_price;
+            sku_data["least_supplier_pi"] = data.data.pr_extra_data.least_supplier_pi + "-" + data.data.pr_extra_data.least_supplier_price_pi;
             if (data.data.is_contracted_supplier) {
               vm.is_contracted_supplier = true;
             } else if ((!data.data.is_contracted_supplier) && vm.is_contracted_supplier){
@@ -1392,8 +1404,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
 
       var form_data = new FormData();
-      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
-        var files = $(".pr_form").find('[name="files"]')[0].files;
+      if ($(".pr_form").find('[name="files"]').length > 0){
+        var files = $(".pr_form").find('[name="files"]')[1].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
@@ -1419,7 +1431,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                       vm.service.refresh(vm.dtInstance);
                   });
                 } else {
-                  vm.service.showNoty(data.data);
+                  //vm.service.showNoty(response['status']);
+                  swal2({
+                    title: 'Warning Message',
+                    text: response['status'],
+                    icon: "success",
+                    button: "OK",
+                    allowOutsideClick: false
+                  }).then(function (text) {
+                      //vm.service.refresh(vm.dtInstance);
+                      console.log("OK");
+                  });
+
                 }
               }
             })

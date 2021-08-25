@@ -15,6 +15,9 @@
           <th>Tax %</th>
           <th>Cess Tax %</th>
           <th>Total(INR)</th>
+          <th>Last Supplier-Price</th>
+          <th>Least Supplier-Price</th>
+          <th>Least Supplier-Price(Pan India)</th>
           <th class="plus" ng-if="showCase.quantity_editable"></th>
         </tr>
       </thead>
@@ -91,6 +94,9 @@
             </span>
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>
+          <td class="text-center"> <span>{{product.fields.pr_extra_data.last_supplier}}-{{product.fields.pr_extra_data.last_supplier_price}}</span> </td>
+          <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier}}-{{product.fields.pr_extra_data.least_supplier_price}}</span> </td>
+          <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier_pi}}-{{product.fields.pr_extra_data.least_supplier_price_pi}}</span> </td>
           <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
             <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i>

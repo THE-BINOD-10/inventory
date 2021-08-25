@@ -8,6 +8,8 @@
         <div class="row">
           <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()">New PR Approval</button>
           <div ng-include="'views/common/excel_button.html'"></div>
+          <button type="button" class="btn btn-primary col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px"
+                            ng-click="showCase.download_excel_extra_info(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)">Download DOA Staff</button>
         </div>
       </div>
     </div>

@@ -246,6 +246,8 @@
                 <th>Level</th>
                 <th>Approved By</th>
                 <th>Remarks</th>
+		<th>Date</th>
+		<th>Approved Date</th>
               </tr>
             </thead>
             <tbody>
@@ -259,6 +261,12 @@
                 <td>
                   <input ng-model="product.remarks" title="{{product.remarks}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
                 </td>
+		<td>
+	          <input ng-model="product.creation_date" title="{{product.creation_date}}" type="text" class="form-control detectTab" readonly ng-debounce size="10">
+		</td>
+		<td>
+		 <input ng-model="product.updation_date" title="{{product.updation_date}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
+		</td>
               </tr>
             </tbody>
           </table>
@@ -296,6 +304,8 @@
                 <th>Receiver</th>
                 <th>Enquiry</th>
                 <th>Response</th>
+		<th>Enquiry Date</th>
+		<th>Response Date</th>
               </tr>
             </thead>
             <tbody>
@@ -312,6 +322,12 @@
                 <td>
                   <input ng-model="product.response" title="{{product.response}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
                 </td>
+		<td>
+		  <input ng-model="product.creation_date" title="{{product.creation_date}}" type="text" class="form-control detectTab" readonly ng-debounce  size="10">
+		</td>
+		<td>
+		  <input ng-model="product.updation_date" title="{{product.updation_date}}" type="text" class="form-control detectTab" readonly ng-debounce size="5">
+		</td>
               </tr>
             </tbody>
           </table>

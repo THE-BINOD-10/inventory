@@ -130,5 +130,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_data(vm.print_page, "PR Report");
   }
 
+  vm.download_pr_files = function() {
+    window.open('rest_api/download_pr_req_files?pr_number=' + vm.model_data.pr_number);
+
+  }
+
+
 
 }

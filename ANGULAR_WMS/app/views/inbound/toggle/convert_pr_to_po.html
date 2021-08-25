@@ -14,7 +14,7 @@
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lg" style="min-width: 1275px;font-size: xx-small;">
+    <div class="modal-dialog model-custom modal-lg" style="min-width: 1500px;font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -133,11 +133,17 @@
             </div>
           </div>
           <div class = "row">
-            <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+            <!--<div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
               <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
-            </div>
+            </div>-->
+          <div class = "row" ng-repeat="uploaded_file_data in showCase.model_data.uploaded_file_dict" style="margin-top: 1%;margin-left:1%;">
+            <a class="btn btn btn-success" href="{{uploaded_file_data.file_url}}" target="_blank" style="position: relative; font-weight: 600;min-width: 250px;font-size: 15px;">
+                {{uploaded_file_data.file_name}}<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+            </a>
+          </div>
+          <div class="row">
             <div class="col-md-3" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url && !showCase.quantity_editable">
               <a class="btn btn btn-success" href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 PA Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>

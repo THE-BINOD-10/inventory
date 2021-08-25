@@ -784,7 +784,7 @@ class TableLists(models.Model):
 class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
-    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=64, default='')
     display_name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
@@ -804,6 +804,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     class Meta:
         db_table = 'PURCHASE_APPROVAL_CONFIG'
         unique_together = ('user', 'name', 'level', 'min_Amt', 'max_Amt', 'approval_type')
+        index_together = (('company', 'display_name', 'purchase_type'),)
 
 
 class PurchaseApprovalMails(models.Model):  #PRApprovalMails

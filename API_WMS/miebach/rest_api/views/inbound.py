@@ -630,10 +630,12 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     else:
         filtersMap['pending_po__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['pending_po_id','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
+    lis = [ 'pending_po_id', #'pending_po__supplier__supplier_id', 
+	    'pending_po__supplier__name',
             'pending_po__po_number', 'pending_po__final_status', 'total_qty', 'total_amt', 'creation_date',
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
-            'pending_po__final_status', 'pending_po__pending_level',
+            'pending_po__final_status', 
+	    #'pending_po__pending_level',
             'pending_po_id', 'pending_po_id', 'pending_po_id',
             'pending_po__remarks']
     search_params = get_filtered_params(filters, lis)
@@ -2093,7 +2095,7 @@ def generated_actual_pr_data(request, user=''):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
-        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
+        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
         if record[0].final_status == 'saved':
             approval_remarks = record[0].remarks
     convertPoFlag = False
@@ -2115,24 +2117,24 @@ def generated_actual_pr_data(request, user=''):
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
     prApprQs = record[0].pending_prApprovals
-    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:
             validateFlag = 1
     for eachRemark in allRemarks:
-        level, validated_by, remarks = eachRemark
-        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+        level, validated_by, remarks, creation_date, updation_date = eachRemark
+        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
-        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
-            sender, receiver, enquiry, response = eachEnq
-            enquiryRemarks.append({"sender":sender, "receiver": receiver,
-                        "enquiry": enquiry, "response": response
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response', 'creation_date', 'updation_date'):
+            sender, receiver, enquiry, response, creation_date, updation_date = eachEnq
+            enquiryRemarks.append({"sender":sender, "receiver": receiver, 
+                        "enquiry": enquiry, "response": response , 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S") if response else ''
                 })
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     if request.user.email != record[0].requested_user.email:

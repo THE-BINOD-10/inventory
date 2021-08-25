@@ -60,11 +60,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
+    var columns = [ //"Supplier ID",
+		     "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
                     "Category", "Total Quantity", "Total Amount",
                     "PO Created Date", "PO Delivery Date", "Store", "Department",
-                     "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
-                    "Last Updated By", "Last Updated At", "Remarks"];
+                     "PO Raise By",  "Validation Status", 
+		    //"Pending Level", 
+		    "To Be Approved By", "Last Updated By",
+		    "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {

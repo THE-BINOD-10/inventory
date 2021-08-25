@@ -60,7 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", 
+    var columns = [ "Supplier ID", "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
                     "Category", "Total Quantity", "Total Amount",
                     "PO Created Date", "PO Delivery Date", "Store", "Department",
                      "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",

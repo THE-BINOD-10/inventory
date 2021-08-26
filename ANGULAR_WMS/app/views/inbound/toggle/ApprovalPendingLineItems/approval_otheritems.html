@@ -9,12 +9,12 @@
           <th>HSN Code</th>
           <th>Qty*</th>
           <th>UOM</th>
-          <th>Unit Rate(INR)</th>
+          <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
           <th>Base Price excluding GST</th>
-          <th>Amount(INR)</th>
-          <th>Tax %</th>
-          <th>Cess Tax %</th>
-          <th>Total(INR)</th>
+          <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
+          <th ng-if="showCase.model_data.tax_display">Tax %</th>
+          <th ng-if="showCase.model_data.tax_display">Cess Tax %</th>
+          <th>Total( {{showCase.model_data.warehouse_currency}} )</th>
           <th class="plus" ng-if="showCase.quantity_editable"></th>
         </tr>
       </thead>
@@ -76,12 +76,12 @@
             </span>
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
-          <td class="text-center">
+          <td ng-hide="!showCase.model_data.tax_display" class="text-center">
             <input type="text" name="tax" ng-model="product.fields.tax"
             class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
             <!--  ng-readonly="!showCase.permissions.change_pendinglineitems" size="12"> -->
           </td>
-          <td class="text-center">
+          <td ng-hide="!showCase.model_data.tax_display" class="text-center">
             <input type="text" name="cess_tax" ng-model="product.fields.cess_tax"
             class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
             <!--  ng-readonly="!showCase.permissions.change_pendinglineitems" size="12"> -->

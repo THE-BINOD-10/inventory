@@ -15023,3 +15023,15 @@ def get_sku_code_inc_number(user, instanceName, category, check=False):
     sku_code = '%s%s' % (type_name, str(inc_value).zfill(6))
     return True, sku_code
 
+def get_currency_tax_display(user):
+    status, msg, code, words = True, '', 'INR', ''
+    if user.userprofile.currency:
+        if user.userprofile.currency.currency_code != 'INR':
+            words = user.userprofile.currency.currency_word
+            code = user.userprofile.currency.currency_code
+            status = False
+        else:
+            words = user.userprofile.currency.currency_word
+    else:
+        msg = 'No Currency Mapping'
+    return status, msg, code, words

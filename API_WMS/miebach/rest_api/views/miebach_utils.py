@@ -9228,7 +9228,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     search_parameters = {}
     lis = ['rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
-           'seller_po_summary__invoice_number', 'return_date', 'return_reason', 'rtv_number']
+           'seller_po_summary__invoice_number', 'return_date', 'return_reason', 'rtv_number' ,'rtv_number','rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number','rtv_number', 'rtv_number', 'rtv_number', 'rtv_number', 'rtv_number']
     search_parameters['status'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -9331,7 +9331,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                 po_qty = po_data.order_quantity
                 rec_qty = rtv.seller_po_summary.purchase_order.received_quantity
                 rtv_wo_amount = rtv.quantity * po_data.price
-                rtv_tax_amount = ((rtv_wo_amount) * (po_data.cgst_tax + po_data.sgst_tax + po_data.igst_tax) / 100)
+                rtv_tax_amount = ((rtv_wo_amount) * (po_data.cgst_tax + po_data.sgst_tax + po_data.igst_tax + po_data.cess_tax) / 100)
                 rtv_total_amount = rtv_wo_amount + rtv_tax_amount
                 grn_date = get_local_date(user, rtv.seller_po_summary.creation_date)
                 grn_date_1 = datetime.datetime.strptime(grn_date, '%d %b, %Y %I:%M %p').date()

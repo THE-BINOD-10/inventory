@@ -14599,9 +14599,17 @@ def get_po_putaway_summary(request, user=''):
                                     'rtv_reasons':rtv_reasons, 'grn_number': grn_number}))
 
 def get_debit_note_data(rtv_number, user):
+    sub_user = user
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+	users = get_related_users_filters(user.id)
+    else:
+	users = [user.id]
+	users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
                                                         filter(rtv_number=rtv_number,
-                                                     seller_po_summary__purchase_order__open_po__sku__user=user.id)
+                                                     seller_po_summary__purchase_order__open_po__sku__user__in=user_ids)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0

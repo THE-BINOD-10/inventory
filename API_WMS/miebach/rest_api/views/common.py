@@ -14406,8 +14406,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
 
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0
-    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
-        cess_tax = 1
+    '''if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1'''
     return cess_tax
 
 

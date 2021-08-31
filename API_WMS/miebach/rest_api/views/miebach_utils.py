@@ -12982,12 +12982,18 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         pcf = uom_dict.get('sku_conversion')
         purchase_uom = uom_dict.get('measurement_unit')
         # pcf= uom_dict.get('pcf')
-        if data.stocktransfersummary_set.filter():
-            uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
-            qty_conversion = uom_dict['sku_conversion']
+        dts = data.stocktransfersummary_set.filter()
+        if dts:
+            try:
+                dts_val = dts.values('picklist__stock__batch_detail__pcf').distinct()
+                if dts_val.exists():
+                    qty_conversion = dts_val[0]['picklist__stock__batch_detail__pcf']
+            except Exception as e:
+                uom_dict = get_uom_with_sku_code(user, data.sku.sku_code, uom_type='purchase')
+                qty_conversion = uom_dict['sku_conversion']
             if not qty_conversion:
                 qty_conversion = 1
-            temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter(), conversion=qty_conversion)
+            temp_stat = get_mr_status(user, data.id, quantity, dts, conversion=qty_conversion)
             if temp_stat:
                 status = temp_stat
             invoice_quantity = 0

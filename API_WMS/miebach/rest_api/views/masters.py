@@ -1596,6 +1596,7 @@ def update_uom_master(user, data_dict={}, data=''):
         uom_type = data_dict['uom_type'][i]
         uom_name = str(data_dict['uom_name'][i]).lower()
         conversion = data_dict['conversion'][i]
+        base_uom_name = str(data_dict['base_uom'][i])
         uom_id = data_dict['uom_id'][i]
         if uom_type.lower() == 'base':
             base_uom_name = uom_name

@@ -1063,15 +1063,15 @@ def get_sku_data(request, user=''):
         market_data.append({'market_sku_type': market.sku_type, 'marketplace_code': market.marketplace_code,
                             'description': market.description, 'market_id': market.id})
     company_id = get_company_id(user)
-    uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code)
+    uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, uom_type='Purchase')
     uom_data = []
-    if uom_master:
-        base_uom_name = uom_master[0].base_uom
-        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1,
-                         'name': '%s-%s'% (base_uom_name, '1')})
+    # if uom_master:
+    #     base_uom_name = uom_master[0].base_uom
+    #     uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1,
+    #                      'name': '%s-%s'% (base_uom_name, '1')})
     for uom in uom_master:
         uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom, 'name': uom.name,
-                        'conversion': uom.conversion, 'uom_id': uom.id})
+                        'conversion': uom.conversion, 'uom_id': uom.id, 'base_uom': uom.base_uom})
 
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
@@ -1596,6 +1596,7 @@ def update_uom_master(user, data_dict={}, data=''):
         uom_type = data_dict['uom_type'][i]
         uom_name = str(data_dict['uom_name'][i]).lower()
         conversion = data_dict['conversion'][i]
+        base_uom_name = str(data_dict['base_uom'][i])
         uom_id = data_dict['uom_id'][i]
         if uom_type.lower() == 'base':
             base_uom_name = uom_name

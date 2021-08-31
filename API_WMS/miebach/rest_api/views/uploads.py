@@ -5017,6 +5017,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 def validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
+    data_list_warehouses = {}
     location_master = None
     sku_master = None
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
@@ -5108,24 +5109,28 @@ def validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_
                     index_status.setdefault(row_idx, set()).add('Invalid Reason')
             else:
                 data_dict[key] = cell_data
-        data_list.append(data_dict)
+        if user.id in data_list_warehouses.keys():
+            data_list_warehouses[user.id].append(data_dict)
+        else:
+            data_list_warehouses[user.id] = [data_dict]
+        # data_list.append(data_dict)
 
     if not index_status:
-        return 'Success', data_list
+        return 'Success', data_list_warehouses
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
         if file_path:
             f_name = file_path
-        return f_name, data_list
+        return f_name, data_list_warehouses
 
     elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_excel_file(f_name, index_status, reader)
         if file_path:
             f_name = file_path
-        return f_name, data_list
+        return f_name, data_list_warehouses
 
 
 @csrf_exempt
@@ -5143,54 +5148,55 @@ def inventory_adjust_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-    status, data_list = validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_cols, fname,
+    status, data_list_warehouses = validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_cols, fname,
                                                        file_type)
     if status != 'Success':
         return HttpResponse(status)
-    cycle_id, consumption_id, consumption_number = [0]*3
-    sku_codes = []
-    if data_list[0]['warehouse']:
-        warehouse = data_list[0]['warehouse']
-        user = User.objects.get(username=warehouse)
-    if data_list[0]['reason'] in ['Pooling']:
-        cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-        if not cycle_count:
-            cycle_id = 1
-        else:
-            cycle_id = cycle_count + 1
-    machine_datum = {}
-    for final_dict in data_list:
-        sku_datum = {}
-        wmscode = final_dict['sku_master'].wms_code
-        quantity = final_dict['quantity']
-        reason = final_dict['reason']
-        batch_no = final_dict['batch_no']
-        manufactured_date = ''
-        expiry_date = ''
-        remarks = final_dict['remarks']
-        sku_datum['adjustment_type'] = reason
-        sku_datum['remarks'] = remarks
-        sku_datum['requested_user_id'] = request.user.id
-        sku_datum['user_id'] = user.id
-        price = ''
-        if 'unit_price' in final_dict.keys():
-            price = final_dict['unit_price']
-        if reason in ['Pooling']:
-            stock_increase = True
-        else:
-            stock_increase = False
-        receipt_number = get_stock_receipt_number(user)
-        stock_stats_objs = []
-        sku_datum.update(machine_datum)
-        status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
-                                                batch_no=batch_no, receipt_number=receipt_number,
-                                                receipt_type='inventory-adjustment', stock_increase=stock_increase,
-                                                manufactured_date=manufactured_date, expiry_date=expiry_date, price=price, consumption_id=consumption_id,
-                                                consumption_number = consumption_number, remarks=remarks, sku_datum=sku_datum)
-        if adj_status == 'Added Successfully':
-            count+=1
-    if stock_stats_objs:
-        SKUDetailStats.objects.bulk_create(stock_stats_objs)
+    for key, value in data_list_warehouses.iteritems():
+        cycle_id, consumption_id, consumption_number = [0]*3
+        sku_codes = []
+        data_list = value
+        if key:
+            user = User.objects.get(id=key)
+        if data_list[0]['reason'] in ['Pooling']:
+            cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+            if not cycle_count:
+                cycle_id = 1
+            else:
+                cycle_id = cycle_count + 1
+        machine_datum = {}
+        for final_dict in data_list:
+            sku_datum = {}
+            wmscode = final_dict['sku_master'].wms_code
+            quantity = final_dict['quantity']
+            reason = final_dict['reason']
+            batch_no = final_dict['batch_no']
+            manufactured_date = ''
+            expiry_date = ''
+            remarks = final_dict['remarks']
+            sku_datum['adjustment_type'] = reason
+            sku_datum['remarks'] = remarks
+            sku_datum['requested_user_id'] = request.user.id
+            sku_datum['user_id'] = user.id
+            price = ''
+            if 'unit_price' in final_dict.keys():
+                price = final_dict['unit_price']
+            if reason in ['Pooling']:
+                stock_increase = True
+            else:
+                stock_increase = False
+            receipt_number = get_stock_receipt_number(user)
+            stock_stats_objs = []
+            sku_datum.update(machine_datum)
+            status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
+                                                    batch_no=batch_no, receipt_number=receipt_number,
+                                                    receipt_type='inventory-adjustment', stock_increase=stock_increase,
+                                                    manufactured_date=manufactured_date, expiry_date=expiry_date, price=price, consumption_id=consumption_id,
+                                                    consumption_number = consumption_number, remarks=remarks, sku_datum=sku_datum)
+            if status == 'Added Successfully':
+                count+=1
+        if stock_stats_objs:
+            SKUDetailStats.objects.bulk_create(stock_stats_objs)
     return HttpResponse('Adjusted {} Entries got Success'.format(count))
 
 

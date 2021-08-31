@@ -5072,8 +5072,8 @@ def validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_
                     index_status.setdefault(row_idx, set()).add('Invalid Seller')
             elif key == 'quantity':
                 try:
-                    if isinstance(cell_data, float):
-                        get_decimal_data(cell_data, index_status, row_idx, user)
+                    # if isinstance(cell_data, float):
+                        #get_decimal_data(cell_data, index_status, row_idx, user)
                     data_dict['quantity'] = float(cell_data)
                     if data_dict['quantity'] < 0:
                         index_status.setdefault(row_idx, set()).add('Invalid Quantity')

@@ -630,10 +630,12 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     else:
         filtersMap['pending_po__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['pending_po_id','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
-            'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
+    lis = [ 'pending_po_id', #'pending_po__supplier__supplier_id', 
+	    'pending_po__supplier__name',
+            'pending_po__po_number', 'pending_po__final_status', 'total_qty', 'total_amt', 'creation_date',
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
-            'pending_po__final_status', 'pending_po__pending_level',
+            'pending_po__final_status', 
+	    #'pending_po__pending_level',
             'pending_po_id', 'pending_po_id', 'pending_po_id',
             'pending_po__remarks']
     search_params = get_filtered_params(filters, lis)
@@ -733,6 +735,14 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         if result['pending_po__final_status'] == 'approved':
             validated_by = ''
+	enq_status = ''
+	gen_enqs = GenericEnquiry.objects.filter(sender_id=request.user.id, master_type='pendingPO',master_id=result['pending_po_id']).order_by('-creation_date')
+	if gen_enqs.exists():
+	    if gen_enqs[0].status == 'submitted':
+		enq_status = '<span class="label label-success">Responded</span>'
+	    else:
+		enq_status = '<span class="label label-danger">Pending</span>'
+
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_po_id']),
                                                 ('PR Number', result['pending_po__po_number']),
@@ -758,6 +768,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
                                                 ('id', result['pending_po__id']),
+						('Enquiry Status', enq_status),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 
@@ -1900,20 +1911,24 @@ def generated_pr_data(request, user=''):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
-        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
+        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
     if master_docs.exists():
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
-    pr_uploaded_file_dict = {}
+    pr_uploaded_file_dict = []
     pa_uploaded_file_dict = {}
     respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
     if respectivePrIds:
         master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='pending_pr')
-        if master_docs.exists():
-            pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                                  'file_url': '/' + master_docs[0].uploaded_file.name}
+        for master_doc in master_docs:
+            pr_uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
+                                  'file_url': '/' + master_doc.uploaded_file.name})
+
+        #if master_docs.exists():
+        #    pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+        #                          'file_url': '/' + master_docs[0].uploaded_file.name}
 
         pa_master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
         if pa_master_docs.exists():
@@ -1923,21 +1938,22 @@ def generated_pr_data(request, user=''):
 
 
     prApprQs = record[0].pending_poApprovals
-    allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:
             validateFlag = 1
     for eachRemark in allRemarks:
-        level, validated_by, remarks = eachRemark
-        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+        level, validated_by, remarks, re_creation_date, re_updation_date = eachRemark
+	
+        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': re_creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': re_updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
 
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPO')
     if currentPOenquiries.exists():
-        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
-            sender, receiver, enquiry, response = eachEnq
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response', 'creation_date', "updation_date"):
+            sender, receiver, enquiry, response, creation_date, updation_date = eachEnq
             enquiryRemarks.append({"sender":sender, "receiver": receiver,
-                        "enquiry": enquiry, "response": response
+                        "enquiry": enquiry, "response": response , 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date':updation_date.strftime("%d-%m-%Y, %H:%M:%S") if response else ""
                 })
 
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
@@ -2070,7 +2086,7 @@ def generated_actual_pr_data(request, user=''):
     pr_created_date = ''
     approval_remarks = ''
     validateFlag = 0
-    uploaded_file_dict = {}
+    uploaded_file_dict = []
     log_full_pr_number = ''
     enquiryRemarks = []
     if len(record):
@@ -2079,7 +2095,7 @@ def generated_actual_pr_data(request, user=''):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
-        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
+        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
         if record[0].final_status == 'saved':
             approval_remarks = record[0].remarks
     convertPoFlag = False
@@ -2090,9 +2106,9 @@ def generated_actual_pr_data(request, user=''):
             convertPoFlag = True
 
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
-    if master_docs.exists():
-        uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                              'file_url': '/' + master_docs[0].uploaded_file.name}
+    for master_doc in master_docs:
+        uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
+                              'file_url': '/' + master_doc.uploaded_file.name})
 
     pa_uploaded_file_dict = {}
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
@@ -2101,24 +2117,24 @@ def generated_actual_pr_data(request, user=''):
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
     prApprQs = record[0].pending_prApprovals
-    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:
             validateFlag = 1
     for eachRemark in allRemarks:
-        level, validated_by, remarks = eachRemark
-        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+        level, validated_by, remarks, creation_date, updation_date = eachRemark
+        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
-        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
-            sender, receiver, enquiry, response = eachEnq
-            enquiryRemarks.append({"sender":sender, "receiver": receiver,
-                        "enquiry": enquiry, "response": response
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response', 'creation_date', 'updation_date'):
+            sender, receiver, enquiry, response, creation_date, updation_date = eachEnq
+            enquiryRemarks.append({"sender":sender, "receiver": receiver, 
+                        "enquiry": enquiry, "response": response , 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S") if response else ''
                 })
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     if request.user.email != record[0].requested_user.email:
@@ -2179,6 +2195,7 @@ def generated_actual_pr_data(request, user=''):
         resubmitting_user = False
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
                                         model_id=lineItemId)
+        pr_extra_data = get_pr_extra_supplier_data(user, storeObj.username, sku_code, 'true')
         if pr_supplier_data.exists() and not is_purchase_approver:
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
@@ -2328,6 +2345,7 @@ def generated_actual_pr_data(request, user=''):
                                     'supplierDetails': supplierDetailsMap,
                                     'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,
+                                    'pr_extra_data': pr_extra_data,
                                     }, 'pk': lineItemId})
     response_dict = {'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                     'pr_created_date': pr_created_date, 'store': store,
@@ -3475,6 +3493,9 @@ def get_raisepo_group_data(user, myDict):
             temp_tax = myDict['temp_tax'][i]
         if 'temp_cess_tax' in myDict.keys():
             temp_cess_tax = myDict['temp_cess_tax'][i]
+        pr_extra_data = ''
+        if 'pr_extra_data' in myDict.keys():
+            pr_extra_data = myDict['pr_extra_data'][i]
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
@@ -3507,7 +3528,7 @@ def get_raisepo_group_data(user, myDict):
                                    'description': description, 'service_start_date': service_start_date,
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
                                    'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax,
-                                   'temp_cess_tax': temp_cess_tax})
+                                   'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -3625,6 +3646,7 @@ def add_po(request, user=''):
 def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPRObj, master_type='pr_approvals_conf_data',
                     forPO=False, product_category='Kits&Consumables', admin_user=None, approval_type='', status=''):
     mailsList = []
+    user_roles = []
     company_id = get_company_id(user)
     pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
     if admin_user:
@@ -3641,12 +3663,13 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
             mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
         else:
             mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
+        user_roles = list(apprConfObj[0].user_role.filter().values_list('role_name', flat=True))
         #mailsList = MasterEmailMapping.objects.filter(**memFiltersMap).values_list('email_id', flat=True)
     if mailsList:
         validated_by = ", ".join(mailsList)
     else:
         #validated_by = ''
-        return None, []
+        return None, [], user_roles
     prApprovalsMap = {
                         'purchase_number': pr_number,
                         'pr_user': user,
@@ -3665,7 +3688,7 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
         prApprovalsMap['purchase_type'] = 'PR'
     prObj = PurchaseApprovals(**prApprovalsMap)
     prObj.save()
-    return prObj, mailsList
+    return prObj, mailsList, user_roles
 
 
 def updatePRApproval(pendingPRObj, user, level, validated_by, validation_type,
@@ -4156,10 +4179,10 @@ def approve_pr(request, user=''):
                 approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
                                                                      approval_type='approved')
                 if approval_obj.exists():
-                    prObj, mailsList = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
+                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
                                             master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
                     if not prObj and reqConfigName:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                     PRQs.update(final_status=validation_type)
                     # PRQs.update(remarks=remarks)
                     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
@@ -4201,10 +4224,10 @@ def approve_pr(request, user=''):
                                 requestedUserEmail, poFor=poFor, central_po_data=central_po_data,
                                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
             else:
-                prObj, mailsList = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
+                prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
                                         master_type=master_type, forPO=poFor, approval_type=approval_type)
                 if not prObj and reqConfigName:
-                    return HttpResponse("Staff not found")
+                    return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 PRQs.update(pending_level=nextLevel)
                 # PRQs.update(remarks=remarks)
                 updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
@@ -4409,19 +4432,26 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 model_name='PendingLineItemMiscDetails',
                 model_json=misc_json
             )
+        if value.get('pr_extra_data', ''):
+            TempJson.objects.create(
+                model_id=lineObj.id,
+                model_name='pr_extra_data',
+                model_json=value['pr_extra_data']
+            )
 
-    file_obj = request.FILES.get('files-0', '')
-    if file_obj:
+    file_objs = request.FILES
+    for file_obj_tup in file_objs.iteritems():
+        file_obj = file_obj_tup[1]
         master_docs_obj = MasterDocs.objects.filter(master_id=pendingPurchaseObj.id, master_type=apprType,
                                                     user_id=user.id)
-        if not master_docs_obj:
-            upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
-        else:
-            master_docs_obj = master_docs_obj[0]
-            if os.path.exists(master_docs_obj.uploaded_file.path):
-                os.remove(master_docs_obj.uploaded_file.path)
-            master_docs_obj.uploaded_file = file_obj
-            master_docs_obj.save()
+        #if not master_docs_obj:
+        upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
+        #else:
+        #    master_docs_obj = master_docs_obj[0]
+        #    if os.path.exists(master_docs_obj.uploaded_file.path):
+        #        os.remove(master_docs_obj.uploaded_file.path)
+        #    master_docs_obj.uploaded_file = file_obj
+        #    master_docs_obj.save()
     return totalAmt, pendingPurchaseObj
 
 
@@ -5168,12 +5198,12 @@ def add_pr(request, user=''):
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',product_category=product_category,
                                                     approval_type=approval_type, sku_category=sku_category)
                 if reqConfigName:
-                    mail_list_check = validatePRNextApproval(request, user, reqConfigName, approval_type, baseLevel, admin_user=None)
+                    mail_list_check, mail_roles = validatePRNextApproval(request, user, reqConfigName, approval_type, baseLevel, admin_user=None)
                     if mail_list_check:
                         totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                              prefix, full_pr_number, is_auto_pr=is_auto_pr)
                     else:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 else:
                     return HttpResponse("Purchase Approval Config not found")
             else:
@@ -5205,11 +5235,11 @@ def add_pr(request, user=''):
                     reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type='default',
                                               sku_category=sku_category)
-                prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
+                prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
                                                     approval_type='default')
                 if not prObj and reqConfigName:
-                    return HttpResponse("Staff not found")
+                    return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 if mailsList:
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
@@ -5234,11 +5264,11 @@ def add_pr(request, user=''):
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
                 else:
-                    prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
+                    prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             admin_user=admin_user, product_category=product_category)
                     if not prObj and reqConfigName:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
@@ -5246,11 +5276,11 @@ def add_pr(request, user=''):
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
-                    prObj, mailsList = createPRApproval(request, pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
+                    prObj, mailsList, mail_roles = createPRApproval(request, pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             product_category=product_category, approval_type='')
                     if not prObj and reqConfigName:
-                        return HttpResponse("Staff not found")
+                        return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             if mailsList:
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
@@ -8012,8 +8042,12 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             if prQs:
                 product_category = prQs[0].product_category
             remarks=""
-            if "remarks" in myDict:
-                remarks= str(myDict["remarks"][0])
+	    try:
+            	if "remarks" in myDict:
+		    remarks= str(myDict["remarks"][0])
+		    remarks = remarks[0:998]
+	    except:
+		pass
             if s_po_s[0].creation_date:
                 grn_date_string= s_po_s[0].creation_date.strftime("%d-%m-%Y")
                 grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
@@ -10337,6 +10371,7 @@ def confirm_add_po(request, sales_data='', user=''):
             #     data['updation_date'] = po_creation_date
             uom_dict = get_uom_with_sku_code(user, purchase_order.sku.sku_code, uom_type='purchase')
             data['pcf'] = uom_dict.get('sku_conversion', 1)
+	    data['product_category']= product_category
             order = PurchaseOrder(**data)
             order.save()
             if po_creation_date:
@@ -10666,14 +10701,27 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
+	terms_condition, remarks = "", ""
+	try:
+	    terms_condition = data_dict.get('terms_condition', '')
+	    if terms_condition:
+	    	terms_condition = terms_condition[0:998]
+	except:
+	    pass
+	try:
+	    if _purchase_order.remarks:
+		remarks = _purchase_order.remarks
+		remarks = remarks[0:998]
+	except:
+	    pass
         po_data = { 'currency_internal_id': currency_internal_id, 'exchangerate': exchangerate, 'currency_code': currency_code,
                     'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                    'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
-                    'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
+                    'terms_condition':terms_condition, 'company_id':company_id, 'user_id':user.id,
+                    'remarks':remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number, 'replaceAll': 'replaceAll_'+str(replaceAll)}
         for purchase_order in purchase_objs:
@@ -14551,9 +14599,17 @@ def get_po_putaway_summary(request, user=''):
                                     'rtv_reasons':rtv_reasons, 'grn_number': grn_number}))
 
 def get_debit_note_data(rtv_number, user):
+    sub_user = user
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+	users = get_related_users_filters(user.id)
+    else:
+	users = [user.id]
+	users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
                                                         filter(rtv_number=rtv_number,
-                                                     seller_po_summary__purchase_order__open_po__sku__user=user.id)
+                                                     seller_po_summary__purchase_order__open_po__sku__user__in=user_ids)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0
@@ -16134,6 +16190,34 @@ def download_grn_invoice_mapping(request, user=''):
 
 @login_required
 @get_admin_user
+def download_pr_attachments(request , user =''):
+    pr_number = request.GET.get('pr_number', '')
+    master_docs = ""
+    if pr_number:
+	record = PendingPR.objects.filter(full_pr_number=pr_number)
+	master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type__in=['pending_pr', 'PENDING_PR_PURCHASE_APPROVER_FILE'])
+    if not pr_number or not master_docs:
+	return HttpResponse(json.dumps({"msg": 'Invalid PR Number', status:False}))
+    zip_subdir = ""
+    from os.path import basename
+    zip_filename = "static/excel_files/PR_Attachement.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as myzip:
+	for fname in master_docs:
+	    myzip.write(fname.uploaded_file.path, basename(fname.uploaded_file.path))
+	myzip.close()
+    #stringio = StringIO.StringIO()
+    #zf = zipfile.ZipFile(zip_filename, "w")
+    #for fname in master_docs:
+    #    zip_path = os.path.join(zip_subdir, fname.master_type)
+    #    zf.write(fname.uploaded_file.path, zip_path)
+    #zf.close()
+    #resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    #resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    url = request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+zip_filename
+    return  HttpResponse(json.dumps({"status":True, "data":url}))
+
+@login_required
+@get_admin_user
 def get_grn_extra_fields(request , user =''):
     extra_grn_fields = grn_extra_fields(user)
     return HttpResponse(json.dumps({'data':extra_grn_fields }))
@@ -16865,7 +16949,7 @@ def resubmit_prs(urlPath, pr_ids):
         reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                     product_category=product_category, approval_type='ranges',
                                     sku_category=sku_category)
-        prObj, mailsList = createPRApproval(request_user, user, reqConfigName, baseLevel, pr_id,
+        prObj, mailsList, mail_roles = createPRApproval(request_user, user, reqConfigName, baseLevel, pr_id,
                                 pendingPRObj, master_type=master_type, product_category=product_category,
                                             approval_type='ranges')
         for eachMail in mailsList:
@@ -17294,6 +17378,7 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
                 '12': {"refrence_id": "631", "hsn_code": "38220019_12"},
                 "18": {"refrence_id": "1020", "hsn_code": "38220019_18"},
                 "5": {"refrence_id": "1056", "hsn_code": "38220019_5"},
+		"0": {"refrence_id": "1022", "hsn_code": "38220090_0"},
             }
     if sku_id:
         sku= sku_id[0]
@@ -17356,6 +17441,8 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
                             e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"] + "_KL"
                         else:
                             e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"]
+		    else:
+			e_row["hsn_code"] = hsn_list[str(0)]["refrence_id"]
                     e_row["unit_price"] = price
         action = "upsert"
         is_multiple =True
@@ -17491,3 +17578,26 @@ def delete_consumption_data(request, user=''):
                 store_user = user
             update_sku_avg_main(sku_amt, store_user, main_user)
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_pr_req_files(request, user=''):
+    pr_number = request.GET["pr_number"]
+    record = PendingPR.objects.filter(full_pr_number=pr_number)
+    zip_subdir = ""
+    zip_filename = "%s.zip" % pr_number
+    stringio = StringIO.StringIO()
+    zf = zipfile.ZipFile(stringio, "w")
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
+    for master_doc in master_docs:
+        fname = ''.join(master_doc.uploaded_file.name.split('/')[3:])
+        file_obj = master_doc.uploaded_file
+        zip_path = os.path.join(zip_subdir, fname)
+        zf.write(file_obj.path, zip_path)
+    zf.close()
+    resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    return resp
+

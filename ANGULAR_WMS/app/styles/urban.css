@@ -570,7 +570,7 @@ blockquote p {
 }
 .sidebar-panel > nav ul > li > a > span {
   display: initial;
-  font-size: 10px;
+  font-size: 13px;
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }

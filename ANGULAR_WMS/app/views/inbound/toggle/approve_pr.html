@@ -29,7 +29,7 @@
 
 <div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision">
   <form name="{{showCase.form}}" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="approve_form">
-    <div class="modal-dialog model-custom modal-lg" style="min-width: 1305px;font-size: xx-small;">
+    <div class="modal-dialog model-custom modal-lg" style="min-width: 1500px;font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -134,6 +134,8 @@
                   <th>Level</th>
                   <th>Approved By</th>
                   <th>Remarks</th>
+		  <th>Date</th>
+		  <th>Approved Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,6 +149,12 @@
                   <td>
                     <input ng-model="product.remarks" title="{{product.remarks}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
                   </td>
+		  <td>
+			<input ng-model="product.creation_date" title="{{product.creation_date}}" type="text" class="form-control detectTab" readonly ng-debounce size="10">
+		  </td>
+		  <td> 
+			<input ng-model="product.updation_date" title="{{product.updation_date}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
+		  </td>
                 </tr>
               </tbody>
             </table>
@@ -183,6 +191,8 @@
                     <th>Receiver</th>
                     <th>Enquiry</th>
                     <th>Response</th>
+		    <th>Enquiry Date</th>
+		    <th>Response Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,6 +209,12 @@
                     <td>
                       <input ng-model="product.response" title="{{product.response}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
                     </td>
+		    <td>
+			<input ng-model="product.creation_date" title="{{product.creation_date}}" type="text" class="form-control detectTab" readonly ng-debounce  size="10">
+		    </td>
+		    <td>
+			<input ng-model="product.updation_date" title="{{product.updation_date}}" type="text" class="form-control detectTab" readonly ng-debounce size="5">
+		    </td>
                   </tr>
                 </tbody>
               </table>
@@ -211,12 +227,12 @@
                </span>
             </div>
           </div>
-          <div class = "row">
-            <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
-              <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
-                Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+          <div class = "row" ng-repeat="uploaded_file_data in showCase.model_data.uploaded_file_dict" style="margin-top: 1%;">
+              <a class="btn btn btn-success" href="{{uploaded_file_data.file_url}}" target="_blank" style="position: relative; font-weight: 600;min-width: 250px;font-size: 15px;">
+                {{uploaded_file_data.file_name}}<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
-            </div>
+          </div>
+          <div class="row">
             <div class="col-md-3" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url && !showCase.quantity_editable">
               <a class="btn btn btn-success" href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 PA Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>

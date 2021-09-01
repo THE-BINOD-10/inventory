@@ -6860,6 +6860,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     sku_code = request.GET.get('sku_code')
     plant = request.GET.get('plant', '')
     comment = request.GET.get('comment', '')
+    send_supp_info = request.GET.get('send_supp_info', '')
     consumption_dict = {'avg_qty': 0, 'base_qty': 0}
     if plant:
         consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
@@ -6893,13 +6894,15 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
         skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     is_contracted_supplier = findIfContractedSupplier(user, sku_code)
+    pr_extra_data = get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
-                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict }))
-        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
+                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict,
+                'pr_extra_data': pr_extra_data }))
+        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found', 'pr_extra_data': pr_extra_data }))
     avlb_qty = (avail_qty+st_avail_qty)
     if comment:
         uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
@@ -6908,7 +6911,9 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
-                                    'avg_price': avg_price, 'consumption_dict': consumption_dict}))
+                                    'avg_price': avg_price, 'consumption_dict': consumption_dict,
+                                    'pr_extra_data': pr_extra_data,
+                                    }))
 
 
 def sku_level_stock_data(request, user):
@@ -13638,7 +13643,7 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
     for user_role in user_roles:
         emails = []
         staff_check = {'company_id__in': company_list, 'user': user,
-                        'position': user_role}
+                        'position': user_role, 'status': 1}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
             staff_check['department_type__name'] = user.userprofile.stockone_code
@@ -13649,7 +13654,7 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
         if app_config.department_type:
             staff_check['department_type__name'] = app_config.department_type
         if user_role == 'Reporting Manager':
-            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list, status=1)
             if cur_staff_obj.exists():
                 emails = [cur_staff_obj[0].reportingto_email_id]
         if not emails:
@@ -13663,13 +13668,13 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                 if admin_user.id == prev_admin_user.id:
                     break_loop = False
                 emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__name=admin_user.username,
-                                                         department_type__isnull=True, position=user_role).\
+                                                         department_type__isnull=True, position=user_role, status=1).\
                         values_list('email_id', flat=True))
                 if emails:
                     break_loop = False
         if not emails:
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__isnull=True,
-                                                     department_type__isnull=True, position=user_role). \
+                                                     department_type__isnull=True, position=user_role, status=1). \
                           values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
@@ -14174,7 +14179,7 @@ def create_consumption_material(consumption, material_sku, qty_dict, average_pri
         ConsumptionMaterial.objects.create(**data_dict)
 
 
-def reduce_consumption_stock(consumption_obj, total_test=0):
+def reduce_consumption_stock(consumption_obj, total_test=0, book_date="", consumption_type="Auto-Consumption"):
     # if not consumptions:
     #     consumptions = []
     log.info("Consumption Booking for %s and Test %s total test %s" %
@@ -14192,8 +14197,12 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             bom_check_dict = {'status': 1,
 			      'plant_user_id': main_user.id,
 			      'org_id': str(consumption_obj.org_id),
-			      'instrument_id': str(consumption_obj.instrument_id),
                               'product_sku__sku_code': consumption.test.test_code}
+            if consumption_type=="Auto-Consumption":
+                bom_check_dict["instrument_id"]= str(consumption_obj.instrument_id)
+                bom_check_dict["test_type"] = "Machine"
+            elif consumption_type=="Manual-Consumption":
+                bom_check_dict["test_type"] = "Manual"
            # if consumption.machine:
            #     bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
             bom_master = BOMMaster.objects.filter(**bom_check_dict)
@@ -14211,13 +14220,17 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             consumption_book=False
             for bom in bom_master:
 		pending_qty = 0
-                user = bom.wh_user
+                if  main_user.userprofile.stockone_code in ["29087", "29101", "29188", "19065", "27023", "27028", "27042", "27062", "27073", "27077", "27080", "27082", "27093", "27098", "27103", "6015", "27020", "27019", "8049", "10034", "23029", "23052", "23079", "23086", "24022", "24039", "24072", "30084", "32154", "29055", "32059", "32143"]:
+                    user= main_user
+                else:
+                    user= bom.wh_user
 		each_line_stock_found = True
                 stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
                 uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, uom_type='purchase')
+                #if not uom_dict.get('base_uom', "").upper()== "TEST":continue
                 pcf = uom_dict['sku_conversion']
                 pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
@@ -14246,6 +14259,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     consumption_book=True
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
                                               'sku_pcf': pcf,
+                                              'base_uom': uom_dict.get('base_uom', "").upper(),
                                               'status' : each_line_stock_found,
                                               'qty_dict': {'consumption_qty': total_consumption_qty, 'stock_quantity':stock_quantity,
                                               'consumed_quantity': consumed_quantity, 'pending_qty':pending_qty},
@@ -14265,7 +14279,11 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
                 average_price = sku.average_price
-		if value["qty_dict"]["consumed_quantity"]>0:
+		if value["qty_dict"]["consumed_quantity"]>0 and  value["base_uom"]=="TEST":
+                    if consumption_type=="Manual-Consumption":
+                        cons_type = 1
+                    else:
+                        cons_type = 2
                     consumption_data = ConsumptionData.objects.create(
                         order_id=consumption_id,
                         consumption_number=consumption_number,
@@ -14274,12 +14292,18 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                         price=average_price,
                         sku_pcf=value['sku_pcf'],
                         quantity=value["qty_dict"]["consumed_quantity"],
-                        consumption_type = 2,
+                        consumption_type = cons_type,
 			plant_user= main_user
                     )
+                    if book_date:
+                        consumption_data.creation_date= book_date
+                        consumption_data.save()
                     update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data)
+                if not value["base_uom"]=="TEST":
+                    value["qty_dict"]["consumed_quantity"]= 0
+                    value["qty_dict"]["pending_qty"] = value["qty_dict"]["consumption_qty"]
                 create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price, sku_pcf=value['sku_pcf'])
             if bom_master and stock_found:
                 consumption.status = 0
@@ -14382,8 +14406,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
 
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0
-    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
-        cess_tax = 1
+    '''if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1'''
     return cess_tax
 
 
@@ -14668,13 +14692,15 @@ def validatePRNextApproval(request, user, reqConfigName, approval_type, level, a
     if approval_type:
         pacFiltersMap['approval_type'] = approval_type
     apprConfObj = PurchaseApprovalConfig.objects.filter(**pacFiltersMap)
+    user_roles = []
     if apprConfObj:
         apprConfObjId = apprConfObj[0].id
         if isinstance(request, User):
             mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
         else:
             mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
-    return mailsList
+        user_roles = list(apprConfObj[0].user_role.filter().values_list('role_name', flat=True))
+    return mailsList, user_roles
 
 
 def repush_grns(grns_list, user, type='GRN'):
@@ -15003,3 +15029,27 @@ def get_sku_code_inc_number(user, instanceName, category, check=False):
     sku_code = '%s%s' % (type_name, str(inc_value).zfill(6))
     return True, sku_code
 
+def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
+    pr_extra_data = {'last_supplier': '', 'last_supplier_price': 0, 'least_supplier': '', 'least_supplier_price': '',
+                     'least_supplier_pi': '', 'least_supplier_price_pi': ''}
+    if send_supp_info == 'true':
+        current_date = datetime.datetime.now()
+        last_year_date = datetime.datetime.now() - relativedelta(years=1)
+        last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
+                                        creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        if last_po.exists():
+            last_po_obj = last_po.latest('creation_date')
+            pr_extra_data['last_supplier'] = last_po_obj .open_po.supplier.name
+            pr_extra_data['last_supplier_price'] = last_po_obj .open_po.price
+            least_po_obj = last_po.order_by('open_po__price')[0]
+            pr_extra_data['least_supplier'] = least_po_obj.open_po.supplier.name
+            pr_extra_data['least_supplier_price'] = least_po_obj.open_po.price
+        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
+        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
+                                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        if least_po.exists():
+            least_po_obj = least_po.order_by('open_po__price')[0]
+            pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
+            pr_extra_data['least_supplier_price_pi'] = least_po_obj.open_po.price
+
+    return pr_extra_data

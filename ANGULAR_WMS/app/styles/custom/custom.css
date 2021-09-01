@@ -671,7 +671,7 @@ select.error {
   padding-bottom: 5px !important;
 }
 .dataTables_wrapper {
-  font-size: xx-small;
+  font-size: 13px;
   overflow-x: auto;
   min-height: 200px;
 }

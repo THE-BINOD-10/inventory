@@ -72,18 +72,18 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
         else:
             pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected', 'resubmitted']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
-        if pa_mails:
-            for pa_mail in pa_mails:
+        if pa_mails.exists():
+            filtersMap.setdefault('pending_pr_id__in', [])
+            filtersMap['pending_pr_id__in'] = list(pa_mails.values_list('pr_approval__pending_pr_id', flat=True).distinct())
+            '''for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
                 configName = pa_mail.pr_approval.configName
                 pr_filter_check = {'configName': configName, 'level': currentUserLevel, 'status__in': status_in}
                 if status:
                     pr_filter_check['pending_pr__final_status'] = status
-                #pr_numbers = list(PurchaseApprovals.objects.filter(**pr_filter_check).distinct().
-                #                  values_list('pending_pr_id', flat=True))
                 pr_numbers = [pa_mail.pr_approval.pending_pr_id]
                 filtersMap.setdefault('pending_pr_id__in', [])
-                filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+                filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))'''
         # if status != 'approved': # Creator Sub Users
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))

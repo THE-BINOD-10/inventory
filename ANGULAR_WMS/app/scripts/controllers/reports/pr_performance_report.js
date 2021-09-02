@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 vm.report_data['excel_name'] = 'get_pr_detail_report'
             }
             else{
-                vm.report_data['excel_name'] = 'get_pr_performance_report'
+                vm.report_data['excel_name'] = 'get_pr_performance_report_dat'
             }
           })
         }

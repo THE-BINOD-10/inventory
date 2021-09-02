@@ -2856,6 +2856,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_consumption_data': 'get_consumption_data_',
                         'PRAOD_report': 'get_praod_report_data',
                         'get_asn_detail': 'get_asn_data',
+                        'get_pr_performance_report_dat': 'get_pr_report_data_performance',
                         }
 # End of Download Excel Report Mapping
 

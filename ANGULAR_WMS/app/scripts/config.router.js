@@ -3169,6 +3169,18 @@ var app = angular.module('urbanApp')
             title: 'OPEN PO APPROVAL Report',
           }
         })
+        .state('app.reports.PRReportPerformance', {
+          url: '/PRReportPerformance',
+          templateUrl: 'views/reports/pr_performance_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/pr_performance_report.js');
+              }]
+          },
+          data: {
+            title: 'PR Performance Report',
+          }
+        })
         .state('app.reports.PRReport', {
           url: '/PRReport',
           templateUrl: 'views/reports/pr_report.html',

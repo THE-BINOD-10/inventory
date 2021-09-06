@@ -2054,7 +2054,7 @@ PRAOD_REPORT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'Product Category', 'SKU Category',
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'PR Status', 'Product Category', 'SKU Category',
         'Pending with Email Id', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
     'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
     'print_url': 'get_praod_report',
@@ -19287,8 +19287,8 @@ def get_praod_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number']
-    model_data = PendingPR.objects.filter(**search_parameters).values(*values_list).distinct()
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status']
+    model_data = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected']).values(*values_list).distinct()
 
     if order_term:
         model_data = model_data.order_by(order_data)
@@ -19308,12 +19308,8 @@ def get_praod_report_data(search_params, user, sub_user):
     pas_objs = PurchaseApprovals.objects.filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by', 'creation_date', 'level')
     for pas in pas_objs:
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
-    count = 0
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-    counter = 0
     for result in results:
-        counter += 1
-        print counter
         user_obj = User.objects.get(id=result['wh_user'])
         plant_code = user_obj.userprofile.stockone_code
         plant = user_obj.first_name
@@ -19340,6 +19336,7 @@ def get_praod_report_data(search_params, user, sub_user):
             ('Plant Code', plant_code),
             ('Zone Code', zone_code),
             ('PR Number', result['full_pr_number']),
+            ('PR Status', result['final_status'].title()),
             ('Product Category', result['product_category']),
             ('SKU Category', result['sku_category']),
             ('Pending with Email Id', pa_emails),

@@ -920,7 +920,7 @@ PR_PERFORMANCE_REPORT_DICT = {
         {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
     ],
-    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
+    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR Final Approval Date', 'PR Confirmed Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
                 'Priority Type', 'PR Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Time', 'Approver Level'],
 
     'dt_url': 'get_pr_performance_report', 'excel_name': 'get_pr_performance_report',
@@ -15562,14 +15562,25 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         results = pending_data
     dprs = list(results.values_list('pending_pr__full_pr_number', flat=True))
     pr_po_dict = {}
+    pr_last_current_approval_date = {}
     for dpr in dprs:
-        dpos = list(PendingPO.objects.filter(pending_prs__full_pr_number=dpr).values_list('full_po_number', flat=True).distinct())
+        try:
+            prp = pending_data.filter(pending_pr__full_pr_number=dpr).exclude(status='on_approved').order_by('-updation_date')
+            if prp.exists():
+                pr_last_current_approval_date.setdefault(dpr, get_local_date(user, prp[0]['updation_date']))
+        except Exception as e:
+            pass
+        temp_pos = PendingPO.objects.filter(pending_prs__full_pr_number=dpr)
+        dpos = list(temp_pos.values_list('full_po_number', flat=True).distinct())
         if len(dpos) > 0:
-            pr_po_dict[dpr] = dpos
+            pr_po_dict.setdefault(dpr, {'pos': dpos, 'date': temp_pos.order_by('-creation_date')[0].creation_date})
     for result in results:
-        po_numbers = ''
+        po_numbers, pr_final_confirmation_date, pr_final_approval_dates = '', '', ''
         if result['pending_pr__full_pr_number'] in pr_po_dict.keys():
-            po_numbers = ','.join(pr_po_dict[result['pending_pr__full_pr_number']])
+            po_numbers = ','.join(pr_po_dict[result['pending_pr__full_pr_number']]['pos'])
+            pr_final_confirmation_date = get_local_date(user, pr_po_dict[result['pending_pr__full_pr_number']]['date'])
+        if result['pending_pr__full_pr_number'] in pr_last_current_approval_date.keys():
+            pr_final_approval_dates = pr_last_current_approval_date[result['pending_pr__full_pr_number']]
         days_hours, minutes, confirmed_date,  = ['']*3
         date_diff_seconds = 0
         days_hours = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
@@ -15581,6 +15592,8 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             ('PR Number', result['pending_pr__full_pr_number']),
             ('PO Number', po_numbers),
             ('PR Submitted Date', get_local_date(user, result['pending_pr__creation_date'])),
+            ('PR Confirmed Date', pr_final_confirmation_date),
+            ('PR Final Approval Date', pr_final_approval_dates),
             ('PR raised By', result['pending_pr__requested_user__username']),
             ('PR raised To', result['pending_pr__wh_user__username']),
             ('Zone', result['pending_pr__wh_user__userprofile__zone']),
@@ -15592,7 +15605,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
             ('Approver Received Date', get_local_date(user, result['creation_date'])),
             ('Approver Confirmed Date', confirmed_date),
-            ('Approver Time', "%s, %s %s" % (days_hours, str(minutes), 'minutes')),
+            ('Approver Time', "%s / %s %s" % (days_hours, str(minutes), 'minutes')),
             ('Approver Level', result['level']),
             ('DT_RowClass', 'results')))
         temp_data['aaData'].append(ord_dict)

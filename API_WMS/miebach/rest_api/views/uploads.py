@@ -5012,6 +5012,127 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     # return f_name
 
 
+
+@csrf_exempt
+def validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    data_list_warehouses = {}
+    location_master = None
+    sku_master = None
+    inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    excel_check_list = ['wms_code', 'location', 'quantity', 'reason', 'unit_price']
+    if user.userprofile.user_type == 'marketplace_user':
+        excel_check_list.append('seller_id')
+    if user.userprofile.industry_type == 'FMCG':
+        excel_check_list.append('mrp')
+        excel_check_list.append('weight')
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', None
+    for row_idx in range(1, no_of_rows):
+        print row_idx
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'warehouse':
+                try:
+                    user = User.objects.get(username=cell_data)
+                    data_dict[key] = user.id
+                except Exception as e:
+                    index_status.setdefault(row_idx, set()).add('Invalid Warehouse')
+            if key == 'wms_code':
+                if isinstance(cell_data, (int, float)):
+                    cell_data = int(cell_data)
+                cell_data = str(xcode(cell_data))
+                sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
+                if not sku_master:
+                    index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
+                else:
+                    data_dict['sku_master'] = sku_master[0]
+            elif key == 'location':
+                if cell_data:
+                    location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
+                    if not location_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid Location')
+                    else:
+                        data_dict['location_master'] = location_master[0]
+                else:
+                    continue
+                    # index_status.setdefault(row_idx, set()).add('Location should not be empty')
+            elif key == 'seller_id':
+                if cell_data and isinstance(cell_data, (int, float)):
+                    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=cell_data)
+                    if not seller_master:
+                        index_status.setdefault(row_idx, set()).add('Seller Not Found')
+                    else:
+                        data_dict['seller_master'] = seller_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Invalid Seller')
+            elif key == 'quantity':
+                try:
+                    # if isinstance(cell_data, float):
+                        #get_decimal_data(cell_data, index_status, row_idx, user)
+                    data_dict['quantity'] = float(cell_data)
+                    if data_dict['quantity'] < 0:
+                        index_status.setdefault(row_idx, set()).add('Invalid Quantity')
+                except:
+                    index_status.setdefault(row_idx, set()).add('Invalid Quantity')
+            elif key == 'mrp':
+                if cell_data:
+                    try:
+                        data_dict['mrp'] = float(cell_data)
+                        if data_dict['mrp'] < 0:
+                            index_status.setdefault(row_idx, set()).add('Invalid MRP')
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid MRP')
+            elif key == 'weight' :
+                if user.username in MILKBASKET_USERS:
+                    if isinstance(cell_data, (float)):
+                        cell_data = str(int(cell_data))
+                    cell_data = mb_weight_correction(cell_data)
+                else:
+                    continue
+                data_dict[key] = cell_data
+
+                #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'unit_price':
+                try:
+                    data_dict[key] = float(cell_data)
+                except:
+                    data_dict[key] = ''
+            elif key == 'reason':
+                if cell_data.lower() == 'pooling' and cell_data:
+                    data_dict[key] = 'Pooling'
+                else:
+                    index_status.setdefault(row_idx, set()).add('Invalid Reason')
+            else:
+                data_dict[key] = cell_data
+        if user.id in data_list_warehouses.keys():
+            data_list_warehouses[user.id].append(data_dict)
+        else:
+            data_list_warehouses[user.id] = [data_dict]
+        # data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list_warehouses
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list_warehouses
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list_warehouses
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -5027,60 +5148,55 @@ def inventory_adjust_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-    status, data_list = validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname,
+    status, data_list_warehouses = validate_inventory_adjust_new_form(request, reader, user, no_of_rows, no_of_cols, fname,
                                                        file_type)
-
     if status != 'Success':
         return HttpResponse(status)
-
-    sku_codes = []
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count + 1
-
-    receipt_number = get_stock_receipt_number(user)
-    seller_receipt_dict = {}
-    stock_stats_objs = []
-    for final_dict in data_list:
-        # location_data = ''
-        wms_code = final_dict['sku_master'].wms_code
-        sku_codes.append(wms_code)
-        loc = final_dict['location_master'].location
-        quantity = final_dict['quantity']
-        reason = final_dict['reason']
-        seller_master_id, batch_no, mrp, weight, price, price_type = '', '', 0, '', '', ''
-        if final_dict.get('seller_master', ''):
-            seller_master_id = final_dict['seller_master'].id
-        if final_dict.get('batch_no', ''):
+    for key, value in data_list_warehouses.iteritems():
+        cycle_id, consumption_id, consumption_number = [0]*3
+        sku_codes = []
+        data_list = value
+        if key:
+            user = User.objects.get(id=key)
+        if data_list[0]['reason'] in ['Pooling']:
+            cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+            if not cycle_count:
+                cycle_id = 1
+            else:
+                cycle_id = cycle_count + 1
+        machine_datum = {}
+        for final_dict in data_list:
+            sku_datum = {}
+            wmscode = final_dict['sku_master'].wms_code
+            quantity = final_dict['quantity']
+            reason = final_dict['reason']
             batch_no = final_dict['batch_no']
-        if final_dict.get('mrp', 0):
-            mrp = final_dict['mrp']
-        if final_dict.get('weight', ''):
-            weight = final_dict['weight']
-        if final_dict.get('unit_price', 0) != '':
-            price = final_dict['unit_price']
-        # else:
-        #     price = final_dict['sku_master'].cost_price
-        #     price_type = "cost_price"
-
-        if str(seller_master_id) in seller_receipt_dict.keys():
-            receipt_number = seller_receipt_dict[str(seller_master_id)]
-        else:
+            manufactured_date = ''
+            expiry_date = ''
+            remarks = final_dict['remarks']
+            sku_datum['adjustment_type'] = reason
+            sku_datum['remarks'] = remarks
+            sku_datum['requested_user_id'] = request.user.id
+            sku_datum['user_id'] = user.id
+            price = ''
+            if 'unit_price' in final_dict.keys():
+                price = final_dict['unit_price']
+            if reason in ['Pooling']:
+                stock_increase = True
+            else:
+                stock_increase = False
             receipt_number = get_stock_receipt_number(user)
-            seller_receipt_dict[str(seller_master_id)] = receipt_number
-        adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
-                              seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
-                              price = price, receipt_type='inventory-adjustment')
-        if adj_status == 'Added Successfully':
-            count+=1
-
-    if stock_stats_objs:
-        SKUDetailStats.objects.bulk_create(stock_stats_objs)
-    check_and_update_stock(sku_codes, user)
-    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
+            stock_stats_objs = []
+            sku_datum.update(machine_datum)
+            status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
+                                                    batch_no=batch_no, receipt_number=receipt_number,
+                                                    receipt_type='inventory-adjustment', stock_increase=stock_increase,
+                                                    manufactured_date=manufactured_date, expiry_date=expiry_date, price=price, consumption_id=consumption_id,
+                                                    consumption_number = consumption_number, remarks=remarks, sku_datum=sku_datum)
+            if status == 'Added Successfully':
+                count+=1
+        if stock_stats_objs:
+            SKUDetailStats.objects.bulk_create(stock_stats_objs)
     return HttpResponse('Adjusted {} Entries got Success'.format(count))
 
 

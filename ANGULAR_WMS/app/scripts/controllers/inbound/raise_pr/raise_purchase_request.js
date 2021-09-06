@@ -503,6 +503,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       } else if(product_category == 'OtherItems'){
         vm.model_data.data.push({"fields": emptylineItems});
       }
+      if (vm.model_data.sku_category == 'Transport Charges') {
+        swal2({
+          title: vm.model_data.sku_category,
+          text: 'No DOA defined for transportation charges',
+          icon: "success",
+          button: "OK",
+          allowOutsideClick: false
+       }).then(function (text) {
+          vm.close();
+       });
+      }
     }
 
     vm.update_data = function (index, special_flag=true) {
@@ -862,7 +873,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var keepGoing = true
       angular.forEach(elem, function(list_obj) {
         if (list_obj['name'] == 'order_quantity') {
-          if (parseInt(list_obj['value']) <= 0) {
+          if (parseFloat(list_obj['value']) <= 0) {
             keepGoing = false
           }
         }
@@ -1390,7 +1401,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var keepGoing = true
       angular.forEach(elem, function(list_obj) {
         if (list_obj['name'] == 'order_quantity') {
-          if (parseInt(list_obj['value']) <= 0) {
+          if (parseFloat(list_obj['value']) <= 0) {
             keepGoing = false
           }
         }

@@ -13180,10 +13180,13 @@ def get_company_id(user, level=''):
     return company.id
 
 
-def get_related_users(user_id, level=0, company_id=''):
+def get_related_users(user_id, level=0, company_id='', exclude_depts= False):
     """ this function generates all users related to a user """
     user = User.objects.get(id=user_id)
     main_company_id = get_company_id(user)
+    if exclude_depts:
+	user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) | Q(user__userprofile__warehouse_level=level), company_id=main_company_id)
+	user_groups = user_groups.filter(Q(user__userprofile__warehouse_type__in=["STORE"])| Q(admin_user__userprofile__warehouse_type__in=["STORE"]))
     if not level:
         user_groups = UserGroups.objects.filter(company_id=main_company_id)
     else:
@@ -13386,7 +13389,7 @@ def sync_supplier_async(id, user_id):
 def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False, userids_list=[], currency_objs =[]):
     supplier_sync = get_misc_value('supplier_sync', user.id)
     if (supplier_sync == 'true' or force) and not current_user :
-        user_ids = get_related_users(user.id)
+        user_ids = get_related_users(user.id,level=1, exclude_depts= True)
     else:
         user_ids = [user.id]
     if userids_list:
@@ -14143,9 +14146,9 @@ def get_uom_with_multi_skus(user, sku_codes, uom_type, uom=''):
                                             'base_uom': sku_uom.base_uom}
     return sku_uom_dict
 
-def create_consumption_material(consumption, material_sku, qty_dict, average_price=0):
+def create_consumption_material(consumption, material_sku, qty_dict, average_price=0, sku_pcf=1):
     pending_qty = qty_dict['pending_qty']
-    data_dict = {'consumption': consumption, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
+    data_dict = {'consumption': consumption, 'sku_pcf': sku_pcf, 'sku': material_sku, 'price': average_price, 'stock_quantity': qty_dict["stock_quantity"], 'pending_quantity':pending_qty,
                 'consumed_quantity': qty_dict['consumed_quantity'], 'consumption_quantity':qty_dict['consumption_qty']}
     if pending_qty==qty_dict['consumption_qty']:
         data_dict['status'] = 4
@@ -14176,7 +14179,7 @@ def create_consumption_material(consumption, material_sku, qty_dict, average_pri
         ConsumptionMaterial.objects.create(**data_dict)
 
 
-def reduce_consumption_stock(consumption_obj, total_test=0):
+def reduce_consumption_stock(consumption_obj, total_test=0, book_date="", consumption_type="Auto-Consumption"):
     # if not consumptions:
     #     consumptions = []
     log.info("Consumption Booking for %s and Test %s total test %s" %
@@ -14194,8 +14197,12 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             bom_check_dict = {'status': 1,
 			      'plant_user_id': main_user.id,
 			      'org_id': str(consumption_obj.org_id),
-			      'instrument_id': str(consumption_obj.instrument_id),
                               'product_sku__sku_code': consumption.test.test_code}
+            if consumption_type=="Auto-Consumption":
+                bom_check_dict["instrument_id"]= str(consumption_obj.instrument_id)
+                bom_check_dict["test_type"] = "Machine"
+            elif consumption_type=="Manual-Consumption":
+                bom_check_dict["test_type"] = "Manual"
            # if consumption.machine:
            #     bom_check_dict['machine_master__machine_code'] = consumption.machine.machine_code
             bom_master = BOMMaster.objects.filter(**bom_check_dict)
@@ -14213,13 +14220,17 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             consumption_book=False
             for bom in bom_master:
 		pending_qty = 0
-                user = bom.wh_user
+                if  main_user.userprofile.stockone_code in ["29087", "29101", "29188", "19065", "27023", "27028", "27042", "27062", "27073", "27077", "27080", "27082", "27093", "27098", "27103", "6015", "27020", "27019", "8049", "10034", "23029", "23052", "23079", "23086", "24022", "24039", "24072", "30084", "32154", "29055", "32059", "32143"]:
+                    user= main_user
+                else:
+                    user= bom.wh_user
 		each_line_stock_found = True
                 stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
                 uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, uom_type='purchase')
+                #if not uom_dict.get('base_uom', "").upper()== "TEST":continue
                 pcf = uom_dict['sku_conversion']
                 pcf = pcf if pcf else 1
                 consumption_qty = total_test * bom.material_quantity
@@ -14248,6 +14259,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                     consumption_book=True
                 bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
                                               'sku_pcf': pcf,
+                                              'base_uom': uom_dict.get('base_uom', "").upper(),
                                               'status' : each_line_stock_found,
                                               'qty_dict': {'consumption_qty': total_consumption_qty, 'stock_quantity':stock_quantity,
                                               'consumed_quantity': consumed_quantity, 'pending_qty':pending_qty},
@@ -14267,7 +14279,11 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
                 average_price = sku.average_price
-		if value["qty_dict"]["consumed_quantity"]>0:
+		if value["qty_dict"]["consumed_quantity"]>0 and  value["base_uom"]=="TEST":
+                    if consumption_type=="Manual-Consumption":
+                        cons_type = 1
+                    else:
+                        cons_type = 2
                     consumption_data = ConsumptionData.objects.create(
                         order_id=consumption_id,
                         consumption_number=consumption_number,
@@ -14276,13 +14292,19 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                         price=average_price,
                         sku_pcf=value['sku_pcf'],
                         quantity=value["qty_dict"]["consumed_quantity"],
-                        consumption_type = 2,
+                        consumption_type = cons_type,
 			plant_user= main_user
                     )
+                    if book_date:
+                        consumption_data.creation_date= book_date
+                        consumption_data.save()
                     update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data)
-                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price)
+                if not value["base_uom"]=="TEST":
+                    value["qty_dict"]["consumed_quantity"]= 0
+                    value["qty_dict"]["pending_qty"] = value["qty_dict"]["consumption_qty"]
+                create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price, sku_pcf=value['sku_pcf'])
             if bom_master and stock_found:
                 consumption.status = 0
                 #Fully Booked
@@ -14384,8 +14406,8 @@ def get_consumption_mail_data(consumption_type='',from_date='',to_date=''):
 
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0
-    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
-        cess_tax = 1
+    '''if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1'''
     return cess_tax
 
 
@@ -14513,6 +14535,7 @@ def update_sku_avg_from_rtv(user, rtv_number):
         price,tax = [0]*2
         sp = rtv.seller_po_summary
         pcf = ''
+        skucf = 1
         if sp.batch_detail:
             price = sp.batch_detail.buy_price
             tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
@@ -14787,7 +14810,6 @@ def repush_grns(grns_list, user, type='GRN'):
                         if check_batch_dict[_open.sku.sku_code] != batch_number:
                             print('batch_num',batch_number, 'SKU', _open.sku.sku_code, 'quantity',data.quantity)
                             for row_line in grn_data['items']:
-                                # import pdb;pdb.set_trace()
                                 if float(row_line['unit_price'])==float(data.price) and row_line['sku_code']== _open.sku.sku_code and row_line['open_po_id']==_open.id :
                                     exp_date=''
                                     if row_line['exp_date']:

@@ -12717,14 +12717,11 @@ def generate_stock_transfer_invoice(request, user=''):
                 invoice_no.quantity = float(invoice_no.quantity) / float(batch_pcf)
             except Exception as e:
                 invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
-            # import pdb; pdb.set_trace()
             invoice_date = invoice_no.creation_date.strftime("%d %b %Y")
             if invoice_no.price:
                 price = invoice_no.price
             else:
                 price = invoice_no.stock_transfer.st_po.open_st.price
-            total_quantity += float(invoice_no.quantity)
-            total_invoice_amount += price
             temp_dict = {}
             temp_dict['order_id'] = invoice_no.stock_transfer.order_id
             temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
@@ -12734,6 +12731,8 @@ def generate_stock_transfer_invoice(request, user=''):
             temp_dict['batch_number'] = batch_number
             temp_dict['manufactured_date'] = manufactured_date
             temp_dict['expiry_date'] = expiry_date
+            total_quantity += float(invoice_no.quantity)
+            total_invoice_amount += temp_dict['amount']
 
         except Exception as e:
             import traceback

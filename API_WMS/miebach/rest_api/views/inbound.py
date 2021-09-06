@@ -72,18 +72,18 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
         else:
             pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected', 'resubmitted']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
-        if pa_mails:
-            for pa_mail in pa_mails:
+        if pa_mails.exists():
+            filtersMap.setdefault('pending_pr_id__in', [])
+            filtersMap['pending_pr_id__in'] = list(pa_mails.values_list('pr_approval__pending_pr_id', flat=True).distinct())
+            '''for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
                 configName = pa_mail.pr_approval.configName
                 pr_filter_check = {'configName': configName, 'level': currentUserLevel, 'status__in': status_in}
                 if status:
                     pr_filter_check['pending_pr__final_status'] = status
-                #pr_numbers = list(PurchaseApprovals.objects.filter(**pr_filter_check).distinct().
-                #                  values_list('pending_pr_id', flat=True))
                 pr_numbers = [pa_mail.pr_approval.pending_pr_id]
                 filtersMap.setdefault('pending_pr_id__in', [])
-                filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+                filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))'''
         # if status != 'approved': # Creator Sub Users
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
@@ -602,36 +602,24 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO')
         pr_numbers = []
-        if pa_mails:
-            for pa_mail in pa_mails:
-                currentUserLevel = pa_mail.level
-                configName = pa_mail.pr_approval.configName
-                pr_numbers = list(PurchaseApprovals.objects.filter(
-                                configName=configName,
-                                level=currentUserLevel,
-                                purchase_type='PO',
-                                status='').distinct().values_list('pending_po_id', flat=True))
-                #pr_numbers = [pa_mail.pr_approval.pending_po_id]
-                filtersMap.setdefault('pending_po_id__in', [])
-                filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
-        # memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
-        # for memObj in memQs:
-        #     master_id = memObj.master_id
-        #     prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
-        #     if prApprObj.exists():
-        #         currentUserLevel = prApprObj[0].level
-        #         configName = prApprObj[0].name
+        pa_mails = list(PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO').values_list('pr_approval_id', flat=True).distinct())
+        if len(pa_mails) > 0:
+            pr_numbers = list(PurchaseApprovals.objects.filter(id__in = pa_mails).values_list('pending_po_id', flat=True).distinct())
+            filtersMap['pending_po_id__in'] = pr_numbers
+        # pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId, pr_approval__status='', pr_approval__purchase_type='PO')
+        # pr_numbers = []
+        # if pa_mails:
+        #     for pa_mail in pa_mails:
+        #         currentUserLevel = pa_mail.level
+        #         configName = pa_mail.pr_approval.configName
         #         pr_numbers = list(PurchaseApprovals.objects.filter(
         #                         configName=configName,
         #                         level=currentUserLevel,
-        #                         status='').distinct().values_list('purchase_number', flat=True))
-        #     else:
-        #         pr_numbers = []
-        #     filtersMap.setdefault('pending_po__po_number__in', [])
-        #     filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
-        #if not pa_mails.exists(): # Creator Sub Users
+        #                         purchase_type='PO',
+        #                         status='').distinct().values_list('pending_po_id', flat=True))
+        #         filtersMap.setdefault('pending_po_id__in', [])
+        #         filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
         if not filtersMap.get('pending_po_id__in', ''):
             filtersMap['pending_po__requested_user'] = request.user.id
             if filtersMap.has_key('pending_po_id__in'):
@@ -642,10 +630,12 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     else:
         filtersMap['pending_po__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['pending_po_id','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
-            'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
+    lis = [ 'pending_po_id', #'pending_po__supplier__supplier_id', 
+	    'pending_po__supplier__name',
+            'pending_po__po_number', 'pending_po__final_status', 'total_qty', 'total_amt', 'creation_date',
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
-            'pending_po__final_status', 'pending_po__pending_level',
+            'pending_po__final_status', 
+	    #'pending_po__pending_level',
             'pending_po_id', 'pending_po_id', 'pending_po_id',
             'pending_po__remarks']
     search_params = get_filtered_params(filters, lis)
@@ -745,6 +735,14 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         if result['pending_po__final_status'] == 'approved':
             validated_by = ''
+	enq_status = ''
+	gen_enqs = GenericEnquiry.objects.filter(sender_id=request.user.id, master_type='pendingPO',master_id=result['pending_po_id']).order_by('-creation_date')
+	if gen_enqs.exists():
+	    if gen_enqs[0].status == 'submitted':
+		enq_status = '<span class="label label-success">Responded</span>'
+	    else:
+		enq_status = '<span class="label label-danger">Pending</span>'
+
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_po_id']),
                                                 ('PR Number', result['pending_po__po_number']),
@@ -770,6 +768,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
                                                 ('id', result['pending_po__id']),
+						('Enquiry Status', enq_status),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 
@@ -1912,7 +1911,7 @@ def generated_pr_data(request, user=''):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
-        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
+        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
     if master_docs.exists():
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
@@ -1939,21 +1938,22 @@ def generated_pr_data(request, user=''):
 
 
     prApprQs = record[0].pending_poApprovals
-    allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:
             validateFlag = 1
     for eachRemark in allRemarks:
-        level, validated_by, remarks = eachRemark
-        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+        level, validated_by, remarks, re_creation_date, re_updation_date = eachRemark
+	
+        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': re_creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': re_updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
 
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPO')
     if currentPOenquiries.exists():
-        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
-            sender, receiver, enquiry, response = eachEnq
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response', 'creation_date', "updation_date"):
+            sender, receiver, enquiry, response, creation_date, updation_date = eachEnq
             enquiryRemarks.append({"sender":sender, "receiver": receiver,
-                        "enquiry": enquiry, "response": response
+                        "enquiry": enquiry, "response": response , 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date':updation_date.strftime("%d-%m-%Y, %H:%M:%S") if response else ""
                 })
 
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
@@ -2095,7 +2095,7 @@ def generated_actual_pr_data(request, user=''):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
-        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
+        levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
         if record[0].final_status == 'saved':
             approval_remarks = record[0].remarks
     convertPoFlag = False
@@ -2117,24 +2117,24 @@ def generated_actual_pr_data(request, user=''):
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
     prApprQs = record[0].pending_prApprovals
-    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:
             validateFlag = 1
     for eachRemark in allRemarks:
-        level, validated_by, remarks = eachRemark
-        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+        level, validated_by, remarks, creation_date, updation_date = eachRemark
+        levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
-        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
-            sender, receiver, enquiry, response = eachEnq
-            enquiryRemarks.append({"sender":sender, "receiver": receiver,
-                        "enquiry": enquiry, "response": response
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response', 'creation_date', 'updation_date'):
+            sender, receiver, enquiry, response, creation_date, updation_date = eachEnq
+            enquiryRemarks.append({"sender":sender, "receiver": receiver, 
+                        "enquiry": enquiry, "response": response , 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S") if response else ''
                 })
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     if request.user.email != record[0].requested_user.email:
@@ -8042,8 +8042,12 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             if prQs:
                 product_category = prQs[0].product_category
             remarks=""
-            if "remarks" in myDict:
-                remarks= str(myDict["remarks"][0])
+	    try:
+            	if "remarks" in myDict:
+		    remarks= str(myDict["remarks"][0])
+		    remarks = remarks[0:998]
+	    except:
+		pass
             if s_po_s[0].creation_date:
                 grn_date_string= s_po_s[0].creation_date.strftime("%d-%m-%Y")
                 grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
@@ -10367,6 +10371,7 @@ def confirm_add_po(request, sales_data='', user=''):
             #     data['updation_date'] = po_creation_date
             uom_dict = get_uom_with_sku_code(user, purchase_order.sku.sku_code, uom_type='purchase')
             data['pcf'] = uom_dict.get('sku_conversion', 1)
+	    data['product_category']= product_category
             order = PurchaseOrder(**data)
             order.save()
             if po_creation_date:
@@ -10696,14 +10701,27 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
+	terms_condition, remarks = "", ""
+	try:
+	    terms_condition = data_dict.get('terms_condition', '')
+	    if terms_condition:
+	    	terms_condition = terms_condition[0:998]
+	except:
+	    pass
+	try:
+	    if _purchase_order.remarks:
+		remarks = _purchase_order.remarks
+		remarks = remarks[0:998]
+	except:
+	    pass
         po_data = { 'currency_internal_id': currency_internal_id, 'exchangerate': exchangerate, 'currency_code': currency_code,
                     'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                    'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
-                    'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
+                    'terms_condition':terms_condition, 'company_id':company_id, 'user_id':user.id,
+                    'remarks':remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number, 'replaceAll': 'replaceAll_'+str(replaceAll)}
         for purchase_order in purchase_objs:
@@ -14581,9 +14599,17 @@ def get_po_putaway_summary(request, user=''):
                                     'rtv_reasons':rtv_reasons, 'grn_number': grn_number}))
 
 def get_debit_note_data(rtv_number, user):
+    sub_user = user
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+	users = get_related_users_filters(user.id)
+    else:
+	users = [user.id]
+	users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
                                                         filter(rtv_number=rtv_number,
-                                                     seller_po_summary__purchase_order__open_po__sku__user=user.id)
+                                                     seller_po_summary__purchase_order__open_po__sku__user__in=user_ids)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0
@@ -16164,6 +16190,34 @@ def download_grn_invoice_mapping(request, user=''):
 
 @login_required
 @get_admin_user
+def download_pr_attachments(request , user =''):
+    pr_number = request.GET.get('pr_number', '')
+    master_docs = ""
+    if pr_number:
+	record = PendingPR.objects.filter(full_pr_number=pr_number)
+	master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type__in=['pending_pr', 'PENDING_PR_PURCHASE_APPROVER_FILE'])
+    if not pr_number or not master_docs:
+	return HttpResponse(json.dumps({"msg": 'Invalid PR Number', status:False}))
+    zip_subdir = ""
+    from os.path import basename
+    zip_filename = "static/excel_files/PR_Attachement.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as myzip:
+	for fname in master_docs:
+	    myzip.write(fname.uploaded_file.path, basename(fname.uploaded_file.path))
+	myzip.close()
+    #stringio = StringIO.StringIO()
+    #zf = zipfile.ZipFile(zip_filename, "w")
+    #for fname in master_docs:
+    #    zip_path = os.path.join(zip_subdir, fname.master_type)
+    #    zf.write(fname.uploaded_file.path, zip_path)
+    #zf.close()
+    #resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    #resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    url = request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+zip_filename
+    return  HttpResponse(json.dumps({"status":True, "data":url}))
+
+@login_required
+@get_admin_user
 def get_grn_extra_fields(request , user =''):
     extra_grn_fields = grn_extra_fields(user)
     return HttpResponse(json.dumps({'data':extra_grn_fields }))
@@ -17324,6 +17378,7 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
                 '12': {"refrence_id": "631", "hsn_code": "38220019_12"},
                 "18": {"refrence_id": "1020", "hsn_code": "38220019_18"},
                 "5": {"refrence_id": "1056", "hsn_code": "38220019_5"},
+		"0": {"refrence_id": "1022", "hsn_code": "38220090_0"},
             }
     if sku_id:
         sku= sku_id[0]
@@ -17386,6 +17441,8 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
                             e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"] + "_KL"
                         else:
                             e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"]
+		    else:
+			e_row["hsn_code"] = hsn_list[str(0)]["refrence_id"]
                     e_row["unit_price"] = price
         action = "upsert"
         is_multiple =True

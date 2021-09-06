@@ -492,7 +492,7 @@
     </li>
     <!-- /maps -->
 
-    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
+    <!-- <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
       <a ui-sref="app.PaymentTracker">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
@@ -503,7 +503,7 @@
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
       </a>
-    </li>
+    </li> -->
 
   <!--  <li ui-sref-active="active" ng-show="show_tab('show_pull_now')">
       <a ui-sref="app.OrdersSyncIssues">
@@ -577,6 +577,11 @@
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.GoodsReceiptNote">
             <span>Goods Receipt Note</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.PRReportPerformance">
+            <span>PR Performance Report</span>
           </a>
         </li>
         <li ui-sref-active="active">

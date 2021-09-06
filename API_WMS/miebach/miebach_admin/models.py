@@ -294,7 +294,7 @@ class CurrencyMaster(models.Model):
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=128, primary_key=True)
     supplier_id = models.CharField(max_length=128, default='', db_index=True)
-    user = models.PositiveIntegerField()
+    user = models.PositiveIntegerField(db_index=True)
     name = models.CharField(max_length=256, db_index=True)
     address_id = models.CharField(max_length=256, null=True)
     address = models.CharField(max_length=256)
@@ -679,22 +679,23 @@ class PendingPR(models.Model):
     sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
     full_pr_number = models.CharField(max_length=32, default='', db_index=True)
-    requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
-    wh_user = models.ForeignKey(User, related_name='pendingPRs')
+    requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser', db_index=True)
+    wh_user = models.ForeignKey(User, related_name='pendingPRs', db_index=True)
     product_category = models.CharField(max_length=64, default='')
     sku_category = models.CharField(max_length=128, default='')
     priority_type = models.CharField(max_length=32, default='')
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
-    final_status = models.CharField(max_length=32, default='')
+    final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
     is_auto_pr = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PENDING_PR'
+	index_together = (('full_pr_number',), ('final_status', ),  ('wh_user', ), ('requested_user', ),('creation_date', ) )
         #index_together = (('full_pr_number',))
 
 @reversion.register()
@@ -703,9 +704,9 @@ class PendingPO(models.Model):
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True, related_name='pendingpos')
     supplier_payment = models.ForeignKey(PaymentTerms, blank=True, null=True, db_index=True, related_name='pendingpos')
     open_po = models.ForeignKey(OpenPO, blank=True, null=True, related_name='pendingpos')
-    pending_prs = models.ManyToManyField(PendingPR)
-    requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
-    wh_user = models.ForeignKey(User, related_name='pendingPOs')
+    pending_prs = models.ManyToManyField(PendingPR, db_index=True)
+    requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser', db_index=True)
+    wh_user = models.ForeignKey(User, related_name='pendingPOs', db_index=True)
     product_category = models.CharField(max_length=64, default='')
     sku_category = models.CharField(max_length=128, default='')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
@@ -714,21 +715,22 @@ class PendingPO(models.Model):
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
-    final_status = models.CharField(max_length=32, default='')
+    final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PENDING_PO'
+	index_together = (('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ) )
 
 
 @reversion.register()
 class PendingLineItems(models.Model):
     id = BigAutoField(primary_key=True)
-    pending_pr = models.ForeignKey(PendingPR, related_name='pending_prlineItems', blank=True, null=True)
-    pending_po = models.ForeignKey(PendingPO, related_name='pending_polineItems', blank=True, null=True)
-    purchase_type = models.CharField(max_length=32, default='')
+    pending_pr = models.ForeignKey(PendingPR, related_name='pending_prlineItems', blank=True, null=True, db_index=True)
+    pending_po = models.ForeignKey(PendingPO, related_name='pending_polineItems', blank=True, null=True, db_index=True)
+    purchase_type = models.CharField(max_length=32, default='', db_index=True)
     sku = models.ForeignKey(SKUMaster, related_name='pendingLineItems', db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
@@ -739,23 +741,24 @@ class PendingLineItems(models.Model):
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PENDING_LINE_ITEMS'
+	index_together = (('purchase_type', 'pending_pr', 'creation_date'), ('pending_pr', 'purchase_type' ), ('pending_po', 'purchase_type'),  ('sku', ), ('creation_date', ))
 
 @reversion.register()
 class PurchaseApprovals(models.Model):  #PRApprovals
     id = BigAutoField(primary_key=True)
-    pending_pr = models.ForeignKey(PendingPR, related_name='pending_prApprovals', blank=True, null=True)
-    pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True)
+    pending_pr = models.ForeignKey(PendingPR, related_name='pending_prApprovals', blank=True, null=True, db_index=True)
+    pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True, db_index=True)
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
-    purchase_type = models.CharField(max_length=32, default='PO')
+    purchase_type = models.CharField(max_length=32, default='PO', db_index=True)
     configName = models.CharField(max_length=64, default='')
     approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
-    pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
+    pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser', db_index=True)
     level = models.CharField(max_length=64, default='')
     validated_by = models.TextField(default='')
     status = models.CharField(max_length=32, default='')
@@ -781,7 +784,7 @@ class TableLists(models.Model):
 class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
-    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=64, default='')
     display_name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
@@ -845,6 +848,7 @@ class PurchaseOrder(models.Model):
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
+    product_category = models.CharField(max_length=64, default='')
     remarks = models.TextField(default='')
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)
@@ -854,7 +858,7 @@ class PurchaseOrder(models.Model):
     currency = models.TextField(default='INR')
     currency_internal_id = models.IntegerField(default=1)
     currency_rate = models.FloatField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
 
@@ -1114,8 +1118,8 @@ class OrderLabels(models.Model):
 
 class MiscDetail(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    misc_type = models.CharField(max_length=64)
+    user = models.PositiveIntegerField(db_index=True)
+    misc_type = models.CharField(max_length=64, db_index=True)
     misc_value = models.CharField(max_length=255)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1377,8 +1381,8 @@ class CustomerMaster(models.Model):
 
 class CustomerUserMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, blank=True, null=True)
-    customer = models.ForeignKey(CustomerMaster, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True, db_index=True)
+    customer = models.ForeignKey(CustomerMaster, blank=True, null=True, db_index=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1388,7 +1392,7 @@ class CustomerUserMapping(models.Model):
 
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, db_index=True)
     phone_number = models.CharField(max_length=32, default='', blank=True)
     birth_date = models.DateTimeField(auto_now=True)
     is_active = models.IntegerField(default=0)
@@ -1399,7 +1403,7 @@ class UserProfile(models.Model):
     prefix = models.CharField(max_length=64, default='')
     location = models.CharField(max_length=60, default='', blank=True)
     city = models.CharField(max_length=60, default='', blank=True)
-    state = models.CharField(max_length=60, default='', blank=True)
+    state = models.CharField(max_length=60, default='', blank=True, db_index=True)
     country = models.CharField(max_length=60, default='', blank=True)
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='', blank=True)
@@ -1412,24 +1416,24 @@ class UserProfile(models.Model):
     api_hash = models.CharField(max_length=256, default='', blank=True)
     setup_status = models.CharField(max_length=60, default='completed', blank=True)
     user_type = models.CharField(max_length=60, default='warehouse_user')
-    warehouse_type = models.CharField(max_length=60, default='', blank=True)
+    warehouse_type = models.CharField(max_length=60, default='', blank=True, db_index=True)
     warehouse_level = models.IntegerField(default=0, blank=True)
     min_order_val = models.PositiveIntegerField(default=0)
     level_name = models.CharField(max_length=64, default='', blank=True)
-    zone = models.CharField(max_length=64, default='', blank=True)
+    zone = models.CharField(max_length=64, default='', blank=True, db_index=True)
     cin_number = models.CharField(max_length=64, default='', blank=True)
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='', blank=True)
     bank_details = models.TextField(default='', blank=True)
     industry_type = models.CharField(max_length=32, default='', blank=True)
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
     pan_number = models.CharField(max_length=64, default='', blank=True)
-    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
-    stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    stockone_code = models.CharField(max_length=64, default='', null=True, blank=True, db_index=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
     place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
     location_code = models.CharField(max_length=64, default='', null=True, blank=True)
-    attune_id = models.IntegerField(default=None, blank=True, null=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
     visible_status = models.IntegerField(default=1)
 
 
@@ -1750,7 +1754,7 @@ class BOMMaster(models.Model):
 
     class Meta:
         db_table = 'BOM_MASTER'
-        unique_together = ('material_sku', 'product_sku', 'instrument_id', 'wh_user', 'org_id')
+        unique_together = ('material_sku', 'product_sku', 'instrument_id', 'wh_user', 'org_id', 'test_type')
 
 
 class PriceMaster(models.Model):
@@ -2342,7 +2346,7 @@ class GroupStage(models.Model):
 
 
 class Integrations(models.Model):
-    user = models.PositiveIntegerField()
+    user = models.PositiveIntegerField(db_index=True)
     name = models.CharField(max_length=64, default='')
     api_instance = models.CharField(max_length=64, default='')
     client_id = models.CharField(max_length=64, default='')
@@ -2493,7 +2497,7 @@ class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
-    grn_number = models.CharField(max_length=64, default='')
+    grn_number = models.CharField(max_length=64, default='', db_index=True)
     invoice_date = models.DateField(blank=True, null=True)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
@@ -2519,7 +2523,7 @@ class SellerPOSummary(models.Model):
     credit_type = models.CharField(max_length=32, default='Invoice')
     credit_status = models.IntegerField(default=0)
     status = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -3644,7 +3648,7 @@ class FeedbackMaster(models.Model):
 
 class PushNotifications(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True, db_index=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3839,8 +3843,8 @@ class StockReconciliationFields(models.Model):
 
 class MiscDetailOptions(models.Model):
     id = BigAutoField(primary_key=True)
-    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None)
-    misc_key = models.CharField(max_length=64, default='')
+    misc_detail = models.ForeignKey(MiscDetail, null=True, blank=True, default=None, db_index=True)
+    misc_key = models.CharField(max_length=64, default='', db_index=True)
     misc_value = models.CharField(max_length=255)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4132,10 +4136,10 @@ class Discrepancy(models.Model):
 
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, db_index=True)
     product_category = models.CharField(max_length=128, default='')
-    sku_category = models.CharField(max_length=128, default='')
-    type_name = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='', db_index=True)
+    type_name = models.CharField(max_length=64, default='', db_index=True)
     prefix = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4164,10 +4168,12 @@ class UOMMaster(models.Model):
 
 
 class TestMaster(SKUMaster):
-    test_code = models.CharField(max_length=128)
+    test_code = models.CharField(max_length=128, db_index=True)
     test_name = models.CharField(max_length=128)
     test_type = models.CharField(max_length=128)
     department_type = models.CharField(max_length=128)
+    consumption_flag = models.IntegerField(default=1)
+
 
     class Meta:
         db_table = 'TEST_MASTER'
@@ -4175,7 +4181,7 @@ class TestMaster(SKUMaster):
 
 class StockMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    stock = models.ForeignKey(StockDetail)
+    stock = models.ForeignKey(StockDetail, db_index=True)
     quantity = models.FloatField(default=0)
 
     class Meta:
@@ -4216,9 +4222,9 @@ class OrgInstrumentMapping(models.Model):
 
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, related_name='consumption_user')
+    user = models.ForeignKey(User, related_name='consumption_user',  db_index=True)
     machine = models.ForeignKey(MachineMaster, related_name='consumption_machine', blank=True, null=True)
-    test = models.ForeignKey(TestMaster, related_name='consumption_test',blank=True, null=True)
+    test = models.ForeignKey(TestMaster, related_name='consumption_test',blank=True, null=True, db_index=True)
     patient_samples = models.FloatField(default=0)
     rerun = models.FloatField(default=0)
     one_time_process = models.FloatField(default=0)
@@ -4236,24 +4242,27 @@ class Consumption(models.Model):
     consumption_type = models.CharField(max_length=32, default='auto')
     remarks = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
-    run_date = models.DateTimeField(blank=True, null=True)
-    org_id = models.IntegerField(default=None, blank=True, null=True)
-    instrument_id = models.CharField(max_length=128, default="")
+    run_date = models.DateTimeField(blank=True, null=True, db_index=True)
+    org_id = models.IntegerField(default=None, blank=True, null=True, db_index=True)
+    instrument_id = models.CharField(max_length=128, default="", db_index=True)
+    instrument_name = models.CharField(max_length=512, default="", db_index=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION'
+	index_together = (('instrument_id', 'user', 'org_id'), ('test', 'user'))
 
 class ConsumptionMaterial(models.Model):
     id = BigAutoField(primary_key=True)
-    consumption = models.ForeignKey(Consumption)
-    sku = models.ForeignKey(SKUMaster, related_name='material_sku')
+    consumption = models.ForeignKey(Consumption, db_index=True)
+    sku = models.ForeignKey(SKUMaster, related_name='material_sku', db_index=True)
     consumption_quantity = models.FloatField(default=0)
     consumed_quantity = models.FloatField(default=0)
     pending_quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     stock_quantity = models.FloatField(default=0)
+    sku_pcf = models.FloatField(default=0)
     price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -4261,29 +4270,30 @@ class ConsumptionMaterial(models.Model):
     
     class Meta:
         db_table = 'CONSUMPTION_MATERIAL'
+	index_together = (('consumption', 'sku'), ('sku', ), ('consumption', ))
 
 class ConsumptionData(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True, default=0)
     consumption_number = models.CharField(max_length=64, default='')
-    consumption = models.ForeignKey(Consumption, blank=True, null=True)
-    sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    consumption = models.ForeignKey(Consumption, blank=True, null=True, db_index=True)
+    sku = models.ForeignKey(SKUMaster, related_name='consumption_sku', db_index=True)
     cancel_user = models.ForeignKey(User, related_name="consumption_cancel_user", blank=True, null=True)
     quantity = models.FloatField(default=0)
     price = models.FloatField(default=0)
     sku_pcf = models.FloatField(default=0)
-    stock_mapping = models.ManyToManyField(StockMapping)
+    stock_mapping = models.ManyToManyField(StockMapping, db_index=True)
     is_valid = models.IntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
     cancelled_qty = models.FloatField(default=0)
     consumption_type = models.IntegerField(default=0)
-    plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    plant_user = models.ForeignKey(User, related_name='consumptiondata_plant_user', blank=True, null=True, db_index=True)
+    creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CONSUMPTION_DATA'
-        index_together = (('sku', 'creation_date'))
+        index_together = (('sku', 'creation_date'), ('sku', ), ('plant_user', ), ('consumption', ))
 
 
 class AdjustementConsumptionData(models.Model):
@@ -4403,3 +4413,28 @@ class ASNMapping(models.Model):
 
     class Meta:
         db_table = 'ASN_MAPPING'
+
+class AnalyticsIntegration(models.Model):
+    id = BigAutoField(primary_key=True)
+    zone = models.CharField(max_length=64, default='', db_index=True)
+    plant_code = models.CharField(max_length=64, default='', db_index=True)
+    plant_name = models.CharField(max_length=128, default='')
+    stockone_reference = models.CharField(max_length =128 , default ='', db_index=True)
+    integration_internal_id = models.CharField(max_length =128 , default ='')
+    integration_error = models.TextField()
+    integration_date = models.DateTimeField(blank=True, null=True)
+    total_quantity = models.FloatField(default=0)
+    total_amount_with_tax = models.FloatField(default=0)
+    total_amount_with_out_tax = models.FloatField(default=0)
+    status = models.IntegerField(default=0)
+    supplier_id= models.CharField(max_length=128, default='')
+    supplier_name = models.CharField(max_length=256, default='', db_index=True)
+    gst_number= models.CharField(max_length=64, default='')
+    integration_data = models.TextField()
+    transaction_type = models.CharField(max_length=32, default='')
+    stockone_reference_creation_date = models.DateTimeField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ANALYTICS_INTEGRATION'

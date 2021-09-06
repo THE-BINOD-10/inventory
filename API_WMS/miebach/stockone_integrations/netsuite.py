@@ -161,7 +161,8 @@ class netsuiteIntegration(object):
         try:
             ns = self.nc.raw_client
             rtvitem = ns.VendorReturnAuthorization()
-            rtvitem.entity = str(rtv_data["supplier_name"])
+            if rtv_data.get("supplier_name", None):
+                rtvitem.entity = str(rtv_data["supplier_name"])
             rtvitem.tranId = rtv_data['rtv_number']
             rtvitem.orderStatus = ns.RecordRef(internalId='B')
             # rtvitem.location = ns.RecordRef(internalId=297) #UAT Location Internal id
@@ -172,12 +173,15 @@ class netsuiteIntegration(object):
             else:
                 location = 327
             rtvitem.location = ns.RecordRef(internalId=location) # Prod Internal Id
-            rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
-            rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
+            if rtv_data.get("date_of_issue_of_original_invoice", None):
+                rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
+            if rtv_data.get("po_number", None):
+                rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
             # rtvitem.location = ns.RecordRef(internalId=108)
             custom_field_list=[]
-            custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
-            custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_adjustinventory_status', value=ns.ListOrRecordRef(internalId=2)))
+            if rtv_data.get("debit_note_url", None):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
+                custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_adjustinventory_status', value=ns.ListOrRecordRef(internalId=2)))
             if rtv_data.get('subsidiary', None):
                 rtvitem.subsidiary = ns.ListOrRecordRef(internalId=rtv_data["subsidiary"])
             if rtv_data.get('department', None):
@@ -185,37 +189,42 @@ class netsuiteIntegration(object):
 
             rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
-            for idx, data in enumerate(rtv_data['item_details']):
-                rtv_custom_field_list=[]
-                if(data.get("batch_no",None)):
-                    rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batch_no"]))
-                if(data.get("mfg_date",None)):
-                    rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
-                if(data.get("exp_date",None)):
-                    rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
-                if data.get("return_reason", None):
-                    rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_reason', value=data["return_reason"]))
-                line_item = {
-                'item': ns.RecordRef(externalId=data['sku_code']),
-                'orderLine': idx+1,
-                'rate': data['price'],
-                'quantity': data['order_qty'],
-                # 'location': ns.RecordRef(internalId=297),  #UAT Location Internal ID
-                'location': ns.RecordRef(internalId=location),  #Prod Internal ID
-                # 'itemReceive': True
-                'description': data['sku_desc'],
-                "customFieldList": ns.CustomFieldList(rtv_custom_field_list)
-                }
-                if data.get('uom_name', None) and data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
-                    if internId:
-                        line_item.update({'units': ns.RecordRef(internalId=internId)})
-                item.append(line_item)
-            rtvitem.itemList = {'item':item}
+            if rtv_data.get("item_details", None):
+                for idx, data in enumerate(rtv_data['item_details']):
+                    rtv_custom_field_list=[]
+                    if(data.get("batch_no",None)):
+                        rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batch_no"]))
+                    if(data.get("mfg_date",None)):
+                        rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
+                    if(data.get("exp_date",None)):
+                        rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
+                    if data.get("return_reason", None):
+                        rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_reason', value=data["return_reason"]))
+                    line_item = {
+                    'item': ns.RecordRef(externalId=data['sku_code']),
+                    'orderLine': idx+1,
+                    'rate': data['price'],
+                    'quantity': data['order_qty'],
+                    # 'location': ns.RecordRef(internalId=297),  #UAT Location Internal ID
+                    'location': ns.RecordRef(internalId=location),  #Prod Internal ID
+                    # 'itemReceive': True
+                    'description': data['sku_desc'],
+                    "customFieldList": ns.CustomFieldList(rtv_custom_field_list)
+                    }
+                    if data.get('uom_name', None) and data.get('unitypeexid', None):
+                        internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                        if internId:
+                            line_item.update({'units': ns.RecordRef(internalId=internId)})
+                    item.append(line_item)
+            if item:
+                rtvitem.itemList = {'item':item}
             rtvitem.externalId = rtv_data['rtv_number']
-            rtvitem.quantity = rtv_data["total_qty"]
-            rtvitem.amount = rtv_data["total_without_discount"]
-            rtvitem.memo= rtv_data["return_reason"]
+            if rtv_data.get("total_qty", None):
+                rtvitem.quantity = rtv_data["total_qty"]
+            if rtv_data.get("total_without_discount", None):
+                rtvitem.amount = rtv_data["total_without_discount"]
+            if rtv_data.get("return_reason", None):
+                rtvitem.memo= rtv_data["return_reason"]
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

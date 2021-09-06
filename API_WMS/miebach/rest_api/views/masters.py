@@ -240,6 +240,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                             values_list('str_eans', flat=True)
             if ean_numbers_list :
                 ean_number = ean_numbers_list[0]
+	consumption_flag = "False"
         if instanceName == AssetMaster:
             sku_type = data.asset_type
         elif instanceName == ServiceMaster:
@@ -250,14 +251,16 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             sku_type = data.test_type
             wms_code = data.test_code
             sku_desc = data.test_name
+	    if data.consumption_flag:
+	        consumption_flag = "True"
         else:
             sku_type = data.sku_type
         temp_data['aaData'].append(OrderedDict(
             (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
-             ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
+             ('Zone', zone), ('SKU Class', data.sku_class),('SKU Brand', data.sku_brand), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
-             ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),
+             ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),("Consumption Flag", consumption_flag),
              ('Creation Date', creation_date),
              ('Updation Date', updation_date))))
         for attribute in attributes:
@@ -409,7 +412,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('fulfillment_amt', data.fulfillment_amt),
                                                 ('credibility', data.credibility), ('uploads_list', uploads_list),
                                                 ('country', data.country), ('pincode', data.pincode),
-                                                ('status', status), ('supplier_type', data.supplier_type),
+                                                ('status', status),('remarks', data.remarks), ('supplier_type', data.supplier_type),
                                                 ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                 ('username', username), ('login_created', login_created),
                                                 ('DT_RowId', data.id), ('DT_RowClass', 'results'),
@@ -1060,15 +1063,15 @@ def get_sku_data(request, user=''):
         market_data.append({'market_sku_type': market.sku_type, 'marketplace_code': market.marketplace_code,
                             'description': market.description, 'market_id': market.id})
     company_id = get_company_id(user)
-    uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code)
+    uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, uom_type='Purchase')
     uom_data = []
-    if uom_master:
-        base_uom_name = uom_master[0].base_uom
-        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1,
-                         'name': '%s-%s'% (base_uom_name, '1')})
+    # if uom_master:
+    #     base_uom_name = uom_master[0].base_uom
+    #     uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1,
+    #                      'name': '%s-%s'% (base_uom_name, '1')})
     for uom in uom_master:
         uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom, 'name': uom.name,
-                        'conversion': uom.conversion, 'uom_id': uom.id})
+                        'conversion': uom.conversion, 'uom_id': uom.id, 'base_uom': uom.base_uom})
 
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
@@ -1149,6 +1152,7 @@ def get_sku_data(request, user=''):
         sku_data['test_name'] = data.test_name
         sku_data['department_type'] =data.department_type
         sku_data['test_type'] = data.test_type
+	sku_data['consumption_flag'] = data.consumption_flag
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1352,8 +1356,12 @@ def update_sku(request, user=''):
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life', 'gl_code']
-        wms = request.POST['wms_code']
-        description = request.POST['sku_desc']
+        if request.POST.get('is_test') == 'true':
+	    wms = request.POST['test_code']
+	    description = request.POST['test_name']
+	else:
+	    wms = request.POST['wms_code']
+	    description = request.POST['sku_desc']
         zone = request.POST.get('zone_id','')
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
@@ -1381,6 +1389,11 @@ def update_sku(request, user=''):
                     value = 1
                 else:
                     value = 0
+	    if key == 'consumption_flag':
+		if value== 'True':
+		    value = 1
+		else:
+		    value = 0 
             elif key == 'qc_check':
                 if value == 'Enable':
                     value = 1
@@ -1459,13 +1472,15 @@ def update_sku(request, user=''):
         #    print "already running"
         insert_update_brands(user)
         # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
-        netsuite_sku(data, user,instanceName=instanceName)
+	if not request.POST.get('is_test') == 'true':
+            netsuite_sku(data, user,instanceName=instanceName)
 
         # Sync sku's with sister warehouses
         sync_sku_switch = get_misc_value('sku_sync', user.id)
         if sync_sku_switch == 'true':
             all_users = get_related_users(user.id)
-            create_update_sku([data], all_users)
+	    if not request.POST.get('is_test') == 'true':
+            	create_update_sku([data], all_users)
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             wh_ids = get_related_users(user.id)
             cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
@@ -1581,6 +1596,7 @@ def update_uom_master(user, data_dict={}, data=''):
         uom_type = data_dict['uom_type'][i]
         uom_name = str(data_dict['uom_name'][i]).lower()
         conversion = data_dict['conversion'][i]
+        base_uom_name = str(data_dict['base_uom'][i])
         uom_id = data_dict['uom_id'][i]
         if uom_type.lower() == 'base':
             base_uom_name = uom_name
@@ -3341,6 +3357,11 @@ def insert_sku(request, user=''):
                             value = 1
                         else:
                             value = 0
+		    elif key == 'consumption_flag':
+			if value == 'True':
+			    value = 1
+			else:
+			    value = 0
                     elif key == 'batch_based':
                         if value.lower() == 'enable':
                             value = 1
@@ -3407,7 +3428,8 @@ def insert_sku(request, user=''):
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
             # if admin_user.get_username().lower() == 'metropolis':
-            netsuite_sku(sku_master, user, instanceName=instanceName)
+	    if instanceName.__name__ not in ["TestMaster"]:
+            	netsuite_sku(sku_master, user, instanceName=instanceName)
 
             insert_update_brands(user)
             # update master sku txt file
@@ -6006,7 +6028,7 @@ def get_sku_master_doa_record(request, user=''):
                 sku_data['test_name'] = data.test_name
                 sku_data['department_type'] = data.department_type
                 sku_data['test_type'] = data.test_type
-
+		sku_data['consumption_flag'] =data.consumption_flag
             sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
             if sku_fields:
                 sku_data['size_type'] = sku_fields[0].field_value

@@ -62,8 +62,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
        )
     if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
-      vm.dtColumns.push( DTColumnBuilder.newColumn('Color').withTitle('Color'),
-        DTColumnBuilder.newColumn('Zone').withTitle('Zone'),)
+      vm.dtColumns.push( 
+        // DTColumnBuilder.newColumn('Color').withTitle('Color'),
+        DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
+        DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
+        DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
+        DTColumnBuilder.newColumn('HSN Code').withTitle('HSN Code'),
+        )
     }
     vm.dtColumns.push(
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),

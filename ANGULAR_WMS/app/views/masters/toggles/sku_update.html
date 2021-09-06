@@ -361,6 +361,7 @@
                 <tr>
                   <th><b> UOM Type </b></th>
                   <th><b> UOM </b></th>
+                  <th><b> Base UOM </b></th>
                   <th><b> Conversion </b></th>
                   <th><b> Name </b></th>
                   <th class="plus"></td>
@@ -375,7 +376,7 @@
                     </select>
                   </td>
                   <td><input type="text" name="uom_name" class="form-control" ng-model="uom.uom_name" ng-change="showCase.update_uom_name(uom)" ng-readonly ="showCase.user_profile.warehouse_type!='ADMIN'"></td>
-
+                  <td><input type="text" name="base_uom" class="form-control" ng-model="uom.base_uom" readonly></td>
                   <td><input type="text" name="conversion" class="form-control" ng-model="uom.conversion" ng-change="showCase.update_uom_name(uom)" ng-readonly ="showCase.user_profile.warehouse_type!='ADMIN'"></td>
                   <td><input type="text" name="name" class="form-control" ng-model="uom.name" readonly></td>
                   <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_uom($index, uom.uom_id)" ng-disabled ="showCase.user_profile.warehouse_type!='ADMIN'" ></i></td>

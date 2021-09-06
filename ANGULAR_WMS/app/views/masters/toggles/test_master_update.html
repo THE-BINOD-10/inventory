@@ -52,13 +52,22 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Consumption Flag *</label>
+                  <select class="form-control" name="consumption_flag" ng-model="showCase.model_data.sku_data.consumption_flag" ng-options="qc for qc in showCase.consumption_flags" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-selected="qc == showCase.model_data.sku_data.consumption_flag">
+                </select>
+
+                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="consumption_flag" class="form-control" value="{{showCase.model_data.sku_data.consumption_flag}}" readonly ng-required="true">
+              </div>
+            </div>
+	  <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Status *</label>
                   <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-selected="qc == showCase.model_data.sku_data.status">
                 </select>
 
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="status" class="form-control" value="{{showCase.model_data.sku_data.status}}" readonly ng-required="true">
               </div>
-            </div>
+            </div> 
           <div class="row">
             <div class="col-md-12"><hr></div>
           </div>

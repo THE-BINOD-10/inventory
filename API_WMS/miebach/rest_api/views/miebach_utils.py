@@ -920,7 +920,7 @@ PR_PERFORMANCE_REPORT_DICT = {
         {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
     ],
-    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
+    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR Final Approval Date', 'PR Confirmed Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
                 'Priority Type', 'PR Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Time', 'Approver Level'],
 
     'dt_url': 'get_pr_performance_report', 'excel_name': 'get_pr_performance_report',
@@ -2054,7 +2054,7 @@ PRAOD_REPORT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'Product Category', 'SKU Category',
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'PR Status', 'Product Category', 'SKU Category',
         'Pending with Email Id', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
     'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
     'print_url': 'get_praod_report',
@@ -15562,14 +15562,25 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         results = pending_data
     dprs = list(results.values_list('pending_pr__full_pr_number', flat=True))
     pr_po_dict = {}
+    pr_last_current_approval_date = {}
     for dpr in dprs:
-        dpos = list(PendingPO.objects.filter(pending_prs__full_pr_number=dpr).values_list('full_po_number', flat=True).distinct())
+        try:
+            prp = pending_data.filter(pending_pr__full_pr_number=dpr).exclude(status='on_approved').order_by('-updation_date')
+            if prp.exists():
+                pr_last_current_approval_date.setdefault(dpr, get_local_date(user, prp[0]['updation_date']))
+        except Exception as e:
+            pass
+        temp_pos = PendingPO.objects.filter(pending_prs__full_pr_number=dpr)
+        dpos = list(temp_pos.values_list('full_po_number', flat=True).distinct())
         if len(dpos) > 0:
-            pr_po_dict[dpr] = dpos
+            pr_po_dict.setdefault(dpr, {'pos': dpos, 'date': temp_pos.order_by('-creation_date')[0].creation_date})
     for result in results:
-        po_numbers = ''
+        po_numbers, pr_final_confirmation_date, pr_final_approval_dates = '', '', ''
         if result['pending_pr__full_pr_number'] in pr_po_dict.keys():
-            po_numbers = ','.join(pr_po_dict[result['pending_pr__full_pr_number']])
+            po_numbers = ','.join(pr_po_dict[result['pending_pr__full_pr_number']]['pos'])
+            pr_final_confirmation_date = get_local_date(user, pr_po_dict[result['pending_pr__full_pr_number']]['date'])
+        if result['pending_pr__full_pr_number'] in pr_last_current_approval_date.keys():
+            pr_final_approval_dates = pr_last_current_approval_date[result['pending_pr__full_pr_number']]
         days_hours, minutes, confirmed_date,  = ['']*3
         date_diff_seconds = 0
         days_hours = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
@@ -15581,6 +15592,8 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             ('PR Number', result['pending_pr__full_pr_number']),
             ('PO Number', po_numbers),
             ('PR Submitted Date', get_local_date(user, result['pending_pr__creation_date'])),
+            ('PR Confirmed Date', pr_final_confirmation_date),
+            ('PR Final Approval Date', pr_final_approval_dates),
             ('PR raised By', result['pending_pr__requested_user__username']),
             ('PR raised To', result['pending_pr__wh_user__username']),
             ('Zone', result['pending_pr__wh_user__userprofile__zone']),
@@ -15592,7 +15605,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
             ('Approver Received Date', get_local_date(user, result['creation_date'])),
             ('Approver Confirmed Date', confirmed_date),
-            ('Approver Time', "%s, %s %s" % (days_hours, str(minutes), 'minutes')),
+            ('Approver Time', "%s / %s %s" % (days_hours, str(minutes), 'minutes')),
             ('Approver Level', result['level']),
             ('DT_RowClass', 'results')))
         temp_data['aaData'].append(ord_dict)
@@ -19274,8 +19287,8 @@ def get_praod_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number']
-    model_data = PendingPR.objects.filter(**search_parameters).values(*values_list).distinct()
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status']
+    model_data = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected']).values(*values_list).distinct()
 
     if order_term:
         model_data = model_data.order_by(order_data)
@@ -19295,12 +19308,8 @@ def get_praod_report_data(search_params, user, sub_user):
     pas_objs = PurchaseApprovals.objects.filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by', 'creation_date', 'level')
     for pas in pas_objs:
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
-    count = 0
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-    counter = 0
     for result in results:
-        counter += 1
-        print counter
         user_obj = User.objects.get(id=result['wh_user'])
         plant_code = user_obj.userprofile.stockone_code
         plant = user_obj.first_name
@@ -19327,6 +19336,7 @@ def get_praod_report_data(search_params, user, sub_user):
             ('Plant Code', plant_code),
             ('Zone Code', zone_code),
             ('PR Number', result['full_pr_number']),
+            ('PR Status', result['final_status'].title()),
             ('Product Category', result['product_category']),
             ('SKU Category', result['sku_category']),
             ('Pending with Email Id', pa_emails),

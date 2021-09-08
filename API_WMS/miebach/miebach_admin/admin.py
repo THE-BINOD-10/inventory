@@ -3,7 +3,7 @@ from django.contrib.admin import AdminSite
 from django.utils.translation import ugettext_lazy
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster, NetsuiteIdMapping
+GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster, NetsuiteIdMapping, WarehouseCurrency
 from models import PurchaseOrder, GateIn, FileLocationMapping, StaffMaster, UserPasswords
 # Register your models here.
 
@@ -87,6 +87,11 @@ class NetsuiteIdMappingAdmin(admin.ModelAdmin):
 class StaffMasterAdmin(admin.ModelAdmin):
     search_fields = ['staff_name', 'staff_code', 'company__company_name']
     list_display = ['staff_name', 'staff_code', 'company']
+
+@admin.register(WarehouseCurrency)
+class WarehouseCurrency(admin.ModelAdmin):
+    search_fields = ['currency_code', 'currency_word']
+    list_display = ['currency_code', 'currency_word']
 
 # admin.site.register(UOMMaster)
 admin.site.register(Integrations)

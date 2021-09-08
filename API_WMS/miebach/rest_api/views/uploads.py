@@ -3168,7 +3168,10 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                     if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
                         index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
                     if cell_data == 'Price Based' :
-                        cell_data_price = open_sheet.cell(row_idx, 5).value
+                        if warehouse:
+                            cell_data_price = open_sheet.cell(row_idx, 6).value
+                        else:
+                            cell_data_price = open_sheet.cell(row_idx, 5).value
                         if not cell_data_price :
                             index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
                         else:

@@ -13910,6 +13910,7 @@ def get_user_groups_list(request, user=''):
 
 
 def update_user_groups(request, sub_user, selected_list, user=None):
+    exclude_name = ''
     main_user = request.user
     if user and user.userprofile.warehouse_type == 'ADMIN':
         main_user = user
@@ -15052,5 +15053,19 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
             least_po_obj = least_po.order_by('open_po__price')[0]
             pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
             pr_extra_data['least_supplier_price_pi'] = least_po_obj.open_po.price
-
     return pr_extra_data
+
+
+def get_currency_tax_display(user):
+    status, msg, code, words = True, '', 'INR', ''
+    if user.userprofile.currency:
+        if user.userprofile.currency.currency_code != 'INR':
+            words = user.userprofile.currency.currency_word
+            code = user.userprofile.currency.currency_code
+            status = False
+        else:
+            words = user.userprofile.currency.currency_word
+    else:
+        msg = 'No Currency Mapping'
+    return status, msg, code, words
+

@@ -15462,7 +15462,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
 
 
 def get_pr_report_data_performance(search_params, user, sub_user):
-    from rest_api.views.common import check_and_get_plants_depts_wo_request, dhms_from_seconds, date_diff_in_seconds, get_local_date
+    from rest_api.views.common import check_and_get_plants_depts_wo_request, dhms_from_seconds, date_diff_in_seconds, get_local_date, get_related_users_filters
     from multiprocessing import Pool
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}

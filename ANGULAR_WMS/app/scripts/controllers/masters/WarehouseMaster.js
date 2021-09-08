@@ -121,6 +121,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     } else {
       vm.model_data.visible_status = 1;
     }
+    delete vm.model_data.currency_list;
     vm.service.apiCall("update_warehouse_user/", "POST", vm.model_data, true).then(function(data) {
       if(data.message) {
         if(data.data == "Updated Successfully") {

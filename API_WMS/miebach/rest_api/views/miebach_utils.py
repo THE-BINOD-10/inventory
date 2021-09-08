@@ -3727,7 +3727,8 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
      ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
      ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'), ('IMMUNO', 'Immunoassay'),
      ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1'),
-     ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics'), ('GENET', 'Genetics'), ('LENA', 'LENA'), ('NEHA', 'NEHA')])
+     ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics'), ('GENET', 'Genetics'), ('LENA', 'LENA'), ('NEHA', 'NEHA'),
+     ('PHLEB', 'Phlebotomy'), ('CLICHE', 'Clinical Chemistry'), ('MOLEC', 'Molecular'), ('RECEP', 'Reception'), ('PURCH', 'Purchase')])
 
 STAFF_MASTER_MAPPING = OrderedDict(
     (('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),

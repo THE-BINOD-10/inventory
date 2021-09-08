@@ -2361,6 +2361,9 @@ def print_purchase_order_form(request, user=''):
     show_cess_tax = purchase_orders.filter(open_po__cess_tax__gt=0).exists()
     show_apmc_tax = purchase_orders.filter(open_po__apmc_tax__gt=0).exists()
     display_remarks = get_misc_value('display_remarks_mail', user.id)
+    tax_display, msg, cu_code, currency_words = get_currency_tax_display(user)
+    if msg:
+        return HttpResponse(msg)
     po_data = []
     if user.userprofile.industry_type == 'FMCG':
         table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Schedule', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
@@ -2488,7 +2491,8 @@ def print_purchase_order_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     po_number = order.po_number #'%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     po_reference = order.open_po.po_name
-    total_amt_in_words = str(supplier_currency) + ' '+ number_in_words(round(total)) + ' ONLY'
+    # total_amt_in_words = str(supplier_currency) + ' '+ number_in_words(round(total)) + ' ONLY'
+    total_amt_in_words = number_in_words(round(total)) + ' ' + str(currency_words) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name

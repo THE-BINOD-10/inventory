@@ -31,7 +31,7 @@
                   <th>Quantity</th>
                   <th>Unit Rate(INR)</th>
                   <th>Amount(INR)</th>
-                  <th>Tax %</th>
+                  <th ng-if="showCase.preview_data.tax_display">Tax %</th>
                   <th>Total(INR)</th>
                 </tr>
             </thead>
@@ -66,7 +66,7 @@
                 <!-- <td> <input type="number" class="form-control" ng-model="data.quantity" name="quantity" size="25"> </td> -->
                 <td> {{data.price}} </td>
                 <td> {{data.amount}} </td>
-                <td> {{data.tax}} </td>
+                <td ng-hide="!showCase.preview_data.tax_display"> {{data.tax}} </td>
                 <td> {{data.total}} </td>
                </tr>
              </tbody>

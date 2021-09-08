@@ -187,6 +187,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "department": data.data.department,
                   "data": data.data.data,
                   "is_auto_pr": data.data.is_auto_pr,
+                  "tax_display": data.data.tax_display,
+                  "warehouse_currency": data.data.warehouse_currency,
           };
           vm.model_data = {};
           vm.resubmitCheckObj = {};

@@ -2907,6 +2907,14 @@ def update_warehouse_user(request, user=''):
             setattr(user_profile.user, key, value)
         if key in user_profile_dict.keys():
             setattr(user_profile, key, value)
+    warehouse_currency = request.POST.get('warehouse_currency', '')
+    if warehouse_currency and request.POST.get('username', ''):
+        related_admin_usr = User.objects.get(username=request.POST.get('username'))
+        currency_datum = WarehouseCurrency.objects.filter(currency_code=warehouse_currency)
+        temp_admins = get_linked_user_objs('true', related_admin_usr)
+        confirmed_admin_plant_depts = list(UserGroups.objects.filter(Q(admin_user__username__in = temp_admins) | Q(user__username__in  = temp_admins)).values_list('user_id', flat=True))
+        if currency_datum.exists():
+            UserProfile.objects.filter(user__in = confirmed_admin_plant_depts).update(currency_id=currency_datum[0].id)
     user_profile.user.save()
     user_profile.save()
     return HttpResponse("Updated Successfully")
@@ -2949,14 +2957,17 @@ def get_warehouse_user_data(request, user=''):
     username = request.GET['username']
     user_profile = UserProfile.objects.get(user__username=username)
     mapping = WarehouseCustomerMapping.objects.filter(warehouse=user_profile.user, status=1)
+    currency_list = list(WarehouseCurrency.objects.filter().values_list('currency_code', flat=True))
     customer_username = ''
-    customer_fullname = ''
+    customer_fullname, warehouse_currency = '', ''
     if mapping:
         mapping = mapping[0]
         customer_profile = CustomerUserMapping.objects.filter(customer__id=mapping.customer.id)
         if customer_profile:
             customer_username = customer_profile[0].user.username
             customer_fullname = customer_profile[0].user.first_name
+    if user_profile.currency:
+        warehouse_currency = user_profile.currency.currency_code
     data = {'username': user_profile.user.username, 'first_name': user_profile.user.first_name,
             'last_name': user_profile.user.last_name, 'phone_number': user_profile.phone_number,
             'email': user_profile.user.email, 'country': user_profile.country, 'state': user_profile.state,
@@ -2966,7 +2977,7 @@ def get_warehouse_user_data(request, user=''):
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
             'zone': user_profile.zone, 'reference_id': user_profile.reference_id, 'visible_status': user_profile.visible_status,
             'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code,
-            'company_id': user_profile.company_id}
+            'company_id': user_profile.company_id, 'warehouse_currency': warehouse_currency, 'currency_list': currency_list}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -5244,6 +5255,11 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         if payments.exists():
             for datum in payments:
                payment_terms.append("%s:%s," %(str(datum.payment_code), datum.payment_description))
+        if data.currency.filter().exists():
+            currency_code = list(data.currency.filter().values_list('currency_code', flat=True))
+            currency_code = ', '.join([str(elem) for elem in currency_code])
+        else:
+            currency_code = 'INR'
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -5267,7 +5283,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
                                                 ('secondary_email_id', secondary_email_ids),
-                                                ('currency_code', data.currency_code),
+                                                ('currency_code', currency_code),
                                                 ('payment_terms', payment_terms)
                                             )))
     excel_headers = ''

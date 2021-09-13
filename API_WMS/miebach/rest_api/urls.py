@@ -775,6 +775,8 @@ urlpatterns += [
     url(r'^consumption_upload/$', consumption_upload),
     url(r'^inventory_norm_form/$', inventory_norm_form),
     url(r'^inventory_norm_upload/$', inventory_norm_upload),
+    url(r'^staff_master_plant_dept_form/$', staff_master_plant_dept_form),
+    url(r'^staff_master_plant_dept_form_upload/$', staff_master_plant_dept_form_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

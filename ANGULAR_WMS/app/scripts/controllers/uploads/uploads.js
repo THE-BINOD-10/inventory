@@ -485,6 +485,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_staffmaster",
                  },
                  {
+                   title: "Staff Master Plant & Department / Add (or) Remove",
+                   download: "Download Staff Plant Department Form",
+                   upload: "Upload Staff Plant Department Form",
+                   durl: "staff_master_plant_dept_form/",
+                   uurl: "staff_master_plant_dept_form_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                   perm: "add_staffmaster",
+                 },
+                 {
                    title: "UOM Master Download/ Upload",
                    download: "Download UOM Master Form",
                    upload: "Upload UOM Master Form",

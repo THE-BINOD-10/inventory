@@ -3738,6 +3738,9 @@ STAFF_MASTER_MAPPING = OrderedDict(
      ('Status', 'status'), ('Groups', 'groups')
      ))
 
+STAFF_MASTER_PLANT_DEPT_MAPPING = OrderedDict(
+    (('StaffEmail', 'StaffEmail'), ('WarehouseType (PLANT / DEPT)', 'WarehouseType'), ('Code', 'code'), ('Action (ADD / REMOVE)', 'Action')))
+
 GRN_MAPPING = OrderedDict(
                   (
                       ('Plant Id', 'plant_id'),

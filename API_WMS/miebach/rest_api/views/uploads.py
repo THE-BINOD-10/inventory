@@ -10018,6 +10018,19 @@ def save_user_prefixes(data_list):
 @csrf_exempt
 @login_required
 @get_admin_user
+def staff_master_plant_dept_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(STAFF_MASTER_PLANT_DEPT_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Staff Master Plant Dept', excel_headers)
+    return xls_to_response(wb, '%s.staff_master_plant_dept_form.xls' % str(user.username))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def staff_master_form(request, user=''):
     excel_file = request.GET['download-file']
     if excel_file:
@@ -10258,6 +10271,116 @@ def staff_master_upload(request, user=''):
         log.info('Save Staff Master failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(data_list), str(e)))
     return HttpResponse('Success')
+
+
+@csrf_exempt
+def validate_staff_master_plant_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(STAFF_MASTER_PLANT_DEPT_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, inv_mapping)
+    if not set(['StaffEmail', 'WarehouseType', 'code', 'Action']).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    company_id = get_company_id(user)
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    dept_mapping = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'StaffEmail':
+                if cell_data:
+                    try:
+                        data_dict['staff'] = StaffMaster.objects.get(email_id=cell_data)
+                    except Exception as e:
+                        index_status.setdefault(row_idx, set()).add('Invalid Staff')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Staff is Mandatory')
+            elif key == 'WarehouseType':
+                if cell_data:
+                    data_dict['type'] = cell_data.lower()
+                else:
+                    index_status.setdefault(row_idx, set()).add('warehouse type is Mandatory')
+            elif key == 'code':
+                if cell_data:
+                    if data_dict['type'].lower() == 'plant':
+                        datum = User.objects.filter(username__icontains=cell_data, userprofile__warehouse_type='STORE')
+                        if datum.exists():
+                            data_dict['code'] = datum[0].username
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Code is Invalid')
+                    elif data_dict['type'].lower() == 'dept':
+                        if cell_data in dept_mapping.values():
+                            data_dict['code'] = cell_data
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Code is Invalid')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Code is Mandatory')
+            elif key == 'Action':
+                if cell_data.lower() in ['add', 'remove']:
+                    data_dict['action'] = cell_data.lower()
+                else:
+                    index_status.setdefault(row_idx, set()).add('Action is Mandatory')
+        data_list.append(data_dict)
+    if not index_status:
+        return 'Success', data_list
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def staff_master_plant_dept_form_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_staff_master_plant_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        for final_data in data_list:
+            print final_data
+            if final_data['type'] == 'plant':
+                if final_data['action'] == 'add':
+                    tl, created = TableLists.objects.get_or_create(name=final_data['code'])
+                    final_data['staff'].plant.add(tl)
+                elif final_data['action'] == 'remove':
+                    tl, created = TableLists.objects.get_or_create(name=final_data['code'])
+                    final_data['staff'].plant.remove(tl)
+            elif final_data['type'] == 'dept':
+                if final_data['action'] == 'add':
+                    tl, created = TableLists.objects.get_or_create(name=final_data['code'])
+                    final_data['staff'].department_type.add(tl)
+                elif final_data['action'] == 'remove':
+                    tl, created = TableLists.objects.get_or_create(name=final_data['code'])
+                    final_data['staff'].department_type.remove(tl)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Save Staff Master Plant Dept failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(data_list), str(e)))
+    return HttpResponse('Success')
+
+
 
 @csrf_exempt
 @login_required

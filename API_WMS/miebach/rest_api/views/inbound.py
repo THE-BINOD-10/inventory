@@ -10881,7 +10881,6 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
                        internal=False, report_type='Purchase Order', data_dict_po={}, full_order_date='',mail_attachments=''):
     receivers = []
     attachments = ''
-    return ''
     if html_data:
         attachments = create_mail_attachments(f_name, html_data)
     if mail_attachments:

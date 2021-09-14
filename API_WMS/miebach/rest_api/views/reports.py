@@ -2291,7 +2291,7 @@ def print_stock_cover_report(request, user=''):
 def format_printing_datam(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    if order.currency_rate > 1:
+    if order.currency_rate > 0:
         current_price = round(float(purchase_order.price) / order.currency_rate, 2)
     else:
         current_price = float(purchase_order.price)
@@ -2393,7 +2393,7 @@ def print_purchase_order_form(request, user=''):
         open_po = order.open_po
         #remarks = order.remarks
         total_qty += open_po.order_quantity
-        if order.currency_rate > 1:
+        if order.currency_rate > 0:
             currency_rate = round(open_po.price / order.currency_rate, 2)
         else:
             currency_rate = open_po.price

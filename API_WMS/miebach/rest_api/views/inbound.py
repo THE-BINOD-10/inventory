@@ -2447,7 +2447,7 @@ def print_pending_po_form(request, user=''):
             if pr_supplier_data.exists():
                 json_data = eval(pr_supplier_data[0].model_json)
                 supplier_code = json_data['supplier_id']
-        if currency_rate > 1:
+        if currency_rate > 0:
             current_price = round((float(order['price']) / float(currency_rate)), 2)
         else:
             current_price = order['price']
@@ -10182,7 +10182,7 @@ def order_status(request):
 def format_printing_data(datum, order, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
     amount = 0
     delivery_date = ''
-    if order.currency_rate > 1:
+    if order.currency_rate > 0:
         current_price = round(float(purchase_order.price) / order.currency_rate, 2)
     else:
         current_price = float(purchase_order.price)
@@ -10420,7 +10420,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     SellerPO.objects.create(seller_id=seller, open_po_id=data1.id, seller_quantity=seller_quan[0],
                                             creation_date=datetime.datetime.now(), status=1,
                                             receipt_type=value['receipt_type'])
-            if order.currency_rate > 1:
+            if order.currency_rate > 0:
                 current_price = round(float(purchase_order.price) / order.currency_rate, 2)
             else:
                 current_price = float(purchase_order.price)

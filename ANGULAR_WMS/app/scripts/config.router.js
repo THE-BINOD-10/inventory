@@ -3181,6 +3181,18 @@ var app = angular.module('urbanApp')
             title: 'PR Performance Report',
           }
         })
+        .state('app.reports.POReportPerformance', {
+          url: '/POReportPerformance',
+          templateUrl: 'views/reports/po_rerformance_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/po_performance_report.js');
+              }]
+          },
+          data: {
+            title: 'PO Performance Report',
+          }
+        })
         .state('app.reports.PRReport', {
           url: '/PRReport',
           templateUrl: 'views/reports/pr_report.html',

@@ -14280,8 +14280,8 @@ def reduce_consumption_stock(consumption_obj, total_test=0, book_date="", consum
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
                 average_price = sku.average_price
-        # if value["qty_dict"]["consumed_quantity"]>0 and  value["base_uom"]=="TEST":
-        if value["qty_dict"]["consumed_quantity"]>0:
+                # if value["qty_dict"]["consumed_quantity"]>0 and  value["base_uom"]=="TEST":
+                if value["qty_dict"]["consumed_quantity"]>0:
                     if consumption_type=="Manual-Consumption":
                         cons_type = 1
                     else:

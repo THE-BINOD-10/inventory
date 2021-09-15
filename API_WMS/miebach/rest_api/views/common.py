@@ -15041,18 +15041,27 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
                                         creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
         if last_po.exists():
             last_po_obj = last_po.latest('creation_date')
-            pr_extra_data['last_supplier'] = last_po_obj .open_po.supplier.name
-            pr_extra_data['last_supplier_price'] = last_po_obj .open_po.price
-            least_po_obj = last_po.order_by('open_po__price')[0]
+            pr_extra_data['last_supplier'] = last_po_obj.open_po.supplier.name
+            open_po = last_po_obj.open_po
+            taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
+            total_val = open_po.price + ((open_po.price/100) * taxes)
+            pr_extra_data['last_supplier_price'] = total_val
+            least_po_obj = last_po.order_by('open_po__price').first()
             pr_extra_data['least_supplier'] = least_po_obj.open_po.supplier.name
-            pr_extra_data['least_supplier_price'] = least_po_obj.open_po.price
+            open_po = least_po_obj.open_po
+            taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
+            total_val = open_po.price + ((open_po.price/100) * taxes)
+            pr_extra_data['least_supplier_price'] = total_val
         all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
         least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
                                                 creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
         if least_po.exists():
-            least_po_obj = least_po.order_by('open_po__price')[0]
+            least_po_obj = least_po.order_by('open_po__price').first()
+            open_po = least_po_obj.open_po
+            taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
+            total_val = open_po.price + ((open_po.price/100) * taxes)
             pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
-            pr_extra_data['least_supplier_price_pi'] = least_po_obj.open_po.price
+            pr_extra_data['least_supplier_price_pi'] = total_val
     return pr_extra_data
 
 

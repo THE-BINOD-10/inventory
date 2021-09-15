@@ -927,6 +927,26 @@ PR_PERFORMANCE_REPORT_DICT = {
     'print_url': 'get_pr_performance_report',
 }
 
+PO_PERFORMANCE_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+        {'label': 'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label': 'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
+        {'label': 'PO Status', 'name': 'final_status', 'type': 'select'},
+    ],
+    'dt_headers': ['PO Number', 'PO Submitted Date', 'PO Final Approval Date', 'PO Confirmed Date', 'PO raised By', 'PO raised To', 'Zone', 'Product Category', 'Category',
+                'Priority Type', 'PO Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Time', 'Approver Level'],
+
+    'dt_url': 'get_po_performance_report', 'excel_name': 'get_po_performance_report',
+    'print_url': 'get_po_performance_report',
+}
+
 PR_DETAIL_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -2125,6 +2145,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'discrepancy_report': DISCREPANCY_REPORT_DICT,
                      'pr_report': PR_REPORT_DICT,
                      'get_pr_performance_report_dat': PR_PERFORMANCE_REPORT_DICT,
+                     'get_po_performance_report_dat': PO_PERFORMANCE_REPORT_DICT,
                      'pr_detail_report': PR_DETAIL_REPORT_DICT,
                      'metro_po_report': METRO_PO_REPORT_DICT,
                      'metro_po_detail_report': METRO_PO_DETAIL_REPORT_DICT,
@@ -2857,6 +2878,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'PRAOD_report': 'get_praod_report_data',
                         'get_asn_detail': 'get_asn_data',
                         'get_pr_performance_report_dat': 'get_pr_report_data_performance',
+                        'get_po_performance_report_dat': 'get_po_report_data_performance',
                         }
 # End of Download Excel Report Mapping
 
@@ -15467,7 +15489,6 @@ def get_approval_detail_report_data(search_params, user, sub_user):
 
 def get_pr_report_data_performance(search_params, user, sub_user):
     from rest_api.views.common import check_and_get_plants_depts_wo_request, dhms_from_seconds, date_diff_in_seconds, get_local_date, get_related_users_filters
-    from multiprocessing import Pool
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PR'}
@@ -15605,6 +15626,145 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             ('Category', result['pending_pr__sku_category']),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', result['pending_pr__final_status'].title()),
+            ('Approval Name', result['validated_by']),
+            ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
+            ('Approver Received Date', get_local_date(user, result['creation_date'])),
+            ('Approver Confirmed Date', confirmed_date),
+            ('Approver Time', "%s / %s %s" % (days_hours, str(minutes), 'minutes')),
+            ('Approver Level', result['level']),
+            ('DT_RowClass', 'results')))
+        temp_data['aaData'].append(ord_dict)
+    return temp_data
+
+
+def get_po_report_data_performance(search_params, user, sub_user):
+    from rest_api.views.common import check_and_get_plants_depts_wo_request, dhms_from_seconds, date_diff_in_seconds, get_local_date, get_related_users_filters
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    search_parameters = {'purchase_type': 'PO'}
+    lis = ['pending_po__po_number', 'pending_po__po_number', 'pending_po__creation_date', 'pending_po__po_number', 'pending_po__po_number',
+           'pending_po__po_number', 'pending_po__po_number', 'pending_po__product_category', 'pending_po__sku_category','total_qty',
+           'measurement_unit', 'pending_po__final_status', 'pending_po__po_number',
+           'pending_po__po_number', 'pending_po__po_number','pending_po__po_number','pending_po__po_number','pending_po__po_number','pending_po__po_number',
+           'pending_po__po_number',
+           'pending_po__po_number','pending_po__po_number','pending_po__po_number','pending_po__po_number','pending_po__po_number','pending_po__po_number',
+           'pending_po__po_number','pending_po__final_status', 'pending_po__pending_level',
+           'pending_po__po_number', 'pending_po__po_number','pending_po__po_number','pending_po__po_number',
+           'pending_po__po_number', 'pending_po__po_number', 'pending_pr__remarks','pending_pr__remarks',
+           'pending_po__remarks', 'pending_po__po_number', 'pending_po__po_number', 'pending_po__po_number', 'pending_po__updation_date']
+    col_num = search_params.get('order_index', -1)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'priority_type' in search_params:
+        search_parameters['pending_po__pending_prs__priority_type'] = search_params['priority_type']
+    if 'pr_number' in search_params:
+        pr_number = search_params['pr_number']
+        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
+    if 'po_number' in search_params:
+        po_number = search_params['po_number']
+        search_parameters['pending_po__full_po_number'] = po_number
+    if 'product_category' in search_params:
+        search_parameters['pending_po__product_category'] = search_params['product_category']
+        if search_parameters['pending_po__product_category'] == 'KitsConsumables':
+            search_parameters['pending_po__product_category'] = 'Kits&Consumables'
+    if 'final_status' in search_params:
+        search_parameters['pending_po__final_status'] = search_params['final_status'].lower()
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['pending_po__wh_user__in'] = user_ids
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    values_list = ['pending_po__requested_user__username', 'pending_po__full_po_number',
+                    'pending_po__final_status', 'pending_po__pending_level', 'pending_po__wh_user__username',
+                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category',
+                    'pending_po__pending_prs__priority_type', 'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
+    pending_data = PurchaseApprovals.objects.filter(**search_parameters).values(*values_list).distinct()
+    if order_term:
+        pending_data = pending_data.order_by(order_data)
+    else:
+        pending_data = pending_data.order_by('-pending_po__updation_date')
+    temp_data['recordsTotal'] = pending_data.count()
+    temp_data['recordsFiltered'] = pending_data.count()
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    if stop_index:
+        results = pending_data[start_index:stop_index]
+    else:
+        results = pending_data
+    dpos = list(results.values_list('pending_po__full_po_number', flat=True))
+    po_last_current_approval_date = {}
+    for dpo in dpos:
+        try:
+            pop = PurchaseOrder.objects.filter(po_number=dpo)
+            if pop.exists():
+                po_last_current_approval_date.setdefault(dpo, get_local_date(user, pop[0].po_date))
+        except Exception as e:
+            pass
+    for result in results:
+        po_numbers, po_final_confirmation_date, po_final_approval_dates = '', '', ''
+        if result['pending_po__full_po_number'] in po_last_current_approval_date.keys():
+            po_final_confirmation_date = po_last_current_approval_date[result['pending_po__full_po_number']]
+        days_hours, minutes, confirmed_date,  = ['']*3
+        date_diff_seconds = 0
+        days_hours = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
+        date_diff_seconds = date_diff_in_seconds(result['updation_date'], result['creation_date'])
+        minutes = round(float(date_diff_seconds)/60, 2)
+        if date_diff_seconds > 3:
+            confirmed_date = get_local_date(user, result['updation_date'])
+        ord_dict = OrderedDict((
+            # ('PR Number', result['pending_pr__full_pr_number']),
+            ('PO Number', result['pending_po__full_po_number']),
+            ('PO Submitted Date', get_local_date(user, result['pending_po__creation_date'])),
+            ('PO Confirmed Date', po_final_confirmation_date),
+            ('PO Final Approval Date', confirmed_date),
+            ('PO raised By', result['pending_po__requested_user__username']),
+            ('PO raised To', result['pending_po__wh_user__username']),
+            ('Zone', result['pending_po__wh_user__userprofile__zone']),
+            ('Product Category', result['pending_po__product_category']),
+            ('Category', result['pending_po__sku_category']),
+            ('Priority Type', result['pending_po__pending_prs__priority_type']),
+            ('PO Status', result['pending_po__final_status'].title()),
             ('Approval Name', result['validated_by']),
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
             ('Approver Received Date', get_local_date(user, result['creation_date'])),

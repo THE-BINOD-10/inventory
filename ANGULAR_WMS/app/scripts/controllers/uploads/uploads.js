@@ -481,7 +481,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "staff_master_upload/",
                    dparam: "download-file",
                    value: "",
-                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                   show: Session.user_profile.warehouse_level==0,
                    perm: "add_staffmaster",
                  },
                  {
@@ -492,7 +492,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    uurl: "staff_master_plant_dept_form_upload/",
                    dparam: "download-file",
                    value: "",
-                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                   show: Session.user_profile.warehouse_level==0,
                    perm: "add_staffmaster",
                  },
                  {

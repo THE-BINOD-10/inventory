@@ -13910,6 +13910,7 @@ def get_user_groups_list(request, user=''):
 
 
 def update_user_groups(request, sub_user, selected_list, user=None):
+    exclude_name = ''
     main_user = request.user
     if user and user.userprofile.warehouse_type == 'ADMIN':
         main_user = user
@@ -14279,7 +14280,8 @@ def reduce_consumption_stock(consumption_obj, total_test=0, book_date="", consum
                 sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 # consumption_id, prefix, consumption_number, check_prefix, inc_status = get_user_prefix_incremental(main_user, 'consumption_prefix', sku)
                 average_price = sku.average_price
-		if value["qty_dict"]["consumed_quantity"]>0 and  value["base_uom"]=="TEST":
+                # if value["qty_dict"]["consumed_quantity"]>0 and  value["base_uom"]=="TEST":
+                if value["qty_dict"]["consumed_quantity"]>0:
                     if consumption_type=="Manual-Consumption":
                         cons_type = 1
                     else:
@@ -14293,7 +14295,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0, book_date="", consum
                         sku_pcf=value['sku_pcf'],
                         quantity=value["qty_dict"]["consumed_quantity"],
                         consumption_type = cons_type,
-			plant_user= main_user
+                        plant_user= main_user
                     )
                     if book_date:
                         consumption_data.creation_date= book_date
@@ -14301,9 +14303,9 @@ def reduce_consumption_stock(consumption_obj, total_test=0, book_date="", consum
                     update_stock_detail(value['stocks'], float(value["qty_dict"]["consumed_quantity"]), user,
                                         consumption_data.id, transact_type='consumption',
                                         mapping_obj=consumption_data)
-                if not value["base_uom"]=="TEST":
+                '''if not value["base_uom"]=="TEST":
                     value["qty_dict"]["consumed_quantity"]= 0
-                    value["qty_dict"]["pending_qty"] = value["qty_dict"]["consumption_qty"]
+                    value["qty_dict"]["pending_qty"] = value["qty_dict"]["consumption_qty"]'''
                 create_consumption_material(consumption, key, value["qty_dict"],average_price=average_price, sku_pcf=value['sku_pcf'])
             if bom_master and stock_found:
                 consumption.status = 0
@@ -15060,5 +15062,19 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
             total_val = open_po.price + ((open_po.price/100) * taxes)
             pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
             pr_extra_data['least_supplier_price_pi'] = total_val
-
     return pr_extra_data
+
+
+def get_currency_tax_display(user):
+    status, msg, code, words = True, '', 'INR', ''
+    if user.userprofile.currency:
+        if user.userprofile.currency.currency_code != 'INR':
+            words = user.userprofile.currency.currency_word
+            code = user.userprofile.currency.currency_code
+            status = False
+        else:
+            words = user.userprofile.currency.currency_word
+    else:
+        msg = 'No Currency Mapping'
+    return status, msg, code, words
+

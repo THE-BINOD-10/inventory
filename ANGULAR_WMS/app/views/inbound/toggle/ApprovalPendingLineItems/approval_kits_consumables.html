@@ -20,13 +20,13 @@
         <th>No.Of Base Units</th>
         <th>Base UOM</th>
         <!-- <th>MOQ</th> -->
-        <th>Unit Rate(INR)</th>
+        <th>Unit Rate({{showCase.model_data.warehouse_currency}})</th>
         <th>Dis %</th>
         <th>Final Unit Price</th>
-        <th>Amount(INR)</th>
-        <th>Tax %</th>
-        <th>Cess Tax %</th>
-        <th>Total(INR)</th>
+        <th>Amount({{showCase.model_data.warehouse_currency}})</th>
+        <th ng-if="showCase.model_data.tax_display">Tax %</th>
+        <th ng-if="showCase.model_data.tax_display">Cess Tax %</th>
+        <th>Total({{showCase.model_data.warehouse_currency}})</th>
         <th>OpenPR Qty</th>
         <th>Last 3M Avg Consumption</th>
         <th>Available Stock</th>
@@ -116,15 +116,15 @@
           </span> 
           <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
         </td>
-        <td class="text-center"> 
+        <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+          <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
           <span class="text_element">{{product.fields.tax}}
           </span> 
-          <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
         </td>
-        <td class="text-center">
+        <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+          <input type="text" name="cess_tax" ng-model="product.fields.cess_tax" class="hide">
           <span class="text_element">{{product.fields.cess_tax}}
           </span>
-          <input type="text" name="cess_tax" ng-model="product.fields.cess_tax" class="hide">
         </td>
         <td class="text-center"> 
           <span class="text_element">{{product.fields.total | number:2}}

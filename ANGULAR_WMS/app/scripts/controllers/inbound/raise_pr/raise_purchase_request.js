@@ -203,6 +203,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "store": data.data.store,
                   "store_id": data.data.store_id,
                   "department": data.data.department,
+                  "tax_display": data.data.tax_display,
+                  "warehouse_currency": data.data.warehouse_currency,
                   "data": data.data.data,
           };
           vm.model_data = {};

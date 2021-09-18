@@ -209,6 +209,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "pa_uploaded_file_dict": data.data.pa_uploaded_file_dict,
             "approval_remarks": data.data.approval_remarks,
             "warehouse_id": data.data.warehouse_id,
+            "warehouse_currency": data.data.warehouse_currency,
+            "tax_display": data.data.tax_display,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);

@@ -2913,8 +2913,10 @@ def update_warehouse_user(request, user=''):
         currency_datum = WarehouseCurrency.objects.filter(currency_code=warehouse_currency)
         temp_admins = get_linked_user_objs('true', related_admin_usr)
         confirmed_admin_plant_depts = list(UserGroups.objects.filter(Q(admin_user__username__in = temp_admins) | Q(user__username__in  = temp_admins)).values_list('user_id', flat=True))
+        confirmed_admin_plant_depts.append(related_admin_usr.id)
         if currency_datum.exists():
             UserProfile.objects.filter(user__in = confirmed_admin_plant_depts).update(currency_id=currency_datum[0].id)
+            user_profile.currency_id = currency_datum[0].id
     user_profile.user.save()
     user_profile.save()
     return HttpResponse("Updated Successfully")

@@ -199,7 +199,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.is_pa_resubmitted = true;
           }
           angular.copy(empty_data, vm.model_data);
-
+          angular.forEach(vm.model_data.data, function(data) {
+            data.fields.sku.pr_extra_data = data.fields.pr_extra_data;
+          })
           if (vm.model_data.supplier_id){
             vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
           } else {
@@ -230,8 +232,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             data.fields.sku['conversion'] = data.fields.conversion;
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
-          console.log(vm.resubmitCheckObj);
-          console.log(data.data)
           // vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
@@ -563,7 +563,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               Service.showNoty('Supplier Should be provided by Purchase');
               return;
             }
-            if (row_data.fields.price='') {
+            if (row_data.fields.price =='') {
               keepGoing = false;
               Service.showNoty('Price Should be provided by Purchase');
               return;
@@ -735,13 +735,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
-
-    vm.getFirstSupplier = function(data){
-      vm.getsupBasedPriceDetails(data["preferred_supplier"], data)
-      return data["preferred_supplier"];
-
+    vm.getFirstSupplier = function(data, line_level=''){
+      if (typeof(data["preferred_supplier"]) != 'undefined' ) {
+        vm.getsupBasedPriceDetails(data["preferred_supplier"], data, line_level);
+        return data["preferred_supplier"];  
+      }
     }
-    vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){
+    vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data, line_level=''){
       var supDetails = sup_data.supplierDetails[supplier_id_name];
       if (supDetails) {
         sup_data.moq = supDetails.moq;
@@ -754,9 +754,28 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sup_data.total = (supDetails.total - discount_amount).toFixed(2);
         sup_data.supplier_id = supDetails.supplier_id;
         sup_data.supplier_id_name = supplier_id_name;
+        if (!('last_supplier' in Object.keys(sup_data.sku))) {
+          sup_data["sku"]["last_supplier"] = sup_data.sku.pr_extra_data.last_supplier + "-" + sup_data.sku.pr_extra_data.last_supplier_price;
+          sup_data["sku"]["least_supplier"] = sup_data.sku.pr_extra_data.least_supplier + "-" + sup_data.sku.pr_extra_data.least_supplier_price;
+          sup_data["sku"]["least_supplier_pi"] = sup_data.sku.pr_extra_data.least_supplier_pi + "-" + sup_data.sku.pr_extra_data.least_supplier_price_pi;
+        }
+        vm.get_info_delta_value(sup_data);
+        if (line_level) {
+          vm.getTotals(line_level);  
+        }
       }
     }
-
+    vm.get_info_delta_value = function(sup_data) {
+      if (typeof(sup_data['system_preferred_supplier']) != 'undefined' && sup_data['system_preferred_supplier'] != '') {
+        (sup_data['preferred_supplier'] != sup_data['system_preferred_supplier']) ? sup_data['icon_color'] = { 'color': 'red' } : sup_data['icon_color'] = { 'color': 'seagreen' };
+      } else if (sup_data['preferred_supplier'] && sup_data['preferred_supplier'] != sup_data['supplier_id_name']) {
+        sup_data['sku_sku_comment'] = true;
+        sup_data['icon_color'] = { 'color': 'red' };
+      } else {
+        sup_data['sku_sku_comment'] = false;
+        sup_data['icon_color'] = { 'color': 'seagreen' };
+      }
+    }
     vm.send_to_parent_store = function(form) {
       var selectedItems = [];
       angular.forEach(vm.preview_data.data, function(eachLineItem){
@@ -806,6 +825,34 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
         vm.display_vision = {'display': 'block'};
       });
+    }
+
+    vm.extra_row_info = function (datum) {
+      var data = {'line_data': datum};
+      if (typeof(datum['fields']['sku']) == 'undefined') {
+        vm.service.showNoty('Invalid Sku');
+      } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        var modalInstance = $modal.open({
+          templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
+          controller: 'skuRowCtrl',
+          controllerAs: 'showCase',
+          size: 'sm',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          if (selectedItem) {
+            console.log('');
+          }
+        });
+      } else {
+        vm.service.showNoty('Invalid Sku');
+      }
     }
 
     vm.print_pending_po = function(form, validation_type) {
@@ -1172,7 +1219,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.conversion = item.conversion * product.fields.order_quantity;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
-      product.fields.price = "";
+      product.fields.price = 0;
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.blocked_sku = "";
@@ -1264,7 +1311,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.description = '';
       product.fields.order_quantity = '';
       product.fields.ean_number = '';
-      product.fields.price = '';
+      product.fields.price = 0;
       product.fields.mrp = '';
       product.fields.description = '';
       product.fields.sgst_tax = "";
@@ -1356,9 +1403,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.taxChange = function(data) {
-
       data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
       vm.getTotals(vm.model_data, true);
+    }
+
+    vm.check_price_comparision = function(data) {
+      var check_array = []
+      var min_unit_price_comparision = 0
+      if (typeof(data.fields.sku.pr_extra_data.least_supplier_price) != 'undefined' && parseFloat(data.fields.sku.pr_extra_data.least_supplier_price) > 0) {
+        check_array.push(parseFloat(data.fields.sku.pr_extra_data.least_supplier_price))
+      }
+      if (typeof(data.fields.sku.pr_extra_data.last_supplier_price) != 'undefined' && parseFloat(data.fields.sku.pr_extra_data.last_supplier_price) > 0) {
+        check_array.push(parseFloat(data.fields.sku.pr_extra_data.last_supplier_price))
+      }
+      if (typeof(data.fields.sku.pr_extra_data.least_supplier_price_pi) != 'undefined' && parseFloat(data.fields.sku.pr_extra_data.least_supplier_price_pi) > 0) {
+        check_array.push(parseFloat(data.fields.sku.pr_extra_data.least_supplier_price_pi))
+      }
+      min_unit_price_comparision = check_array.length > 0 ? Math.min.apply(null, check_array) : 0
+      return min_unit_price_comparision;
     }
 
     vm.getTotals = function(data, type='') {
@@ -1374,7 +1436,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
-      if (data.fields.temp_price){
+      if (data.fields.temp_price && data.fields.temp_price > 0){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
             Service.showNoty('Price cant be more than Base Price'); 
             data.fields.price = 0
@@ -1399,6 +1461,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.total_price = vm.model_data.total_price + temp;
         vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
       })
+      var min_price_value = vm.check_price_comparision(data);
+      if (min_price_value != 0) {
+        data.fields.delta = min_price_value - data.fields.price;
+        (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
+      } else {
+        data.fields.delta = 0;
+        data.fields['delta_color'] = { 'color': 'darkgrey' };
+      }
     }
 
     vm.getCompany = function() {
@@ -1602,4 +1672,18 @@ angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http
     $modalInstance.close(value);
   };
 
+});
+
+angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.line_data = items['line_data']['fields']
+  vm.title = vm.line_data['sku']['wms_code'];
+  vm.model_data = {}
+  vm.requestData = items;
+  vm.warehouse_list = [];
+  vm.close = function () {
+    $modalInstance.close(vm.line_data);
+  };
 });

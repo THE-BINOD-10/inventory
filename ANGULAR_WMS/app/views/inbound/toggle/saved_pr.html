@@ -12,9 +12,9 @@
       z-index: 1000;
    }
 </style>
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" style="z-index: 1050 !important;">
   <form name="form" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
-    <div class="modal-dialog model-custom modal-lgi" style="width: 1250px;font-size: xx-small;">
+    <div class="modal-dialog model-custom modal-lgi" style="width: 1290px;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -83,35 +83,45 @@
           <div class="row" ng-if="showCase.model_data.product_category=='OtherItems'" style="margin-left: 10px;width: 99%;">
             <div ng-include="'views/inbound/toggle/RaisependinglineItems/other_items.html'"></div>
           </div>
-          <div class="col-md-12 col-sm-12 col-xs-12">
-            <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
-              <strong>Remarks :</strong>
+          <div class="row" style="padding-bottom:0px;">
+            <div class="col-md-6 col-sm-6">
             </div>
-            <div class="col-md-9 col-sm-9 col-xs-9">
-              <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
             </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
           </div>
-          <div class = "row" ng-repeat="uploaded_file_data in showCase.model_data.uploaded_file_dict" style="margin-top: 1%;">
-              <a class="btn btn btn-success" href="{{uploaded_file_data.file_url}}" target="_blank" style="position: relative; font-weight: 600;min-width: 250px;font-size: 15px;margin-left:1%;">
-                {{ uploaded_file_data.file_name }}<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
-              </a>
-          </div>
           <div class="row">
-            <div class="form-group col-md-3" style="padding-top: 30px;">
-               <span>
-                 <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
-               </span>
-            </div>
+            <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+              <div class="form-group col-lg-4 col-md-4" style="padding-top: 20px;">
+                 <span><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple /></span>
+              </div>
+              <div class = "col-lg-4 col-md-4" ng-repeat="uploaded_file_data in showCase.model_data.uploaded_file_dict" style="margin-top: 1%;">
+                  <a class="btn btn btn-success" href="{{uploaded_file_data.file_url}}" target="_blank" style="position: relative; font-weight: 600;min-width: 250px;font-size: 15px;margin-left:1%;">
+                    {{ uploaded_file_data.file_name }}<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+                  </a>
+              </div>
+              <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+                <div class="col-md-2 col-sm-2 col-xs-2">
+                  <strong>Remarks :</strong>
+                </div>
+                <div class="col-md-10 col-sm-10 col-xs-10">
+                  <textarea rows="2" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+                </div>
+              </div>
+            </div>  
           </div>
         </div>
       </div>
       <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.save_raise_pr(form, 'save')">Save</button>
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form, 'create')">Send For Approval</button>
-        </div>
+        <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.save_raise_pr(form, 'save')">Save</button>
+        <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form, 'create')">Send For Approval</button>
+      </div>
     </div>
   </form>
 </div>

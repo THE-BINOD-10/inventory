@@ -2141,7 +2141,7 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent'
+        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent', 'remarks', 'delta', 'supplier_id','cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -2162,7 +2162,8 @@ def generated_actual_pr_data(request, user=''):
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
-                gl_code, service_stdate, service_edate, hsn_code, sku_class, discount = rec
+                gl_code, service_stdate, service_edate, hsn_code, sku_class, discount, remarks, delta, sku_supplier, cst_tax, sst_tax, ist_tax, css_tax = rec
+        system_preferred_supplier = ''
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -2204,12 +2205,35 @@ def generated_actual_pr_data(request, user=''):
         is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
-        # parent_user = get_admin(pr_user)
         preferred_supplier = None
         resubmitting_user = False
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
                                         model_id=lineItemId)
         pr_extra_data = get_pr_extra_supplier_data(user, storeObj.username, sku_code, 'true')
+        if not pr_supplier_data.exists():
+            supplierQs = ''
+            if sku_supplier:
+                supplierQs = SupplierMaster.objects.get(id=sku_supplier)
+                preferred_supplier = '%s:%s' %(supplierQs.supplier_id, supplierQs.name)
+                supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=temp_store.id).order_by('price')
+                if supplierMappings.exists():
+                    system_preferred_supplier = '%s:%s' %(supplierMappings[0].supplier.supplier_id, supplierMappings[0].supplier.name)
+            if record[0].final_status == 'saved':
+                sku_suppliers_datam = get_sku_supplier_data_suggestions(sku_code, temp_store)
+                supplierDetailsMap = sku_suppliers_datam['supplierDetails']
+                preferred_supplier = sku_suppliers_datam['preferred_supplier']
+                system_preferred_supplier = ''
+            else:
+                if supplierQs:
+                    supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierQs.supplier_id,
+                                                            'supplier_name': supplierQs.name,
+                                                            'price': price,
+                                                            'amount': float(price * qty),
+                                                            'tax': float(cst_tax+sst_tax+ist_tax),
+                                                            'cess_tax': float(css_tax),
+                                                            'total': float(price * qty) + ( ( float(price*qty) * (float(cst_tax+sst_tax+ist_tax)+float(css_tax)) ) / 100 ),
+                                                            'gstin': supplierQs.tin_number
+                                                            }
         if pr_supplier_data.exists() and not is_purchase_approver:
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
@@ -2257,7 +2281,7 @@ def generated_actual_pr_data(request, user=''):
                                                     }
 
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
-                        sku__user=storeObj.id).order_by('preference')
+                        sku__user=storeObj.id).order_by('price')
             pr_req_provided_data = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
                 model_id=lineItemId)
             if pr_req_provided_data.exists():
@@ -2288,10 +2312,6 @@ def generated_actual_pr_data(request, user=''):
                                 price = skuTaxVal.get('sku_supplier_price', '')
                             else:
                                 price = skuTaxVal['mrp']
-                        #if skuTaxVal.get('sku_supplier_price', ''):
-                        #   price = skuTaxVal.get('sku_supplier_price', '')
-                        #else:
-                        #   price = skuTaxVal['mrp']
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:
@@ -2326,8 +2346,6 @@ def generated_actual_pr_data(request, user=''):
                             is_doa_sent_flag = True
                     except Exception as e:
                         pass
-                # supplierDetailsMap = {}
-                # preferred_supplier = ''
         final_price = price - price * (discount/100)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
@@ -2358,12 +2376,14 @@ def generated_actual_pr_data(request, user=''):
                                     'resubmit_discount': discount,
                                     'supplierDetails': supplierDetailsMap,
                                     'is_doa_sent': is_doa_sent_flag,
+                                    'sku_comment': remarks,
                                     'preferred_supplier': preferred_supplier,
+                                    'system_preferred_supplier': system_preferred_supplier,
                                     'pr_extra_data': pr_extra_data,
                                     }, 'pk': lineItemId})
     response_dict = {'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                     'pr_created_date': pr_created_date, 'store': store, 'tax_display': tax_display,
-                    'department': department, 'store_id': storeObj.id, 'warehouse_currency': cu_code,
+                    'department': department, 'store_id': storeObj.id, 'plant': storeObj.username,'warehouse_currency': cu_code,
                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
@@ -3437,6 +3457,8 @@ def get_raisepo_group_data(user, myDict):
         cess_tax = 0
         utgst_tax = 0
         apmc_tax = 0
+        discount_percent = 0
+        delta = 0
         product_category = ''
         priority_type = ''
         description = ''
@@ -3447,8 +3469,16 @@ def get_raisepo_group_data(user, myDict):
         temp_price = ''
         temp_tax = ''
         temp_cess_tax = ''
+        sku_supplier = ''
+        tax = 0
+        if 'delta' in myDict.keys():
+            delta = myDict['delta'][i]
+        if 'discount_percentage' in myDict.keys():
+            discount_percent = myDict['discount_percentage'][i]
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
+        if 'sku_comment' in myDict.keys():
+            remarks = myDict['sku_comment'][i]
         if 'approval_remarks' in myDict.keys():
             approval_remarks = myDict['approval_remarks'][0]
         if 'supplier_code' in myDict.keys():
@@ -3501,6 +3531,8 @@ def get_raisepo_group_data(user, myDict):
             if myDict['apmc_tax'][i]:
                 apmc_tax = float(myDict['apmc_tax'][i])
                 show_apmc_tax = True
+        if 'tax' in myDict.keys():
+            tax = float(myDict['tax'][i])
         if 'description' in myDict.keys():
             description = myDict['description'][i]
         if 'description_edited' in myDict.keys():
@@ -3521,6 +3553,8 @@ def get_raisepo_group_data(user, myDict):
             temp_tax = myDict['temp_tax'][i]
         if 'temp_cess_tax' in myDict.keys():
             temp_cess_tax = myDict['temp_cess_tax'][i]
+        if 'supplier_id' in myDict.keys():
+            sku_supplier = myDict['supplier_id'][i]
         pr_extra_data = ''
         if 'pr_extra_data' in myDict.keys():
             pr_extra_data = myDict['pr_extra_data'][i]
@@ -3555,8 +3589,8 @@ def get_raisepo_group_data(user, myDict):
                                    'product_category': product_category, 'priority_type': priority_type,
                                    'description': description, 'service_start_date': service_start_date,
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
-                                   'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax,
-                                   'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data})
+                                   'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax, 'tax': tax, 'sku_supplier':sku_supplier,
+                                   'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data, 'discount_percent': discount_percent, 'delta': delta})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -4038,7 +4072,7 @@ def approve_pr(request, user=''):
         if is_actual_pr == 'true':
             approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).exclude(status='resubmitted').order_by('-creation_date')[0].approval_type
             prev_approval_type = approval_type
-            if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
+            if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]) and is_purchase_approver:
                 approval_type = 'ranges'
         pr_user = pendingPRObj.wh_user
         if 'total' in myDict.keys():
@@ -4055,6 +4089,9 @@ def approve_pr(request, user=''):
                     else:
                         store_user = pr_user
                     if supplier_id:
+                        if ':' in supplier_id:
+                            supplier_id = supplier_id.split(':')[0]
+                            myDict['supplier_id'][i] = supplier_id
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
@@ -4416,7 +4453,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                     model_json=misc_json
                 )
             continue
-
         pendingLineItems = {
             apprType: pendingPurchaseObj,
             'purchase_type': purchase_type,
@@ -4439,6 +4475,44 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['igst_tax'] = value['igst_tax']
         pendingLineItems['utgst_tax'] = value['utgst_tax']
         pendingLineItems['cess_tax'] = value.get('cess_tax', 0)
+        if purchase_type == 'PR':
+            try:
+                pendingLineItems['discount_percent'] = float(value['discount_percent'])
+            except:
+                pendingLineItems['discount_percent'] = 0
+            try:
+                pendingLineItems['delta'] = float(value['delta'])
+            except:
+                pendingLineItems['delta'] = 0
+            try:
+                pendingLineItems['remarks'] = value['remarks']
+            except:
+                pendingLineItems['remarks'] = ''
+            try:
+                if float(value['tax']) > 0:
+                    value['tax'] = float(value['tax'])
+            except:
+                value['tax'] = 0
+            try:
+                pr_user = pendingPurchaseObj.wh_user
+                if pr_user.userprofile.warehouse_type == 'DEPT':
+                    store_user = get_admin(pr_user)
+                else:
+                    store_user = pr_user
+                supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=value['sku_supplier'])
+                if supplyQs.exists():
+                    pendingLineItems['supplier'] = supplyQs[0]
+                    tax_type = supplyQs[0].tax_type
+                    if tax_type == 'inter_state':
+                        pendingLineItems['igst_tax'] = value['tax']
+                        pendingLineItems['cgst_tax'] = 0
+                        pendingLineItems['sgst_tax'] = 0
+                    else:
+                        pendingLineItems['igst_tax'] = 0
+                        pendingLineItems['cgst_tax'] = value['tax']/2
+                        pendingLineItems['sgst_tax'] = value['tax']/2
+            except:
+                pass
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
         misc_json = {}
@@ -4466,20 +4540,12 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 model_name='pr_extra_data',
                 model_json=value['pr_extra_data']
             )
-
     file_objs = request.FILES
     for file_obj_tup in file_objs.iteritems():
         file_obj = file_obj_tup[1]
         master_docs_obj = MasterDocs.objects.filter(master_id=pendingPurchaseObj.id, master_type=apprType,
                                                     user_id=user.id)
-        #if not master_docs_obj:
         upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
-        #else:
-        #    master_docs_obj = master_docs_obj[0]
-        #    if os.path.exists(master_docs_obj.uploaded_file.path):
-        #        os.remove(master_docs_obj.uploaded_file.path)
-        #    master_docs_obj.uploaded_file = file_obj
-        #    master_docs_obj.save()
     return totalAmt, pendingPurchaseObj
 
 
@@ -5197,7 +5263,6 @@ def add_pr(request, user=''):
                 prefix = pend_po.prefix
                 full_pr_number = pend_po.full_po_number
                 user = pend_po.wh_user
-            # pr_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':
                 sku_code = all_data.keys()[0]

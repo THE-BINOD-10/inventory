@@ -741,6 +741,9 @@ class PendingLineItems(models.Model):
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    remarks = models.TextField(default='')
+    delta = models.FloatField(default=0)
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default=None)
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 

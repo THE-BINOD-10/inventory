@@ -1,24 +1,38 @@
+<style type="text/css">
+  .text_element{
+    font-style: italic;
+    font-size: 12px;
+    line-height: 30px;
+    font-weight: 600;
+  }
+</style>
 <div class="row">
   <div class="col-md-12">
     <table class="table" class="pull-left">
       <thead>
         <tr>
           <th>Service Code*</th>
-          <th>Title</th>
+          <th>Supplier*</th>
+          <th>SKU Description</th>
           <th>Details</th>
           <th>HSN Code</th>
           <!-- <th>Brand</th>  -->
-          <th>GL Code</th>
+          <!-- <th>GL Code</th> -->
           <th>Start Date</th>
           <th>End Date</th>
           <th class="w10_">Quantity*</th>
           <th>Base Price excluding GST</th>
-          <th>Tax</th>
-          <th>Cess Tax</th>
-          <th>UOM</th>
+          <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
+          <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
+          <th ng-if="showCase.model_data.tax_display">Tax</th>
+          <th ng-if="showCase.model_data.tax_display">Cess Tax</th>
+          <th>Total( {{showCase.model_data.warehouse_currency}} )</th>
+          <!-- <th>UOM</th> -->
           <th>Last Supplier-Price</th>
           <th>Least Supplier-Price</th>
           <th>Least Supplier-Price(Pan India)</th>
+          <th>Delta</th>
+          <th></th>
           <th class="plus"></th>
         </tr>
       </thead>
@@ -34,15 +48,23 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}"
-            type="text" name="description" class="form-control detectTab" readonly size="50">
+            <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
+            typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
+            ng-blur="showCase.validateSupplier(product); showCase.checkResubmitPurchaseApprover(product.fields)"
+            ng-disabled="!showCase.permissions.change_pendinglineitems && showCase.model_data.pr_number" size="60"
+            required
+            >
+          </td>
+          <td class="text-center">
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}</span>
           </td>
           <td>
             <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}"
             type="text" name="description_edited" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
           </td>
           <td>
-            <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span>
           </td>
           <!--
           <td>
@@ -50,9 +72,9 @@
             type="text" name="sku_brand" class="form-control detectTab" readonly size="50">
           </td>
           -->
-          <td>
+          <!-- <td>
             <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="50">
-          </td>
+          </td> -->
           <td>
             <input name="service_start_date" ui-jq="datepicker" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true">
           </td>
@@ -72,23 +94,43 @@
               size="12">
           </td>
           <td class="text-center">
-            <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
-            </span> -->
-            <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" size="12" readonly>
+            <input id="price1" ng-model="product.fields.price" type="text" name="price"
+              class="form-control detectTab"
+              ng-keyup="showCase.getTotals(product)" size="12"
+              ng-readonly="!showCase.permissions.change_pendinglineitems && showCase.model_data.pr_number">
           </td>
           <td class="text-center">
-            <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
-            </span> -->
-            <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" size="12" readonly>
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
+            </span>
+            <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
-          <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+          <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+            <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="hide">
+            <span class="text_element">{{product.fields.temp_tax}}
+            </span> 
+          </td>
+          <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+            <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="hide">
+            <span class="text_element">{{product.fields.temp_cess_tax}}
+            </span>
+          </td>
+          <td class="text-center">
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
+            </span>
+            <input type="text" name="total" ng-model="product.fields.total" class="hide">
+          </td>
+          <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-hide="true">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
           <td class="text-center"> <span>{{product.fields.sku.last_supplier}}</span> </td>
           <td class="text-center"> <span>{{product.fields.sku.least_supplier}}</span> </td>
           <td class="text-center"> <span>{{product.fields.sku.least_supplier_pi}}</span> <input type="hidden" name="pr_extra_data" ng-model="product.fields.sku.pr_extra_data" value="{{product.fields.sku.pr_extra_data}}"></td>
+          <td class="text-center" ng-init="product.fields.delta=0; showCase.getTotals(product)"> 
+            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:2}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
+          </td>
+          <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
+            <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>
+          </td>
           <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>

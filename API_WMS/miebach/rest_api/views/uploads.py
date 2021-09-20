@@ -13229,10 +13229,10 @@ def save_uploaded_opening_stock(data_list, user):
             sku = final_data['sku']
             sku_code = sku.sku_code
             base_quantity = final_data['base_uom_quantity']
-            expiry_date = final_data['expiry_date']
+            expiry_date = final_data.get('expiry_date', '')
             unit_price = final_data.get('unit_price', 0)
             location = final_data['location']
-            batch_no = final_data['batch_no']
+            batch_no = final_data.get('batch_no', '')
             closing_adj = base_quantity
             uom_dict = final_data['uom_dict']
             pcf = uom_dict['sku_conversion']
@@ -13331,7 +13331,6 @@ def opening_stock_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     try:
-        print data_list
         save_uploaded_opening_stock(data_list, user)
 
     except Exception as e:

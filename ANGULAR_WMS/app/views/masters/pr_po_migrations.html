@@ -1,0 +1,107 @@
+<style>
+label:hover {
+  cursor: pointer;
+  font-size: 13px;
+  color: darkgreen;
+}
+.input-groups {
+    position: relative;
+    display: table;
+    border-collapse: separate;
+}
+.mbalign {
+  margin-top: 25px;
+}
+.bg-format {
+  color: #615757;
+  background-color: #f1efeb;
+}
+</style>
+<div class="page-layout" ng-controller="PRPOMigrations as showCase">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-6 col-sm-12 col-xs-12">
+        <div ng-include="'views/common/title.html'"></div>
+      </div>
+    </div>
+  </div>
+  <div class="layout-body">
+    <div class="panel mb25">
+      <div class="panel-body mr20 ml20">
+        <form id="pr_po_transfers">
+          <div class="row" style="min-height:230px;">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 ">
+              <div class="form-group">
+                <label class="control-label"> Select Source Staff User *</label>
+                <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.source_staff" title="{{ showCase.model_data.source_staff }}" required>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" ng-if="showCase.display_inputs">
+              <div class="form-group">
+                <label class="control-label"> Select Destination Staff User *</label>
+                <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.dest_staff" title="{{ showCase.model_data.dest_staff }}" required>
+              </div>
+            </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign" align="center">
+              <button type="button" class="btn btn-danger btn-outline pull-right mr10" ng-click="showCase.emptyData()">Reset</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="!showCase.display_inputs" ng-click="showCase.search_staff_pr_pos()">Search PR & PO's</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs" ng-click="showCase.migrate_staff_pr_pos()">Transfer PR & PO's</button>
+            </div>
+          </div>
+        </form>
+        <div class="row" style="margin-top: -50px;" align="center" ng-if="showCase.model_data['response']">
+          <div class="col-lg-6 col-md-6">
+            <div class="panel mb25">
+              <div class="panel-heading"><span class="label label-default">PENDING PR's</span></div>
+              <div class="panel-body">
+                <table class="table mb0">
+                  <thead>
+                    <tr>
+                      <th class="col-md-2">PR Number</th>
+                      <th class="col-md-2">Status</th>
+                      <th class="col-md-3">CreationDate</th>
+                      <th class="col-md-5">PendingAt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="pr in showCase.model_data.response.PR">
+                      <td>{{pr.number}}</td>
+                      <td>{{pr.status}}</td>
+                      <td>{{pr.date}}</td>
+                      <td>{{pr.pending_at}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6 col-md-6">
+            <div class="panel mb25">
+              <div class="panel-heading"><span class="label label-default">PENDING PO's</span></div>
+              <div class="panel-body">
+                <table class="table mb0">
+                  <thead>
+                    <tr>
+                      <th class="col-md-2">PO Number</th>
+                      <th class="col-md-2">Status</th>
+                      <th class="col-md-3">CreationDate</th>
+                      <th class="col-md-5">PendingAt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="po in showCase.model_data.response.PO">
+                      <td>{{po.number}}</td>
+                      <td>{{po.status}}</td>
+                      <td>{{po.date}}</td>
+                      <td>{{po.pending_at}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

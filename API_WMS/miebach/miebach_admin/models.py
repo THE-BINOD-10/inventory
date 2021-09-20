@@ -4402,11 +4402,13 @@ class MRP(models.Model):
     pending_po_qty = models.FloatField(default=0)
     total_stock_qty = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
+    status = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MRP'
+        unique_together = ('sku', 'status', 'creation_date')
         index_together = (('sku', 'user'), ('sku', 'creation_date'))
 
 class ASNMapping(models.Model):

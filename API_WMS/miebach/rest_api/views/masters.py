@@ -642,12 +642,12 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
 
 @csrf_exempt
 def get_replenushment_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['user__userprofile__stockone_code', 'user__first_name', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'lead_time', 'min_days', 'max_days']
+    lis = ['user__userprofile__stockone_code', 'user__first_name', 'user__first_name', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'lead_time', 'min_days', 'max_days']
 
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
     else:
         req_users = [user.id]
         users = check_and_get_plants(request, req_users)
@@ -665,8 +665,11 @@ def get_replenushment_master(start_index, stop_index, temp_data, search_term, or
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = master_data.count()
     for data in master_data[start_index: stop_index]:
+        plant = data.user
+        if data.user.userprofile.warehouse_type == 'DEPT':
+            plant = get_admin(data.user)
         temp_data['aaData'].append(
-            OrderedDict((('plant_code', data.user.userprofile.stockone_code), ('plant_name', data.user.first_name),
+            OrderedDict((('plant_code', plant.userprofile.stockone_code), ('plant_name', plant.first_name),('department_name', data.user.first_name),
                             ('sku_code', data.sku.sku_code), ('sku_desc', data.sku.sku_desc), ('sku_category', data.sku.sku_category),
                             ('lead_time', data.lead_time),
                             ('min_days', data.min_days), ('max_days', data.max_days), ('warehouse', data.user.username))))

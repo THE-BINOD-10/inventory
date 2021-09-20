@@ -17324,26 +17324,38 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['id', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
+    lis = ['id', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
             'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
     else:
         req_users = [user.id]
-        users = check_and_get_plants(request, req_users)
-        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+        users = check_and_get_plants_depts(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE', 'DEPT'])
     if 'plant_code' in filters and filters['plant_code']:
         plant_code = filters['plant_code']
-        users = users.filter(userprofile__stockone_code=plant_code,
-                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+        plant_users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
     if 'plant_name' in filters and filters['plant_name']:
         plant_name = filters['plant_name']
-        users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+        plant_users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if request.POST.get('dept_type'):
+        dept_type = request.POST['dept_type']
+        users = users.filter(userprofile__stockone_code=dept_type)
+
     if 'zone_code' in filters and filters['zone_code']:
         zone_code = filters['zone_code']
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
-    search_params = {'user__in': user_ids}
+    search_params = {'user__in': user_ids, 'status': 1}
     if 'sku_code' in filters and filters['sku_code']:
         search_params['sku__sku_code'] = filters['sku_code']
     order_data = lis[col_num]
@@ -17362,7 +17374,11 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         uom_dict = sku_uoms.get(data.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', data.user.userprofile.stockone_code), ('Plant Name', data.user.first_name),
+        plant = data.user
+        if data.user.userprofile.warehouse_type == 'DEPT':
+            plant = get_admin(data.user)
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+                                    ('Department', data.user.first_name),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
                                   ('Lead Time Qty', round(data.lead_time_qty, 2)), ('Min Days Qty', round(data.min_days_qty, 2)), ('Max Days Qty', round(data.max_days_qty, 2)),

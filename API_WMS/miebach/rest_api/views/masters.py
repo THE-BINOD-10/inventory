@@ -7005,6 +7005,12 @@ def get_staff_pr_po_data(request, user=''):
     staff_usr = request.POST.get('source_staff', '')
     if staff_usr and ':' in staff_usr:
         staff_usr = staff_usr.split(':')[0]
+        try:
+            StaffMaster.objects.get(email_id=staff_usr)
+        except Exception as e:
+            return HttpResponse('Invalid Staff Emails')
+    if not user:
+        user = request.user
     datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
                                     .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
     po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])\
@@ -7013,6 +7019,11 @@ def get_staff_pr_po_data(request, user=''):
                                 .values('full_pr_number', 'creation_date', 'final_status', 'id')
     if datum.exists():
         for dat in datum:
+            print dat
+            try:
+                tt = get_local_date(user, dat['pending_pr__creation_date'])
+            except Exception as e:
+                continue
             result_dict['PR_PO_IDS'].append(dat['id'])
             if dat['purchase_type'] == 'PR':
                 result_dict[dat['purchase_type']].append({'number': dat['pending_pr__full_pr_number'],
@@ -7051,5 +7062,33 @@ def migrate_staff_user_pr_pos(request, user=''):
     pr_po_approval_ids = json.loads(request.POST.get('PR_PO_IDS', '')) if request.POST.get('PR_PO_IDS', '') else []
     pr_ids = json.loads(request.POST.get('PR_IDS', '')) if request.POST.get('PR_IDS', '') else []
     po_ids = json.loads(request.POST.get('PO_IDS', '')) if request.POST.get('PO_IDS', '') else []
+    if ':' in source and ':' in dest:
+        try:
+            source = source.split(':')[0]
+            dest = dest.split(':')[0]
+            source_data = StaffMaster.objects.get(email_id=source)
+            dest_data = StaffMaster.objects.get(email_id=dest)
+            dest_usr = User.objects.get(username=dest)
+            if source_data.position != dest_data.position:
+                return HttpResponse("%s / (%s - %s & %s - %s)" % ("Un-able to shift PR & PO's with Different Positions",\
+                                    source_data.email_id, source_data.position, dest_data.email_id, dest_data.position))
+            if len(pr_po_approval_ids) > 0:
+                pr_po_datum = PurchaseApprovals.objects.filter(id__in=pr_po_approval_ids, status='')
+                if pr_po_datum.exists():
+                    for data in pr_po_datum:
+                        if source in data.validated_by:
+                            res = data.validated_by
+                            data.validated_by = res.replace(source, dest)
+                            data.migrate_user = request.user
+                            data.save()
+                            data.purchaseapprovalmails_set.filter(email=source).update(email=dest)
+            if len(pr_ids) > 0:
+                PendingPR.objects.filter(id__in = pr_ids).update(requested_user=dest_usr, migrate_pr_user=request.user)
+            if len(po_ids) > 0:
+                PendingPO.objects.filter(id__in = po_ids).update(requested_user=dest_usr, migrate_po_user=request.user)
+        except Exception as e:
+            return HttpResponse('Invalid Staff Emails')
+    else:
+        return HttpResponse('Invalid Inputs')
     print pr_po_approval_ids, pr_ids, po_ids
-    print 'alass'
+    return HttpResponse('Success')

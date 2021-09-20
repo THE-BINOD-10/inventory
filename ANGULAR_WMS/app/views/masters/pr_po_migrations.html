@@ -33,19 +33,19 @@ label:hover {
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 ">
               <div class="form-group">
                 <label class="control-label"> Select Source Staff User *</label>
-                <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.source_staff" title="{{ showCase.model_data.source_staff }}" required>
+                <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.source_staff" title="{{ showCase.model_data.source_staff }}" typeahead-on-select="showCase.search_staff_pr_pos()" required>
               </div>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" ng-if="showCase.display_inputs">
               <div class="form-group">
                 <label class="control-label"> Select Destination Staff User *</label>
-                <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.dest_staff" title="{{ showCase.model_data.dest_staff }}" required>
+                <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.dest_staff" title="{{ showCase.model_data.dest_staff }}" typeahead-on-select="showCase.empty_check_data()"required>
               </div>
             </div>
             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign" align="center">
               <button type="button" class="btn btn-danger btn-outline pull-right mr10" ng-click="showCase.emptyData()">Reset</button>
               <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="!showCase.display_inputs" ng-click="showCase.search_staff_pr_pos()">Search PR & PO's</button>
-              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs" ng-click="showCase.migrate_staff_pr_pos()">Transfer PR & PO's</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs" ng-click="showCase.migrate_staff_pr_pos()" ng-disabled="showCase.confirm_btn_final">Transfer PR & PO's</button>
             </div>
           </div>
         </form>

@@ -52,7 +52,6 @@
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
             ng-blur="showCase.validateSupplier(product); showCase.checkResubmitPurchaseApprover(product.fields)"
-            ng-disabled="!showCase.permissions.change_pendinglineitems && showCase.model_data.pr_number" size="60"
             required
             >
           </td>
@@ -85,7 +84,7 @@
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
-                   ng-keyup="showCase.getTotals()" size="12" required>
+                   ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
           <td class="text-center">
             <input ng-model="product.fields.temp_price" type="text" name="temp_price"
@@ -96,8 +95,7 @@
           <td class="text-center">
             <input id="price1" ng-model="product.fields.price" type="text" name="price"
               class="form-control detectTab"
-              ng-keyup="showCase.getTotals(product)" size="12"
-              ng-readonly="!showCase.permissions.change_pendinglineitems && showCase.model_data.pr_number">
+              ng-keyup="showCase.getTotals(product)" size="12">
           </td>
           <td class="text-center">
             <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}

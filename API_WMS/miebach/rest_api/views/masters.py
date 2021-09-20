@@ -6990,3 +6990,66 @@ def download_pr_doa_staff_excel(request, user=''):
                 data_list.append(data_dict)
     excel_path = print_excel(request, {'aaData': data_list}, headers, user=user, excel_name='PRApprovals')
     return HttpResponse(excel_path)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_staff_pr_po_data(request, user=''):
+    result_dict = {}
+    result_dict['PR'] = []
+    result_dict['PO'] = []
+    result_dict['PR_PO_IDS'] = []
+    result_dict['PO_IDS'] = []
+    result_dict['PR_IDS'] = []
+    staff_usr = request.POST.get('source_staff', '')
+    if staff_usr and ':' in staff_usr:
+        staff_usr = staff_usr.split(':')[0]
+    datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
+                                    .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
+    po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])\
+                                .values('full_po_number', 'creation_date', 'final_status', 'id')
+    pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])\
+                                .values('full_pr_number', 'creation_date', 'final_status', 'id')
+    if datum.exists():
+        for dat in datum:
+            result_dict['PR_PO_IDS'].append(dat['id'])
+            if dat['purchase_type'] == 'PR':
+                result_dict[dat['purchase_type']].append({'number': dat['pending_pr__full_pr_number'],
+                                    'date': get_local_date(user, dat['pending_pr__creation_date']),
+                                    'status': dat['pending_pr__final_status'],
+                                    'pending_at': dat['validated_by']})
+            elif dat['purchase_type'] == 'PO':
+                result_dict[dat['purchase_type']].append({'number': dat['pending_po__full_po_number'],
+                                    'date': get_local_date(user, dat['pending_po__creation_date']),
+                                    'status': dat['pending_po__final_status'],
+                                    'pending_at': dat['validated_by']})
+    if po_datum.exists():
+        for po_dat in po_datum:
+            result_dict['PO_IDS'].append(po_dat['id'])
+            result_dict['PO'].append({'number': po_dat['full_po_number'],
+                                    'date': get_local_date(user, po_dat['creation_date']),
+                                    'status': po_dat['final_status'],
+                                    'pending_at': staff_usr})
+    if pr_datum.exists():
+        for pr_dat in pr_datum:
+            result_dict['PR_IDS'].append(pr_dat['id'])
+            result_dict['PR'].append({'number': pr_dat['full_pr_number'],
+                                    'date': get_local_date(user, pr_dat['creation_date']),
+                                    'status': pr_dat['final_status'],
+                                    'pending_at': staff_usr})
+    return HttpResponse(json.dumps({'data': result_dict}))
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def migrate_staff_user_pr_pos(request, user=''):
+    source = request.POST.get('source', '')
+    dest = request.POST.get('dest', '')
+    pr_po_approval_ids = json.loads(request.POST.get('PR_PO_IDS', '')) if request.POST.get('PR_PO_IDS', '') else []
+    pr_ids = json.loads(request.POST.get('PR_IDS', '')) if request.POST.get('PR_IDS', '') else []
+    po_ids = json.loads(request.POST.get('PO_IDS', '')) if request.POST.get('PO_IDS', '') else []
+    print pr_po_approval_ids, pr_ids, po_ids
+    print 'alass'

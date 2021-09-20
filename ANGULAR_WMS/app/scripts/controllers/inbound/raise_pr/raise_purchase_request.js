@@ -432,7 +432,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             });
             vm.model_data.plant = res_data.plant_username;
           }
-          vm.model_data.pr_number = false;
           $state.go('app.inbound.RaisePr.PurchaseRequest');
 
         }
@@ -763,15 +762,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sup_data.total = (supDetails.total - discount_amount).toFixed(2);
         sup_data.supplier_id = supDetails.supplier_id;
         sup_data.supplier_id_name = supplier_id_name;
-        if (!('last_supplier' in Object.keys(sup_data.sku))) {
-          sup_data["sku"]["last_supplier"] = sup_data.sku.pr_extra_data.last_supplier + "-" + sup_data.sku.pr_extra_data.last_supplier_price;
-          sup_data["sku"]["least_supplier"] = sup_data.sku.pr_extra_data.least_supplier + "-" + sup_data.sku.pr_extra_data.least_supplier_price;
-          sup_data["sku"]["least_supplier_pi"] = sup_data.sku.pr_extra_data.least_supplier_pi + "-" + sup_data.sku.pr_extra_data.least_supplier_price_pi;
-        }
         vm.get_info_delta_value(sup_data);
         if (line_level) {
           vm.getTotals(line_level);  
         }
+      }
+      if (!('last_supplier' in Object.keys(sup_data.sku))) {
+        sup_data["sku"]["last_supplier"] = sup_data.sku.pr_extra_data.last_supplier + "-" + sup_data.sku.pr_extra_data.last_supplier_price;
+        sup_data["sku"]["least_supplier"] = sup_data.sku.pr_extra_data.least_supplier + "-" + sup_data.sku.pr_extra_data.least_supplier_price;
+        sup_data["sku"]["least_supplier_pi"] = sup_data.sku.pr_extra_data.least_supplier_pi + "-" + sup_data.sku.pr_extra_data.least_supplier_price_pi;
       }
     }
     vm.get_info_delta_value = function(sup_data) {

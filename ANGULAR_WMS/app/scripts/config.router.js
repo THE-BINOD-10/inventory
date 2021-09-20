@@ -982,6 +982,19 @@ var app = angular.module('urbanApp')
             url: '/machine',
             templateUrl: 'views/masters/toggles/machine_update.html'
           })
+      //PR PO Migrations
+      .state('app.masters.PR_PO_Migrations', {
+        url: '/PR_PO_Migrations',
+        templateUrl: 'views/masters/pr_po_migrations.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            return $ocLazyLoad.load('scripts/controllers/masters/pr_po_migrations.js');
+                  }]
+        },
+        data: {
+          title: 'PR PO Migrations'
+        }
+      })
       // Inbound routes
       .state('app.inbound.MaterialRequest', {
         url: '/MaterialRequest',

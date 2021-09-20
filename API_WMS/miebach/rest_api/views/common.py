@@ -5610,6 +5610,16 @@ def search_wms_data(request, user=''):
     return HttpResponse(json.dumps(total_data))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_staff_members(request, user=''):
+    data_id = request.GET.get('q', '')
+    all_sub_users = list(StaffMaster.objects.filter(Q(staff_name__icontains=data_id) | Q(email_id__icontains=data_id)).\
+        annotate(email=Concat('email_id', Value(':'), 'staff_name', output_field=CharField())).values_list('email', flat=True))
+    return HttpResponse(json.dumps(list(set(all_sub_users))))
+
+
 @get_admin_user
 def search_makemodel_wms_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)

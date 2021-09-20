@@ -16,6 +16,7 @@ from rest_api.views.mail_server import *
 from rest_api.views.common import *
 from rest_api.views.sendgrid_mail import *
 from rest_api.views.reports import *
+from rest_api.views.sendgrid_mail import send_sendgrid_mail
 
 
 
@@ -33,7 +34,7 @@ def init_logger(log_file):
 
 
 log = init_logger('logs/Material_requirement_planning.log')
-
+host = 'http://72.stockone.in:7023'
 
 class Command(BaseCommand):
     """
@@ -205,4 +206,14 @@ class Command(BaseCommand):
                 mrp_objs.append(mrp_obj)
         if mrp_objs:
             MRP.objects.bulk_create(mrp_objs)
+        mrp_objs = MRP.objects.filter(user__in=dept_user_ids, status=1).values('user').annotate(Count('id'))
+        for mrp_obj in mrp_objs:
+            user_obj = User.objects.get(id=mrp_obj['user'])
+            plant = get_admin(user_obj)
+            plant_code = plant.userprofile.stockone_code
+            email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
+            url = '%s/#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
+            email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
+            emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User').values_list('email_id', flat=True)
+            send_sendgrid_mail('mhl_mail@stockone.in', ['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'], email_subject, email_body, files=[])
         self.stdout.write("Updating Completed")

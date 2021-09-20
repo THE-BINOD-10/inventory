@@ -20,6 +20,8 @@ function PRPOMigrations($scope, Session, Service, $modal) {
     vm.model_data.source_staff = '';
     vm.model_data.dest_staff = '';
     vm.model_data['response'] = '';
+    vm.model_data.full_pr_number = '';
+    vm.model_data.full_po_number = '';
     vm.display_inputs = false;
     vm.confirm_btn_final = false;
   }
@@ -34,6 +36,7 @@ function PRPOMigrations($scope, Session, Service, $modal) {
             vm.model_data['response'] = {};
             angular.copy(data.data.data, vm.model_data.response);
             if (Object.keys(vm.model_data.response.PR).length > 0 || Object.keys(vm.model_data.response.PO).length > 0) {
+              vm.model_data.dest_staff = '';
               vm.display_inputs = true;
             }
           }

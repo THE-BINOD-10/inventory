@@ -30,6 +30,18 @@ label:hover {
       <div class="panel-body mr20 ml20">
         <form id="pr_po_transfers">
           <div class="row" style="min-height:230px;">
+            <div class="col-lg-3 col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Enter Full PR Number</label>
+                <input name="full_pr_number" ng-model="showCase.model_data.full_pr_number" type="text" class="form-control detectTab">
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Enter Full PO Number</label>
+                <input name="full_pr_number" ng-model="showCase.model_data.full_po_number" type="text" class="form-control detectTab">
+              </div>
+            </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 ">
               <div class="form-group">
                 <label class="control-label"> Select Source Staff User *</label>
@@ -44,8 +56,8 @@ label:hover {
             </div>
             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign" align="center">
               <button type="button" class="btn btn-danger btn-outline pull-right mr10" ng-click="showCase.emptyData()">Reset</button>
-              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="!showCase.display_inputs" ng-click="showCase.search_staff_pr_pos()">Search PR & PO's</button>
-              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs" ng-click="showCase.migrate_staff_pr_pos()" ng-disabled="showCase.confirm_btn_final">Transfer PR & PO's</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="!showCase.display_inputs || showCase.model_data.dest_staff == ''" ng-click="showCase.search_staff_pr_pos()">Search PR & PO's</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs && showCase.model_data.dest_staff != ''" ng-click="showCase.migrate_staff_pr_pos()" ng-disabled="showCase.confirm_btn_final">Transfer PR & PO's</button>
             </div>
           </div>
         </form>

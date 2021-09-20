@@ -7002,6 +7002,7 @@ def get_staff_pr_po_data(request, user=''):
     result_dict['PR_PO_IDS'] = []
     result_dict['PO_IDS'] = []
     result_dict['PR_IDS'] = []
+    po_datum , pr_datum = '', ''
     staff_usr = request.POST.get('source_staff', '')
     if staff_usr and ':' in staff_usr:
         staff_usr = staff_usr.split(':')[0]
@@ -7011,11 +7012,26 @@ def get_staff_pr_po_data(request, user=''):
             return HttpResponse('Invalid Staff Emails')
     if not user:
         user = request.user
-    datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
+    pr_number = request.POST.get('full_pr_number', '')
+    po_number = request.POST.get('full_po_number', '')
+    build_dict = {}
+    if pr_number:
+        po_number = ''
+        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='', pending_po__pending_prs__full_pr_number=pr_number).exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
                                     .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
-    po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])\
+        pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'], full_pr_number=pr_number)\
+                                .values('full_pr_number', 'creation_date', 'final_status', 'id')
+    elif po_number:
+        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='', pending_po__pending_prs__full_po_number=po_number).exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
+                                    .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
+        po_datum = PendingPO.objects.filter(requested_user__username=staff_usr, full_po_number=po_number).exclude(final_status__in = ['cancelled', 'approved'])\
                                 .values('full_po_number', 'creation_date', 'final_status', 'id')
-    pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])\
+    else:
+        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
+                                    .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
+        po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])\
+                                .values('full_po_number', 'creation_date', 'final_status', 'id')
+        pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])\
                                 .values('full_pr_number', 'creation_date', 'final_status', 'id')
     if datum.exists():
         for dat in datum:
@@ -7035,14 +7051,14 @@ def get_staff_pr_po_data(request, user=''):
                                     'date': get_local_date(user, dat['pending_po__creation_date']),
                                     'status': dat['pending_po__final_status'],
                                     'pending_at': dat['validated_by']})
-    if po_datum.exists():
+    if po_datum:
         for po_dat in po_datum:
             result_dict['PO_IDS'].append(po_dat['id'])
             result_dict['PO'].append({'number': po_dat['full_po_number'],
                                     'date': get_local_date(user, po_dat['creation_date']),
                                     'status': po_dat['final_status'],
                                     'pending_at': staff_usr})
-    if pr_datum.exists():
+    if pr_datum:
         for pr_dat in pr_datum:
             result_dict['PR_IDS'].append(pr_dat['id'])
             result_dict['PR'].append({'number': pr_dat['full_pr_number'],

@@ -1092,8 +1092,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
    }
-
-   vm.cancel_pr = function cancel_pr() {
+    vm.validateSupplier = function(product) {
+      vm.update_tax_details(product);
+    }
+    vm.update_tax_details = function(product) {
+      var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id_name, warehouse_id: vm.model_data.store_id}
+      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+        if(data.message && data.data.length > 0) {
+          data = data.data[0]
+          var taxes = data.taxes;
+          product.fields.tax = 0;
+          product.fields.cess_tax = 0;
+          if(taxes.length > 0){
+            product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
+            product.fields.cess_tax = taxes[0].cess_tax;
+          }
+        }
+      });
+    }
+  vm.cancel_pr = function cancel_pr() {
       vm.bt_disable = true;
       var that = vm;
       var data = [];

@@ -7035,7 +7035,6 @@ def get_staff_pr_po_data(request, user=''):
                                 .values('full_pr_number', 'creation_date', 'final_status', 'id')
     if datum.exists():
         for dat in datum:
-            print dat
             try:
                 tt = get_local_date(user, dat['pending_pr__creation_date'])
             except Exception as e:

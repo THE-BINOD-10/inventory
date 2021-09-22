@@ -690,6 +690,7 @@ class PendingPR(models.Model):
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
     is_auto_pr = models.IntegerField(default=0)
+    is_new_pr = models.IntegerField(default=0)
     migrate_pr_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PR_User')
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)

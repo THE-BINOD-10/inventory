@@ -3706,7 +3706,7 @@ def add_po(request, user=''):
 
 
 def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPRObj, master_type='pr_approvals_conf_data',
-                    forPO=False, product_category='Kits&Consumables', admin_user=None, approval_type='', status=''):
+                    forPO=False, product_category='Kits&Consumables', admin_user=None, approval_type='', status='', save_level=''):
     mailsList = []
     user_roles = []
     company_id = get_company_id(user)
@@ -3748,6 +3748,8 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
     else:
         prApprovalsMap['pending_pr'] = pendingPRObj
         prApprovalsMap['purchase_type'] = 'PR'
+    if save_level:
+       prApprovalsMap['level'] = save_level
     prObj = PurchaseApprovals(**prApprovalsMap)
     prObj.save()
     return prObj, mailsList, user_roles
@@ -3756,6 +3758,7 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
 def updatePRApproval(pendingPRObj, user, level, validated_by, validation_type,
                     remarks, purchase_type='PO', approval_type='',
                     product_category='Kits&Consumables'):
+    #Update the PR PO Approvals Code Base
     if purchase_type == 'PO':
         apprQs = PurchaseApprovals.objects.filter(pending_po_id=pendingPRObj.id,
                                                 pr_user=user,
@@ -3774,9 +3777,6 @@ def updatePRApproval(pendingPRObj, user, level, validated_by, validation_type,
             apprQ.remarks = remarks
             apprQ.validated_by = validated_by
             apprQ.save()
-        #apprQs.update(status=validation_type)
-        #apprQs.update(remarks=remarks)
-        #apprQs.update(validated_by=validated_by)
         #Update status in Mails Model
         mailObj = PurchaseApprovalMails.objects.filter(pr_approval_id=apprQs[0].id, level=level,
                     email__icontains=validated_by, status='')
@@ -4018,6 +4018,9 @@ def approve_pr(request, user=''):
             status = 'NO Purchase Request Object found'
             return HttpResponse(status)
         pendingPRObj = PRQs[0]
+        if pendingPRObj.final_status in ['cancelled', 'rejected']:
+            status = "This PO has been already %s. Further action cannot be made."%(pendingPRObj.final_status)
+            return HttpResponse(status)
         pr_number = getattr(pendingPRObj, purchase_number)
         if is_purchase_approver and validation_type != 'rejected' and is_actual_pr:
             if pendingPRObj.wh_user.userprofile.warehouse_type == 'DEPT':
@@ -4039,9 +4042,6 @@ def approve_pr(request, user=''):
                                         return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
                             else:
                                 return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
-        if pendingPRObj.final_status in ['cancelled', 'rejected']:
-            status = "This PO has been already %s. Further action cannot be made."%(pendingPRObj.final_status)
-            return HttpResponse(status)
         if is_actual_pr:
             totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
         else:
@@ -4072,8 +4072,12 @@ def approve_pr(request, user=''):
         if is_actual_pr == 'true':
             approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).exclude(status='resubmitted').order_by('-creation_date')[0].approval_type
             prev_approval_type = approval_type
-            if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]) and is_purchase_approver:
-                approval_type = 'ranges'
+            if not pendingPRObj.is_new_pr:
+                if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]) and is_purchase_approver:
+                  approval_type = 'ranges'
+            # TO Skip All default Level
+            # if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
+            #     approval_type = 'ranges'
         pr_user = pendingPRObj.wh_user
         if 'total' in myDict.keys():
             totalAmt = 0
@@ -4095,7 +4099,6 @@ def approve_pr(request, user=''):
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
-
         reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                     purchase_type=purchase_type, product_category=product_category,
                                     approval_type=approval_type, sku_category=sku_category)
@@ -4238,34 +4241,46 @@ def approve_pr(request, user=''):
                         os.remove(master_docs_obj.uploaded_file.path)
                     master_docs_obj.uploaded_file = file_obj
                     master_docs_obj.save()
-        if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted): #In last Level, no need to generate Hashcode, just confirmation mail is enough
+        if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
             if purchase_type == 'PR':
-                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
-                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
-                                                                     approval_type='approved')
-                if approval_obj.exists():
-                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
-                                            master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
+                if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
+                    nextLevel = 'level1'
+                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                                      approval_type='default', sku_category=sku_category)
+                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
+                                        master_type=master_type, forPO=poFor, approval_type='default', save_level=lastLevel)
                     if not prObj and reqConfigName:
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
-                    PRQs.update(final_status=validation_type)
-                    # PRQs.update(remarks=remarks)
                     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
-                                     remarks, purchase_type=purchase_type)
-                    # sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
-                    #                      '%s_approval_at_last_level' % mailSubTypePrefix,
-                    #                      requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
+                                        remarks, purchase_type=purchase_type)
                     for eachMail in mailsList:
-                        generateHashCodeForMail(prObj, eachMail, 'level0')
-                        sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
-                            '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
-                            central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
-                            is_resubmitted=is_resubmitted)
-                # pass
-                try:
-                    netsuite_pr(user, PRQs, full_pr_number, request)
-                except:
-                    pass
+                        hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
+                        sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
+                                eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
+                                currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
+                else: #In last Level, no need to generate Hashcode, just confirmation mail is enough
+                    display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
+                    approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
+                                                                         approval_type='approved')
+                    if approval_obj.exists():
+                        prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
+                                                master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
+                        if not prObj and reqConfigName:
+                            return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
+                        PRQs.update(final_status=validation_type)
+                        updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
+                                         remarks, purchase_type=purchase_type)
+                        for eachMail in mailsList:
+                            generateHashCodeForMail(prObj, eachMail, 'level0')
+                            sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
+                                '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
+                                central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
+                                is_resubmitted=is_resubmitted)
+                    # pass
+                    try:
+                        netsuite_pr(user, PRQs, full_pr_number, request)
+                    except:
+                        pass
             else:
                 PRQs.update(final_status=validation_type)
                 # PRQs.update(remarks=remarks)
@@ -4373,6 +4388,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchaseMap['prefix'] = prefix
         purchaseMap['full_pr_number'] = full_pr_number
         purchaseMap['is_auto_pr'] = is_auto_pr
+        purchaseMap['is_new_pr'] = 1
     if myDict.get('purchase_id') and not convertPRtoPO:
         remarks = firstEntryValues['approval_remarks']
         pendingPurchaseObj = model_name.objects.get(id=myDict.get('purchase_id')[0])
@@ -5290,7 +5306,9 @@ def add_pr(request, user=''):
             if is_contract_supplier:
                 break
         if is_actual_pr == 'true':
-            approval_type = 'default'
+            # Skipping the Default Level Approvals in New PR PO Flow
+            # approval_type = 'default'
+            approval_type = 'ranges'
             if is_auto_pr:
                 baseLevel = 'level1'
                 totalAmt = 0
@@ -5306,6 +5324,25 @@ def add_pr(request, user=''):
                 else:
                     return HttpResponse("Purchase Approval Config not found")
             else:
+                if 'total' in myDict.keys():
+                    totalAmt = 0
+                    for i in range(0, len(myDict['wms_code'])):
+                        try:
+                            totalAmt += float(myDict['total'][i])
+                        except:
+                            pass
+                        supplier_id = myDict['supplier_id'][i]
+                        if user.userprofile.warehouse_type == 'DEPT':
+                            store_user = get_admin(user)
+                        else:
+                            store_user = user
+                        if supplier_id:
+                            if ':' in supplier_id:
+                                supplier_id = supplier_id.split(':')[0]
+                                myDict['supplier_id'][i] = supplier_id
+                            supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
+                            if not supp_obj.exists():
+                                return HttpResponse("Invalid Supplier found %s" % supplier_id)
                 totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                      prefix, full_pr_number, is_auto_pr=is_auto_pr)
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
@@ -5336,8 +5373,10 @@ def add_pr(request, user=''):
                                               sku_category=sku_category)
                 prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
-                                                    approval_type='default')
+                                                    approval_type=approval_type)
                 if not prObj and reqConfigName:
+                    if pendingPRObj:
+                        PendingPR.objects.filter(id=pendingPRObj.id).delete()
                     return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                 if mailsList:
                     for eachMail in mailsList:
@@ -5347,15 +5386,8 @@ def add_pr(request, user=''):
             return HttpResponse(json.dumps({'pr_number': full_pr_number, 'status': 'Added Successfully'}))
         else:
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number,
-                                        baseLevel, prefix, full_pr_number, is_po_creation=True,
-                                                                 central_po_data=central_po_data)
+                                        baseLevel, prefix, full_pr_number, is_po_creation=True, central_po_data=central_po_data)
             admin_user = None
-            # if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-            #     userQs = UserGroups.objects.filter(user=user)
-            #     if userQs.exists:
-            #         parentCompany = userQs[0].company_id
-            #         admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-            #         admin_user = admin_userQs[0].user
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
                                                 product_category=product_category, sku_category=sku_category)
@@ -5376,8 +5408,7 @@ def add_pr(request, user=''):
                     pendingPRObj.final_status = 'approved'
                 else:
                     prObj, mailsList, mail_roles = createPRApproval(request, pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
-                                            pendingPRObj, master_type=master_type, forPO=True,
-                                            product_category=product_category, approval_type='')
+                                            pendingPRObj, master_type=master_type, forPO=True, product_category=product_category, approval_type='')
                     if not prObj and reqConfigName:
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             if mailsList:

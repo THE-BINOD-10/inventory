@@ -13,11 +13,12 @@
         <tr>
           <th>SKU Code*</th>
           <th>Supplier*</th>
-          <th>SKU Description</th>
-          <th>HSN Code</th>
+          <th>Supplier Name</th>
+          <th>SKU Description-HSN</th>
+          <!-- <th>HSN Code</th> -->
           <!-- <th>Brand</th> -->
           <th class="w10_">Quantity*</th>
-          <th>UOM</th>
+          <!-- <th>UOM</th> -->
           <th>Unit Rate({{showCase.model_data.warehouse_currency}})</th>
           <th>Dis %</th>
           <th>Final Unit Price</th>
@@ -34,6 +35,7 @@
           <th>Last Supplier-Price</th>
           <th>Least Supplier-Price</th>
           <th>Least Supplier-Price(Pan India)</th>
+          <th>Reason</th>
           <th>Delta</th>
           <!-- <th>Suggested PR Qty</th> -->
           <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
@@ -48,13 +50,13 @@
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
                    required
                    typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?', showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku_brand)"
-                   typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0" size="40">
+                   typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0" size="110">
             <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
             <input type="text" ng-init="product.fields.sku_comment=''; product.fields.sku_sku_comment='false'" name="sku_comment" ng-model="product.fields.sku_comment" class="hide" ng-required="product.fields.sku_sku_comment">
           </td>
           <td>
-            <select ui-select class="form-control" name="supplier" style="width:110px;"
+            <select ui-select class="form-control" name="supplier" style="width:90px;"
               ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields, product);"
               ng-model="product.fields.supplier_id_name" 
               ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields, product);" required>
@@ -64,10 +66,11 @@
             </select>
             <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
           </td>
-          <td class="text-center"> <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}</span> </td>
-          <td class="text-center">
-            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span>
-            <input name="hsn_code" ng-model="product.fields.hsn_code" type="text" class="form-control detectTab hide">
+          <td class="text-center"> <span style="font-size: 9px;font-weight: 440;">{{ product.fields.supplier_id_name.split(':')[1] }}</span> </td>
+          <td class="text-center"> <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }} - {{ product.fields.hsn_code }}</span> </td>
+          <td class="text-center" ng-hide="true">
+            <!-- <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span> -->
+            <input name="hsn_code" ng-model="product.fields.hsn_code" type="text" class="form-control detectTab">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
@@ -76,9 +79,8 @@
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields);showCase.getTotals(product);"
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
-          <td class="text-center">
-            <span>{{product.fields.measurement_unit}}</span>
-            <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab hide" readonly>
+          <td class="text-center" ng-hide="true">
+            <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly>
           </td>
           <td ng-hide="true">
             <input ng-model="product.fields.conversion" type="text" name="no_of_tests" 
@@ -127,6 +129,7 @@
           <td class="text-center"> <span>{{product.fields.sku.last_supplier}}</span> </td>
           <td class="text-center"> <span>{{product.fields.sku.least_supplier}}</span> </td>
           <td class="text-center"> <span>{{product.fields.sku.least_supplier_pi}}</span><input type="hidden" name="pr_extra_data" ng-model="product.fields.sku.pr_extra_data" value="{{product.fields.sku.pr_extra_data}}"></td>
+          <td><textarea rows="2" class="form-control" cols="27" ng-model="product.fields.sku_comment" placeholder="Enter Remarks" ng-required="product.fields.sku_sku_comment" title="{{ product.fields.sku_comment }}"></textarea></td>
           <td class="text-center" ng-init="product.fields.delta=0; showCase.getTotals(product)"> 
             <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:2}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
           </td>
@@ -138,7 +141,7 @@
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(index, false)"></i>
             <!-- <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i> -->
-            <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, $index)" ng-class="showCase.service.isLast($last)"></i>
+            <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, $index, datum=product.fields)" ng-class="showCase.service.isLast($last)"></i>
           </td>
         </tr>
       </tbody>

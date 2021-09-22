@@ -1379,6 +1379,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.check_sku_product_category = function(prod_cat, sku_cat, sku, index, page=''){
+      if (typeof(page) == 'object') {
+        if (page.sku_sku_comment && (page.sku_comment == '' || typeof(page.sku_comment)=='undefined')) {
+          vm.service.showNoty('Please Enter Mandatory Remarks for Supplier Change', 'error');
+          return;
+        }
+      }
       var data_dict = {}
       data_dict['product_cat'] = prod_cat ? prod_cat : '';
       data_dict['category'] = sku_cat && sku_cat != 'All' ? sku_cat : '';
@@ -1598,6 +1604,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if (min_price_value != 0) {
           data.fields.delta = min_price_value - data.fields.price;
           (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
+          data.fields.delta = data.fields.delta * data.fields.order_quantity;
         } else {
           data.fields.delta = 0;
           data.fields['delta_color'] = { 'color': 'darkgrey' };

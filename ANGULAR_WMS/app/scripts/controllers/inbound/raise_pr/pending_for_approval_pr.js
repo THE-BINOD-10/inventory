@@ -1465,6 +1465,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (min_price_value != 0) {
         data.fields.delta = min_price_value - data.fields.price;
         (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
+        data.fields.delta = data.fields.delta * data.fields.order_quantity;
       } else {
         data.fields.delta = 0;
         data.fields['delta_color'] = { 'color': 'darkgrey' };

@@ -9,6 +9,7 @@ stockone.controller('MaterialPlanningCtrl',['$scope', '$http', '$state', '$timeo
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
     var vm = this;
+    var url_params = location.href.split('?');
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -57,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Plant Code', 'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
+    var columns = ['Plant Code', 'Plant Name', 'Department', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
                    'Min Days Qty', 'Max Days Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -281,6 +282,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
 
 
     vm.model_data['filters'] = {'datatable': 'MaterialPlanning'};
+    $timeout(function() {
+    if(url_params[1].length > 0){
+      var params_list = url_params[1].split('&')
+      angular.forEach(params_list, function(param_dat){
+        var param_temp = param_dat.split('=')
+        vm.model_data['filters'][param_temp[0]] = param_temp[1];
+      })
+      vm.saveFilters(vm.model_data['filters']);
+      vm.service.generate_report(vm.dtInstance, vm.model_data.filters);
+    }
+    }, 1000);
     vm.reset_filters = function(){
 
       vm.model_data['filters'] = {};
@@ -308,6 +320,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
     vm.saveFilters = function(filters){
       Data.mp_filters = filters;
     }
+
+  vm.department_type_list = [];
+  vm.service.apiCall('get_department_list/').then(function(data){
+    if(data.message) {
+      vm.department_type_list = data.data.department_list;
+    }
+  });
 
 }
 

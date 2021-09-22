@@ -30,6 +30,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('plant_code').withTitle('Plant Code'),
         DTColumnBuilder.newColumn('plant_name').withTitle('Plant Name'),
+        DTColumnBuilder.newColumn('department_name').withTitle('Department Name'),
         DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('sku_desc').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('sku_category').withTitle('SKU Category'),
@@ -128,6 +129,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.get_company_warehouse_list();
+
+  vm.department_list = [];
+  vm.get_warehouse_department_list = get_warehouse_department_list;
+  function get_warehouse_department_list() {
+    var wh_data = {};
+    //wh_data['company_id'] = vm.model_data.company_id;
+    wh_data['warehouse'] = vm.model_data.plant;
+    wh_data['warehouse_type'] = 'DEPT';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        vm.department_list = data.data.warehouse_list;
+      }
+    });
+  }
 
 
 }

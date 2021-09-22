@@ -11,13 +11,24 @@
             <div class="col-lg-6 col-md-6 col-sm-6">
               <div class="form-group">
                 <label class="control-label"> Plant * </label>
-                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
+                <input ng-if="showCase.update" type="hidden" name="plant" class="form-control" ng-model="showCase.model_data.plant" value="{{showCase.model_data.plant}}">
                 <input ng-if="showCase.update" type="text" class="form-control" ng-model="showCase.model_data.plant_name" title={{showCase.model_data.plant_name}} readonly>
-                <select class="selectpicker-plants show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="[showCase.check_selected_val(showCase.model_data.warehouse, role)]" ng-if="!showCase.update" ng-required="true">
-                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}:{{warehouse.stockone_code}}</option>
+                <select class="selectpicker-plants show-menu-arrow form-control" ng-model="showCase.model_data.plant" name="plant" ng-change="[showCase.check_selected_val(showCase.model_data.plant, role), showCase.get_warehouse_department_list()]" ng-if="!showCase.update" ng-required="true">
+                  <option ng-repeat="plant in showCase.warehouse_list" value="{{plant.username}}">{{plant.name}}:{{plant.stockone_code}}</option>
                 </select>
               </div>
 	        </div>
+            <div class="col-lg-6 col-md-6 col-sm-6">
+              <div class="form-group">
+                <label class="control-label"> Department * </label>
+                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
+                <input ng-if="showCase.update" type="text" class="form-control" ng-model="showCase.model_data.plant_name" title={{showCase.model_data.plant_name}} readonly>
+                <select class="selectpicker-plants show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="[showCase.check_selected_val(showCase.model_data.warehouse, role)]" ng-if="!showCase.update" ng-required="true">
+                  <option ng-repeat="dept in showCase.department_list" value="{{dept.username}}">{{dept.name}}:{{dept.stockone_code}}</option>
+                </select>
+              </div>
+	        </div>
+
             <div class="col-lg-6 col-md-6 col-sm-6">
               <div class="form-group">
                 <label class="control-label"> SKU Code * </label>

@@ -471,7 +471,7 @@ MARKET_LIST_HEADERS = ['Market Place', 'SKU', 'Description']
 MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'HomeShop18', 'Jabong', 'Indiatimes']
 
 INVENTORY_NORM_HEADERS = OrderedDict((
-                                        ('Plant Code', 'plant_code'), ('SKU Code', 'sku_code'),
+                                        ('Plant Code', 'plant_code'), ('Department', 'department'), ('SKU Code', 'sku_code'),
                                         ('Lead Time Days', 'lead_time'), ('SA Min Days', 'sa_min_days'),
                                         ('SA Max Days', 'sa_max_days')
                                     ))

@@ -420,6 +420,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if($rootScope.$current_raise_pr != ''){
             vm.model_data.data = [];
             var res_data = JSON.parse($rootScope.$current_raise_pr);
+            vm.model_data.plant = res_data.plant_username;
+            vm.model_data.department_type = res_data.department_type;
             angular.forEach(res_data.data_list, function(dat, ind){
               console.log(dat);
               var new_line = {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':0, "measurement_unit":"",
@@ -430,7 +432,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.get_sku_details(vm.model_data.data[ind], dat, ind);
               vm.model_data.data[ind].fields.order_quantity = dat.quantity;
             });
-            vm.model_data.plant = res_data.plant_username;
           }
           $state.go('app.inbound.RaisePr.PurchaseRequest');
 
@@ -1336,7 +1337,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
           });
         }
-        if($rootScope.$current_raise_pr == ''){
+        if(true) { //($rootScope.$current_raise_pr == ''){
           vm.update_available_stock(product.fields, product.fields.sku, product);
           // vm.checkResubmit(product.fields);
         } else {

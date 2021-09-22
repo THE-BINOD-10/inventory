@@ -5610,6 +5610,16 @@ def search_wms_data(request, user=''):
     return HttpResponse(json.dumps(total_data))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_staff_members(request, user=''):
+    data_id = request.GET.get('q', '')
+    all_sub_users = list(StaffMaster.objects.filter(Q(staff_name__icontains=data_id) | Q(email_id__icontains=data_id)).\
+        annotate(email=Concat('email_id', Value(':'), 'staff_name', output_field=CharField())).values_list('email', flat=True))
+    return HttpResponse(json.dumps(list(set(all_sub_users))))
+
+
 @get_admin_user
 def search_makemodel_wms_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -6848,6 +6858,57 @@ def findIfContractedSupplier(user, sku_code):
         contracted_supplier = supObj.supplier.is_contracted
     return contracted_supplier
 
+def get_sku_supplier_data_suggestions (sku_code, storeObj, qty=''):
+    supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=storeObj.id).order_by('price')
+    result_data = {}
+    supplierDetailsMap = OrderedDict()
+    preferred_supplier = ''
+    if not qty:
+        qty = 1
+    if supplierMappings.exists():
+        for supplierMapping in supplierMappings:
+            supplierId = supplierMapping.supplier.supplier_id
+            supplierName = supplierMapping.supplier.name
+            supplier_gstin = supplierMapping.supplier.tin_number
+            skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id,sku_code, storeObj)
+            if skuTaxes:
+                skuTaxVal = skuTaxes[0]
+                taxes = skuTaxVal['taxes']
+                if taxes:
+                    sgst_tax = taxes[0]['sgst_tax']
+                    cgst_tax = taxes[0]['cgst_tax']
+                    igst_tax = taxes[0]['igst_tax']
+                    cess_tax = taxes[0]['cess_tax']
+                else:
+                    sgst_tax, cgst_tax, igst_tax, cess_tax = 0, 0, 0, 0
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    price = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    price = skuTaxVal['mrp']
+                if skuTaxVal.get('sku_supplier_moq', ''):
+                    moq = skuTaxVal['sku_supplier_moq']
+                else:
+                    moq = 0
+                tax = sgst_tax + cgst_tax + igst_tax
+                cess_tax = get_kerala_cess_tax(tax, supplierMapping.supplier)
+                amount = qty * price
+                total = amount + (amount * (tax/100)) + (amount * (cess_tax/100))
+                supplier_id_name = '%s:%s' %(supplierId, supplierName)
+            supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
+                                                      'supplier_name': supplierName,
+                                                      'moq': moq,
+                                                      'price': round(price, 2),
+                                                      'amount': round(amount, 2),
+                                                      'tax': tax,
+                                                      'cess_tax': cess_tax,
+                                                      'total': round(total, 2),
+                                                      'gstin': supplier_gstin
+                                                    }
+            if not preferred_supplier:
+                preferred_supplier = supplier_id_name
+    result_data = {'preferred_supplier': preferred_supplier, 'supplierDetails': supplierDetailsMap}
+    return result_data
+
 
 @csrf_exempt
 @login_required
@@ -6862,8 +6923,12 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     comment = request.GET.get('comment', '')
     send_supp_info = request.GET.get('send_supp_info', '')
     consumption_dict = {'avg_qty': 0, 'base_qty': 0}
+    warehouse_currency, tax_display = '', False
     if plant:
-        consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
+        storeObj = User.objects.get(username=plant)
+        tax_display, msg, cu_code, currency_words = get_currency_tax_display(storeObj)
+        warehouse_currency = cu_code
+        consumption_dict = get_average_consumption_qty(storeObj, sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
     dept_avail_qty, avlb_qty = [0]*2
@@ -6895,13 +6960,16 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     is_contracted_supplier = findIfContractedSupplier(user, sku_code)
     pr_extra_data = get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info)
+    sku_suppliers_data = {}
+    if send_supp_info:
+        sku_suppliers_data = get_sku_supplier_data_suggestions(sku_code, storeObj)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
-                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict,
-                'pr_extra_data': pr_extra_data }))
+                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict, 'tax_display': tax_display,
+                'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found', 'pr_extra_data': pr_extra_data }))
     avlb_qty = (avail_qty+st_avail_qty)
     if comment:
@@ -6911,8 +6979,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
-                                    'avg_price': avg_price, 'consumption_dict': consumption_dict,
-                                    'pr_extra_data': pr_extra_data,
+                                    'avg_price': avg_price, 'consumption_dict': consumption_dict, 'tax_display':tax_display,
+                                    'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency
                                     }))
 
 

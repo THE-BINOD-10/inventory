@@ -27,12 +27,12 @@
  }
 </style>
 
-<div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision">
+<div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision" style="z-index: 1050 !important;">
   <form name="{{showCase.form}}" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="approve_form">
-    <div class="modal-dialog model-custom modal-lg" style="min-width: 1500px;font-size: xx-small;">
-      <div class="modal-content">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
+      <div class="modal-content mw100"> 
         <div ng-include="'views/common/loader.html'"></div>
-        <div class="modal-header">
+        <div class="modal-header" style="padding: 5px;">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 class="modal-title pull-left">{{showCase.title}}</h4>
@@ -43,7 +43,7 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body" ng-class="(showCase.confirm_print)? 'hide': 'show'" style="padding:5px">
+        <div class="modal-body" ng-class="(showCase.confirm_print)? 'hide': 'show'" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row">
             <div class="col-md-2 col-sm-3 col-xs-4">
               <div class="form-group">
@@ -126,16 +126,16 @@
               </div>
             </div>
           </div>
-          <div class="row">
-            <strong class="pull-left"> Remarks History: </strong>
-            <table class="table" class="pull-left">
+          <div class="row" align="center">
+            <span class="label label-default pull-left" style="font-size: 10px;">Remarks History: </span>
+            <table class="table">
               <thead>
                 <tr>
                   <th>Level</th>
                   <th>Approved By</th>
                   <th>Remarks</th>
-		  <th>Date</th>
-		  <th>Approved Date</th>
+                <th>Date</th>
+                <th>Approved Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,12 +149,12 @@
                   <td>
                     <input ng-model="product.remarks" title="{{product.remarks}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
                   </td>
-		  <td>
-			<input ng-model="product.creation_date" title="{{product.creation_date}}" type="text" class="form-control detectTab" readonly ng-debounce size="10">
-		  </td>
-		  <td> 
-			<input ng-model="product.updation_date" title="{{product.updation_date}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
-		  </td>
+                  <td>
+                    <input ng-model="product.creation_date" title="{{product.creation_date}}" type="text" class="form-control detectTab" readonly ng-debounce size="10">
+                  </td>
+                  <td> 
+                    <input ng-model="product.updation_date" title="{{product.updation_date}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -242,9 +242,9 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PR</button>
           <button ng-if="(!(showCase.print_enable) && !showCase.quantity_editable) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')"
           ng-disabled="!showCase.is_pa_resubmitted">Approve PR</button>
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PR</button>
           <button ng-if="(!(showCase.print_enable) && (showCase.quantity_editable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form, 'create', 'true')" 
             ng-disabled="!showCase.is_resubmitted">Send For Approval</button>
           <button ng-if="(!(showCase.print_enable) && !showCase.quantity_editable) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PR</button>

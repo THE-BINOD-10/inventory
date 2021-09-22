@@ -5,10 +5,10 @@
         <tr>
           <th>Supplier</th>
           <th>Item Code*</th>
-          <th>Title</th>
+          <th>SKU Description</th>
           <th>HSN Code</th>
           <th>Qty*</th>
-          <th>UOM</th>
+          <!-- <th>UOM</th> -->
           <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
           <th>Base Price excluding GST</th>
           <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
@@ -18,6 +18,8 @@
           <th>Last Supplier-Price</th>
           <th>Least Supplier-Price</th>
           <th>Least Supplier-Price(Pan India)</th>
+          <th>Delta</th>
+          <th></th>
           <th class="plus" ng-if="showCase.quantity_editable"></th>
         </tr>
       </thead>
@@ -41,10 +43,10 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="70">
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}</span>
           </td>
           <td>
-            <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="32">
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span>
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
@@ -54,7 +56,7 @@
                    ng-change="showCase.checkResubmit(product.fields);showCase.checkResubmitPurchaseApprover(product.fields)"
                    ng-keyup="showCase.getTotals()" size="12">
           </td>
-          <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+          <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-hide="true">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
           <td class="text-center">
@@ -80,13 +82,15 @@
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
           <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}</span>
             <input type="text" name="tax" ng-model="product.fields.tax"
-            class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
+            class="form-control hide" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
             <!--  ng-readonly="!showCase.permissions.change_pendinglineitems" size="12"> -->
           </td>
           <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.cess_tax}}</span>
             <input type="text" name="cess_tax" ng-model="product.fields.cess_tax"
-            class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
+            class="form-control hide" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
             <!--  ng-readonly="!showCase.permissions.change_pendinglineitems" size="12"> -->
           </td>
           <td class="text-center">
@@ -97,11 +101,16 @@
           <td class="text-center"> <span>{{product.fields.pr_extra_data.last_supplier}}-{{product.fields.pr_extra_data.last_supplier_price}}</span> </td>
           <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier}}-{{product.fields.pr_extra_data.least_supplier_price}}</span> </td>
           <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier_pi}}-{{product.fields.pr_extra_data.least_supplier_price_pi}}</span> </td>
+          <td class="text-center" ng-init="product.fields.delta=0; showCase.getTotals(product)"> 
+            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:2}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
+          </td>
+          <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
+            <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>
+          </td>
           <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
             <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i>
             <!-- <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i> -->
-          </td>
           </td>
         </tr>
       </tbody>

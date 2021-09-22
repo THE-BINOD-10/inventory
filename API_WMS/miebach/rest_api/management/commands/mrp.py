@@ -16,6 +16,7 @@ from rest_api.views.mail_server import *
 from rest_api.views.common import *
 from rest_api.views.sendgrid_mail import *
 from rest_api.views.reports import *
+from rest_api.views.sendgrid_mail import send_sendgrid_mail
 
 
 
@@ -33,7 +34,7 @@ def init_logger(log_file):
 
 
 log = init_logger('logs/Material_requirement_planning.log')
-
+host = 'http://72.stockone.in:7023'
 
 class Command(BaseCommand):
     """
@@ -45,11 +46,13 @@ class Command(BaseCommand):
         mrp_objs = []
         user = User.objects.get(username='mhl_admin')
         if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-            users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'])
         else:
             req_users = [user.id]
             users = check_and_get_plants(request, req_users)
-            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+            users = users.filter(userprofile__warehouse_type__in=['DEPT'])
+        plant_users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        plant_user_ids = list(plant_users.values_list('id', flat=True))
         user_ids = list(users.values_list('id', flat=True))
         search_params = {'user__in': user_ids}
         main_user = get_company_admin_user(user)
@@ -57,88 +60,110 @@ class Command(BaseCommand):
                                             exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).values_list('sku_code', flat=True))
         search_params['sku_code__in'] = kandc_skus
         master_data = SKUMaster.objects.filter(**search_params)
-        res_plants = set()
-        sku_codes = []
-        for dat in master_data:
-            res_plants.add(dat.user)
-            sku_codes.append(dat.sku_code)
-        usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-        dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
-        dept_user_ids = list(dept_users.values_list('id', flat=True))
-        stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
-                                                values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
-        stock_qtys = {}
-        user_id_mapping = {}
-        for stock in stocks:
-            if stock['sku__user'] in user_id_mapping:
-                usr = user_id_mapping[stock['sku__user']]
-            else:
-                usr = User.objects.get(id=stock['sku__user'])
-                if usr.userprofile.warehouse_type == 'DEPT':
-                    usr = get_admin(usr)
-                user_id_mapping[stock['sku__user']] = usr
-            grp_key = (usr.id, stock['sku__sku_code'])
-            stock_qtys.setdefault(grp_key, 0)
-            stock_qtys[grp_key] += stock['total']
-        consumption_qtys = {}
-        consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
-        for cons in consumption_lt3:
-            if cons.sku.user in user_id_mapping:
-                usr = user_id_mapping[cons.sku.user]
-            else:
-                usr = User.objects.get(id=cons.sku.user)
-                if usr.userprofile.warehouse_type == 'DEPT':
-                    usr = get_admin(usr)
-                user_id_mapping[cons.sku.user] = usr
-            grp_key = (usr.id, cons.sku.sku_code)
-            consumption_qtys.setdefault(grp_key, 0)
-            consumption_qtys[grp_key] += cons.quantity
+        #res_plants = set()
+        sku_codes = kandc_skus
+        #for dat in master_data:
+        #    res_plants.add(dat.user)
+        #    sku_codes.append(dat.sku_code)
+        usernames = list(User.objects.filter(id__in=user_ids).values_list('username', flat=True))
+        #dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+        #dept_user_ids = list(dept_users.values_list('id', flat=True))
+        dept_user_ids = user_ids
         repl_master = ReplenushmentMaster.objects.filter(user__in=dept_user_ids, sku__sku_code__in=sku_codes)
         repl_dict = {}
+        repl_sku_codes = list(repl_master.values_list('sku__sku_code', flat=True))
         for dat in repl_master:
             grp_key = (dat.user.id, dat.sku.sku_code)
             repl_dict.setdefault(grp_key, {})
             repl_dict[grp_key]['lead_time'] = dat.lead_time
             repl_dict[grp_key]['min_days'] = dat.min_days
             repl_dict[grp_key]['max_days'] = dat.max_days
+        print "Preparing repl dict completed"
+        sku_codes = repl_sku_codes
+
+        stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+                                                values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
+        stock_qtys = {}
+        user_id_mapping = {}
+        for stock in stocks:
+            #if stock['sku__user'] in user_id_mapping:
+            #    usr = user_id_mapping[stock['sku__user']]
+            #else:
+            #    usr = User.objects.get(id=stock['sku__user'])
+            #    if usr.userprofile.warehouse_type == 'DEPT':
+            #        usr = get_admin(usr)
+            #    user_id_mapping[stock['sku__user']] = usr
+            grp_key = (stock['sku__user'], stock['sku__sku_code'])
+            stock_qtys.setdefault(grp_key, 0)
+            stock_qtys[grp_key] += stock['total']
+        print "Preparing stock dict completed"
+        consumption_qtys = {}
+        consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
+        for cons in consumption_lt3:
+            print cons.id
+            #if cons.sku.user in user_id_mapping:
+            #    usr = user_id_mapping[cons.sku.user]
+            #else:
+            #    usr = User.objects.get(id=cons.sku.user)
+            #    if usr.userprofile.warehouse_type == 'DEPT':
+            #        usr = get_admin(usr)
+            #    user_id_mapping[cons.sku.user] = usr
+            grp_key = (cons.sku.user, cons.sku.sku_code)
+            consumption_qtys.setdefault(grp_key, 0)
+            consumption_qtys[grp_key] += cons.quantity
+        print "Preparing consumption dict completed"
         pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
         pending_pr_dict = {}
         for pr_pend in pr_pending:
-            if pr_pend.sku.user in user_id_mapping:
-                pr_user = user_id_mapping[pr_pend.sku.user]
-            else:
-                pr_user = User.objects.get(id=pr_pend.sku.user)
-                if pr_user.userprofile.warehouse_type == 'DEPT':
-                    pr_user = get_admin(pr_user)
-                user_id_mapping[pr_pend.sku.user] = pr_user
+            #if pr_pend.sku.user in user_id_mapping:
+            #    pr_user = user_id_mapping[pr_pend.sku.user]
+            #else:
+            #    pr_user = User.objects.get(id=pr_pend.sku.user)
+            #    if pr_user.userprofile.warehouse_type == 'DEPT':
+            #        pr_user = get_admin(pr_user)
+            #    user_id_mapping[pr_pend.sku.user] = pr_user
+            pr_user = User.objects.get(id=pr_pend.sku.user)
             grp_key = (pr_user.id, pr_pend.sku.sku_code)
             pending_pr_dict.setdefault(grp_key, {'qty': 0})
             pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
-        po_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes,
+        print "Preparing pr pending dict completed"
+        po_pending = PendingLineItems.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes,
                                                     pending_po__final_status__in=['saved', 'pending', 'approved'],
-                                                    pending_po__open_po__purchaseorder__isnull=True).distinct()
+                                                    ).only('id', 'sku', 'quantity', 'pending_po__open_po_id')
+                                                    #pending_po__open_po__purchaseorder__isnull=True).only('id', 'sku', 'quantity')
         pending_po_dict = {}
-        for po_pend in po_pending:
+        po_pending_open_po_ids = list(po_pending.values_list('pending_po__open_po_id', flat=True))
+        po_raised_open_po_ids = list(PurchaseOrder.objects.filter(open_po_id__in=po_pending_open_po_ids).values_list('open_po_id', flat=True))
+        for po_pend in po_pending.iterator():
+            print po_pend.id
+            if po_pend.pending_po.open_po_id in po_raised_open_po_ids:
+                continue
             if po_pend.sku.user in user_id_mapping:
                 po_user = user_id_mapping[po_pend.sku.user]
             else:
                 po_user = User.objects.get(id=po_pend.sku.user)
-                if po_user.userprofile.warehouse_type == 'DEPT':
-                    po_user = get_admin(po_user)
+                #if po_user.userprofile.warehouse_type == 'DEPT':
+                #    po_user = get_admin(po_user)
                 user_id_mapping[po_pend.sku.user] = po_user
             grp_key = (po_user.id, po_pend.sku.sku_code)
             pending_po_dict.setdefault(grp_key, {'qty': 0})
             pending_po_dict[grp_key]['qty'] += po_pend.quantity
-        purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=dept_user_ids, open_po__sku__sku_code__in=sku_codes,
+        print "Preparing po pending dict completed"
+        purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=plant_user_ids , open_po__sku__sku_code__in=sku_codes,
                                                         open_po__order_quantity__gt=F('received_quantity')).\
                                                 exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted'])
         po_dict = {}
         for purchase_order in purchase_orders:
+            print purchase_order.id
             grp_key = (purchase_order.open_po.sku.user, purchase_order.open_po.sku.sku_code)
             po_dict.setdefault(grp_key, {'qty': 0})
             po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
+        print "Preparing purchase order dict completed"
         sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
-        for data in master_data:
+        MRP.objects.filter(user__in=dept_user_ids, status=1).update(status=0)
+        master_data = master_data.filter(sku_code__in=repl_sku_codes).only('sku_code', 'user')
+        for data in master_data.iterator():
+            print data.id
             data_dict = {}
             uom_dict = sku_uoms.get(data.sku_code, {})
             sku_pcf = uom_dict.get('sku_conversion', 1)
@@ -174,10 +199,21 @@ class Command(BaseCommand):
                             'pending_pr_qty': sku_pending_pr,
                             'pending_po_qty': sku_pending_po,
                             'total_stock_qty': total_stock,
-                            'suggested_qty': suggested_qty
+                            'suggested_qty': suggested_qty,
+                            'status': 1
                 }
                 mrp_obj = MRP(**data_dict)
                 mrp_objs.append(mrp_obj)
         if mrp_objs:
             MRP.objects.bulk_create(mrp_objs)
+        mrp_objs = MRP.objects.filter(user__in=dept_user_ids, status=1).values('user').annotate(Count('id'))
+        for mrp_obj in mrp_objs:
+            user_obj = User.objects.get(id=mrp_obj['user'])
+            plant = get_admin(user_obj)
+            plant_code = plant.userprofile.stockone_code
+            email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
+            url = '%s/#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
+            email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
+            emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User').values_list('email_id', flat=True)
+            send_sendgrid_mail('mhl_mail@stockone.in', ['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'], email_subject, email_body, files=[])
         self.stdout.write("Updating Completed")

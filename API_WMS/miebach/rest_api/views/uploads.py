@@ -12942,10 +12942,12 @@ def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, 
     all_users = get_related_users_filters(user.id)
     if user.userprofile.warehouse_type == 'ADMIN' and request.user.is_staff:
         access_users = get_related_users_filters(user.id)
-    else: 
+    else:
         users = [user.id]
         access_users = check_and_get_plants_depts(request, users)
     all_data = OrderedDict()
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
     for row_idx in range(1, no_of_rows):
         dept_users = User.objects.none()
         print 'Validating %s' % str(row_idx)
@@ -12974,12 +12976,31 @@ def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, 
                         else:
                             index_status.setdefault(row_idx, set()).add("Does'nt have access for this Plant")
                     else:
-                        data_dict['user'] = user_obj[0]
-                        user = user_obj[0]
+                        #data_dict['user'] = user_obj[0]
+                        #user = user_obj[0]
                         dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'],
-                                                               warehouse=[user.username])
+                                                               warehouse=[user_obj[0].username])
                 else:
                     index_status.setdefault(row_idx, set()).add('Plant Code is Mandatory')
+
+            elif key == 'department':
+                if cell_data:
+                    if cell_data not in dept_mapping_res.keys():
+                        index_status.setdefault(row_idx, set()).add('Invalid Department')
+                    else:
+                        dept = dept_mapping_res[cell_data]
+                        department = access_users.filter(userprofile__stockone_code=dept,
+                                                         userprofile__warehouse_type='DEPT',
+                                                         id__in=dept_users)
+                        if department:
+                            data_dict['department'] = dept
+                            data_dict['dept_obj'] = department[0]
+                            data_dict['user'] = department[0]
+                        elif all_users.filter(userprofile__stockone_code=dept, userprofile__warehouse_type='DEPT'):
+                            index_status.setdefault(row_idx, set()).add("Doesn't have access for this Department")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Department not found in Selected Plant')
+
             elif key == 'sku_code':
                 if cell_data:
                     if data_dict['user']:

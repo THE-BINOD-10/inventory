@@ -17462,6 +17462,8 @@ def prepare_material_planning_pr_data(request, user=''):
     data_list = []
     select_all = request_data['select_all'][0]
     plant_username = ''
+    plant = ''
+    department_type = ''
     if select_all == 'true':
         temp_data = {'aaData': []}
         cus_filters = {'plant_code': request.POST.get('plant_code', ''), 'zone_code': request.POST.get('zone_code', ''),
@@ -17486,7 +17488,10 @@ def prepare_material_planning_pr_data(request, user=''):
     else:
         for i in range(len(request_data['id'])):
             datum = MRP.objects.get(id=request_data['id'][i])
-            plant_username = datum.user.username
+            department_type = datum.user.userprofile.stockone_code
+            plant_obj = get_admin(datum.user)
+            plant_username = plant_obj.username
+            plant = plant_obj.userprofile.stockone_code
             sku = datum.sku
             uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
             suggested_qty = request_data['suggested_qty'][i]
@@ -17498,7 +17503,7 @@ def prepare_material_planning_pr_data(request, user=''):
                             'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
-    return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username}))
+    return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username, 'plant': plant, 'department_type': department_type}))
 
 
 def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_remarks, payment_code, pos, pending_po):

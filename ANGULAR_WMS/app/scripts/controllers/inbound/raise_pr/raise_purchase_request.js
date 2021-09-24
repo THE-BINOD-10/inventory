@@ -897,10 +897,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
       var product_category = '';
       var keepGoing = true
+      var keepGoing_price = true
       angular.forEach(elem, function(list_obj) {
         if (list_obj['name'] == 'order_quantity') {
           if (parseFloat(list_obj['value']) <= 0) {
             keepGoing = false
+          }
+        }
+        if (list_obj['name'] == 'price') {
+          if (parseFloat(list_obj['value']) <= 0) {
+            keepGoing_price = false
           }
         }
         if (list_obj['name'] == 'product_category') {
@@ -912,7 +918,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.service.showNoty("Quantity can't be 0.")
         return;
       }
-
+      if (!keepGoing_price) {
+        vm.service.showNoty("Price can't be 0.")
+        return;
+      }
       var form_data = new FormData();
       if ($(".pr_form").find('[name="files"]').length > 0) {
         var files = $(".pr_form").find('[name="files"]')[1].files;
@@ -1638,7 +1647,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.getCompany = function() {
-
       var temp = vm.model_data.seller_type;
       if (!vm.model_data.seller_type) {
         vm.model_data.company = Session.user_profile.company_name;

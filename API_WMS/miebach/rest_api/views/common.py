@@ -5677,7 +5677,10 @@ def get_supplier_sku_prices(request, user=""):
     sku_codes = request.POST.get('sku_codes', '')
     warehouse_id = request.POST.get('warehouse_id', '')
     if warehouse_id:
-        user = User.objects.get(id=warehouse_id)
+        try:
+            user = User.objects.get(id=warehouse_id)
+        except Exception as e:
+            user = User.objects.get(username=warehouse_id)
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)

@@ -11,10 +11,11 @@
     <thead>
       <tr>
         <th>Supplier</th>
+        <th>Supplier Name</th>
         <th>Service Code*</th>
-        <th>SKU Description</th>
+        <th>SKU Description-HSN</th>
         <th>Details</th>
-        <th>HSN Code</th>
+        <!-- <th>HSN Code</th> -->
         <!-- <th>GL Code</th> -->
         <th>Start Date</th>
         <th>End Date</th>
@@ -38,12 +39,16 @@
     <tbody>
       <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
         <td>
-          <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+          <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
           typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
-          typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
+          typeahead-on-select="product.fields.supplier_id = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
           ng-blur="showCase.validateSupplier(product); showCase.checkResubmitPurchaseApprover(product.fields)"
           ng-disabled="!showCase.permissions.change_pendinglineitems" size="60"
           >
+          <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
+        </td>
+        <td>
+          <span style="font-size: 9px;font-weight: 440;">{{ product.fields.supplier_id_name.split(':')[1] }}</span>
         </td>
         <td>
           <input type="text" autocomplete="off" name="wms_code"
@@ -56,16 +61,16 @@
           <input type="text" name="moq" ng-model="product.fields.moq" class="hide">
         </td>
         <td class="text-center">
-          <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}</span>
+          <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }} - {{ product.fields.hsn_code }}</span>
         </td>
         <td>
           <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description_edited }}</span>
           <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}"
           type="text" name="description_edited" class="form-control detectTab hide" ng-readonly="true" size="80">
         </td>
-        <td>
-          <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span>
-          <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab hide" readonly>
+        <td ng-hide="true">
+          <!-- <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span> -->
+          <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly>
         </td>
         <td ng-hide="true">
           <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="30">

@@ -2207,8 +2207,8 @@ def generated_actual_pr_data(request, user=''):
         supplierDetailsMap = OrderedDict()
         preferred_supplier = None
         resubmitting_user = False
-        pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
-                                        model_id=lineItemId)
+        # import pdb; pdb.set_trace()
+        pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', model_id=lineItemId)
         pr_extra_data = get_pr_extra_supplier_data(user, storeObj.username, sku_code, 'true')
         if not pr_supplier_data.exists():
             supplierQs = ''
@@ -2225,38 +2225,44 @@ def generated_actual_pr_data(request, user=''):
                 system_preferred_supplier = ''
             else:
                 if supplierQs:
+                    if temp_tax > 0 or temp_cess_tax > 0:
+                        tax = float(temp_tax)
+                        cess_tax = float(temp_cess_tax)
+                    else:
+                        tax = float(cst_tax+sst_tax+ist_tax)
+                        cess_tax = float(css_tax)
                     supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierQs.supplier_id,
                                                             'supplier_name': supplierQs.name,
                                                             'price': price,
                                                             'amount': float(price * qty),
-                                                            'tax': float(cst_tax+sst_tax+ist_tax),
-                                                            'cess_tax': float(css_tax),
-                                                            'total': float(price * qty) + ( ( float(price*qty) * (float(cst_tax+sst_tax+ist_tax)+float(css_tax)) ) / 100 ),
+                                                            'tax': tax,
+                                                            'cess_tax': cess_tax,
+                                                            'total': float(price * qty) + ( ( float(price*qty) * (tax+cess_tax) ) / 100 ),
                                                             'gstin': supplierQs.tin_number
                                                             }
-        if pr_supplier_data.exists() and not is_purchase_approver:
-            json_data = eval(pr_supplier_data[0].model_json)
-            supplierId = json_data['supplier_id']
-            supplier_gst_num = ''
-            supplierQs = SupplierMaster.objects.filter(user=storeObj.id, supplier_id=supplierId)
-            if supplierQs.exists():
-                supplierName = supplierQs[0].name
-                supplier_gst_num = supplierQs[0].tin_number
-            else:
-                supplierName = ''
-            preferred_supplier = '%s:%s' %(supplierId, supplierName)
-            supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
-                                                    'supplier_name': supplierName,
-                                                    'moq': json_data['moq'],
-                                                    'price': json_data['price'],
-                                                    'amount': json_data['amount'],
-                                                    'tax': json_data['tax'],
-                                                    'cess_tax': json_data.get('cess_tax', 0),
-                                                    'total': json_data['total'],
-                                                    'gstin': supplier_gst_num
-                                                    }
+        # if pr_supplier_data.exists() and not is_purchase_approver:
+        #     json_data = eval(pr_supplier_data[0].model_json)
+        #     supplierId = json_data['supplier_id']
+        #     supplier_gst_num = ''
+        #     supplierQs = SupplierMaster.objects.filter(user=storeObj.id, supplier_id=supplierId)
+        #     if supplierQs.exists():
+        #         supplierName = supplierQs[0].name
+        #         supplier_gst_num = supplierQs[0].tin_number
+        #     else:
+        #         supplierName = ''
+        #     preferred_supplier = '%s:%s' %(supplierId, supplierName)
+        #     supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+        #                                             'supplier_name': supplierName,
+        #                                             'moq': json_data['moq'],
+        #                                             'price': json_data['price'],
+        #                                             'amount': json_data['amount'],
+        #                                             'tax': json_data['tax'],
+        #                                             'cess_tax': json_data.get('cess_tax', 0),
+        #                                             'total': json_data['total'],
+        #                                             'gstin': supplier_gst_num
+        #                                             }
 
-        elif is_purchase_approver:
+        if is_purchase_approver:
             if pr_supplier_data.exists():
                 resubmitting_user = True
                 json_data = eval(pr_supplier_data[0].model_json)
@@ -2279,13 +2285,10 @@ def generated_actual_pr_data(request, user=''):
                                                     'total': json_data['total'],
                                                     'gstin': supplier_gst_num
                                                     }
-
-            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
-                        sku__user=storeObj.id).order_by('price')
-            pr_req_provided_data = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
-                model_id=lineItemId)
-            if pr_req_provided_data.exists():
-                requester_json_data = eval(pr_req_provided_data[0].model_json)
+            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=storeObj.id).order_by('price')
+            # updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',model_id=lineItemId)
+            if updatedLineItem.exists():
+                requester_json_data = eval(updatedLineItem[0].model_json)
                 temp_price = requester_json_data.get('temp_price', '')
                 temp_tax = requester_json_data.get('temp_tax', '')
                 temp_cess_tax = requester_json_data.get('temp_cess_tax', '')
@@ -2334,19 +2337,19 @@ def generated_actual_pr_data(request, user=''):
                                                               }
                     if not preferred_supplier:
                         preferred_supplier = supplier_id_name
-            else:
-                parentSkuQs = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-                if parentSkuQs.exists():
-                    parent_sku_id = parentSkuQs[0].id
-                    try:
-                        is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
-                                    model_name='SKUSupplier', requested_user=storeObj,
-                                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
-                        if is_doa_sent.exists():
-                            is_doa_sent_flag = True
-                    except Exception as e:
-                        pass
-        final_price = price - price * (discount/100)
+            # else:
+            #     parentSkuQs = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            #     if parentSkuQs.exists():
+            #         parent_sku_id = parentSkuQs[0].id
+            #         try:
+            #             is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
+            #                         model_name='SKUSupplier', requested_user=storeObj,
+            #                         json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+            #             if is_doa_sent.exists():
+            #                 is_doa_sent_flag = True
+            #         except Exception as e:
+            #             pass
+        final_price = price - (price * (discount/100))
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
@@ -3328,9 +3331,15 @@ def search_supplier(request, user=''):
     if data.exists():
         for supplier in data[:15]:
             if isinstance(supplier.supplier_id, int):
-                suppliers.append(str(supplier.supplier_id) + ":" + supplier.name)
+                if supplier.state:
+                    suppliers.append(str(supplier.supplier_id) + ":" + supplier.name + ":" + supplier.state)
+                else:
+                    suppliers.append(str(supplier.supplier_id) + ":" + supplier.name)
             else:
-                suppliers.append(supplier.supplier_id + ":" + supplier.name)
+                if supplier.state:
+                    suppliers.append(str(supplier.supplier_id) + ":" + supplier.name + ":" + supplier.state)
+                else:
+                    suppliers.append(supplier.supplier_id + ":" + supplier.name)
     return HttpResponse(json.dumps(suppliers))
 
 

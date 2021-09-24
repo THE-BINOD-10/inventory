@@ -1623,7 +1623,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if (typeof(data.fields.sku.pr_extra_data) != 'undefined'){
           var min_price_value = vm.check_price_comparision(data);
           if (min_price_value != 0) {
-            data.fields.delta = min_price_value - data.fields.price;
+            data.fields.delta = min_price_value - (data.fields.price + ((data.fields.price / 100) * data.fields.tax));
             (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
             data.fields.delta = data.fields.delta * data.fields.order_quantity;
           } else {

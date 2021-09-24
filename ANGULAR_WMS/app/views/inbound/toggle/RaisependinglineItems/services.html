@@ -23,7 +23,7 @@
           <th>End Date *</th>
           <th class="w10_">Quantity*</th>
           <th ng-hide="true">Base Price excluding GST</th>
-          <th>Unit Rate EX.GST( {{showCase.model_data.warehouse_currency}} )</th>
+          <th>Unit Rate EX.GST( {{showCase.model_data.warehouse_currency}} )*</th>
           <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
           <th ng-if="showCase.model_data.tax_display">Tax</th>
           <th ng-hide="true" ng-if="showCase.model_data.tax_display">Cess Tax</th>
@@ -97,7 +97,7 @@
           <td class="text-center">
             <input id="price1" ng-model="product.fields.price" type="text" name="price"
               class="form-control detectTab"
-              ng-keyup="showCase.getTotals(product)" size="12">
+              ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
           <td class="text-center">
             <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}

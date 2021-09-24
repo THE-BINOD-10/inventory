@@ -1097,19 +1097,32 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.update_tax_details(product);
     }
     vm.update_tax_details = function(product) {
-      var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id_name, warehouse_id: vm.model_data.store_id}
-      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
-        if(data.message && data.data.length > 0) {
-          data = data.data[0]
-          var taxes = data.taxes;
-          product.fields.tax = 0;
-          product.fields.cess_tax = 0;
-          if(taxes.length > 0){
-            product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
-            product.fields.cess_tax = taxes[0].cess_tax;
-          }
+      if (product.fields.supplier_id_name.includes(':')) {
+        product.fields.supplier_id = vm.service.change_search_value(product.fields.supplier_id_name);
+        if (typeof(vm.model_data.store_id) == 'undefined') {
+          var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id, warehouse_id: vm.model_data.plant}
+        } else {
+          var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id, warehouse_id: vm.model_data.store_id}
         }
-      });
+        vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+          if(data.message && data.data.length > 0) {
+            data = data.data[0]
+            var taxes = data.taxes;
+            product.fields.tax = 0;
+            product.fields.cess_tax = 0;
+            product.fields.temp_tax = 0;
+            product.fields.temp_cess_tax = 0;
+            if (taxes.length > 0) {
+              product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
+              product.fields.temp_tax = product.fields.tax
+              product.fields.cess_tax = taxes[0].cess_tax;
+              product.fields.temp_cess_tax = product.fields.cess_tax;
+            }
+          }
+        });
+      } else {
+       console.log('Invalid Supplier :' + product.fields.sku.wms_code); 
+      }
     }
   vm.cancel_pr = function cancel_pr() {
       vm.bt_disable = true;
@@ -1590,6 +1603,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.cess_tax) {
           data.fields.cess_tax = 0;
       }
+      if (data.fields.tax == 0 && data.fields.temp_tax > 0) {
+        data.fields.tax = data.fields.temp_tax;
+      }
+      if (data.fields.cess_tax == 0 && data.fields.temp_cess_tax > 0) {
+        data.fields.cess_tax = data.fields.temp_cess_tax;
+      }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
@@ -1600,15 +1619,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.total_price = vm.model_data.total_price + temp;
         vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
       })
-      if (typeof(data.fields.sku.pr_extra_data) != 'undefined'){
-        var min_price_value = vm.check_price_comparision(data);
-        if (min_price_value != 0) {
-          data.fields.delta = min_price_value - data.fields.price;
-          (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
-          data.fields.delta = data.fields.delta * data.fields.order_quantity;
-        } else {
-          data.fields.delta = 0;
-          data.fields['delta_color'] = { 'color': 'darkgrey' };
+      if (typeof(data.fields.sku) != 'undefined'){
+        if (typeof(data.fields.sku.pr_extra_data) != 'undefined'){
+          var min_price_value = vm.check_price_comparision(data);
+          if (min_price_value != 0) {
+            data.fields.delta = min_price_value - data.fields.price;
+            (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
+            data.fields.delta = data.fields.delta * data.fields.order_quantity;
+          } else {
+            data.fields.delta = 0;
+            data.fields['delta_color'] = { 'color': 'darkgrey' };
+          }
         }
       }
     }

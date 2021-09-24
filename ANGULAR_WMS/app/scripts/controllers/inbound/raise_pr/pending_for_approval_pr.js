@@ -1568,19 +1568,22 @@ vm.checkWHSupplierExist  = function (sup_id) {
   }
 
   vm.update_tax_details = function(product) {
-    var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id_name, warehouse_id: vm.model_data.store_id}
-    vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
-      if(data.message && data.data.length > 0) {
-        data = data.data[0]
-        var taxes = data.taxes;
-        product.fields.tax = 0;
-        product.fields.cess_tax = 0;
-        if(taxes.length > 0){
-          product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
-          product.fields.cess_tax = taxes[0].cess_tax;
+    if (product.fields.supplier_id_name.includes(':')) {
+      product.fields.supplier_id = vm.service.change_search_value(product.fields.supplier_id_name);
+      var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id, warehouse_id: vm.model_data.store_id}
+      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+        if(data.message && data.data.length > 0) {
+          data = data.data[0]
+          var taxes = data.taxes;
+          product.fields.tax = 0;
+          product.fields.cess_tax = 0;
+          if(taxes.length > 0){
+            product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
+            product.fields.cess_tax = taxes[0].cess_tax;
+          }
         }
-      }
-    });
+      });
+    }
 //    if (vm.model_data.supplier_id) {
 //    vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
 //            sku_data = sku_data[0];

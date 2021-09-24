@@ -2141,7 +2141,8 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent', 'remarks', 'delta', 'supplier_id','cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax'
+        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent', 'remarks', 'delta', 'supplier_id','cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax',
+        'suggested_qty'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -2154,15 +2155,18 @@ def generated_actual_pr_data(request, user=''):
     if request.user.email != record[0].requested_user.email:
         validated_users.insert(0, record[0].requested_user.email)
     validated_users = list(set(validated_users))
+    display_suggested_qty = False
     if type=="pr_converted_to_po":
         pending_po_obj = record[0].pendingpo_set.filter()
         lineItems = pending_po_obj[0].pending_polineItems.filter(quantity__gt=0).values_list(*lineItemVals)
     else:
         lineItems = record[0].pending_prlineItems.filter(quantity__gt=0).values_list(*lineItemVals)
+        if record[0].pending_prlineItems.filter(suggested_qty__gt=0):
+            display_suggested_qty = True
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
-                gl_code, service_stdate, service_edate, hsn_code, sku_class, discount, remarks, delta, sku_supplier, cst_tax, sst_tax, ist_tax, css_tax = rec
+                gl_code, service_stdate, service_edate, hsn_code, sku_class, discount, remarks, delta, sku_supplier, cst_tax, sst_tax, ist_tax, css_tax, suggested_qty = rec
         system_preferred_supplier = ''
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
@@ -2383,6 +2387,7 @@ def generated_actual_pr_data(request, user=''):
                                     'preferred_supplier': preferred_supplier,
                                     'system_preferred_supplier': system_preferred_supplier,
                                     'pr_extra_data': pr_extra_data,
+                                    'suggested_qty': suggested_qty,
                                     }, 'pk': lineItemId})
     response_dict = {'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                     'pr_created_date': pr_created_date, 'store': store, 'tax_display': tax_display,
@@ -2395,7 +2400,7 @@ def generated_actual_pr_data(request, user=''):
                     'resubmitting_user': resubmitting_user,
                     'approval_remarks': approval_remarks,
                     'pa_uploaded_file_dict': pa_uploaded_file_dict,
-                    'is_auto_pr': record[0].is_auto_pr}
+                    'is_auto_pr': record[0].is_auto_pr, 'display_suggested_qty': display_suggested_qty}
     try:
         pr_actual_data.info("requested_user %s for Full PR Number %s Click Time %s generated dict is %s" % (request.user.username, log_full_pr_number, datetime.datetime.now(), str(response_dict)))
     except Exception as e:
@@ -3480,6 +3485,8 @@ def get_raisepo_group_data(user, myDict):
         temp_cess_tax = ''
         sku_supplier = ''
         tax = 0
+        mrp_id = ''
+        suggested_qty = 0
         if 'delta' in myDict.keys():
             delta = myDict['delta'][i]
         if 'discount_percentage' in myDict.keys():
@@ -3564,6 +3571,10 @@ def get_raisepo_group_data(user, myDict):
             temp_cess_tax = myDict['temp_cess_tax'][i]
         if 'supplier_id' in myDict.keys():
             sku_supplier = myDict['supplier_id'][i]
+        if 'mrp_id' in myDict.keys():
+            mrp_id = myDict['mrp_id'][i]
+        if 'suggested_qty' in myDict.keys():
+            suggested_qty = myDict['suggested_qty'][i]
         pr_extra_data = ''
         if 'pr_extra_data' in myDict.keys():
             pr_extra_data = myDict['pr_extra_data'][i]
@@ -3599,7 +3610,8 @@ def get_raisepo_group_data(user, myDict):
                                    'description': description, 'service_start_date': service_start_date,
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
                                    'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax, 'tax': tax, 'sku_supplier':sku_supplier,
-                                   'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data, 'discount_percent': discount_percent, 'delta': delta})
+                                   'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data, 'discount_percent': discount_percent, 'delta': delta,
+                                   'mrp_id': mrp_id, 'suggested_qty': suggested_qty})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -4538,8 +4550,15 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                         pendingLineItems['sgst_tax'] = value['tax']/2
             except:
                 pass
+        if value.get('suggested_qty'):
+            pendingLineItems['suggested_qty'] = value['suggested_qty']
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
+        if value.get('mrp_id'):
+            mrp_obj = MRP.objects.get(id=value['mrp_id'])
+            mrp_obj.mrp_pr_raised_qty = value['order_quantity']
+            mrp_obj.status = 0
+            mrp_obj.save()
         misc_json = {}
         if value.has_key('description_edited'):
             misc_json['description_edited'] = value['description_edited']
@@ -17542,7 +17561,7 @@ def prepare_material_planning_pr_data(request, user=''):
             data_list.append({'sku_code': sku.sku_code, 'wms_code': sku.wms_code, 'sku_desc': sku.sku_desc, 'quantity': suggested_qty, 'base_uom': uom_dict.get('base_uom', ''),
                             'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
-                            'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty})
+                            'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty, 'mrp_id': datum.id, 'suggested_qty': suggested_qty})
     return HttpResponse(json.dumps({'data_list': data_list, 'plant_username': plant_username, 'plant': plant, 'department_type': department_type}))
 
 

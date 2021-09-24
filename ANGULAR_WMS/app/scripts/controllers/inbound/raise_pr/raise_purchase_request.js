@@ -207,6 +207,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "tax_display": data.data.tax_display,
                   "warehouse_currency": data.data.warehouse_currency,
                   "data": data.data.data,
+                  "display_suggested_qty": data.data.display_suggested_qty,
           };
           vm.model_data = {};
           vm.resubmitCheckObj = {};
@@ -1310,6 +1311,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         product.fields.openpo_qty = item.openpo_qty;
         product.fields.edit_tax = false;
         product.fields.temp_price = 0;
+        product.fields.mrp_id = item.mrp_id;
+        product.fields.suggested_qty = item.suggested_qty;
         product.taxes = [];
         // vm.getTotals();
         if(vm.model_data.receipt_type == 'Hosted Warehouse') {

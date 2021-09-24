@@ -11,10 +11,10 @@
     <table class="table" class="pull-left">
       <thead>
         <tr>
-          <th>Service Code*</th>
+          <th>SKU Code*</th>
+          <th>SKU Description-HSN</th>
           <th>Supplier*</th>
           <th>Supplier Name</th>
-          <th>SKU Description-HSN</th>
           <th>Additional Details</th>
           <!-- <th>HSN Code</th> -->
           <!-- <th>Brand</th>  -->
@@ -26,7 +26,7 @@
           <th>Unit Rate EX.GST( {{showCase.model_data.warehouse_currency}} )</th>
           <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
           <th ng-if="showCase.model_data.tax_display">Tax</th>
-          <th ng-if="showCase.model_data.tax_display">Cess Tax</th>
+          <th ng-hide="true" ng-if="showCase.model_data.tax_display">Cess Tax</th>
           <th>Total( {{showCase.model_data.warehouse_currency}} )</th>
           <!-- <th>UOM</th> -->
           <th>Last Supplier-Price</th>
@@ -48,6 +48,9 @@
             <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
+          <td class="text-center">
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}-{{ product.fields.hsn_code }}</span>
+          </td>
           <td>
             <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
@@ -58,9 +61,6 @@
             <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
           </td>
           <td class="text-center"> <span style="font-size: 9px;font-weight: 440;">{{ product.fields.supplier_id_name.split(':')[1] }}</span> </td>
-          <td class="text-center">
-            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}-{{ product.fields.hsn_code }}</span>
-          </td>
           <td>
             <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}"
             type="text" name="description_edited" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
@@ -78,10 +78,10 @@
             <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td> -->
           <td>
-            <input name="service_start_date" ui-jq="datepicker" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" required>
+            <input name="service_start_date" ui-jq="datepicker" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" required size="110">
           </td>
           <td>
-            <input name="service_end_date" ui-jq="datepicker"  ng-model="product.fields.service_end_date" class="form-control" type="text" id="service_end_date" data-date-format="dd-mm-yyyy"  data-date-today-highlight="true" data-date-autoclose="true" required>
+            <input name="service_end_date" ui-jq="datepicker"  ng-model="product.fields.service_end_date" class="form-control" type="text" id="service_end_date" data-date-format="dd-mm-yyyy"  data-date-today-highlight="true" data-date-autoclose="true" required size="110">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
@@ -108,7 +108,7 @@
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="hide">
             <span class="text_element">{{product.fields.temp_tax}}</span>
           </td>
-          <td ng-hide="!showCase.model_data.tax_display" class="text-center">
+          <td ng-hide="true" class="text-center">
             <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="hide">
             <span class="text_element">{{product.fields.temp_cess_tax}}</span>
           </td>

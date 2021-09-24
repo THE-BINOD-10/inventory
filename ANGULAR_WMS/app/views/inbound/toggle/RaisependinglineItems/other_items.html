@@ -21,7 +21,7 @@
           <th>Last Supplier-Price</th>
           <th>Least Supplier-Price</th>
           <th>Least Supplier-Price(Pan India)</th>
-          <th>Delta</th>
+          <th>Delta Tax Inc.</th>
           <th></th>
           <th class="plus"></th>
         </tr>
@@ -78,7 +78,7 @@
               ng-keyup="showCase.getTotals(product)" size="12">
           </td>
           <td class="text-center">
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:0}}
             </span>
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
@@ -95,14 +95,14 @@
             <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="form-control detectTab hide" ng-class="service.get_decimal_perm()" size="12" readonly>
           </td>
           <td class="text-center">
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}</span>
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:0}}</span>
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>
           <td class="text-center"> <span>{{product.fields.sku.last_supplier}}</span> </td>
           <td class="text-center"> <span>{{product.fields.sku.least_supplier}}</span> </td>
           <td class="text-center"> <span>{{product.fields.sku.least_supplier_pi}}</span> <input type="hidden" name="pr_extra_data" ng-model="product.fields.sku.pr_extra_data" value="{{product.fields.sku.pr_extra_data}}"></td>
           <td class="text-center" ng-init="product.fields.delta=0; showCase.getTotals(product)"> 
-            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:2}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
+            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:0}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
           </td>
           <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
             <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>

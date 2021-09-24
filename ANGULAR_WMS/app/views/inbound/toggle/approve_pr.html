@@ -110,10 +110,10 @@
             <div class="col-md-6 col-sm-6">
             </div>
             <div class="col-md-3 col-sm-3 col-xs-12">
-              <p>Total Value Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number}}</b></p>
+              <p>Total Value Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number:0}}</b></p>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-12">
-              <p>Total With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number}}</b></p>
+              <p>Total Value With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number:0}}</b></p>
             </div>
           </div>
           <div class="row">

@@ -31,7 +31,7 @@
         <th>Last Supplier-Price</th>
         <th>Least Supplier-Price</th>
         <th>Least Supplier-Price(Pan India)</th>
-        <th>Delta</th>
+        <th>Delta Tax Inc.</th>
         <th></th>
         <th class="plus" ng-if="showCase.quantity_editable"></th>
       </tr>
@@ -106,7 +106,7 @@
           ng-readonly="!showCase.permissions.change_pendinglineitems">
       </td>
       <td class="text-center" ng-hide="true">
-        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.temp_price | number}}</span>
+        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.temp_price | number:0}}</span>
         <input ng-model="product.fields.temp_price" type="text" name="temp_price"
           class="form-control detectTab hide"
           ng-class="service.get_decimal_perm()"
@@ -114,7 +114,7 @@
           size="12">
       </td>
       <td class="text-center">
-        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number}}
+        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:0}}
         </span>
         <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
       </td>
@@ -129,7 +129,7 @@
         class="form-control hide" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly>
       </td>
       <td class="text-center">
-        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number}}
+        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:0}}
         </span>
         <input type="text" name="total" ng-model="product.fields.total" class="hide">
       </td>

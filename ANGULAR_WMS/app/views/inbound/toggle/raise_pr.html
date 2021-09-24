@@ -139,7 +139,7 @@
 
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1050 !important;">
   <form name="form" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
-    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width" style="font-size: xx-small;">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header" style="padding: 5px !important;">
@@ -154,7 +154,7 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body" style="padding:5px">
+        <div class="modal-body" ng-class="(showCase.confirm_print)? 'hide': 'show'" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 30px;">
           <div class="row">
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
@@ -255,10 +255,10 @@
             <div class="col-md-6 col-sm-6">
             </div>
             <div class="col-md-3 col-sm-3 col-xs-12">
-              <p>Total Value Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number}}</b></p>
+              <p>Total Value Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number:0}}</b></p>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-12">
-              <p>Total With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number}}</b></p>
+              <p>Total Value With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number:0}}</b></p>
             </div>
           </div>
           <div class="row">

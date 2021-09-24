@@ -37,7 +37,7 @@
           <th>Least Supplier-Price</th>
           <th>Least Supplier-Price(Pan India)</th>
           <th>Reason</th>
-          <th>Delta</th>
+          <th>Delta Tax Inc.</th>
           <!-- <th>Suggested PR Qty</th> -->
           <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
           <th></th>
@@ -97,18 +97,18 @@
             <input name="base_uom" ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
           </td>
           <td class="text-center">
-            <span class="text_element">{{product.fields.price | number:2}}
+            <span class="text_element">{{product.fields.price | number:0}}
             </span>
             <input type="text" name="price" ng-model="product.fields.price" class="hide">
           </td>
           <td><input type="text" ng-model="product.fields.discount" size="5" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)"></td>
 
           <td class="text-center"> 
-            <span class="text_element">{{product.fields.final_price | number:2}}
+            <span class="text_element">{{product.fields.final_price | number:0}}
             </span>
           </td>
           <td class="text-center"> 
-            <span class="text_element">{{product.fields.amount | number:2}}
+            <span class="text_element">{{product.fields.amount | number:0}}
             </span> 
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
@@ -123,7 +123,7 @@
             </span>
           </td>
           <td class="text-center"> 
-            <span class="text_element">{{product.fields.total | number:2}}
+            <span class="text_element">{{product.fields.total | number:0}}
             </span> 
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>
@@ -136,7 +136,7 @@
           <td class="text-center"> <span>{{product.fields.sku.least_supplier_pi}}</span><input type="hidden" name="pr_extra_data" ng-model="product.fields.sku.pr_extra_data" value="{{product.fields.sku.pr_extra_data}}"></td>
           <td><textarea rows="2" class="form-control" cols="27" ng-model="product.fields.sku_comment" placeholder="Enter Remarks" ng-required="product.fields.sku_sku_comment" title="{{ product.fields.sku_comment }}"></textarea></td>
           <td class="text-center" ng-init="product.fields.delta=0; showCase.getTotals(product)"> 
-            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:2}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
+            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:0}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
           </td>
           <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
           <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">

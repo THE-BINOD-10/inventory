@@ -14,7 +14,7 @@
         <th>Supplier Name</th>
         <th>Service Code*</th>
         <th>SKU Description-HSN</th>
-        <th>Details</th>
+        <th>Additional Details</th>
         <!-- <th>HSN Code</th> -->
         <!-- <th>GL Code</th> -->
         <th>Start Date</th>
@@ -22,8 +22,8 @@
         <th>Qty*</th>
         <!-- <th>UOM</th> -->
         <!-- <th>MOQ</th> -->
-        <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
-        <th>Base Price excluding GST</th>
+        <th>Unit Rate Ex.GST( {{showCase.model_data.warehouse_currency}} )</th>
+        <th ng-hide="true">Base Price excluding GST</th>
         <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
         <th ng-if="showCase.model_data.tax_display">Tax %</th>
         <th ng-if="showCase.model_data.tax_display">Cess %</th>
@@ -105,7 +105,7 @@
           ng-keyup="showCase.getTotals(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="12"
           ng-readonly="!showCase.permissions.change_pendinglineitems">
       </td>
-      <td class="text-center">
+      <td class="text-center" ng-hide="true">
         <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.temp_price | number:2}}</span>
         <input ng-model="product.fields.temp_price" type="text" name="temp_price"
           class="form-control detectTab hide"

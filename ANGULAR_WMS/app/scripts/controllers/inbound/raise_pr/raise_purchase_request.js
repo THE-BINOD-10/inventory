@@ -1483,7 +1483,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.add_raise_pr = function(elem) {
-      if (vm.is_actual_pr){
+      if (vm.is_actual_pr) {
         elem.push({name:'is_actual_pr', value:true})
       }
       var product_category = '';

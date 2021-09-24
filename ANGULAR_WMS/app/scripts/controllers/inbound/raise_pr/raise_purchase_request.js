@@ -1488,18 +1488,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       var product_category = '';
       var keepGoing = true;
+      var keepGoing_price = true
       angular.forEach(elem, function(list_obj) {
         if (list_obj['name'] == 'order_quantity') {
           if (parseFloat(list_obj['value']) <= 0) {
             keepGoing = false
           }
         }
+        if (list_obj['name'] == 'price') {
+          if (parseFloat(list_obj['value']) <= 0) {
+            keepGoing_price = false
+          }
+        }
         if (list_obj['name'] == 'product_category') {
           product_category = list_obj['value']
         }
       });
+
       if (!keepGoing) {
         vm.service.showNoty("Quantity can't be 0.")
+        return;
+      }
+      if (!keepGoing_price) {
+        vm.service.showNoty("Price can't be 0.")
         return;
       }
 

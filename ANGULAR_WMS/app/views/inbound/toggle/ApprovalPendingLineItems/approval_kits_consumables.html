@@ -15,6 +15,7 @@
         <th>WMS Code*</th>
         <th>SKU Description</th>
         <th>HSN Code</th>
+        <th ng-if="showCase.model_data.display_suggested_qty == true">MRP Suggested Qty</th>
         <th>Qty*</th>
         <th>UOM</th>
         <!-- <th>No.Of Base Units</th>
@@ -68,6 +69,9 @@
         <td class="text-center">
           <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span>
           <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab hide" readonly>
+        </td>
+        <td ng-if="showCase.model_data.display_suggested_qty == true">
+          <input type="text" class="form-control" value="{{ product.fields.suggested_qty }}" ng-readonly="true">
         </td>
         <td>
           <!-- <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"

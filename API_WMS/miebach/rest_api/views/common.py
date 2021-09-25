@@ -13701,6 +13701,11 @@ def get_purchase_config_data(request, user=''):
     name = request.GET['name']
     purchase_type = request.GET['purchase_type']
     company_id = get_company_id(user)
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            company_id = usr.userprofile.company.id
+    except Exception as e:
+        pass
     purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=name,
                                                                  purchase_type=purchase_type)
     config_dict = {}

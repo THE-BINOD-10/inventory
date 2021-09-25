@@ -3676,7 +3676,13 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
     mailsList = []
     user_roles = []
     company_id = get_company_id(user)
-    pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
+    purchaseapp_company_id = company_id
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            purchaseapp_company_id = user.userprofile.company.id
+    except Exception as e:
+        pass
+    pacFiltersMap = {'company_id': purchaseapp_company_id, 'name': reqConfigName, 'level': level}
     if admin_user:
         pacFiltersMap['user'] = admin_user
     if approval_type:

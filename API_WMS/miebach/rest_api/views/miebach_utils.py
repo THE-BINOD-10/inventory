@@ -5225,6 +5225,89 @@ def get_pending_po_grn_dict(user, po_numbers):
                                                                                     'pr_tax_amount': pr_tax_amount, 'pr_Total_Amt': pr_Total_Amt})
     return pending_po_dict
 
+def grn_download(user_list, search_params, user):
+    from django.db import connection
+    from .common import get_misc_value, get_admin,get_local_date
+    cursor = connection.cursor()
+    query = "SELECT  ad.username as 'Zone',\
+        au.username  as 'WareHouse',\
+        sm.name as 'Supplier_Name',\
+        sm.supplier_id as 'Supplier_Id',\
+        po.po_number as 'PO_Number',\
+        sk.sku_code as 'SKU_code',\
+        sk.sku_category  as 'SKU_category',\
+        sk.sku_desc  as 'SKU_description',\
+        sk.hsn_code  as 'HSN_code',\
+        sk.sku_brand as 'SKU_brand',DATE_FORMAT(DATE(po.po_date), '%%Y-%%m-%%d') as 'PO_Date',\
+        opo.order_quantity as 'PO_Quantity',ROUND(opo.price,2) as 'PO_Price',\
+        opo.cgst_tax as 'CGST_tax',\
+        opo.igst_tax as 'IGST_tax',\
+        opo.sgst_tax as 'SGST_tax',\
+        opo.utgst_tax as 'UTGST_tax',\
+        ROUND((opo.order_quantity * opo.price) + (((opo.order_quantity * opo.price) * (opo.cgst_tax + opo.igst_tax + opo.sgst_tax + opo.utgst_tax))/100),2) as 'PO_Total_Amount',\
+        sk.measurement_type as 'UOM',\
+        DATE_FORMAT(DATE(opo.delivery_date), '%%Y-%%m-%%d') as 'Expected delivery date',\
+        s_po_s.cess_tax as 'CESS_tax',\
+        s_po_s.quantity as 'GRN_Quantity',\
+        opo.order_quantity - po.received_quantity as 'Receivable_Quantity',\
+        ROUND(s_po_s.price,2) as 'GRN_Price',\
+        ROUND((s_po_s.quantity * s_po_s.price),2) as 'Pre_Tax_Value',\
+        ROUND((s_po_s.quantity * s_po_s.price) + (((s_po_s.quantity * s_po_s.price) * (opo.cgst_tax + opo.igst_tax + opo.sgst_tax + opo.utgst_tax +s_po_s.cess_tax))/100),2) as 'Post_Tax_Value',\
+        s_po_s.grn_number as 'GRN_Number',\
+        CASE WHEN s_po_s.invoice_number THEN 'Invoice' ELSE 'DC' END as `Type of GRN`,\
+        DATE_FORMAT(DATE(s_po_s.creation_date), '%%Y-%%m-%%d') as 'GRN_Date',\
+        s_po_s.invoice_number as 'Invoice_Number',\
+        DATE_FORMAT(DATE(s_po_s.invoice_date), '%%Y-%%m-%%d') as 'Invoice_Date',\
+        s_po_s.invoice_value as 'Invoice_value',\
+        s_po_s.tcs_value as 'Tcs_value',\
+        s_po_s.challan_number as 'Challan Number',\
+        DATE_FORMAT(DATE(s_po_s.challan_date), '%%Y-%%m-%%d') as 'Challan_Date',\
+        CASE WHEN s_po_s.status = 1 THEN 'Cancelled' ELSE 'Completed' END as 'GRN_status',\
+        CASE WHEN s_po_s.status = 1 THEN 'Cancelled' WHEN s_po_s.credit_status = 1 THEN 'Created' WHEN s_po_s.credit_status = 2 THEN 'Completed' ELSE 'No' END as 'Credit_Note_applicable',\
+        po_cn.credit_number as 'Credit_Note_number',\
+        s_po_s.remarks as 'Remarks',\
+        sm.tin_number as 'Suppiler GSTIN Number',\
+        up.stockone_code  as 'Plant'\
+        FROM PURCHASE_ORDER po\
+        JOIN SELLER_PO_SUMMARY s_po_s ON s_po_s.purchase_order_id= po.id \
+        JOIN OPEN_PO opo ON opo.id = po.open_po_id \
+        JOIN SUPPLIER_MASTER sm ON sm.id = opo.supplier_id\
+        JOIN SKU_MASTER sk ON sk.id = opo.sku_id\
+        LEFT JOIN PO_CREDIT_NOTE po_cn ON po_cn.id = s_po_s.credit_id \
+        LEFT JOIN PO_LOCATION po_l ON po_l.purchase_order_id = po.id and po_l.receipt_number = s_po_s.receipt_number and po_l.status =0\
+        JOIN auth_user au ON au.id = sk.user \
+        JOIN USER_PROFILE up ON up.user_id = sk.user\
+        JOIN USER_GROUPS ug ON ug.user_id = au.id \
+        JOIN auth_user ad ON ad.id = ug.admin_user_id\
+        where au.id in %s AND DATE(s_po_s.creation_date) >=%s AND DATE(s_po_s.creation_date) <=%s"
+    user_list = tuple(user_list)
+    filter_keys = [user_list, search_params['from_date'].strftime('%Y-%m-%d')]
+    if 'to_date' in search_params:
+        filter_keys.append((search_params['to_date']+datetime.timedelta(1)).strftime('%Y-%m-%d'))
+    else:
+        filter_keys.append((NOW +datetime.timedelta(1)).strftime('%Y-%m-%d'))
+    filter_keys =tuple(filter_keys)
+    cursor.execute(query, filter_keys)
+    purchase_orders = cursor.fetchall()
+    temp_data = copy.deepcopy(AJAX_DATA)
+    for data in purchase_orders:
+        aaData = OrderedDict((('Zone', data[0]),('WareHouse', data[1]) ,
+        	    ('Supplier Name', data[2]), ('Supplier ID', data[3]),
+	            ('PO No', data[4]),('SKU Code', data[5]),('SKU Category',data[6]),('SKU Description', data[7]),
+	            ('HSN Code', data[8]),('SKU Brand', data[9]),('PO Date', data[10]),
+	            ('PO Qty',data[11]),('PO Basic Price', data[12]),('CGST', data[13]),('IGST', data[14]),
+	            ('SGST', data[15]), ('UTGST', data[16]),('PO Total Amount', data[17]),
+	            ('UOM', data[18]),('Expected delivery date', data[19]),('CESS', data[20]),('GRN Qty', data[21]),('Recievable Quantity', data[22]),
+	            ('GRN Price', data[23]),('Pre Tax Value', data[24]),('Post Tax Value', data[25]),('GRN Number', data[26]),
+	            ('Type of GRN', data[27]),('GRN date', data[28]),('Invoice Number', data[29]),
+	            ('Invoice Date', data[30]),('Invoice Value', data[31]),('Tcs Value', data[32]),
+	            ('Challan Number', data[33]),('Challan Date', data[34]),
+	            ('GRN Status', data[35]), ('Credit Note Applicable', data[36]),('Credit Note Number', data[37] if data[37] else ''),('Remarks',data[38]),
+	            ('Supplier GSTIN Number', data[39]),('Plant', data[40])))
+	temp_data['aaData'].append(aaData)
+    return temp_data
+
+
 
 def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     from miebach_admin.models import *
@@ -5362,6 +5445,9 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     search_parameters[field_mapping['user']] = user_ids
     search_parameters['purchase_order__received_quantity__gt'] = 0
+    if search_params.get('excel_name'):
+        temp_data = grn_download(user_ids, search_params, user)
+        return temp_data
     query_data = model_name.objects.select_related(
         'purchase_order__open_po',
         'purchase_order__open_po__sku',
@@ -6875,6 +6961,12 @@ def get_po_filter_data(request, search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user_ids
     #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['purchase_order__received_quantity__gt'] = 0
+    if search_params.get('excel_name'):
+        search_params['from_date'] = search_params['grn_from_date']
+        if 'grn_to_date' in search_params:
+            search_params['to_date'] = search_params['grn_to_date']
+        temp_data = grn_download(user_ids, search_params, user)
+        return temp_data
     query_data = model_name.objects.prefetch_related('purchase_order__open_po__sku', 'purchase_order__open_po__supplier').select_related('purchase_order__open_po',
                                                                                                          'purchase_order__open_po__sku',
                                                                                                          'purchase_order__open_po__supplier').exclude(

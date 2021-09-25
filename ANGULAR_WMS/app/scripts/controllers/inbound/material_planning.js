@@ -339,6 +339,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
     }
   });
 
+  vm.category_list = [];
+  vm.service.apiCall('get_sku_category_list/',).then(function(data){
+    if(data.message){
+      vm.category_list = data.data.category_list;
+    }
+  })
+
+  vm.generate_mrp_data = function() {
+    vm.service.alert_msg("Generate MRP").then(function(msg) {
+      if(msg == "true"){
+        var filters_data = vm.model_data.filters;
+        vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
+          vm.service.showNoty(data.data);
+        });
+      }
+    });
+
+  }
+
 }
 
 stockone.directive('dtPoData', function() {

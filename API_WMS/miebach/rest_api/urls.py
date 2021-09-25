@@ -266,6 +266,7 @@ urlpatterns = [
     url(r'^update_po_values/$', update_po_values),
     url(r'^confirm_asn_order/$', confirm_asn_order),
     url(r'^get_asn_qr_code/$', get_asn_qr_code),
+    url(r'^generate_material_planning/$', generate_material_planning),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

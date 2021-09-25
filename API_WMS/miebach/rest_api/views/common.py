@@ -1466,7 +1466,7 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     company_id = get_company_id(user)
     try:
         if user.userprofile.currency.currency_code != 'INR':
-            company_id = usr.userprofile.company.id
+            company_id = user.userprofile.company.id
     except Exception as e:
         pass
     admin_user = get_admin(user)
@@ -13706,7 +13706,7 @@ def get_purchase_config_data(request, user=''):
             company_id = usr.userprofile.company.id
     except Exception as e:
         pass
-    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=name,
+    purchase_config_data = PurchaseApprovalConfig.objects.filter(display_name=name,
                                                                  purchase_type=purchase_type)
     config_dict = {}
     if purchase_config_data:

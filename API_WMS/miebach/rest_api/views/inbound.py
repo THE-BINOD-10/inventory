@@ -10928,7 +10928,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
         send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
-        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:
         if report_type == 'Purchase Order':

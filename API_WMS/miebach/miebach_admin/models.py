@@ -690,7 +690,9 @@ class PendingPR(models.Model):
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
     is_auto_pr = models.IntegerField(default=0)
+    is_new_pr = models.IntegerField(default=0)
     migrate_pr_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PR_User')
+    migrate_pr_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PR_User_From')
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -719,6 +721,7 @@ class PendingPO(models.Model):
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
     migrate_po_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PO_User')
+    migrate_po_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PO_User_From')
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -766,6 +769,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser', db_index=True)
     migrate_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_User')
+    migrate_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_From')
     level = models.CharField(max_length=64, default='')
     validated_by = models.TextField(default='')
     status = models.CharField(max_length=32, default='')

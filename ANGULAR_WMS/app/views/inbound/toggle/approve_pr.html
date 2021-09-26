@@ -110,10 +110,10 @@
             <div class="col-md-6 col-sm-6">
             </div>
             <div class="col-md-3 col-sm-3 col-xs-12">
-              <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+              <p>Total Value Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number:0}}</b></p>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-12">
-              <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
+              <p>Total Value With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number:0}}</b></p>
             </div>
           </div>
           <div class="row">
@@ -242,6 +242,7 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
+          <!-- <button type="button" class="btn pop pop-green pull-left col-md-3 col-sm-4 col-xs-12" ng-click="showCase.print_excel(showCase.model_data.picklist_id)">Print to Excel</button> -->
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PR</button>
           <button ng-if="(!(showCase.print_enable) && !showCase.quantity_editable) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')"
           ng-disabled="!showCase.is_pa_resubmitted">Approve PR</button>

@@ -7086,10 +7086,47 @@ def migrate_staff_user_pr_pos(request, user=''):
             dest = dest.split(':')[0]
             source_data = StaffMaster.objects.get(email_id=source)
             dest_data = StaffMaster.objects.get(email_id=dest)
+            src_usr = dest_usr = User.objects.get(username=source)
             dest_usr = User.objects.get(username=dest)
             if source_data.position != dest_data.position:
                 return HttpResponse("%s / (%s - %s & %s - %s)" % ("Un-able to shift PR & PO's with Different Positions",\
                                     source_data.email_id, source_data.position, dest_data.email_id, dest_data.position))
+            if src_usr and dest_usr:
+                all_users = []
+                if len(pr_po_approval_ids) > 0:
+                    temp_pr_lis = list(PurchaseApprovals.objects.filter(id__in=pr_po_approval_ids).values_list('pending_pr__wh_user__username', flat=True))
+                    all_users.extend(temp_pr_lis)
+                if len(pr_ids) > 0:
+                    temp_pr_lis = list(PendingPR.objects.filter(id__in = pr_ids).values_list('wh_user__username', flat=True))
+                    all_users.extend(temp_pr_lis)
+                if len(po_ids) > 0:
+                    temp_po_lis = list(PendingPO.objects.filter(id__in = po_ids).values_list('wh_user__username', flat=True))
+                    all_users.extend(temp_po_lis)
+                check_users = User.objects.filter(username__in=all_users)
+                if check_users.exists():
+                    plant_usrs, dept_usrs, plant_res, dept_res = [], [], [], []
+                    for usr in check_users:
+                        try:
+                            if usr.userprofile.warehouse_type.lower() == 'dept':
+                                if usr.userprofile.stockone_code:
+                                    dept_usrs.append(usr.userprofile.stockone_code)
+                                plant = get_admin(usr)
+                                plant_usrs.append(plant.username)
+                            elif usr.userprofile.warehouse_type.lower() == 'store':
+                                plant_usrs.aapend(usr.username)
+                        except Exception as e:
+                            pass
+                    dest_user_plant = list(dest_data.plant.filter().values_list('name', flat=True))
+                    dest_user_department = list(dest_data.department_type.filter().values_list('name', flat=True))
+                    if len(plant_usrs) > 0:
+                        if not set(plant_usrs).issubset(dest_user_plant):
+                            plant_res = list(set(plant_usrs) - set(dest_user_plant))
+                            # set(dest_user_plant).symmetric_difference(set(plant_usrs))
+                    if len(dept_usrs) > 0:
+                        if not set(dept_usrs).issubset(dest_user_department):
+                            dept_res = list(set(dept_usrs) - set(dest_user_department))
+                    if len(dept_res) > 0 or len(plant_res) > 0:
+                        return HttpResponse("Please add plants: %s & Departments: %s" %(','.join(plant_res), ','.join(dept_res)))
             if len(pr_po_approval_ids) > 0:
                 pr_po_datum = PurchaseApprovals.objects.filter(id__in=pr_po_approval_ids, status='')
                 if pr_po_datum.exists():
@@ -7098,12 +7135,13 @@ def migrate_staff_user_pr_pos(request, user=''):
                             res = data.validated_by
                             data.validated_by = res.replace(source, dest)
                             data.migrate_user = request.user
+                            data.migrate_from = src_usr
                             data.save()
                             data.purchaseapprovalmails_set.filter(email=source).update(email=dest)
             if len(pr_ids) > 0:
-                PendingPR.objects.filter(id__in = pr_ids).update(requested_user=dest_usr, migrate_pr_user=request.user)
+                PendingPR.objects.filter(id__in = pr_ids).update(requested_user=dest_usr, migrate_pr_from=src_usr, migrate_pr_user=request.user)
             if len(po_ids) > 0:
-                PendingPO.objects.filter(id__in = po_ids).update(requested_user=dest_usr, migrate_po_user=request.user)
+                PendingPO.objects.filter(id__in = po_ids).update(requested_user=dest_usr, migrate_po_from=src_usr, migrate_po_user=request.user)
         except Exception as e:
             return HttpResponse('Invalid Staff Emails')
     else:

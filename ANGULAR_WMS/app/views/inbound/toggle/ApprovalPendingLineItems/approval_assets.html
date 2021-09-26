@@ -12,9 +12,10 @@
       <thead>
         <tr>
           <th>Supplier*</th>
+          <th>Supplier Name</th>
           <th>Asset Code*</th>
-          <th>SKU Description</th>
-          <th>HSN Code</th>
+          <th>SKU Description-HSN</th>
+          <!-- <th>HSN Code</th> -->
           <th>Class</th>
           <th>Qty*</th>
           <!-- <th>UOM</th> -->
@@ -27,7 +28,7 @@
           <th>Last Supplier-Price</th>
           <th>Least Supplier-Price</th>
           <th>Least Supplier-Price(Pan India)</th>
-          <th>Delta</th>
+          <th>Delta With Tax</th>
           <th></th>
           <th class="plus" ng-if="showCase.quantity_editable"></th>
         </tr>
@@ -35,27 +36,31 @@
       <tbody>
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
           <td>
-            <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+            <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
-            typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
+            typeahead-on-select="product.fields.supplier_id = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
             ng-blur="showCase.validateSupplier(product);showCase.checkResubmitPurchaseApprover(product.fields)"
-            ng-disabled="!showCase.permissions.change_pendinglineitems" size="40"
+            ng-disabled="!showCase.permissions.change_pendinglineitems" size="90"
             >
+            <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
+          </td>
+          <td>
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.supplier_id_name.split(':')[1] }}</span>
           </td>
           <td>
             <input type="text" autocomplete="off" name="wms_code"
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
                    required
                    typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?', showCase.model_data.product_category)"
-                   typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0">
+                   typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0" size="95">
             <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }}</span>
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.description }} - {{ product.fields.hsn_code }}</span>
             <!-- <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="70"> -->
           </td>
-          <td>
+          <td ng-hide="true">
             <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span>
             <!-- <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="32"> -->
           </td>
@@ -92,7 +97,7 @@
             size="12">
           </td>
           <td class="text-center">
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}</span>
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:0}}</span>
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
           <td ng-hide="!showCase.model_data.tax_display" class="text-center">
@@ -108,7 +113,7 @@
             <!-- ng-readonly="!showCase.permissions.change_pendinglineitems" size="50"> -->
           </td>
           <td class="text-center">
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:0}}
             </span>
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>
@@ -116,7 +121,7 @@
           <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier}}-{{product.fields.pr_extra_data.least_supplier_price}}</span> </td>
           <td class="text-center"> <span>{{product.fields.pr_extra_data.least_supplier_pi}}-{{product.fields.pr_extra_data.least_supplier_price_pi}}</span> </td>
           <td class="text-center" ng-init="product.fields.delta=0; showCase.getTotals(product)"> 
-            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:2}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
+            <span class="text_element" ng-style="product.fields.delta_color">{{product.fields.delta | number:0}}</span><input type="text" name="delta" ng-model="product.fields.delta" class="hide">
           </td>
           <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
             <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>

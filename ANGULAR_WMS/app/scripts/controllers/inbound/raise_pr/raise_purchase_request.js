@@ -897,10 +897,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
       var product_category = '';
       var keepGoing = true
+      var keepGoing_price = true
       angular.forEach(elem, function(list_obj) {
         if (list_obj['name'] == 'order_quantity') {
           if (parseFloat(list_obj['value']) <= 0) {
             keepGoing = false
+          }
+        }
+        if (list_obj['name'] == 'price') {
+          if (parseFloat(list_obj['value']) <= 0) {
+            keepGoing_price = false
           }
         }
         if (list_obj['name'] == 'product_category') {
@@ -912,7 +918,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.service.showNoty("Quantity can't be 0.")
         return;
       }
-
+      if (!keepGoing_price) {
+        vm.service.showNoty("Price can't be 0.")
+        return;
+      }
       var form_data = new FormData();
       if ($(".pr_form").find('[name="files"]').length > 0) {
         var files = $(".pr_form").find('[name="files"]')[1].files;
@@ -1098,19 +1107,32 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.update_tax_details(product);
     }
     vm.update_tax_details = function(product) {
-      var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id_name, warehouse_id: vm.model_data.store_id}
-      vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
-        if(data.message && data.data.length > 0) {
-          data = data.data[0]
-          var taxes = data.taxes;
-          product.fields.tax = 0;
-          product.fields.cess_tax = 0;
-          if(taxes.length > 0){
-            product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
-            product.fields.cess_tax = taxes[0].cess_tax;
-          }
+      if (product.fields.supplier_id_name.includes(':')) {
+        product.fields.supplier_id = vm.service.change_search_value(product.fields.supplier_id_name);
+        if (typeof(vm.model_data.store_id) == 'undefined') {
+          var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id, warehouse_id: vm.model_data.plant}
+        } else {
+          var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id, warehouse_id: vm.model_data.store_id}
         }
-      });
+        vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+          if(data.message && data.data.length > 0) {
+            data = data.data[0]
+            var taxes = data.taxes;
+            product.fields.tax = 0;
+            product.fields.cess_tax = 0;
+            product.fields.temp_tax = 0;
+            product.fields.temp_cess_tax = 0;
+            if (taxes.length > 0) {
+              product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
+              product.fields.temp_tax = product.fields.tax
+              product.fields.cess_tax = taxes[0].cess_tax;
+              product.fields.temp_cess_tax = product.fields.cess_tax;
+            }
+          }
+        });
+      } else {
+       console.log('Invalid Supplier :' + product.fields.sku.wms_code); 
+      }
     }
   vm.cancel_pr = function cancel_pr() {
       vm.bt_disable = true;
@@ -1383,6 +1405,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.check_sku_product_category = function(prod_cat, sku_cat, sku, index, page=''){
+      if (typeof(page) == 'object') {
+        if (page.sku_sku_comment && (page.sku_comment == '' || typeof(page.sku_comment)=='undefined')) {
+          vm.service.showNoty('Please Enter Mandatory Remarks for Supplier Change', 'error');
+          return;
+        }
+      }
       var data_dict = {}
       data_dict['product_cat'] = prod_cat ? prod_cat : '';
       data_dict['category'] = sku_cat && sku_cat != 'All' ? sku_cat : '';
@@ -1455,23 +1483,34 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.add_raise_pr = function(elem) {
-      if (vm.is_actual_pr){
+      if (vm.is_actual_pr) {
         elem.push({name:'is_actual_pr', value:true})
       }
       var product_category = '';
       var keepGoing = true;
+      var keepGoing_price = true
       angular.forEach(elem, function(list_obj) {
         if (list_obj['name'] == 'order_quantity') {
           if (parseFloat(list_obj['value']) <= 0) {
             keepGoing = false
           }
         }
+        if (list_obj['name'] == 'price') {
+          if (parseFloat(list_obj['value']) <= 0) {
+            keepGoing_price = false
+          }
+        }
         if (list_obj['name'] == 'product_category') {
           product_category = list_obj['value']
         }
       });
+
       if (!keepGoing) {
         vm.service.showNoty("Quantity can't be 0.")
+        return;
+      }
+      if (!keepGoing_price) {
+        vm.service.showNoty("Price can't be 0.")
         return;
       }
 
@@ -1587,6 +1626,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.cess_tax) {
           data.fields.cess_tax = 0;
       }
+      if (data.fields.tax == 0 && data.fields.temp_tax > 0) {
+        data.fields.tax = data.fields.temp_tax;
+      }
+      if (data.fields.cess_tax == 0 && data.fields.temp_cess_tax > 0) {
+        data.fields.cess_tax = data.fields.temp_cess_tax;
+      }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
@@ -1597,20 +1642,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.total_price = vm.model_data.total_price + temp;
         vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
       })
-      if (typeof(data.fields.sku.pr_extra_data) != 'undefined'){
-        var min_price_value = vm.check_price_comparision(data);
-        if (min_price_value != 0) {
-          data.fields.delta = min_price_value - data.fields.price;
-          (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
-        } else {
-          data.fields.delta = 0;
-          data.fields['delta_color'] = { 'color': 'darkgrey' };
+      if (typeof(data.fields.sku) != 'undefined'){
+        if (typeof(data.fields.sku.pr_extra_data) != 'undefined'){
+          var min_price_value = vm.check_price_comparision(data);
+          if (min_price_value != 0) {
+            data.fields.delta = min_price_value - (parseFloat(data.fields.price) + ((parseFloat(data.fields.price) / 100) * parseFloat(data.fields.tax)));
+            (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
+            data.fields.delta = data.fields.delta * data.fields.order_quantity;
+          } else {
+            data.fields.delta = 0;
+            data.fields['delta_color'] = { 'color': 'darkgrey' };
+          }
         }
       }
     }
 
     vm.getCompany = function() {
-
       var temp = vm.model_data.seller_type;
       if (!vm.model_data.seller_type) {
         vm.model_data.company = Session.user_profile.company_name;

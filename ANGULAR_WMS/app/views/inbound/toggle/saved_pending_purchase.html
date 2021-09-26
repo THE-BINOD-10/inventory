@@ -139,9 +139,6 @@
                     <th>SKU Code*</th>
                     <th>Title</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">Detail</th>
-                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">AvailableQty</th>
-                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">IntransitQty</th>
-                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <!-- <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th> -->
 
@@ -157,6 +154,9 @@
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">IGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CESS(%)</th>
+                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">AvailableQty</th>
+                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">IntransitQty</th>
+                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
                     <th class="w10_">Delivery schedule</th>
                     <!-- <th class="w10_">CESS(%)</th>
                     <th class="w10_">APMC(%)</th>
@@ -182,9 +182,6 @@
                     <td ng-if="showCase.model_data.product_category == 'Services'">
                       <input ng-model="product.fields.sku_detail" title="{{ product.fields.sku_detail }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
-                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
-                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
-                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="30">
                     </td>
@@ -230,6 +227,9 @@
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="6">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="6">
                     </td>
+                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity | number:0}}</span> </td>
+                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity | number:0}}</span> </td>
+                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity | number:0}}</span> </td>
                     <!-- <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td> -->
@@ -299,7 +299,6 @@
                </span>
             </div>
           </div>
-
 		    </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.save_raise_pr(form, 'save')">Save</button>

@@ -99,20 +99,32 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         stock_qtys.setdefault(grp_key, 0)
         stock_qtys[grp_key] += stock['total']
     print "Preparing stock dict completed"
+    plant_stock_qtys = {}
+    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+                                                values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
+    for plant_stock in plant_stocks:
+        grp_key = (plant_stock['sku__user'], plant_stock['sku__sku_code'])
+        plant_stock_qtys.setdefault(grp_key, 0)
+        plant_stock_qtys[grp_key] += plant_stock['total']
+    print "Preparing plant stock dict completed"
     consumption_qtys = {}
+    plant_consumption_qtys = {}
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
     for cons in consumption_lt3:
         print cons.id
-        #if cons.sku.user in user_id_mapping:
-        #    usr = user_id_mapping[cons.sku.user]
-        #else:
-        #    usr = User.objects.get(id=cons.sku.user)
-        #    if usr.userprofile.warehouse_type == 'DEPT':
-        #        usr = get_admin(usr)
-        #    user_id_mapping[cons.sku.user] = usr
+        if cons.sku.user in user_id_mapping:
+            usr = user_id_mapping[cons.sku.user]
+        else:
+            usr = User.objects.get(id=cons.sku.user)
+            if usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(usr)
+            user_id_mapping[cons.sku.user] = usr
         grp_key = (cons.sku.user, cons.sku.sku_code)
         consumption_qtys.setdefault(grp_key, 0)
         consumption_qtys[grp_key] += cons.quantity
+        plant_grp = (usr.id, cons.sku.sku_code)
+        plant_consumption_qtys.setdefault(plant_grp, 0)
+        plant_consumption_qtys[plant_grp] += cons.quantity
     print "Preparing consumption dict completed"
     pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
     pending_pr_dict = {}
@@ -131,7 +143,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
     print "Preparing pr pending dict completed"
     po_pending = PendingLineItems.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes,
                                                 pending_po__final_status__in=['saved', 'pending', 'approved'],
-                                                ).only('id', 'sku', 'quantity', 'pending_po__open_po_id')
+                                                ).only('id', 'sku', 'quantity', 'pending_po__open_po_id', 'pending_po__pending_prs__wh_user_id')
                                                 #pending_po__open_po__purchaseorder__isnull=True).only('id', 'sku', 'quantity')
     pending_po_dict = {}
     po_pending_open_po_ids = list(po_pending.values_list('pending_po__open_po_id', flat=True))
@@ -140,14 +152,18 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         print po_pend.id
         if po_pend.pending_po.open_po_id in po_raised_open_po_ids:
             continue
-        if po_pend.sku.user in user_id_mapping:
+        pending_pr = po_pend.pending_po.pending_prs.filter()
+        if not pending_pr:
+            continue
+        pending_pr = pending_pr[0]
+        '''if po_pend.sku.user in user_id_mapping:
             po_user = user_id_mapping[po_pend.sku.user]
         else:
             po_user = User.objects.get(id=po_pend.sku.user)
             #if po_user.userprofile.warehouse_type == 'DEPT':
             #    po_user = get_admin(po_user)
-            user_id_mapping[po_pend.sku.user] = po_user
-        grp_key = (po_user.id, po_pend.sku.sku_code)
+            user_id_mapping[po_pend.sku.user] = po_user'''
+        grp_key = (pending_pr.wh_user_id, po_pend.sku.sku_code)
         pending_po_dict.setdefault(grp_key, {'qty': 0})
         pending_po_dict[grp_key]['qty'] += po_pend.quantity
     print "Preparing po pending dict completed"
@@ -157,32 +173,49 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
     po_dict = {}
     for purchase_order in purchase_orders:
         print purchase_order.id
-        grp_key = (purchase_order.open_po.sku.user, purchase_order.open_po.sku.sku_code)
-        po_dict.setdefault(grp_key, {'qty': 0})
-        po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
+        p_pos = purchase_order.open_po.pendingpos.filter()
+        if p_pos.exists():
+            p_prs = p_pos[0].pending_prs.filter()
+            if p_prs:
+                p_prs_user = p_prs[0].wh_user
+                grp_key = (p_prs_user.id, purchase_order.open_po.sku.sku_code)
+                po_dict.setdefault(grp_key, {'qty': 0})
+                po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
     print "Preparing purchase order dict completed"
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     MRP.objects.filter(user__in=dept_user_ids, status=1, sku__sku_code__in=sku_codes).update(status=0)
     master_data = master_data.filter(sku_code__in=repl_sku_codes).only('sku_code', 'user')
+    plant_dept = {}
     for data in master_data.iterator():
         print data.id
+        user = User.objects.get(id=data.user)
+        if data.user in plant_dept.keys():
+            plant_usr_id = plant_dept[data.user]
+        else:
+            plant_usr_id = get_admin(user).id
         data_dict = {}
         uom_dict = sku_uoms.get(data.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
-        user = User.objects.get(id=data.user)
         grp_key = (data.user, data.sku_code)
+        plant_grp_key = (plant_usr_id, data.sku_code)
         cons_qtybm = consumption_qtys.get(grp_key, 0)/3
         cons_qtypd = (cons_qtybm/30)
         cons_qty = round(cons_qtypd/sku_pcf, 5)
+        plant_cons_qtybm = plant_consumption_qtys.get(plant_grp_key, 0)/3
+        plant_cons_qtypd = (plant_cons_qtybm/30)
+        plant_cons_qty = round(plant_cons_qtypd/sku_pcf, 5)
         sku_repl = repl_dict.get(grp_key, {})
         lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 2)
         min_days = round(cons_qty * sku_repl.get('min_days', 0),2)
         max_days = round(cons_qty * sku_repl.get('max_days', 0), 2)
         stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 2)
+        plant_stock_qty = 0
+        if plant_cons_qty:
+            plant_stock_qty = round((plant_stock_qtys.get(plant_grp_key, 0) * (cons_qty/plant_cons_qty))/sku_pcf, 2)
         sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
         sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
-        total_stock = stock_qty + sku_pending_pr + sku_pending_po
+        total_stock = stock_qty + sku_pending_pr + sku_pending_po + plant_stock_qty
         total_stock = round(total_stock, 2)
         if (total_stock - lead_time) > min_days:
             suggested_qty = 0

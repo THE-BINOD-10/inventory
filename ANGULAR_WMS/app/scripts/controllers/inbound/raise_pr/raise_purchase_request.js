@@ -131,6 +131,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                       "receipt_type": 'Purchase Order',
                       "seller_types": [],
                       "total_price": 0,
+                      "loss_expected": 0,
                       "tax": "",
                       "sub_total": "",
                       "supplier_sku_prices": "",
@@ -191,6 +192,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   'is_approval':data.data.is_approval,
                   "validateFlag": data.data.validateFlag,
                   "total_price": 0,
+                  "loss_expected": 0,
                   "tax": "",
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
@@ -566,7 +568,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price))
 ;
       vm.model_data.total_price = 0;
-
+      vm.model_data.loss_expected = 0;
       angular.forEach(vm.model_data.data, function(one_row){
         vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
       });
@@ -1610,6 +1612,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
+      vm.model_data.loss_expected = 0;
       if (data.fields.temp_price && data.fields.temp_price > 0){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
             Service.showNoty('Price cant be more than Base Price');
@@ -1633,20 +1636,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         data.fields.cess_tax = data.fields.temp_cess_tax;
       }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
-      angular.forEach(vm.model_data.data, function(sku_data){
-        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
-        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
-        if (!sku_data.fields.tax) {
-          sku_data.fields.tax = 0;
-        }
-        vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
-      })
       if (typeof(data.fields.sku) != 'undefined'){
         if (typeof(data.fields.sku.pr_extra_data) != 'undefined'){
           var min_price_value = vm.check_price_comparision(data);
           if (min_price_value != 0) {
             data.fields.delta = min_price_value - (parseFloat(data.fields.price) + ((parseFloat(data.fields.price) / 100) * parseFloat(data.fields.tax)));
+            if (typeof(data.fields.final_price) != 'undefined') {
+              if (parseFloat(data.fields.final_price) > 0) {
+                data.fields.delta = min_price_value - (parseFloat(data.fields.final_price) + ((parseFloat(data.fields.final_price) / 100) * parseFloat(data.fields.tax)));    
+              }
+            }
             (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
             data.fields.delta = data.fields.delta * data.fields.order_quantity;
           } else {
@@ -1655,6 +1654,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
       }
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = 0;
+        }
+        if (sku_data.fields.delta < 0) {
+          vm.model_data.loss_expected = vm.model_data.loss_expected + sku_data.fields.delta;
+        }
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
+      })
     }
 
     vm.getCompany = function() {

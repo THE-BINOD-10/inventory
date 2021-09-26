@@ -17463,7 +17463,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         filters = copy.deepcopy(cus_filters)
     lis = ['id', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
             'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty']
-    if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
     else:
         req_users = [user.id]
@@ -17493,6 +17493,8 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids, 'status': 1}
+    if filters.get('sku_category'):
+        search_params['sku__sku_category'] = filters['sku_category']
     if 'sku_code' in filters and filters['sku_code']:
         search_params['sku__sku_code'] = filters['sku_code']
     order_data = lis[col_num]
@@ -17811,4 +17813,52 @@ def download_pr_req_files(request, user=''):
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
     return resp
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_material_planning(request, user):
+    from rest_api.management.commands.mrp import generate_mrp_main
+    run_sku_codes = None
+    filters = copy.deepcopy(request.POST.dict())
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants_depts(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE', 'DEPT'])
+    if 'plant_code' in filters and filters['plant_code']:
+        plant_code = filters['plant_code']
+        plant_users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in filters and filters['plant_name']:
+        plant_name = filters['plant_name']
+        plant_users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if request.POST.get('dept_type'):
+        dept_type = request.POST['dept_type']
+        users = users.filter(userprofile__stockone_code=dept_type)
+
+    if 'zone_code' in filters and filters['zone_code']:
+        zone_code = filters['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    if filters.get('sku_category'):
+        run_sku_codes = list(SKUMaster.objects.filter(user__in=user_ids, sku_category=filters['sku_category']).values_list('sku_code', flat=True))
+    if filters.get('sku_code'):
+        run_sku_codes = [filters['sku_code']]
+    if users.filter(userprofile__warehouse_type='DEPT'):
+        print users.filter(userprofile__warehouse_type='DEPT')
+        generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes)
+        return HttpResponse("Success")
+    else:
+        return HttpResponse("No Data Found")
 

@@ -45,17 +45,29 @@
                 <div class="form-group">
                   <label class="control-label">Zone Code</label>
                   <select name="zone_code" class="form-control" ng-model="showCase.model_data.filters.zone_code">
+                    <option value=''>Select</option>
                     <option ng-repeat="zone in showCase.zones_list">{{ zone }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Category</label>
+                  <select name="zone_code" class="form-control" ng-model="showCase.model_data.filters.sku_category">
+                    <option value=''>Select</option>
+                    <option ng-repeat="category in showCase.category_list">{{ category }}</option>
                   </select>
                 </div>
               </div>
 
             </div>
             <div class="col-md-12">
-              <div class="filter-controls">
+              <div class="filter-controls" style="width: 300px;">
                 <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
                 <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Search </button>
+                <button type="button" class="btn btn-danger" id="add-shippment-btn" style="margin-left: 10px;" data-toggle="modal" ng-click="showCase.generate_mrp_data();" ng-if="showCase.permissions.add_mrp"> Generate MRP </button>
               </div>
             </div>
           </div>

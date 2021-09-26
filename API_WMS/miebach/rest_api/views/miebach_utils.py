@@ -17794,7 +17794,7 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_metropolis_po_report_data(search_params, user, sub_user):
+def get_metropolis_po_report_data(request, search_params, user, sub_user):
     from miebach_admin.models import *
     from stockone_integrations.models import IntegrationMaster
     from inbound import findLastLevelToApprove
@@ -17872,8 +17872,11 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     if 'zone_code' in search_params:
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
-    search_parameters['open_po__sku__user__in'] =list(users.values_list('id', flat=True))
-    search_parameters['open_po__isnull'] = False
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['open_po__sku__user__in'] = user_ids
+    if search_params.get('excel_name'):
+        temp_data = po_report_download(user_ids, search_params, user)
+        return temp_data
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -18122,7 +18125,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_metropolis_po_detail_report_data(search_params, user, sub_user):
+def get_metropolis_po_detail_report_data(request, search_params, user, sub_user):
     from django.utils import timezone
     from miebach_admin.models import *
     from inbound import findLastLevelToApprove
@@ -18207,7 +18210,9 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['open_po__sku__user__in'] = user_ids
-
+    if search_params.get('excel_name'):
+        temp_data = po_report_download(user_ids, search_params, user)
+        return temp_data
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -19603,4 +19608,90 @@ def get_praod_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
+
+
+
+
+def po_report_download(user_list, search_params, user):
+    from django.db import connection
+    from .common import get_misc_value, get_admin,get_local_date
+    cursor = connection.cursor()
+    query = "SELECT sm.name as `Supplier_Name`,\
+		sm.supplier_id as `Supplier_Id`,\
+		sm.tin_number as `GST_Number`,\
+		po.po_number as 'PO_Number',\
+		po.reason as 'Reason',\
+                sk.sku_code as 'SKU_code',\
+		sk.sku_category as 'SKU_category',\
+		sk.sku_desc as 'SKU_description',\
+		sk.hsn_code as 'HSN_code',\
+		DATE_FORMAT(DATE(po.po_date), '%%Y-%%m-%%d') as `PO_Date`,\
+		(opo.order_quantity) as 'PO_Quantity',\
+		opo.order_quantity - po.received_quantity as 'Receivable_Quantity',\
+		(CASE\
+		   WHEN (opo.order_quantity - po.received_quantity) > 0 THEN 'Open_PO'\
+		   ELSE 'Received_PO'\
+		END) as 'Open_PO_status',\
+		opo.price as 'PO_Price',\
+		(opo.order_quantity * opo.price) as `Pre_Tax_Value`,\
+		(opo.order_quantity * opo.price) + (((opo.order_quantity * opo.price) * (opo.cgst_tax + opo.igst_tax + opo.sgst_tax + opo.utgst_tax +opo.cess_tax))/100) as `Post_Tax_Value`,\
+		opo.cgst_tax as 'CGST_tax',\
+		opo.igst_tax as 'IGST_tax',\
+		opo.sgst_tax as 'SGST_tax',\
+		opo.utgst_tax as 'UTGST_tax',\
+		opo.cess_tax as 'CESS_tax',\
+		po.received_quantity as 'Received_Quantity',\
+		po.received_quantity * opo.price as 'Received_Pre_Tax_Value',\
+		(po.received_quantity * opo.price) + (((po.received_quantity * opo.price) * (opo.cgst_tax + opo.igst_tax + opo.sgst_tax + opo.utgst_tax +opo.cess_tax))/100) as 'Received_Post_Tax_Value',\
+		((opo.order_quantity - po.received_quantity) * opo.price) as 'Receivable_Pre_Tax_Value',\
+		((opo.order_quantity - po.received_quantity) * opo.price) + ((((opo.order_quantity - po.received_quantity) * opo.price) * (opo.cgst_tax + opo.igst_tax + opo.sgst_tax + opo.utgst_tax +opo.cess_tax))/100) as 'Receivable_Post_Tax_Value',\
+		up.stockone_code as 'Plant',\
+		au.username as 'Username',\
+		DATE_FORMAT(DATE(po.po_date), '%%Y-%%m-%%d') as 'PO_Creation_Date',\
+		(CASE \
+		  WHEN po.reason != '' THEN 'Short Closed'\
+		  ELSE po.status\
+		END) as 'PO_Status',\
+		au.first_name as 'Plant_Name'\
+		FROM PURCHASE_ORDER po\
+		JOIN OPEN_PO opo ON opo.id = po.open_po_id\
+		JOIN SUPPLIER_MASTER sm ON sm.id = opo.supplier_id\
+		JOIN SKU_MASTER sk ON sk.id = opo.sku_id\
+		JOIN auth_user au ON au.id = sk.user\
+		JOIN USER_PROFILE up ON up.user_id = sk.user\
+                where au.id in %s AND DATE(po.creation_date) >=%s AND DATE(po.creation_date) <=%s \
+	"
+    user_list = tuple(user_list)
+    filter_keys = [user_list, search_params['from_date'].strftime('%Y-%m-%d')]
+    if 'to_date' in search_params:
+        filter_keys.append((search_params['to_date']+datetime.timedelta(1)).strftime('%Y-%m-%d'))
+    else:
+        filter_keys.append((NOW +datetime.timedelta(1)).strftime('%Y-%m-%d'))
+    filter_keys =tuple(filter_keys)
+    cursor.execute(query, filter_keys)
+    purchase_orders = cursor.fetchall()
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+    	search_parameters['creation_date__lt'] = search_params['to_date']
+    search_parameters['open_po__sku__user__in'] = user_list
+    po_number_list = list(PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values_list('po_number', flat=True).distinct())
+    pr_data = {}
+    for po in po_number_list:
+    	pr_data[po] = list(PendingPO.objects.filter(full_po_number = po).values_list('pending_prs__full_pr_number', flat =True))
+    for data in purchase_orders:
+        aaData = OrderedDict((('Plant', data[26]),('Username', data[27]),('Plant Name', data[30]),('Supplier Name', data[0]),('Supplier ID', data[1]) ,
+            ('GST Number', data[2]), ('PO No', data[3]),
+            ('PR No', pr_data.get(data[3])),('SKU Code', data[5]),('SKU Category',data[6]),('SKU Description', data[7]),
+            ('HSN Code', data[8]),('PO Date', data[9]),('PO Qty', data[10]),('Recieved Qty', data[21]),
+            ('Recievable Qty',data[11]),('PO Price', data[13]),('Pre Tax Value', data[14]),
+            ('Post Tax value', data[15]), ('CGST', data[16]),('IGST', data[17]),
+            ('SGST', data[18]),('UTGST', data[19]),('Recieved Pre Tax Value', data[22]),('Recieved Post Tax Value', data[23]),
+            ('Recievable Pre Tax Value', data[24]),('Recievable Post Tax Value', data[25]),
+            ('PO Creation Date', data[28]),('Reason', data[4]),('Open PO Status', data[12]),('PO Status', data[29])))
+        temp_data['aaData'].append(aaData)
+    return temp_data
+
+
 

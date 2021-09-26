@@ -188,10 +188,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
       var data_ids = [];
       var formData = new FormData();
       var plant_code = '';
+      var dept = ''
       var plant_check = false;
       var non_zero_qty = false;
       angular.forEach(vm.selected, function(value, key){
         if(value) {
+          var table_data = vm.dtInstance.DataTable.context[0].aoData[key];
+          var row_plant = table_data._aData['Plant Code'];
+          var row_dept = table_data._aData['Department'];
+          if(!plant_code){
+            plant_code = row_plant;
+          }
+          if(!dept){
+            dept = row_dept;
+          }
           var sugg_qty = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Suggested Qty'];
           if(sugg_qty != ''){
             sugg_qty = parseFloat(sugg_qty);
@@ -203,20 +213,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
             formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
             non_zero_qty = true;
           }
-          if(plant_code && plant_code != vm.dtInstance.DataTable.context[0].aoData[key]._aData['Plant Code']){
+          if(plant_code != row_plant || dept != row_dept){
             plant_check = true;
           }
         }
       });
       if(plant_check) {
-        vm.service.showNoty('Please Select one plant only');
+        vm.service.showNoty('Please Select one plant and department only');
         return false;
       }
       if(!non_zero_qty && !vm.selectAll) {
         vm.service.showNoty('Suggested Quantity is zero for all selected lines');
         return false;
       }
-      formData.append('select_all', vm.selectAll);
+      //formData.append('select_all', vm.selectAll);
+      formData.append('select_all', false);
       angular.forEach(vm.model_data.filters, function(value, key){
         formData.append(key, value);
       });
@@ -327,6 +338,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
       vm.department_type_list = data.data.department_list;
     }
   });
+
+  vm.category_list = [];
+  vm.service.apiCall('get_sku_category_list/',).then(function(data){
+    if(data.message){
+      vm.category_list = data.data.category_list;
+    }
+  })
+
+  vm.generate_mrp_data = function() {
+    vm.service.alert_msg("Generate MRP").then(function(msg) {
+      if(msg == "true"){
+        var filters_data = vm.model_data.filters;
+        vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
+          vm.service.showNoty(data.data);
+        });
+      }
+    });
+
+  }
 
 }
 

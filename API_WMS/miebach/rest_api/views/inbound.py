@@ -3676,7 +3676,13 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
     mailsList = []
     user_roles = []
     company_id = get_company_id(user)
-    pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
+    purchaseapp_company_id = company_id
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            purchaseapp_company_id = user.userprofile.company.id
+    except Exception as e:
+        pass
+    pacFiltersMap = {'company_id': purchaseapp_company_id, 'name': reqConfigName, 'level': level}
     if admin_user:
         pacFiltersMap['user'] = admin_user
     if approval_type:
@@ -10928,7 +10934,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
         send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
-        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+        #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:
         if report_type == 'Purchase Order':

@@ -15080,6 +15080,9 @@ def get_pr_number_from_po(pend_po):
     pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
     return pr_numbers
 
+def get_re_user_from_po(pend_po):
+    requested_user = ', '.join(list(pend_po.pending_prs.filter().values_list('requested_user__username', flat=True)))
+    return requested_user
 
 def get_sku_code_inc_number(user, instanceName, category, check=False):
     if instanceName == AssetMaster:

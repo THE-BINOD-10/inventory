@@ -61,11 +61,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ //"Supplier ID",
-		     "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
-                    "Category", "Total Quantity", "Total Amount",
-                    "PO Created Date", "PO Delivery Date", "Store", "Department",
-                     "PO Raise By",  "Validation Status", 
-		    //"Pending Level", 
+		    "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
+        "Category", "Total Quantity", "Total Amount",
+        "PO Created Date", "PO Delivery Date", "Store", "Department",
+        "PO Raise By",  "Validation Status", "Pending Level",
 		    "To Be Approved By", "Last Updated By",
 		    "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -183,6 +182,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "supplier_currencyes": data.data.supplier_currency,
             "supplier_currency": '',
             "supplier_currency_rate": '',
+            "supplier_email": data.data.supplier_email,
+            "po_all_mails": data.data.po_all_mails,
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -316,9 +317,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_status = aData['Validation Status']
           vm.pending_level = aData['LevelToBeApproved']
           vm.pop_up_status = aData['Validation Status']
-          if (aData['Validation Status'] == 'Approved'){
+          if (aData['Validation Status'] == 'Approved' || aData['is_final']) {
+            if (aData['shipment_address_select']) {
+              vm.model_data.ship_to = aData['shipment_address_select'];  
+            }
+            vm.model_data.supplier_currency = aData['supplier_currency'];
+            if (vm.model_data.supplier_currency == 'INR') {
+              vm.model_data.supplier_currency_rate = '';  
+            } else {
+              vm.model_data.supplier_currency_rate = aData['supplier_currency_rate'];  
+            }
             $state.go('app.inbound.RaisePo.PurchaseOrder');
-          } else if (aData['Validation Status'] == 'Saved'){
+          } else if (aData['Validation Status'] == 'Saved') {
             vm.update = true;
             $state.go('app.inbound.RaisePo.SavedPurchaseRequest');
           } else {
@@ -1340,7 +1350,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
-
+      var all_po_emails = $(".internal_mails").val();
+      form_data.append('all_po_emails', all_po_emails);
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {

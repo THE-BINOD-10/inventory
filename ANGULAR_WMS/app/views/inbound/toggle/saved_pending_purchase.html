@@ -13,6 +13,10 @@
  .sidebar-panel{
     z-index: 1000;
  }
+ .select2-container .select2-choice {
+    height: 32px !important;
+    border: 1px solid #aaaaaa5c !important;
+  }
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
@@ -87,7 +91,7 @@
                 <!-- <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update"> -->
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="col-md-2 col-sm-2 col-xs-6">
               <div class="form-group">
                 <label class="control-label">PO Delivery Date *</label>
                 <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
@@ -109,6 +113,24 @@
                 <label class="control-label"> Ship To *</label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
             </div> -->
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po" ng-show="!showCase.from_supplier_pos">
+              <div class="form-group">
+                <label class="control-label">Ship to Address *</label>
+                <select ui-select2 class="form-control" name="plant_address" ng-model="showCase.model_data.shipment_address_select" ng-change = "showCase.ship_addr_change(showCase.model_data.shipment_address_select)" required>
+                  <option ng-repeat="data in showCase.model_data.ship_addr_names"
+                          ng-selected="showCase.model_data.shipment_address_select == data"
+                          value="{{data}}">{{data}}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
+              <div class="form-group">
+                <label class="control-label"> Ship To *</label>
+                <input type="text"
+                       ng-readonly="showCase.model_data.is_approval"
+                       ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" required> </div>
+            </div>
             <div class="col-md-3 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Payment Terms *</label>
@@ -119,6 +141,31 @@
                             value="{{pay_term}}">{{pay_term}}
                   </option>
                 </select>
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
+              <div class="form-group">
+                <label class="control-label">Supplier Currency *</label>
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-init="showCase.model_data.supplier_currency=''" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                    <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currency != showCase.model_data.warehouse_currency && showCase.model_data.supplier_currency">
+              <div class="form-group">
+                <label class="control-label">Please enter 1 Supplier Currency (<span>{{showCase.model_data.supplier_currency}}</span>) = How Many Plant Currency (<span>{{showCase.model_data.warehouse_currency}}</span>)?  *</label>
+                <input type="text" ng-model="showCase.model_data.supplier_currency_rate" name="supplier_currency_rate" class="form-control" ng-class="service.get_decimal_perm()" required>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6" ng-hide="true">
+              <div class="form-group">
+                <input type="text" ng-model="showCase.model_data.supplier_email" required/>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6">
+              <div class="form-group bootstrap-tagsinput">
+                <label class="control-label">SupplierEmail ({{showCase.model_data.supplier_email}}) / Buyer / PR User mails *</label>
+                <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>
             <!-- <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">

@@ -5229,7 +5229,7 @@ def grn_download(user_list, search_params, user):
     from django.db import connection
     from .common import get_misc_value, get_admin,get_local_date
     cursor = connection.cursor()
-    query = "SELECT  ad.username as 'Zone',\
+    query = "SELECT up.zone as 'Zone',\
         au.username  as 'WareHouse',\
         sm.name as 'Supplier_Name',\
         sm.supplier_id as 'Supplier_Id',\
@@ -5264,7 +5264,7 @@ def grn_download(user_list, search_params, user):
         DATE_FORMAT(DATE(s_po_s.challan_date), '%%Y-%%m-%%d') as 'Challan_Date',\
         CASE WHEN s_po_s.status = 1 THEN 'Cancelled' ELSE 'Completed' END as 'GRN_status',\
         CASE WHEN s_po_s.status = 1 THEN 'Cancelled' WHEN s_po_s.credit_status = 1 THEN 'Created' WHEN s_po_s.credit_status = 2 THEN 'Completed' ELSE 'No' END as 'Credit_Note_applicable',\
-        po_cn.credit_number as 'Credit_Note_number',\
+        sk.cost_price as 'Cost_price',\
         s_po_s.remarks as 'Remarks',\
         sm.tin_number as 'Suppiler GSTIN Number',\
         up.stockone_code  as 'Plant'\
@@ -5273,12 +5273,9 @@ def grn_download(user_list, search_params, user):
         JOIN OPEN_PO opo ON opo.id = po.open_po_id \
         JOIN SUPPLIER_MASTER sm ON sm.id = opo.supplier_id\
         JOIN SKU_MASTER sk ON sk.id = opo.sku_id\
-        LEFT JOIN PO_CREDIT_NOTE po_cn ON po_cn.id = s_po_s.credit_id \
-        LEFT JOIN PO_LOCATION po_l ON po_l.purchase_order_id = po.id and po_l.receipt_number = s_po_s.receipt_number and po_l.status =0\
         JOIN auth_user au ON au.id = sk.user \
         JOIN USER_PROFILE up ON up.user_id = sk.user\
         JOIN USER_GROUPS ug ON ug.user_id = au.id \
-        JOIN auth_user ad ON ad.id = ug.admin_user_id\
         where au.id in %s AND DATE(s_po_s.creation_date) >=%s AND DATE(s_po_s.creation_date) <=%s"
     user_list = tuple(user_list)
     filter_keys = [user_list, search_params['from_date'].strftime('%Y-%m-%d')]
@@ -5302,7 +5299,7 @@ def grn_download(user_list, search_params, user):
 	            ('Type of GRN', data[27]),('GRN date', data[28]),('Invoice Number', data[29]),
 	            ('Invoice Date', data[30]),('Invoice Value', data[31]),('Tcs Value', data[32]),
 	            ('Challan Number', data[33]),('Challan Date', data[34]),
-	            ('GRN Status', data[35]), ('Credit Note Applicable', data[36]),('Credit Note Number', data[37] if data[37] else ''),('Remarks',data[38]),
+	            ('GRN Status', data[35]), ('Credit Note Applicable', data[36]),('Remarks',data[38]),
 	            ('Supplier GSTIN Number', data[39]),('Plant', data[40])))
 	temp_data['aaData'].append(aaData)
     return temp_data

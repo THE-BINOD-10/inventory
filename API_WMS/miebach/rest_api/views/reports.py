@@ -1707,6 +1707,13 @@ def excel_reports(request, user=''):
                     'Challan Number', 'Challan Date', 'GRN Status', 'Credit Note Applicable', 'Credit Note Number', 
                     'Remarks', 'Supplier GSTIN Number', 'Plant']
         params = [request, search_params, user, request.user]
+    if excel_name in ['excel_name=get_metropolis_po_detail_report', 'excel_name=get_metropolis_po_report']:
+        search_params['excel_name'] = excel_name
+        headers = ['Plant', 'Plant Name', 'Username', 'Supplier Name', 'Supplier ID', 'GST Number', 'PO No', 'PR No', 'SKU Code', 'SKU Category', 'SKU Description', 
+                    'HSN Code', 'PO Date', 'PO Qty', 'Recieved Qty', 'Recievable Qty', 'PO Price', 'Pre Tax Value', 'Reason', 
+                    'CGST', 'IGST', 'SGST', 'UTGST', 'Post Tax value', 'Recieved Pre Tax Value', 'Recieved Post Tax Value', 
+                    'Recievable Pre Tax Value', 'Recievable Post Tax Value', 'PO Creation Date','Open PO Status',  'PO Status']
+        params = [request, search_params, user, request.user]
     if 'excel_name=integration_report' in excel_name:
         params = [request, search_params, user, request.user]
     if 'excel_name=pr_po_grn_dict' in excel_name:
@@ -2945,7 +2952,7 @@ def get_metro_po_report(request, user=''):
 @get_admin_user
 def get_metropolis_po_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_metropolis_po_report_data(search_params, user, request.user)
+    temp_data = get_metropolis_po_report_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
@@ -2961,7 +2968,7 @@ def get_metro_po_detail_report(request, user=''):
 @get_admin_user
 def get_metropolis_po_detail_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_metropolis_po_detail_report_data(search_params, user, request.user)
+    temp_data = get_metropolis_po_detail_report_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt

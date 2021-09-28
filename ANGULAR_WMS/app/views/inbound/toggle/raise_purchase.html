@@ -24,13 +24,13 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
-        <div class="modal-header">
+        <div class="modal-header" style="padding: 5px !important;">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">
-              <h4 class="modal-title pull-left">{{showCase.title}}</h4>
+              <h4 class="modal-title pull-left">Confirm PO</h4>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
@@ -38,7 +38,7 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span></button>
         </div>
-        <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
+        <div class="modal-body raise_po" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN' && showCase.warehouse_level == 2 && showCase.multi_level_system == 1">
               <div class="col-md-4 col-sm-4 col-xs-6">
@@ -231,6 +231,12 @@
               <div class="form-group">
                 <label class="control-label">Please enter 1 Supplier Currency (<span>{{showCase.model_data.supplier_currency}}</span>) = How Many Plant Currency (<span>{{showCase.model_data.warehouse_currency}}</span>)?  *</label>
                 <input type="text" ng-model="showCase.model_data.supplier_currency_rate" name="supplier_currency_rate" class="form-control" ng-class="service.get_decimal_perm()" required>
+              </div>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-2 col-xs-6">
+              <div class="form-group bootstrap-tagsinput">
+                <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
+                <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin' && !showCase.permissions.central_admin_level_po">
@@ -535,8 +541,10 @@
         <div class="modal-footer">
           <!-- <label>{{showCase.print_enable}} - {{showCase.confirm_btn_disable}}</label> -->
           <button ng-if="showCase.print_enable" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_grn()">Print</button>
-          <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-green" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
+          <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-yellow" data-dismiss="modal" ng-click="showCase.confirm(form, true)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
           <button ng-if="showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.final_po_confirmation()">Confirm PO</button>
+          <button ng-if="!showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.confirm(form, false)">Confirm PO</button>
+          
           <!-- <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button> -->
         </div>
         <!-- <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">

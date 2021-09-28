@@ -24,10 +24,10 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
-        <div class="modal-header">
+        <div class="modal-header" style="padding: 5px !important;">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 class="modal-title pull-left">{{showCase.title}}</h4>
@@ -38,7 +38,7 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
+        <div class="modal-body raise_po" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row">
             <div class="col-md-2 col-sm-2 col-xs-3">
             <div class="form-group">
@@ -109,7 +109,7 @@
             </div>
             <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6">
               <div class="form-group bootstrap-tagsinput">
-                <label class="control-label">SupplierEmail ({{showCase.model_data.supplier_email}}) / Buyer / PR User mails *</label>
+                <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
                 <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>

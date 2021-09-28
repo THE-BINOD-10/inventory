@@ -2063,6 +2063,8 @@ def generated_pr_data(request, user=''):
         po_all_mails.append(req_pr_user)
     if len(po_all_mails) > 0:
         po_all_mails = ','.join(po_all_mails)
+        if record[0].po_mail_members != '':
+            po_all_mails = record[0].po_mail_members
     return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
                                     'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date, 'supplier_currency': supplier_currency,
                                     'pr_created_date': pr_created_date, 'warehouse': storeObj.first_name,
@@ -4215,7 +4217,8 @@ def approve_pr(request, user=''):
                 central_po_data = temp_jsons[0].model_json
         is_resubmitted = False
         if purchase_type == 'PR':
-            if is_purchase_approver or (pendingPRObj.is_new_pr and pending_level == 'level0'):
+            # if is_purchase_approver or (pendingPRObj.is_new_pr and pending_level == 'level0'):
+            if is_purchase_approver:
                 lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
                 temp_data = TempJson.objects.filter(model_id__in=lineItemIds,
                                         model_name='PENDING_PR_PURCHASE_APPROVER')
@@ -4324,39 +4327,40 @@ def approve_pr(request, user=''):
                         master_docs_obj.save()
         if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
             if purchase_type == 'PR':
-                # if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
-                #     nextLevel = 'level1'
-                #     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
-                #                       approval_type='default', sku_category=sku_category)
-                #     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
-                #                         master_type=master_type, forPO=poFor, approval_type='default', save_level=lastLevel)
-                #     if not prObj and reqConfigName:
-                #         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
-                #     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
-                #                         remarks, purchase_type=purchase_type)
-                #     for eachMail in mailsList:
-                #         hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
-                #         sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
-                #                 eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
-                #                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
-                # else: #In last Level, no need to generate Hashcode, just confirmation mail is enough
-                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
-                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
-                                                                     approval_type='approved')
-                if approval_obj.exists():
-                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
-                                            master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
+                if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
+                    nextLevel = 'level1'
+                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                                      approval_type='default', sku_category=sku_category)
+                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
+                                        master_type=master_type, forPO=poFor, approval_type='default', save_level=lastLevel)
                     if not prObj and reqConfigName:
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
-                    PRQs.update(final_status=validation_type)
                     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
-                                     remarks, purchase_type=purchase_type)
+                                        remarks, purchase_type=purchase_type)
+                    PRQs.update(pending_level=nextLevel)
                     for eachMail in mailsList:
-                        generateHashCodeForMail(prObj, eachMail, 'level0')
-                        sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
-                            '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
-                            central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
-                            is_resubmitted=is_resubmitted)
+                        hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
+                        sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
+                                eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
+                                currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
+                else: #In last Level, no need to generate Hashcode, just confirmation mail is enough
+                    display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
+                    approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
+                                                                         approval_type='approved')
+                    if approval_obj.exists():
+                        prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
+                                                master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
+                        if not prObj and reqConfigName:
+                            return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
+                        PRQs.update(final_status=validation_type)
+                        updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
+                                         remarks, purchase_type=purchase_type)
+                        for eachMail in mailsList:
+                            generateHashCodeForMail(prObj, eachMail, 'level0')
+                            sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
+                                '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
+                                central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
+                                is_resubmitted=is_resubmitted)
                 # pass
                 try:
                     netsuite_pr(user, PRQs, full_pr_number, request)
@@ -10420,20 +10424,22 @@ def confirm_add_po(request, sales_data='', user=''):
         req_data = PurchaseOrder.objects.filter(po_number=request.POST.get('po_number', ''))
         if req_data.exists():
             return HttpResponse("%s - %s" % (request.POST.get('po_number', ''), 'Already Confirmed - Please Close this Window & Check'))
-    else:
-        # import pdb; pdb.set_trace()
-        try:
-            purchase_id = int(request.POST.get('purchase_id'))
-            poQs = PendingPO.objects.filter(id=purchase_id)[0]
-            poQs.final_status = 'approved'
-            po_approvals = po.pending_poApprovals.filter().order_by('-creation_date')
-            if po_approvals.exists():
-                po_approvals = PurchaseApprovals[0]
-                po_approvals.status = 'approved'
-                po_approvals.save()
-                purchaseapprovalmails_set.filter(email__icontains=po_approvals.validated_by).update(status = 'approved')
-        except Exception as e:
-            pass
+        else:
+            try:
+                purchase_id = int(request.POST.get('purchase_id'))
+                poQs = PendingPO.objects.filter(id=purchase_id)[0]
+                poQs.final_status = 'approved'
+                if request.POST.get('po_all_mails', ''):
+                    poQs.po_mail_members = request.POST.get('po_all_mails', '')
+                poQs.save()
+                po_approvals = poQs.pending_poApprovals.filter().order_by('-creation_date')
+                if po_approvals.exists():
+                    po_approvals = po_approvals[0]
+                    po_approvals.status = 'approved'
+                    po_approvals.save()
+                    po_approvals.purchaseapprovalmails_set.filter().update(status = 'approved')
+            except Exception as e:
+                pass
     reversion.set_user(request.user)
     reversion.set_comment("raise_po: %s" % str(get_user_ip(request)))
     ean_flag = False
@@ -10849,6 +10855,11 @@ def confirm_add_po(request, sales_data='', user=''):
         supplier_notify = ''
         if myDict.get('supplier_notify', ''):
             supplier_notify = myDict.get('supplier_notify', '')[0]
+        try:
+            if poQs.po_mail_members:
+                supplier_email_id = list(set(poQs.po_mail_members.split(',')).union(set(supplier_email_id)))
+        except Exception as e:
+            pass
         if get_misc_value('raise_po', user.id) == 'true' and supplier_notify == 'true':
             data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email,
                             'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name,
@@ -10858,7 +10869,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 write_and_mail_pdf(po_number, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
-                write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
+                write_and_mail_pdf(po_number, rendered, request, user, supplier_email_id, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         user_profile = UserProfile.objects.filter(user_id=user.id)
         check_purchase_order_created(user, po_id, check_prefix)

@@ -1317,6 +1317,8 @@ def update_pr_po_config_roles(company_id, eachConfig, roles):
 
 def update_purchase_approval_config_data(company_id, purchase_type, data, user, approval_type):
     mailsMap = data.get('%s_level_data' % approval_type, {})
+    if not data.get('zone', False):
+        return 'Zone is Missing!'
     final_data = []
     if approval_type == 'ranges':
         final_data = mailsMap
@@ -1327,7 +1329,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
         pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=data['name'],
                                                              purchase_type=purchase_type, approval_type=approval_type,
                                                              min_Amt=final_dat['min_Amt'], max_Amt=final_dat['max_Amt'],
-                                                             name=actual_name)
+                                                             name=actual_name, zone=data['zone'])
         existingLevels = list(pr_approvals.values_list('level', flat=True))
         updatingLevels = map(lambda d: d['level'], final_dat['range_levels'])
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
@@ -1348,6 +1350,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                 'company_id': company_id,
                 'name': actual_name,
                 'display_name': data['name'],
+                'zone': data['zone'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
                 #'plant': data.get('plant', ''),
@@ -13813,6 +13816,22 @@ def all_purchase_approval_config_data(request, user=''):
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
     return HttpResponse(HttpResponse(json.dumps({'config_data': config_dict})))
+
+def get_product_category_based_sku_categories(user):
+    final_dict = {}
+    final_dict['Kits&Consumables'] = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category='').\
+                                        exclude(id__in=AssetMaster.objects.all()). \
+                                        exclude(id__in=ServiceMaster.objects.all()). \
+                                        exclude(id__in=OtherItemsMaster.objects.all()). \
+                                        values_list('sku_category', flat=True).distinct())
+    final_dict['Services'] = list(ServiceMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    final_dict['Assets'] = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    final_dict['OtherItems'] = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    return final_dict
+
 
 @login_required
 @csrf_exempt

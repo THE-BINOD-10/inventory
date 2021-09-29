@@ -2429,6 +2429,7 @@ def generated_actual_pr_data(request, user=''):
                     'resubmitting_user': resubmitting_user,
                     'approval_remarks': approval_remarks,
                     'pa_uploaded_file_dict': pa_uploaded_file_dict,
+                    'is_purchase_approver': is_purchase_approver,
                     'is_auto_pr': record[0].is_auto_pr, 'display_suggested_qty': display_suggested_qty}
     try:
         pr_actual_data.info("requested_user %s for Full PR Number %s Click Time %s generated dict is %s" % (request.user.username, log_full_pr_number, datetime.datetime.now(), str(response_dict)))
@@ -10873,7 +10874,6 @@ def confirm_add_po(request, sales_data='', user=''):
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         user_profile = UserProfile.objects.filter(user_id=user.id)
         check_purchase_order_created(user, po_id, check_prefix)
-
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

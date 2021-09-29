@@ -203,6 +203,7 @@ class MastersDOA(models.Model):
 
     class Meta:
         db_table = 'MASTERS_DOA'
+        index_together = (('doa_status','model_name','requested_user','json_data'))
         permissions = [
             ('approve_source_sku_doa', 'Approve Source SKU Doa'),
             ('approve_sku_master_doa', 'Approve SKU Master Doa'),
@@ -394,7 +395,7 @@ class SKUSupplier(models.Model):
 
     class Meta:
         db_table = 'SKU_SUPPLIER_MAPPING'
-        index_together = ('supplier', 'sku')
+        index_together = (('supplier', 'sku'),('sku',))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.supplier)
@@ -632,7 +633,7 @@ class GenericEnquiry(models.Model):
 
     class Meta:
         db_table = 'GENERIC_ENQUIRY'
-
+        index_together = (('master_id','master_type'))
 
 class CompanyMaster(models.Model):
     id = BigAutoField(primary_key=True)
@@ -784,7 +785,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-
+        index_together = (('pending_pr','level'),('pending_po','level'))
 
 class TableLists(models.Model):
     name = models.CharField(max_length=64, default='', db_index=True)
@@ -881,7 +882,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'))
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
         permissions = [
             ('update_purchaseorder', 'Update Purchase Order'),
         ]
@@ -1595,6 +1596,7 @@ class UserGroups(models.Model):
 
     class Meta:
         db_table = 'USER_GROUPS'
+        index_together = (('user',),('user','company'),('company',),('admin_user',))
 
 
 class WarehouseCustomerMapping(models.Model):
@@ -2934,7 +2936,7 @@ class TaxMaster(models.Model):
     class Meta:
         db_table = 'TAX_MASTER'
         # unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
-        index_together = (('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
+        index_together = (('user','product_type','inter_state','max_amt','min_amt'),('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
 
     def json(self):
         return {
@@ -3557,7 +3559,7 @@ class MasterDocs(models.Model):
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = (('master_id', 'master_type', 'uploaded_file'),
+        index_together = (('master_id', 'master_type', 'uploaded_file'),('master_id','master_type'),
                           ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
@@ -4191,7 +4193,7 @@ class UOMMaster(models.Model):
 
     class Meta:
         db_table = 'UOM_MASTER'
-        unique_together = ('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+        index_together = (('sku_code','company','uom_type'),('sku_code','uom_type','company'),('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion'))
 
     def __unicode__(self):
         return '%s-%s' % (self.company, self.name)

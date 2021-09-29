@@ -4332,7 +4332,7 @@ def approve_pr(request, user=''):
                     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
                                       approval_type='default', sku_category=sku_category)
                     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
-                                        master_type=master_type, forPO=poFor, approval_type='default', save_level=lastLevel)
+                                        master_type=master_type, forPO=poFor, approval_type='default', save_level=nextLevel)
                     if not prObj and reqConfigName:
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
                     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,

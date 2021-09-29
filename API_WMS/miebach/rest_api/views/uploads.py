@@ -13431,6 +13431,7 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
                         index_status.setdefault(row_idx, set()).add('Invalid Department')
             elif key == 'sku_category':
                 if cell_data:
+                    # if cell_data in pc_sku_category[data_dict['product_category']]: # To Stop Unmapped SKU Categories DOA
                     if cell_data and pc_sku_category[data_dict['product_category']]:
                         data_dict[key] = cell_data
                     else:

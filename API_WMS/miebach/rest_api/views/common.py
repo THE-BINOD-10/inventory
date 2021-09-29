@@ -1472,9 +1472,48 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
             company_id = user.userprofile.company.id
     except Exception as e:
         pass
-    admin_user = get_admin(user)
+    if user.userprofile.warehouse_type == 'DEPT':
+        admin_user = get_admin(user)
+        zone = admin_user.userprofile.zone
+        dept_code = user.userprofile.stockone_code
+    else:
+        zone = user.userprofile.zone
+        dept_code = ''
+    pac_filter = {'company_id': company_id, 'purchase_type': purchase_type, 'approval_type': approval_type,'zone':zone, 'product_category': product_category }
+    if dept_code:
+        pac_filter['department_type'] = dept_code
+    else:
+        pac_filter['department_type'] = ''
+    if sku_category:
+        pac_filter['sku_category'] = sku_category
+    else:
+        pac_filter['sku_category'] = ''
+    # 1) It Checks Zone, Product Categry, sku categoery, Dept
+    purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 2) It Checks Zone, Product Categry, sku categoery
+        if 'department_type' in pac_filter.keys():
+            del pac_filter['department_type']
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 3) It Checks Zone, Product Categry, Dept
+        if 'sku_category' in pac_filter.keys():
+            del pac_filter['sku_category']
+            pac_filter['department_type'] = dept_code
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+        if not purchase_config:
+            # 4) It Checks Zone, Product Categry
+            if 'department_type' in pac_filter.keys():
+                del pac_filter['department_type']
+            if 'sku_category' in pac_filter.keys():
+                del pac_filter['sku_category']
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        return confMap
+    '''admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
-                    'product_category': product_category, 'department_type': '', 'plant__isnull': True}
+                    'product_category': product_category, 'department_type': '',
+                  'plant__isnull': True}
     if sku_category:
         pac_filter['sku_category'] = sku_category
     if approval_type:
@@ -1522,7 +1561,7 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     if not purchase_config:
         pac_filter['sku_category'] = ''
         # all plants all departments without sku category
-        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)'''
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)

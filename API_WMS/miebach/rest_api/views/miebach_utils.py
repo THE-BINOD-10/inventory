@@ -1919,6 +1919,17 @@ MOVE_TO_INVENTORY_REPORT_DICT = {
     'print_url': 'print_move_inventory_report',
 }
 
+PO_SUPPLIER_MAIL_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+    ],
+    'dt_headers': ['PO No', 'PO Mail Members', 'Mail Status', 'Mail Failed Reason', 'Date'],
+    'dt_url': 'get_po_supplier_mail_report', 'excel_name': 'get_po_supplier_mail_report',
+    'print_url': 'print_po_supplier_mail_report',
+}
+
 BULK_STOCK_UPDATE = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -2143,6 +2154,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'stock_cover_report': STOCK_COVER_REPORT_DICT,
                      'basa_report': BASA_REPORT_DICT,
                      'move_inventory_report': MOVE_TO_INVENTORY_REPORT_DICT,
+                     'po_supplier_mail_report': PO_SUPPLIER_MAIL_REPORT_DICT,
                      'financial_report': FINANCIAL_REPORT_DICT,
                      'bulk_stock_update': BULK_STOCK_UPDATE,
                      'credit_note_form_report': CREDIT_NOTE_FORM_REPORT_DICT,
@@ -2856,6 +2868,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_order_flow_report': 'get_orderflow_data',
                         'get_basa_report': 'get_basa_report_data',
                         'get_move_inventory_report': 'get_move_inventory_report_data',
+                        'get_po_supplier_mail_report': 'get_po_supplier_mail_report_data',
                         'get_financial_report': 'get_financial_report_data',
                         'get_bulk_stock_update': 'get_bulk_stock_update_data',
                         'get_allocation_filter': 'get_allocation_data',
@@ -14372,6 +14385,58 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     # if stop_index:
     #     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     # return temp_data
+
+def get_po_supplier_mail_report_data(search_params, user, sub_user):
+    from rest_api.views.common import check_and_get_plants_wo_request, get_related_users_filters, get_local_date
+    users = [user.id]
+    lis = ['full_po_number', 'po_mail_members', 'mail_status', 'mail_failed_reason', 'updation_date']
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    unsorted_dict = {}
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    result_values = ['full_po_number', 'po_mail_members', 'mail_status', 'mail_failed_reason', 'updation_date', 'supplier__email_id']
+
+    query_filter = {}
+    if 'from_date' in search_params and search_params['from_date']:
+        search_parameters['updation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params and search_params['to_date']:
+        search_parameters['updation_date__gte'] = search_params['to_date']
+    if 'po_number' in search_params and search_params['po_number']:
+        search_parameters['full_po_number'] = search_params['po_number']
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['open_po__sku__user__in'] = user_ids
+    model_data = PendingPO.objects.filter(**search_parameters).values(*result_values)
+    col_num = search_params.get('order_index', 4)
+    order_term = search_params.get('order_term', 'desc')
+    if order_term:
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = "-%s" % order_data
+        if order_data:
+            model_data = model_data.order_by(order_data)
+    else:
+        model_data = model_data.order_by(-'updation_date')
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        model_data = model_data[start_index:stop_index]
+    for data in model_data:
+        temp_data['aaData'].append(OrderedDict((('PO No', data['full_po_number']),
+                                                ('PO Mail Members', data['po_mail_members'] if data['po_mail_members'] else data['supplier__email_id']),
+                                                ('Mail Status', 'Success' if data['mail_status'] else 'Failed'),
+                                                ('Mail Failed Reason', data['mail_failed_reason']),
+                                                ('Date', get_local_date(user, data['updation_date']))
+                                                )))
+    return temp_data
 
 
 def get_move_inventory_report_data(search_params, user, sub_user):

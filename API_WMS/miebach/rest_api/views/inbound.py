@@ -1,4 +1,4 @@
-from django.shortcuts import render
+ django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 import copy
@@ -10883,6 +10883,7 @@ def confirm_add_po(request, sales_data='', user=''):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
+        PendingPO.objects.filter(full_po_number=po_num, open_po__sku__user = user.id).update(mail_status=False, mail_failed_reason = str(e))
         log.info("Confirm Add PO failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
@@ -11156,7 +11157,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-        send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
+        send_sendgrid_mail(f_name, user, 'mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
         #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:

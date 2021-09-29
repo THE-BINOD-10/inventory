@@ -1469,7 +1469,6 @@ var app = angular.module('urbanApp')
         })
         .state('app.inbound.MaterialPlanning', {
           url: '/MaterialPlanning',
-          permission: 'change_replenushmentmaster',
           templateUrl: 'views/inbound/material_planning.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

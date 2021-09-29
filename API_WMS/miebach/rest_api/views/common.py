@@ -1474,8 +1474,7 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         pass
     admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
-                    'product_category': product_category, 'department_type': '',
-                  'plant__isnull': True}
+                    'product_category': product_category, 'department_type': '', 'plant__isnull': True}
     if sku_category:
         pac_filter['sku_category'] = sku_category
     if approval_type:

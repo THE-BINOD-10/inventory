@@ -4335,7 +4335,7 @@ def approve_pr(request, user=''):
         if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
             if purchase_type == 'PR':
                 if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
-                    nextLevel = 'level1'
+                    nextLevel = 'level0'
                     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
                                       approval_type='default', sku_category=sku_category)
                     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
@@ -5428,11 +5428,11 @@ def add_pr(request, user=''):
                 else:
                     return HttpResponse("Purchase Approval Config not found")'''
             # else:
+            totalAmts = 0
             if 'total' in myDict.keys():
-                totalAmt = 0
                 for i in range(0, len(myDict['wms_code'])):
                     try:
-                        totalAmt += float(myDict['total'][i])
+                        totalAmts += float(myDict['total'][i])
                     except:
                         pass
                     supplier_id = myDict['supplier_id'][i]
@@ -5449,6 +5449,8 @@ def add_pr(request, user=''):
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
             totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number, is_auto_pr=is_auto_pr)
+            if totalAmts > totalAmt:
+                totalAmt = totalAmts
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type=approval_type,
                                                 sku_category=sku_category)

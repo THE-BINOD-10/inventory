@@ -11,7 +11,8 @@
     <thead>
       <tr>
         <th>Supplier</th>
-        <th></th>
+        <th>Supplier Name</th>
+        <!-- <th></th> -->
         <th>WMS Code*</th>
         <th>SKU Description-HSN</th>
         <!-- <th>HSN Code</th> -->
@@ -57,9 +58,12 @@
           <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
         </td>
         <td>
+          <span style="font-size: 9px;font-weight: 440;">{{ product.fields.supplier_id_name.split(':')[1] }}</span>
+        </td>
+        <!-- <td>
           <span class="badge bg-warning" ng-if="product.fields.is_doa_sent"> SentDOA</span>
           <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(product.fields.sku.wms_code, product.fields, showCase.model_data.purchase_id)" ng-if="!product.fields.supplier_id_name && !product.fields.is_doa_sent && showCase.permissions.change_pendinglineitems" style="cursor: pointer;">+</span>
-        </td> 
+        </td> --> 
         <td>
           <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="30"
           title="{{ product.fields.sku.wms_code }}">

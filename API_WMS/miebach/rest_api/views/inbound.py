@@ -4633,6 +4633,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         if value.get('mrp_id'):
             mrp_obj = MRP.objects.get(id=value['mrp_id'])
             mrp_obj.mrp_pr_raised_qty = value['order_quantity']
+            mrp_obj.pending_line_items_id = lineObj.id
             mrp_obj.status = 0
             mrp_obj.save()
         misc_json = {}
@@ -17556,7 +17557,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
     lis = ['id', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
-            'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty']
+            'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'supplier_id', 'amount']
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
     else:
@@ -17615,8 +17616,11 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
                                   ('Lead Time Qty', round(data.lead_time_qty, 2)), ('Min Days Qty', round(data.min_days_qty, 2)), ('Max Days Qty', round(data.max_days_qty, 2)),
-                                  ('System Stock Qty', round(data.system_stock_qty, 2)), ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
-                                  ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)), ('DT_RowAttr', {'data-id': data.id}),
+                                  ('Dept Stock Qty', round(data.system_stock_qty, 2)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 2)),
+                                  ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
+                                  ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)),
+                                  ('Supplier Id', data.supplier_id), ('Suggested Value', data.amount),
+                                  ('DT_RowAttr', {'data-id': data.id}),
                                   ('hsn_code', data.sku.hsn_code)
                                 ))
         temp_data['aaData'].append(data_dict)

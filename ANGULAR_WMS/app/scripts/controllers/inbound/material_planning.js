@@ -59,7 +59,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
        });
 
     var columns = ['Plant Code', 'Plant Name', 'Department', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
-                   'Min Days Qty', 'Max Days Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
+                   'Min Days Qty', 'Max Days Qty', 'Dept Stock Qty', 'Allocated Plant Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty',
+                   'Supplier Id', 'Suggested Value'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -352,6 +353,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);
+          vm.service.refresh(vm.dtInstance);
         });
       }
     });

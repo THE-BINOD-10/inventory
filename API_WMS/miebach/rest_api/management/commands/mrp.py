@@ -190,9 +190,11 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         print data.id
         user = User.objects.get(id=data.user)
         if data.user in plant_dept.keys():
-            plant_usr_id = plant_dept[data.user]
+            plant_usr = plant_dept[data.user]
         else:
-            plant_usr_id = get_admin(user).id
+            plant_usr = get_admin(user)
+        plant_usr_id = plant_usr.id
+        supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
         data_dict = {}
         uom_dict = sku_uoms.get(data.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
@@ -223,6 +225,12 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
             suggested_qty = (max_days + lead_time - total_stock)
             suggested_qty = math.ceil(suggested_qty)
         if suggested_qty > 0:
+            supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
+            supplier_id, amount = '', 0
+            if supp_details.get('supplierDetails'):
+                sku_supplier = supp_details['supplierDetails'][supp_details['preferred_supplier']]
+                supplier_id = sku_supplier['supplier_id']
+                amount = suggested_qty * sku_supplier['price']
             data_dict = {
                         'sku': data,
                         'user': user,
@@ -231,10 +239,13 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
                         'min_days_qty': min_days,
                         'max_days_qty': max_days,
                         'system_stock_qty': stock_qty,
+                        'plant_stock_qty': plant_stock_qty,
                         'pending_pr_qty': sku_pending_pr,
                         'pending_po_qty': sku_pending_po,
                         'total_stock_qty': total_stock,
                         'suggested_qty': suggested_qty,
+                        'supplier_id': supplier_id,
+                        'amount': amount,
                         'status': 1
             }
             mrp_obj = MRP(**data_dict)

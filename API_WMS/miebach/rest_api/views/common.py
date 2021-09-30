@@ -1317,6 +1317,8 @@ def update_pr_po_config_roles(company_id, eachConfig, roles):
 
 def update_purchase_approval_config_data(company_id, purchase_type, data, user, approval_type):
     mailsMap = data.get('%s_level_data' % approval_type, {})
+    if not data.get('zone', False):
+        return 'Zone is Missing!'
     final_data = []
     if approval_type == 'ranges':
         final_data = mailsMap
@@ -1327,7 +1329,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
         pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=data['name'],
                                                              purchase_type=purchase_type, approval_type=approval_type,
                                                              min_Amt=final_dat['min_Amt'], max_Amt=final_dat['max_Amt'],
-                                                             name=actual_name)
+                                                             name=actual_name, zone=data['zone'])
         existingLevels = list(pr_approvals.values_list('level', flat=True))
         updatingLevels = map(lambda d: d['level'], final_dat['range_levels'])
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
@@ -1348,6 +1350,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                 'company_id': company_id,
                 'name': actual_name,
                 'display_name': data['name'],
+                'zone': data['zone'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
                 #'plant': data.get('plant', ''),
@@ -1464,7 +1467,50 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         product_category = 'Kits&Consumables'
     confMap = OrderedDict()
     company_id = get_company_id(user)
-    admin_user = get_admin(user)
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            company_id = user.userprofile.company.id
+    except Exception as e:
+        pass
+    if user.userprofile.warehouse_type == 'DEPT':
+        admin_user = get_admin(user)
+        zone = admin_user.userprofile.zone
+        dept_code = user.userprofile.stockone_code
+    else:
+        zone = user.userprofile.zone
+        dept_code = ''
+    pac_filter = {'company_id': company_id, 'purchase_type': purchase_type, 'approval_type': approval_type,'zone':zone, 'product_category': product_category }
+    if dept_code:
+        pac_filter['department_type'] = dept_code
+    else:
+        pac_filter['department_type'] = ''
+    if sku_category:
+        pac_filter['sku_category'] = sku_category
+    else:
+        pac_filter['sku_category'] = ''
+    # 1) It Checks Zone, Product Categry, sku categoery, Dept
+    purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 2) It Checks Zone, Product Categry, sku categoery
+        if 'department_type' in pac_filter.keys():
+            del pac_filter['department_type']
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 3) It Checks Zone, Product Categry, Dept
+        if 'sku_category' in pac_filter.keys():
+            del pac_filter['sku_category']
+            pac_filter['department_type'] = dept_code
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+        if not purchase_config:
+            # 4) It Checks Zone, Product Categry
+            if 'department_type' in pac_filter.keys():
+                del pac_filter['department_type']
+            if 'sku_category' in pac_filter.keys():
+                del pac_filter['sku_category']
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        return confMap
+    '''admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant__isnull': True}
@@ -1515,7 +1561,7 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     if not purchase_config:
         pac_filter['sku_category'] = ''
         # all plants all departments without sku category
-        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)'''
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
@@ -13767,7 +13813,12 @@ def get_purchase_config_data(request, user=''):
     name = request.GET['name']
     purchase_type = request.GET['purchase_type']
     company_id = get_company_id(user)
-    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=name,
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            company_id = usr.userprofile.company.id
+    except Exception as e:
+        pass
+    purchase_config_data = PurchaseApprovalConfig.objects.filter(display_name=name,
                                                                  purchase_type=purchase_type)
     config_dict = {}
     if purchase_config_data:
@@ -13813,6 +13864,22 @@ def all_purchase_approval_config_data(request, user=''):
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
     return HttpResponse(HttpResponse(json.dumps({'config_data': config_dict})))
+
+def get_product_category_based_sku_categories(user):
+    final_dict = {}
+    final_dict['Kits&Consumables'] = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category='').\
+                                        exclude(id__in=AssetMaster.objects.all()). \
+                                        exclude(id__in=ServiceMaster.objects.all()). \
+                                        exclude(id__in=OtherItemsMaster.objects.all()). \
+                                        values_list('sku_category', flat=True).distinct())
+    final_dict['Services'] = list(ServiceMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    final_dict['Assets'] = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    final_dict['OtherItems'] = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    return final_dict
+
 
 @login_required
 @csrf_exempt
@@ -15080,6 +15147,9 @@ def get_pr_number_from_po(pend_po):
     pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
     return pr_numbers
 
+def get_re_user_from_po(pend_po):
+    requested_user = ', '.join(list(pend_po.pending_prs.filter().values_list('requested_user__username', flat=True)))
+    return requested_user
 
 def get_sku_code_inc_number(user, instanceName, category, check=False):
     if instanceName == AssetMaster:

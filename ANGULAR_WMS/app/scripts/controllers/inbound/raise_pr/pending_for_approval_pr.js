@@ -131,6 +131,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                       "receipt_type": 'Purchase Order',
                       "seller_types": [],
                       "total_price": 0,
+                      "loss_expected": 0,
                       "tax": "",
                       "sub_total": "",
                       "supplier_sku_prices": "",
@@ -171,6 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   'is_approval':data.data.is_approval,
                   "validateFlag": data.data.validateFlag,
                   "total_price": 0,
+                  "loss_expected": 0,
                   "tax": "",
                   "cess_tax": 0,
                   "sub_total": "",
@@ -182,6 +184,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
+                  "is_purchase_approver": data.data.is_purchase_approver,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
                   "department": data.data.department,
@@ -208,7 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             vm.model_data['supplier_id_name'] = '';
           }
-
+          vm.model_data.approval_remarks_val = false;
           if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
             vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
           }
@@ -504,7 +507,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price))
 ;
       vm.model_data.total_price = 0;
-
+      vm.model_data.loss_expected =0;
       angular.forEach(vm.model_data.data, function(one_row){
         vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
       });
@@ -543,6 +546,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.approve_pr = function(form, validation_type) {
+      if (vm.model_data.approval_remarks_val && (vm.model_data.approval_remarks == '' || typeof(vm.model_data.approval_remarks) == 'undefined')) {
+        Service.showNoty('Remarks Mandatory for Supplier Change, please Enter');
+        return;
+      }
       if (vm.confirm_purchase_approval_request(vm.model_data.data, validation_type)) {
         var elem = angular.element($("form[name='pending_for_approval']"));
         elem = elem[0];
@@ -654,6 +661,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.submit_enquiry = function(form){
       // var elem = angular.element($('form'));
+      if (vm.model_data.enquriy_remarks == '' || typeof(vm.model_data.enquriy_remarks)== 'undefined') {
+        Service.showNoty('Enquiry Text Is Mandatory');
+        return;
+      }
       var elem = angular.element($("form[name='pending_for_approval']"));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -771,10 +782,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         (sup_data['preferred_supplier'] != sup_data['system_preferred_supplier']) ? sup_data['icon_color'] = { 'color': 'red' } : sup_data['icon_color'] = { 'color': 'seagreen' };
       } else if (sup_data['preferred_supplier'] && sup_data['preferred_supplier'] != sup_data['supplier_id_name']) {
         sup_data['sku_sku_comment'] = true;
+        vm.model_data.approval_remarks_val = true;
         sup_data['icon_color'] = { 'color': 'red' };
       } else {
         sup_data['sku_sku_comment'] = false;
         sup_data['icon_color'] = { 'color': 'seagreen' };
+      }
+      if (typeof(sup_data['icon_color']) != 'undefined') {
+        if (sup_data['icon_color']['color'] == 'red') {
+          vm.model_data.approval_remarks_val = true;
+        }
       }
     }
     vm.send_to_parent_store = function(form) {
@@ -1437,6 +1454,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
+      vm.model_data.loss_expected = 0;
       if (data.fields.temp_price && data.fields.temp_price > 0){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
             Service.showNoty('Price cant be more than Base Price'); 
@@ -1453,24 +1471,32 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         data.fields.cess_tax = 0;
       }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
-      angular.forEach(vm.model_data.data, function(sku_data){
-        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
-        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
-        if (!sku_data.fields.tax) {
-          sku_data.fields.tax = 0;
-        }
-        vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
-      })
       var min_price_value = vm.check_price_comparision(data);
       if (min_price_value != 0) {
         data.fields.delta = min_price_value - (parseFloat(data.fields.price) + ((parseFloat(data.fields.price) / 100) * parseFloat(data.fields.tax)));
+        if (typeof(data.fields.final_price) != 'undefined') {
+          if (parseFloat(data.fields.final_price) > 0) {
+            data.fields.delta = min_price_value - (parseFloat(data.fields.final_price) + ((parseFloat(data.fields.final_price) / 100) * parseFloat(data.fields.tax)));    
+          }
+        }
         (data.fields.delta >= 0) ? data['fields']['delta_color'] = { 'color': 'seagreen' } : data['fields']['delta_color'] = { 'color': 'red' };
         data.fields.delta = data.fields.delta * data.fields.order_quantity;
       } else {
         data.fields.delta = 0;
         data.fields['delta_color'] = { 'color': 'darkgrey' };
       }
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = 0;
+        }
+        if (sku_data.fields.delta < 0) {
+          vm.model_data.loss_expected = vm.model_data.loss_expected + sku_data.fields.delta;
+        }
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
+      })
     }
 
     vm.getCompany = function() {

@@ -17,7 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = false;
-    vm.zones_list = ['East', 'West', 'North', 'South'];
+    vm.zones_list = ['Central', 'East', 'GRL', 'Mumbai', 'NACO', 'North', 'Overseas', 'South', 'West'];
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
         'width': '1350px'

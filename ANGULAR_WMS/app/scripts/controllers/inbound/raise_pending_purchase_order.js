@@ -61,11 +61,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ //"Supplier ID",
-		     "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
-                    "Category", "Total Quantity", "Total Amount",
-                    "PO Created Date", "PO Delivery Date", "Store", "Department",
-                     "PO Raise By",  "Validation Status", 
-		    //"Pending Level", 
+		    "Supplier Name", "PO Number", 'Enquiry Status', "PR No", "Product Category", 
+        "Category", "Total Quantity", "Total Amount",
+        "PO Created Date", "PO Delivery Date", "Store", "Department",
+        "PO Raise By",  "Validation Status", "Pending Level",
 		    "To Be Approved By", "Last Updated By",
 		    "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -183,6 +182,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "supplier_currencyes": data.data.supplier_currency,
             "supplier_currency": '',
             "supplier_currency_rate": '',
+            "supplier_email": data.data.supplier_email,
+            "po_all_mails": data.data.po_all_mails,
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -306,7 +307,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
           vm.model_data['pr_number'] = aData['PR Number'];
-          vm.model_data['purchase_id'] = aData['Purchase Id']
+          vm.model_data['purchase_id'] = aData['Purchase Id'];
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
@@ -316,12 +317,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_status = aData['Validation Status']
           vm.pending_level = aData['LevelToBeApproved']
           vm.pop_up_status = aData['Validation Status']
-          if (aData['Validation Status'] == 'Approved'){
+          if (aData['Validation Status'] == 'Approved' || aData['is_final']) {
+            if (aData['shipment_address_select']) {
+              vm.model_data.ship_to = aData['shipment_address_select'];  
+            }
+            vm.model_data.supplier_currency = aData['supplier_currency'];
+            if (vm.model_data.supplier_currency == 'INR') {
+              vm.model_data.supplier_currency_rate = '';  
+            } else {
+              vm.model_data.supplier_currency_rate = aData['supplier_currency_rate'];
+            }
+            vm.supplier_mail_flag = true;
             $state.go('app.inbound.RaisePo.PurchaseOrder');
-          } else if (aData['Validation Status'] == 'Saved'){
+          } else if (aData['Validation Status'] == 'Saved') {
             vm.update = true;
             $state.go('app.inbound.RaisePo.SavedPurchaseRequest');
           } else {
+            vm.model_data.supplier_currency = aData['supplier_currency'] ? aData['supplier_currency'] : '';
+            vm.model_data.supplier_currency_rate = aData['supplier_currency_rate'] ? aData['supplier_currency_rate'] : '';
             $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');
           }
         }
@@ -834,7 +847,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
-    vm.confirm = function(data) {
+    vm.confirm = function(data, flag='') {
       if (data.$valid) {
         vm.confirm_disabled = true;
         if (vm.warehouse_type == 'CENTRAL_ADMIN') {
@@ -844,7 +857,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.common_confirm('confirm_central_po/', elem)
         } else {
           if(!(vm.update)) {
-            vm.confirm_add_po();
+            vm.confirm_add_po(flag);
           } else {
             vm.confirm_po();
           }
@@ -856,7 +869,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.supplier_notify = function (elems){
       vm.supplier_mail_flag = elems;
     }
-    vm.confirm_add_po = function() {
+    vm.confirm_add_po = function(flag) {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -864,8 +877,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:"data_id", value: vm.data_id})
         vm.common_confirm('confirm_central_add_po/', elem);
       } else {
-        elem.push({'name':'supplier_notify', 'value':vm.supplier_mail_flag})
-        vm.common_confirm('confirm_add_po/', elem);
+        elem.push({'name':'supplier_notify', 'value':vm.supplier_mail_flag});
+        elem.push({'name':'po_all_mails', 'value':$(".internal_mails").val()});
+        vm.common_confirm('confirm_add_po/', elem, flag);
       }
     }
 
@@ -876,7 +890,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.common_confirm('confirm_pr/', elem);
     }
 
-    vm.common_confirm = function(url, elem) {
+    vm.common_confirm = function(url, elem, flag='') {
       var confirm_url = 'validate_wms/';
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
@@ -887,7 +901,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
-            vm.raise_po(url, elem);
+            vm.raise_po(url, elem, flag);
           } else{
             vm.service.pop_msg(data.data);
           }
@@ -895,16 +909,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
-    vm.raise_po = function(url, elem) {
+    vm.raise_po = function(url, elem, flag='') {
       vm.final_po_data = {'url': url, 'elem': elem};
-      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks + '&currency_code=' + vm.model_data.supplier_currency, {withCredential: true})
-        .success(function(data, status, headers, config) {
-          vm.extra_width = {'width': '1150px'};
-          vm.html = $(data);
-          angular.element(".modal-body").html($(data));
-          vm.print_enable = true;
-          vm.confirm_disabled = false;
-      });
+      if (flag) {
+        $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id + '&currency_rate='+ vm.model_data.supplier_currency_rate +'&supplier_payment_terms='+ vm.model_data.supplier_payment_terms + '&ship_to='+ vm.model_data.shipment_address_select + '&remarks=' + vm.model_data.approval_remarks + '&currency_code=' + vm.model_data.supplier_currency, {withCredential: true})
+          .success(function(data, status, headers, config) {
+            vm.extra_width = {'width': '1150px'};
+            vm.html = $(data);
+            angular.element(".modal-body").html($(data));
+            vm.print_enable = true;
+            vm.confirm_disabled = false;
+        });
+      } else {
+        vm.final_po_confirmation();        
+      }
     }
 
     vm.final_po_confirmation = function() {
@@ -923,7 +941,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       })
       vm.service.apiCall(url, 'POST', elem).then(function(data){
         if(data.message) {
-          // vm.service.pop_msg(data.data);
           vm.service.refresh(vm.dtInstance);
           if(data.data.search("<div") != -1) {
             vm.title = 'Confirmed PO'
@@ -937,7 +954,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             swal2.close()
             vm.confirm_btn_disable = true;
             vm.service.showNoty(data.data);
-            // vm.service.pop_msg(data.data);
           }
         }
         vm.confirm_disabled = false;
@@ -1340,7 +1356,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
-
+      var all_po_emails = $(".internal_mails").val();
+      form_data.append('all_po_emails', all_po_emails);
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {

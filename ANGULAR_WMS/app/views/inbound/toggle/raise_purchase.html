@@ -7,10 +7,10 @@
     font-size: x-small;
     font-weight: 600;
  }
- .table > tbody > tr > td{
+ .table > tbody > tr > td {
     padding: 3px 3px;
  }
- .table > thead > tr> td{
+ .table > thead > tr> td {
     padding: 3px 3px;
  }
   .table > tbody > tr > td {
@@ -24,13 +24,13 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
-        <div class="modal-header">
+        <div class="modal-header" style="padding: 5px !important;">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">
-              <h4 class="modal-title pull-left">{{showCase.title}}</h4>
+              <h4 class="modal-title pull-left">Confirm PO</h4>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
@@ -38,7 +38,7 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span></button>
         </div>
-        <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
+        <div class="modal-body raise_po" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <div ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN' && showCase.warehouse_level == 2 && showCase.multi_level_system == 1">
               <div class="col-md-4 col-sm-4 col-xs-6">
@@ -222,7 +222,7 @@
               <div class="form-group">
                 <label class="control-label">Supplier Currency *</label>
                 <!-- <input type="text" ng-model="showCase.model_data.supplier_currency" class="form-control" ng-readonly="true"> -->
-                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-init="showCase.model_data.supplier_currency=''" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
                     <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
                 </select>
               </div>
@@ -231,6 +231,12 @@
               <div class="form-group">
                 <label class="control-label">Please enter 1 Supplier Currency (<span>{{showCase.model_data.supplier_currency}}</span>) = How Many Plant Currency (<span>{{showCase.model_data.warehouse_currency}}</span>)?  *</label>
                 <input type="text" ng-model="showCase.model_data.supplier_currency_rate" name="supplier_currency_rate" class="form-control" ng-class="service.get_decimal_perm()" required>
+              </div>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-2 col-xs-6">
+              <div class="form-group bootstrap-tagsinput">
+                <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
+                <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin' && !showCase.permissions.central_admin_level_po">
@@ -281,9 +287,9 @@
                     <th ng-if="showCase.model_data.tax_display" class="w10_">SGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">IGST(%)</th>
-                    <th class="w10_" ng-if="!showCase.model_data.is_approval">UTGST(%)</th>
+                    <!-- <th class="w10_" ng-if="!showCase.model_data.is_approval">UTGST(%)</th> -->
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CESS(%)</th>
-                    <th ng-if="showCase.model_data.tax_display" class="w10_" ng-if="!showCase.model_data.is_approval">APMC(%)</th>
+                    <!-- <th ng-if="showCase.model_data.tax_display" class="w10_" ng-if="!showCase.model_data.is_approval">APMC(%)</th> -->
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
                     <th class="w10_">Delivery Schedule</th>
@@ -357,10 +363,10 @@
 		                 <input ng-if="!product.fields.edit_tax && !showCase.from_supplier_pos" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                          <input ng-if="showCase.from_supplier_pos" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="!(product.fields.gstin && product.fields.hsn_code && product.tax_data[0].tax_type=='inter_state')" ng-debounce size="12">
                     </td>
-                    <td ng-if="!showCase.model_data.is_approval">
+                    <!-- <td ng-if="!showCase.model_data.is_approval">
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
-                    </td>
+                    </td> -->
                     <td ng-hide="!showCase.model_data.tax_display">
                        <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
 		                   <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length !== 0" ng-debounce size="12">
@@ -525,18 +531,21 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>
-        <div class="modal-footer" ng-if="!(showCase.is_purchase_request)">
+        <!-- <div class="modal-footer" ng-if="!(showCase.is_purchase_request)">
           <button type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PREVIEW PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
-        </div>
-        <div class="modal-footer" ng-if="(showCase.is_purchase_request)">
+        </div> -->
+        <div class="modal-footer">
+          <!-- <label>{{showCase.print_enable}} - {{showCase.confirm_btn_disable}}</label> -->
           <button ng-if="showCase.print_enable" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_grn()">Print</button>
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_pendingpo" data-dismiss="modal" ng-click="showCase.confirm(form)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
+          <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-yellow" data-dismiss="modal" ng-click="showCase.confirm(form, true)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
           <button ng-if="showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.final_po_confirmation()">Confirm PO</button>
-          <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button>
+          <button ng-if="!showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.confirm(form, false)">Confirm PO</button>
+          
+          <!-- <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button> -->
         </div>
         <!-- <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>

@@ -1698,6 +1698,21 @@ def excel_reports(request, user=''):
         tally_report =1
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
+        search_params['excel_name'] = excel_name
+        headers = [ 'Zone', 'WareHouse', 'Supplier Name', 'Supplier ID', 'PO No', 'SKU Code', 'SKU Category',
+                    'SKU Description', 'HSN Code', 'SKU Brand', 'PO Date', 'PO Qty', 'PO Basic Price', 'CGST',
+                    'IGST', 'SGST', 'UTGST', 'PO Total Amount', 'UOM', 'Expected delivery date', 'CESS', 
+                    'GRN Qty', 'Recievable Quantity', 'GRN Price', 'Pre Tax Value', 'Post Tax Value', 'GRN Number', 
+                    'Type of GRN', 'GRN date', 'Invoice Number', 'Invoice Date', 'Invoice Value', 'Tcs Value', 
+                    'Challan Number', 'Challan Date', 'GRN Status', 'Credit Note Applicable', 'Credit Note Number', 
+                    'Remarks', 'Supplier GSTIN Number', 'Plant']
+        params = [request, search_params, user, request.user]
+    if excel_name in ['excel_name=get_metropolis_po_detail_report', 'excel_name=get_metropolis_po_report']:
+        search_params['excel_name'] = excel_name
+        headers = ['Plant', 'Plant Name', 'Username', 'Supplier Name', 'Supplier ID', 'GST Number', 'PO No', 'PR No', 'SKU Code', 'SKU Category', 'SKU Description', 
+                    'HSN Code', 'PO Date', 'PO Qty', 'Recieved Qty', 'Recievable Qty', 'PO Price', 'Pre Tax Value', 'Reason', 
+                    'CGST', 'IGST', 'SGST', 'UTGST', 'Post Tax value', 'Recieved Pre Tax Value', 'Recieved Post Tax Value', 
+                    'Recievable Pre Tax Value', 'Recievable Post Tax Value', 'PO Creation Date','Open PO Status',  'PO Status']
         params = [request, search_params, user, request.user]
     if 'excel_name=integration_report' in excel_name:
         params = [request, search_params, user, request.user]
@@ -1706,6 +1721,7 @@ def excel_reports(request, user=''):
     if 'excel_name=metropolis_pr_po_grn_dict' in excel_name:
         params = [request, search_params, user, request.user]
     if 'excel_name=sku_wise_goods_receipt' in excel_name:
+        search_params['excel_name'] = 'sku_wise_goods_receipt'
         params = [request, search_params, user, request.user]
     if excel_name in ['excel_name=get_material_request_report', 'excel_name=get_stock_transfer_report', 'excel_name=get_stock_transfer_report_main']:
         params = [request, search_params, user, request.user]
@@ -2936,7 +2952,7 @@ def get_metro_po_report(request, user=''):
 @get_admin_user
 def get_metropolis_po_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_metropolis_po_report_data(search_params, user, request.user)
+    temp_data = get_metropolis_po_report_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
@@ -2952,7 +2968,7 @@ def get_metro_po_detail_report(request, user=''):
 @get_admin_user
 def get_metropolis_po_detail_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_metropolis_po_detail_report_data(search_params, user, request.user)
+    temp_data = get_metropolis_po_detail_report_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt

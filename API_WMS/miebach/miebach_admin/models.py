@@ -203,6 +203,7 @@ class MastersDOA(models.Model):
 
     class Meta:
         db_table = 'MASTERS_DOA'
+        index_together = (('doa_status','model_name','requested_user','json_data'))
         permissions = [
             ('approve_source_sku_doa', 'Approve Source SKU Doa'),
             ('approve_sku_master_doa', 'Approve SKU Master Doa'),
@@ -394,7 +395,7 @@ class SKUSupplier(models.Model):
 
     class Meta:
         db_table = 'SKU_SUPPLIER_MAPPING'
-        index_together = ('supplier', 'sku')
+        index_together = (('supplier', 'sku'),('sku',))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.supplier)
@@ -632,7 +633,7 @@ class GenericEnquiry(models.Model):
 
     class Meta:
         db_table = 'GENERIC_ENQUIRY'
-
+        index_together = (('master_id','master_type'))
 
 class CompanyMaster(models.Model):
     id = BigAutoField(primary_key=True)
@@ -716,12 +717,18 @@ class PendingPO(models.Model):
     prefix = models.CharField(max_length=32, default='')
     full_po_number = models.CharField(max_length=32, default='', db_index=True)
     delivery_date = models.DateField(blank=True, null=True)
-    ship_to = models.CharField(max_length=256, default='')
+    ship_to = models.CharField(max_length=512, default='')
+    ship_to_name = models.CharField(max_length=32, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
     migrate_po_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PO_User')
     migrate_po_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PO_User_From')
+    currency = models.TextField(default='INR')
+    currency_rate = models.FloatField(default=1)
+    po_mail_members = models.TextField(default='')
+    mail_status = models.BooleanField(default=True)
+    mail_failed_reason = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -779,7 +786,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-
+        index_together = (('pending_pr','level'),('pending_po','level'))
 
 class TableLists(models.Model):
     name = models.CharField(max_length=64, default='', db_index=True)
@@ -796,15 +803,16 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
-    name = models.CharField(max_length=64, default='')
-    display_name = models.CharField(max_length=64, default='')
+    zone = models.CharField(max_length=64, default='')
+    name = models.CharField(max_length=128, default='')
+    display_name = models.CharField(max_length=128, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
     approval_type = models.CharField(max_length=32, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
-    sku_category = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='')
     plant = models.ManyToManyField(TableLists, default=None)
     department_type = models.CharField(max_length=64, default='')
     user_role = models.ManyToManyField(CompanyRoles, default=None)
@@ -875,7 +883,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'))
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
         permissions = [
             ('update_purchaseorder', 'Update Purchase Order'),
         ]
@@ -1589,6 +1597,7 @@ class UserGroups(models.Model):
 
     class Meta:
         db_table = 'USER_GROUPS'
+        index_together = (('user',),('user','company'),('company',),('admin_user',))
 
 
 class WarehouseCustomerMapping(models.Model):
@@ -2928,7 +2937,7 @@ class TaxMaster(models.Model):
     class Meta:
         db_table = 'TAX_MASTER'
         # unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
-        index_together = (('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
+        index_together = (('user','product_type','inter_state','max_amt','min_amt'),('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
 
     def json(self):
         return {
@@ -3551,7 +3560,7 @@ class MasterDocs(models.Model):
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = (('master_id', 'master_type', 'uploaded_file'),
+        index_together = (('master_id', 'master_type', 'uploaded_file'),('master_id','master_type'),
                           ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
@@ -4185,7 +4194,7 @@ class UOMMaster(models.Model):
 
     class Meta:
         db_table = 'UOM_MASTER'
-        unique_together = ('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+        index_together = (('sku_code','company','uom_type'),('sku_code','uom_type','company'),('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion'))
 
     def __unicode__(self):
         return '%s-%s' % (self.company, self.name)

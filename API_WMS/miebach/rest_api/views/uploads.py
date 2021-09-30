@@ -12918,6 +12918,16 @@ def closing_stock_upload(request, user=''):
         return HttpResponse("Failed")
     return HttpResponse("Success")
 
+@csrf_exempt
+@get_admin_user
+def pr_po_approvals_form(request, user=''):
+    approval_file = request.GET['download-PR_PO-ApprovalConfig-file']
+    if approval_file:
+        return error_file_download(approval_file)
+    headers = copy.deepcopy(PR_PO_APPROVAL_HEADERS)
+    wb, ws = get_work_sheet('PR PO Approval Config Norm', headers)
+    return xls_to_response(wb, '%s.pr_po_approval_config_form.xls' % str(user.username))
+
 
 @csrf_exempt
 @get_admin_user
@@ -13358,6 +13368,209 @@ def opening_stock_upload(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Opening Stock Upload failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Failed")
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    distinct_sku_user_combo = []
+    pr_po_mapping = copy.deepcopy(PR_PO_APPROVAL_HEADERS)
+    pr_po_mapping_res = dict(zip(pr_po_mapping.values(), pr_po_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, pr_po_mapping)
+    product_catalogue = ['Kits&Consumables', 'Assets', 'Services', 'OtherItems']
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    company_roles_list = list(CompanyRoles.objects.filter(group__isnull=False).values_list('role_name', flat=True).distinct())
+    pc_sku_category = get_product_category_based_sku_categories(user)
+    all_zones_list = list(UserProfile.objects.filter().exclude(zone='').values_list('zone', flat=True).distinct())
+    plant_codes_list = list(UserProfile.objects.filter(warehouse_type='STORE').exclude(stockone_code='').values_list('stockone_code', flat=True).distinct())
+    final_data = {}
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        print 'Validating %s' % str(row_idx)
+        main_user = get_company_admin_user(user)
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'approval_type':
+                if cell_data:
+                    if cell_data in ['PR', 'PO']:
+                        data_dict[key] = cell_data    
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Approval Type')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Approval Type is Mandatory')
+            elif key == 'config_name':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Config name is Mandatory')
+                else:
+                    data_dict[key] = cell_data
+            elif key == 'zone':
+                if cell_data:
+                    if cell_data in all_zones_list:
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Zone')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Zone is Mandatory')
+            elif key == 'product_category':
+                if cell_data:
+                    if cell_data in product_catalogue:
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Product Category')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Product Category is Mandatory')
+            elif key == 'department_type':
+                if cell_data:
+                    if cell_data in dept_mapping_res.values():
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Department')
+            elif key == 'sku_category':
+                if cell_data:
+                    # if cell_data in pc_sku_category[data_dict['product_category']]: # To Stop Unmapped SKU Categories DOA
+                    if cell_data and pc_sku_category[data_dict['product_category']]:
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
+            elif key == 'plant':
+                if cell_data:
+                    plant_list = cell_data.split(',')
+                    if set(plant_list).issubset(plant_codes_list):
+                        plant_list = list(UserProfile.objects.filter(stockone_code__in = plant_list, warehouse_type='STORE').values_list('user__username', flat=True))
+                        data_dict[key] = plant_list
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Plant')
+            elif key == 'config_type':
+                if cell_data:
+                    if cell_data == 'ranges':
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Config Type')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Config Type is Mandatory')
+            elif key in ['min_amt', 'max_amt']:
+                if cell_data or int(cell_data) ==0:
+                    try:
+                        cell_data = float(cell_data)
+                        if isinstance(cell_data, float):
+                            cell_data = int(cell_data)
+                        data_dict[key] = cell_data
+                    except:
+                        index_status.setdefault(row_idx, set()).add('%s is Invalid' % key)
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % key)
+            elif key == 'level':
+                if cell_data:
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Level is Mandatory')
+            elif key == 'role':
+                if cell_data:
+                    cell_data = cell_data.split(',')
+                    temp_roles = []
+                    for cel_dat in cell_data:
+                        if cel_dat in company_roles_list:
+                            temp_roles.append(cel_dat)
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Invalid Role')
+                    if len(temp_roles) > 0:
+                        data_dict[key] = temp_roles
+                else:
+                    index_status.setdefault(row_idx, set()).add('Role is Mandatory')
+        if data_dict['config_name'] in final_data.keys():
+            flag = False
+            for datas in final_data[data_dict['config_name']]['ranges_level_data']:
+                if datas['max_Amt'] == data_dict.get('max_amt', 0) and datas['min_Amt'] == data_dict.get('min_amt', 0):
+                    datas['range_levels'].append({'data_id': '', 'level': data_dict.get('level', ''), 'roles': data_dict.get('role', '')})
+                    flag = False
+                    break
+                else:
+                    flag = True
+            if flag:
+                final_data[data_dict['config_name']]['ranges_level_data'].append({
+                                                                            'min_Amt': data_dict.get('min_amt', 0),
+                                                                            'max_Amt': data_dict.get('max_amt', 0),
+                                                                            'range_levels' : [{
+                                                                                    'level': data_dict.get('level', ''),
+                                                                                    'roles': data_dict.get('role', ''),
+                                                                                    'data_id': ''
+                                                                            }]
+                                                                        })
+
+        else:
+            final_data[data_dict['config_name']] = {
+                'name': data_dict.get('config_name', ''),
+                'zone': data_dict.get('zone', ''),
+                'product_category': data_dict.get('product_category', ''),
+                'department_type': data_dict.get('department_type', ''),
+                'sku_category': data_dict.get('sku_category', ''),
+                'plant': data_dict.get('plant', ''),
+                'approval_type': data_dict.get('approval_type', ''),
+                'ranges_level_data': [{
+                                    'min_Amt': data_dict.get('min_amt', 0),
+                                    'max_Amt': data_dict.get('max_amt', 0),
+                                    'range_levels' : [{
+                                            'level': data_dict.get('level', ''),
+                                            'roles': data_dict.get('role', ''),
+                                            'data_id': ''
+                                    }]
+                }]
+            }
+    print final_data
+    if not index_status:
+        return 'Success', final_data
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, final_data
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, final_data
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pr_po_approvals_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows,
+                                                        no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        company_id = get_company_id(user)
+        for key in data_list.keys():
+            data = data_list[key]
+            print key
+            print data
+            data['approved_level_data'] = [{"level":"level0","roles":["Purchase Approver"],"data_id":""}]
+            data['default_level_data'] = [{"level":"level0","roles":["Purchase Approver"],"data_id":""}]
+            update_purchase_approval_config_data(company_id, 'PR', data, user, 'ranges')
+            if data['approval_type'] == 'PR': #purchase_type == 'PR' actual Condition only PR / PO Don't Required default and on approved levels
+                # Purchase Approver espically for Purchase Approval related in DOA
+                update_purchase_approval_config_data(company_id, data['approval_type'], data, user, 'default')
+                update_purchase_approval_config_data(company_id, data['approval_type'], data, user, 'approved')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Inventory Norm Master Upload failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Failed")
     return HttpResponse("Success")

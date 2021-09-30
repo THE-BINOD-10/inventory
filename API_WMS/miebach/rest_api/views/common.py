@@ -15230,24 +15230,56 @@ def get_currency_tax_display(user):
 def get_next_approval(pr_obj, pos, level=''):
     if pos == 'Purchase Approver':
         level = 'On Approved'
-    staff_check = {}
-    temp = {}
-    staff_check = {'position': pos, 'status': 1}
-    if pr_obj.wh_user.userprofile.warehouse_type == 'DEPT':
-        staff_check['plant__name'] = get_admin(pr_obj.wh_user).username
-        if pr_obj.wh_user.userprofile.stockone_code:
-            staff_check['department_type__name'] = pr_obj.wh_user.userprofile.stockone_code
-    emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
-    if len(emails) == 0:
-        del staff_check['department_type__name']
+    # staff_check = {}
+    # temp = {}
+    # staff_check = {'position': pos, 'status': 1}
+    # if pr_obj.wh_user.userprofile.warehouse_type == 'DEPT':
+    #     staff_check['plant__name'] = get_admin(pr_obj.wh_user).username
+    #     if pr_obj.wh_user.userprofile.stockone_code:
+    #         staff_check['department_type__name'] = pr_obj.wh_user.userprofile.stockone_code
+    # emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    # if len(emails) == 0:
+    #     del staff_check['department_type__name']
+    #     emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    #     if len(emails) == 0:
+    #         temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': '', 'level':level}
+    #         return temp
+    # if len(emails) > 0:
+    #     temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': ','.join(emails), 'level': level}
+    #     return temp
+    # return temp
+    emails = []
+    mail_list = []
+    user = pr_obj.wh_user
+    staff_check = {'user': user, 'position': pos, 'status': 1}
+    if user.userprofile.warehouse_type == 'DEPT':
+        del staff_check['user']
+        staff_check['department_type__name'] = user.userprofile.stockone_code
+        staff_check['plant__name'] = get_admin(user).username
+    elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        del staff_check['user']
+        staff_check['plant__name'] = user.username
+    if not emails:
         emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
-        if len(emails) == 0:
-            temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': '', 'level':level}
-            return temp
-    if len(emails) > 0:
-        temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': ','.join(emails), 'level': level}
-        return temp
-    return temp
+    if not emails:
+        break_loop = True
+        admin_user = user
+        while break_loop:
+            prev_admin_user = admin_user
+            admin_user = get_admin(admin_user)
+            if admin_user.id == prev_admin_user.id:
+                break_loop = False
+            emails = list(StaffMaster.objects.filter(plant__name=admin_user.username,
+                                                     department_type__isnull=True, position=pos, status=1).\
+                    values_list('email_id', flat=True))
+            if emails:
+                break_loop = False
+    if not emails:
+        emails = list(StaffMaster.objects.filter(plant__isnull=True,
+                                                 department_type__isnull=True, position=pos, status=1). \
+                      values_list('email_id', flat=True))
+    mail_list = list(chain(mail_list, emails))
+    return mail_list
 
 def next_approvals_with_staff_master_mails(request, user=''):
     pr_number = request.POST.get('pr_number', '')
@@ -15267,7 +15299,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
         last_config_data = last_config_datas[0]
         current_level = last_config_data.level
         current_config = last_config_data.configName
-        ranges_datum = PurchaseApprovalConfig.objects.filter(name=current_config).order_by('level').values('level', 'approval_type', 'user_role__role_name', 'name', 'display_name')
+        ranges_datum = PurchaseApprovalConfig.objects.filter(name=current_config).order_by('level').values('level', 'approval_type', 'user_role__role_name', 'name', 'display_name', 'emails__name')
         if ranges_datum.exists():
             for dat in ranges_datum:
                 display_name = dat['display_name']
@@ -15285,13 +15317,21 @@ def next_approvals_with_staff_master_mails(request, user=''):
                         histo['position'] = dat['user_role__role_name']
                         response_data.append(histo)
                 else:
-                    datum = get_next_approval(pr_obj, dat['user_role__role_name'], level=dat['level'])
-                    if len(datum.keys()) > 0:
-                        response_data.append(datum)
-            else:
-                datum = get_next_approval(pr_obj, 'Purchase Approver')
-                if len(datum.keys()) > 0:
+                    datum = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
                     response_data.append(datum)
-    for i in response_data: print i
+            else:
+                histories = pr_obj.pending_prApprovals.filter(status='on_approved').values('status', 'validated_by', 'updation_date')
+                if histories.exists():
+                    histo = histories[0]
+                    temp = {'status': histo['status'], 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
+                    response_data.append(temp)
+                else:
+                    datum = get_next_approval(pr_obj, 'Purchase Approver')
+                    if len(datum) > 0:
+                        temp = {'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
+                        response_data.append(temp)
+                    else:
+                        temp = {'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
+                        response_data.append(temp)
     return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

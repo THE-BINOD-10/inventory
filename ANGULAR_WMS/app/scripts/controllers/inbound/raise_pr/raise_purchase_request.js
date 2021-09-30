@@ -433,10 +433,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
           Data.seller_types = vm.model_data.seller_types;
-
           vm.default_status = (Session.user_profile.user_type == 'marketplace_user') ? true: false;
-
-
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
             vm.model_data.receipt_type = 'Hosted Warehouse';
@@ -845,7 +842,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
           controllerAs: 'showCase',
-          size: 'sm',
+          size: 'lg',
           backdrop: 'static',
           keyboard: false,
           resolve: {

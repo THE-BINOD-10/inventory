@@ -15298,7 +15298,10 @@ def next_approvals_with_staff_master_mails(request, user=''):
     if last_config_datas.exists():
         last_config_data = last_config_datas[0]
         current_level = last_config_data.level
-        current_config = last_config_data.configName
+        if last_config_data.configName.find('default') == -1:
+            current_config = last_config_data.configName
+        else:
+            current_config = last_config_datas[1].configName
         ranges_datum = PurchaseApprovalConfig.objects.filter(name=current_config).order_by('level').values('level', 'approval_type', 'user_role__role_name', 'name', 'display_name', 'emails__name')
         if ranges_datum.exists():
             for dat in ranges_datum:
@@ -15320,18 +15323,21 @@ def next_approvals_with_staff_master_mails(request, user=''):
                     datum = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
                     response_data.append(datum)
             else:
-                histories = pr_obj.pending_prApprovals.filter(status='on_approved').values('status', 'validated_by', 'updation_date')
+                histories = pr_obj.pending_prApprovals.filter(configName__icontains = 'default_0_0').exclude(status='on_approved').values('status', 'validated_by', 'updation_date')
                 if histories.exists():
                     histo = histories[0]
-                    temp = {'status': histo['status'], 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
+                    if histo['status'] == '':
+                        histo['status'] = 'On Approved'
+                        histo['is_current'] = True
+                    temp = {'is_current': histo['is_current'], 'status': histo['status'], 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
                     response_data.append(temp)
                 else:
                     datum = get_next_approval(pr_obj, 'Purchase Approver')
                     if len(datum) > 0:
-                        temp = {'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
+                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
                         response_data.append(temp)
                     else:
-                        temp = {'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
+                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
                         response_data.append(temp)
     return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

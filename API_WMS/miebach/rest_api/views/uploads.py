@@ -13490,7 +13490,7 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
                 if cell_data:
                     try:
                         if cell_data in staff_role_dict.keys() and data_dict['role']:
-                            if staff_role_dict[cell_data] == data_dict['role']:
+                            if staff_role_dict[cell_data] in data_dict['role']:
                                 data_dict[key] = cell_data
                             else:
                                 index_status.setdefault(row_idx, set()).add('Unmatched EmailID with Role')
@@ -13583,7 +13583,7 @@ def pr_po_approvals_upload(request, user=''):
             print data
             data['approved_level_data'] = [{"level":"level0","roles":["Purchase Approver"],"data_id":""}]
             data['default_level_data'] = [{"level":"level0","roles":["Purchase Approver"],"data_id":""}]
-            update_purchase_approval_config_data(company_id, 'PR', data, user, 'ranges')
+            update_purchase_approval_config_data(company_id, data['approval_type'], data, user, 'ranges')
             if data['approval_type'] == 'PR': #purchase_type == 'PR' actual Condition only PR / PO Don't Required default and on approved levels
                 # Purchase Approver espically for Purchase Approval related in DOA
                 update_purchase_approval_config_data(company_id, data['approval_type'], data, user, 'default')

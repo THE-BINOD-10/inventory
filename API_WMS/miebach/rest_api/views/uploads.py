@@ -13377,6 +13377,7 @@ def opening_stock_upload(request, user=''):
 def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     distinct_sku_user_combo = []
+    staff_role_dict = {}
     pr_po_mapping = copy.deepcopy(PR_PO_APPROVAL_HEADERS)
     pr_po_mapping_res = dict(zip(pr_po_mapping.values(), pr_po_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, pr_po_mapping)
@@ -13387,6 +13388,10 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
     pc_sku_category = get_product_category_based_sku_categories(user)
     all_zones_list = list(UserProfile.objects.filter().exclude(zone='').values_list('zone', flat=True).distinct())
     plant_codes_list = list(UserProfile.objects.filter(warehouse_type='STORE').exclude(stockone_code='').values_list('stockone_code', flat=True).distinct())
+    staff_datam = StaffMaster.objects.filter().exclude(email_id='').values('email_id', 'position')
+    if staff_datam.exists():
+        for st_data in staff_datam:
+            staff_role_dict[st_data['email_id']] = st_data['position']
     final_data = {}
     for row_idx in range(1, no_of_rows):
         data_dict = {}
@@ -13481,11 +13486,25 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
                         data_dict[key] = temp_roles
                 else:
                     index_status.setdefault(row_idx, set()).add('Role is Mandatory')
+            elif key == 'email':
+                if cell_data:
+                    try:
+                        if cell_data in staff_role_dict.keys() and data_dict['role']:
+                            if staff_role_dict[cell_data] == data_dict['role']:
+                                data_dict[key] = cell_data
+                            else:
+                                index_status.setdefault(row_idx, set()).add('Unmatched EmailID with Role')
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Invalid EmailID')
+                    except Exception as e:
+                        index_status.setdefault(row_idx, set()).add('Invalid EmailID')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Email is Mandatory')
         if data_dict['config_name'] in final_data.keys():
             flag = False
             for datas in final_data[data_dict['config_name']]['ranges_level_data']:
                 if datas['max_Amt'] == data_dict.get('max_amt', 0) and datas['min_Amt'] == data_dict.get('min_amt', 0):
-                    datas['range_levels'].append({'data_id': '', 'level': data_dict.get('level', ''), 'roles': data_dict.get('role', '')})
+                    datas['range_levels'].append({'data_id': '', 'level': data_dict.get('level', ''), 'roles': data_dict.get('role', ''), 'emails': data_dict.get('email', '')})
                     flag = False
                     break
                 else:
@@ -13497,6 +13516,7 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
                                                                             'range_levels' : [{
                                                                                     'level': data_dict.get('level', ''),
                                                                                     'roles': data_dict.get('role', ''),
+                                                                                    'emails': data_dict.get('email', ''),
                                                                                     'data_id': ''
                                                                             }]
                                                                         })
@@ -13516,6 +13536,7 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
                                     'range_levels' : [{
                                             'level': data_dict.get('level', ''),
                                             'roles': data_dict.get('role', ''),
+                                            'emails': data_dict.get('email', ''),
                                             'data_id': ''
                                     }]
                 }]

@@ -25,6 +25,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.quantity_editable = false;
+    vm.current_pr_app_data = {};
+    vm.current_pr_app_data_flag = true;
 //    if(vm.permissions.change_pendinglineitems) {
 //      vm.quantity_editable = true;
 //    }
@@ -160,6 +162,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.form = 'pending_for_approval';
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], current_approval: aData['To Be Approved By']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
+        vm.current_pr_app_data = {};
+        vm.current_pr_app_data_flag = true;
         if (data.message && typeof(data.data) == 'object') {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
@@ -307,14 +311,31 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_status = aData['Validation Status']
           vm.convertPoFlag = data.data.convertPoFlag
           vm.pending_level = aData['LevelToBeApproved']
+          if (aData['Validation Status'] != 'Saved') {
+            var temp_dict = {'pr_number': aData['PR Number']};
+            vm.service.apiCall('next_approvals_with_staff_master_mails/', 'POST', temp_dict, true).then(function(data){
+              if(data.message){
+                if (Object.keys(data.data).length ==2) {
+                  vm.current_pr_app_data = data.data;
+                } else {
+                  Service.showNoty(data.data);
+                }
+              }
+              vm.current_pr_app_data_flag = false;
+            })
+          }
           if (aData['Validation Status'] == 'Approved'){
+            vm.current_pr_app_data_flag = false;
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Store_Sent'){
+            vm.current_pr_app_data_flag = false;
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
+            vm.current_pr_app_data_flag = false;
             vm.update = true;
             $state.go('app.inbound.RaisePr.SavedPurchaseRequest');
           } else {
+            vm.current_pr_app_data_flag = false;
             $state.go('app.inbound.RaisePr.ApprovePurchaseRequest');
           }
         } else {

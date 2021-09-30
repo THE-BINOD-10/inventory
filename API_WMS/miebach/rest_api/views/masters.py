@@ -6125,10 +6125,11 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
     if request.POST.get('excel') == 'true':
         pas = PurchaseApprovalConfig.objects.filter()
         for pa in pas:
-            temp_data['aaData'].append(OrderedDict((('name', pa.display_name), ('plant', ','.join(pa.plant.filter().values_list('name', flat=True))),
+            temp_data['aaData'].append(OrderedDict((('zone', pa.zone), ('name', pa.display_name), ('plant', ','.join(pa.plant.filter().values_list('name', flat=True))),
                                                     ('product_category', pa.product_category), ('SKU Category', pa.sku_category),
                                                     ('department_type', pa.department_type), ('Approval Type', pa.approval_type),
                                                     ('Level', pa.level), ('Min Amount', pa.min_Amt), ('Max Amount', pa.max_Amt),
+                                                    ('emails', ','.join(pa.emails.filter().values_list('name', flat=True))),
                                                     ('Roles', ','.join(pa.user_role.filter().values_list('role_name', flat=True))))))
     else:
         lis = ['display_name', 'product_category', 'plant__name', 'department_type', 'min_Amt', 'max_Amt']

@@ -875,7 +875,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
           controllerAs: 'showCase',
-          size: 'sm',
+          size: 'lg',
           backdrop: 'static',
           keyboard: false,
           resolve: {

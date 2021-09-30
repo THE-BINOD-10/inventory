@@ -210,7 +210,7 @@ PO_REPORT_PO_STATUS = ['saved', 'Pending', 'Approved', 'Rejected']
 
 PURCHASE_ORDER_REPORT_STATUS = ['Yet To Receive', 'Partially Received', 'Received', 'Putaway Completed']
 
-ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
+ZONE_CODES = ['Central', 'East', 'GRL', 'Mumbai', 'NACO', 'North', 'Overseas', 'South', 'West']
 
 CONSUMPTION_TYPE = ['Auto Consumption', 'ClosingStock', 'Manual Consumption', 'Adjustment']
 

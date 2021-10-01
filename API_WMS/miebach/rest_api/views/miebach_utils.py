@@ -18598,7 +18598,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
 
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location','sku__measurement_type',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp','stock_mapping__stock__batch_detail__puom',
-                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
+                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date','stock_mapping__stock__batch_detail__pcf',
                     'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type', 'consumption_number']
     model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
@@ -18663,6 +18663,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         #     pcf = 1
         if result['sku_pcf']:
             pcf = result['sku_pcf']
+        if result['stock_mapping__stock__batch_detail__pcf']:
+            pcf = result['stock_mapping__stock__batch_detail__pcf']
         quantity = result['stock_mapping__quantity']
         if result['quantity'] < 0:
             quantity = -1 * quantity

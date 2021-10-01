@@ -17878,8 +17878,8 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['po_number', 'creation_date','expected_date']
-
-    model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
+    model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct()
+    #model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
                                         #annotate(total_qty=Sum('open_po__order_quantity'),
                                     #total_temp_amt=Sum(F('open_po__order_quantity') * F('open_po__price')),
                                     #annotate(total_tax_amount=Sum((F('open_po__order_quantity') * F('open_po__price')/100)*(F('open_po__cgst_tax')+F('open_po__sgst_tax')+F('open_po__igst_tax'))),

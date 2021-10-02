@@ -3921,6 +3921,7 @@ class MasterEmailMapping(models.Model):
 
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
+        index_together = (('user', 'master_id', 'master_type', 'email_id'),('user', 'master_id', 'master_type'))
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
 
 class InvoiceOrderCharges(models.Model) :

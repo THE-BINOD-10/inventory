@@ -2046,14 +2046,20 @@ def generated_pr_data(request, user=''):
     supplier_name = ''
     supplier_payment_desc = ''
     supplier_email = ''
+    supplier_phone_number = ''
     po_all_mails = []
     supplier_currency = ['INR']
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
         supplier_email = record[0].supplier.email_id
+        supplier_phone_number = record[0].supplier.phone_number
         if supplier_email:
             po_all_mails.append(supplier_email)
+            secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=record[0].supplier.id, user_id=record[0].supplier.user, master_type='supplier').values_list(
+                                                                                    'email_id', flat=True).distinct())
+            if len(secondary_supplier_email) > 0:
+                po_all_mails.extend(secondary_supplier_email)
         if record[0].supplier.currency.filter().exists():
             supplier_currency = list(record[0].supplier.currency.filter().values_list('currency_code', flat=True))
         if record[0].supplier_payment:
@@ -2083,6 +2089,7 @@ def generated_pr_data(request, user=''):
                                     'pa_uploaded_file_dict':pa_uploaded_file_dict,
                                     'supplier_email':supplier_email,
                                     'po_all_mails':po_all_mails,
+                                    'supplier_phone_number':supplier_phone_number,
                                     'full_pr_number': full_pr_number,
                                     'warehouse_id': warehouse_id}))
 
@@ -3660,6 +3667,22 @@ def get_raisepo_group_data(user, myDict):
                 all_po_emails = ''
         except Exception as e:
             pass
+        try:
+            suplier_secondary_mails = myDict.get('suplier_secondary_mails', [])
+            if len(suplier_secondary_mails)>0:
+                suplier_secondary_mails = suplier_secondary_mails[0]
+            else:
+                suplier_secondary_mails = ''
+        except Exception as e:
+            pass
+        try:
+            suplier_mobile_number = myDict.get('suplier_mobile_number', [])
+            if len(suplier_mobile_number)>0:
+                suplier_mobile_number = suplier_mobile_number[0]
+            else:
+                suplier_mobile_number = ''
+        except Exception as e:
+            pass
         cond = (myDict['wms_code'][i])
         all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': supplierId, 'supplier_payment': supplier_payment_id, 'ship_to_name':ship_to_name,
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type, 'currency':currency, 'currency_rate':currency_rate,
@@ -3674,7 +3697,7 @@ def get_raisepo_group_data(user, myDict):
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
                                    'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax, 'tax': tax, 'sku_supplier':sku_supplier,
                                    'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data, 'discount_percent': discount_percent, 'delta': delta,
-                                   'mrp_id': mrp_id, 'suggested_qty': suggested_qty})
+                                   'mrp_id': mrp_id, 'suggested_qty': suggested_qty, 'suplier_secondary_mails': suplier_secondary_mails, 'suplier_mobile_number':suplier_mobile_number})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -4146,6 +4169,17 @@ def approve_pr(request, user=''):
         if is_actual_pr:
             currentLevelMails = list(pendingPRObj.pending_prApprovals.filter(status='').values_list('validated_by', flat=True))
         else:
+            suplier_secondary_mails = request.POST.get('suplier_secondary_mails', '')
+            if suplier_secondary_mails and pendingPRObj.supplier:
+                filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': suplier_secondary_mails}
+                master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+                if not master_email_map.exists():
+                    master_email_map = MasterEmailMapping.objects.create(**filter_dict)
+                    master_email_map.save()
+            all_po_emails = request.POST.get('all_po_emails', '')
+            if all_po_emails:
+                pendingPRObj.po_mail_members = all_po_emails
+                pendingPRObj.save()
             currentLevelMails = list(pendingPRObj.pending_poApprovals.filter(status='').values_list('validated_by', flat=True))
         if currentLevelMails:
             currentLevelMailList = currentLevelMails[0].split(', ')
@@ -4513,6 +4547,23 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.currency = firstEntryValues.get('currency', 'INR')
         pendingPurchaseObj.po_mail_members = firstEntryValues.get('all_po_emails', '')
         pendingPurchaseObj.currency_rate = firstEntryValues.get('currency_rate', 1)
+        if pendingPurchaseObj.supplier:
+            suplier_secondary_mails = firstEntryValues.get('suplier_secondary_mails', '')
+            suplier_mobile_number = firstEntryValues.get('suplier_mobile_number', '')
+            if suplier_mobile_number:
+                supp = pendingPurchaseObj.supplier
+                supp.phone_number = suplier_mobile_number
+                supp.save()
+            if suplier_secondary_mails:
+                filter_dict = {}
+                filter_dict['user_id'] = pendingPurchaseObj.supplier.user
+                filter_dict['master_type'] = 'supplier'
+                filter_dict['master_id'] = pendingPurchaseObj.supplier.id
+                filter_dict['email_id'] = suplier_secondary_mails
+                master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+                if not master_email_map.exists():
+                    master_email_map = MasterEmailMapping.objects.create(**filter_dict)
+                    master_email_map.save()
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)

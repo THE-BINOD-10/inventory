@@ -183,7 +183,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "supplier_currency": '',
             "supplier_currency_rate": '',
             "supplier_email": data.data.supplier_email,
+            "actual_po_all_mails": data.data.po_all_mails,
             "po_all_mails": data.data.po_all_mails,
+            "supplier_phone_number": data.data.supplier_phone_number,
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -711,6 +713,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.permissions.central_admin_level_po){
         elem.push({name:'data_id', value:vm.data_id});
       }
+      var all_po_emails = $(".internal_mails").val();
+      var supplier_secondary_mails = $(all_po_emails.split(',')).not(vm.model_data.actual_po_all_mails.split(',')).get().toString();
+      elem.push({name:'all_po_emails', value: all_po_emails});
+      elem.push({name:'suplier_secondary_mails', value: supplier_secondary_mails});
       vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'Approved Successfully') {
@@ -1357,7 +1363,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         form_data.append(val.name, val.value);
       });
       var all_po_emails = $(".internal_mails").val();
+      var supplier_secondary_mails = $(all_po_emails.split(',')).not(vm.model_data.actual_po_all_mails.split(',')).get().toString();
       form_data.append('all_po_emails', all_po_emails);
+      form_data.append('suplier_secondary_mails', supplier_secondary_mails);
+      form_data.append('suplier_mobile_number', vm.model_data.supplier_phone_number);
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {

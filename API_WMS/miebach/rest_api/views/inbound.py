@@ -691,6 +691,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         wh_user = result['pending_po__wh_user']
         storeObj = User.objects.filter(id=wh_user)
         if storeObj:
+            user = storeObj[0]
             store = storeObj[0].first_name
         else:
             store = ''
@@ -705,7 +706,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = result['pending_po__full_po_number'] #'%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'], purchase_type='PO')
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'], purchase_type='PO', approval_type='ranges')
         prApprQs = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'], pr_user=wh_user,
                                     level=result['pending_po__pending_level'])
 
@@ -4167,6 +4168,14 @@ def approve_pr(request, user=''):
             # TO Skip All default Level
             # if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             #     approval_type = 'ranges'
+        else:
+            try:
+                approval_type = pendingPRObj.pending_poApprovals.filter(level=pending_level).exclude(status='resubmitted').order_by('-creation_date')[0].approval_type
+                prev_approval_type = approval_type
+                if prev_approval_type == '':
+                    prev_approval_type = 'ranges'
+            except:
+                prev_approval_type = 'ranges'
         pr_user = pendingPRObj.wh_user
         if 'total' in myDict.keys():
             totalAmt = 0
@@ -4188,6 +4197,8 @@ def approve_pr(request, user=''):
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
+        if purchase_type == 'PO':
+            approval_type = 'ranges'
         reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                     purchase_type=purchase_type, product_category=product_category,
                                     approval_type=approval_type, sku_category=sku_category)
@@ -5508,7 +5519,7 @@ def add_pr(request, user=''):
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
-                                    product_category=product_category, sku_category=sku_category)
+                                    product_category=product_category, approval_type='ranges', sku_category=sku_category)
                 pr_doa_log.info("Approval Config for PO Number %s is %s" % (full_pr_number, reqConfigName))
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
@@ -10885,6 +10896,7 @@ def confirm_add_po(request, sales_data='', user=''):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
+        PendingPO.objects.filter(full_po_number=po_num, open_po__sku__user = user.id).update(mail_status=False, mail_failed_reason = str(e))
         log.info("Confirm Add PO failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
@@ -11158,7 +11170,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-        send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
+        send_sendgrid_mail(f_name, user, 'mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
         #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:

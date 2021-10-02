@@ -312,7 +312,7 @@
             <span>GRN Edit</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+        <li ui-sref-active="active">
           <a ui-sref="app.inbound.MaterialPlanning">
             <span>Material Planning</span>
           </a>
@@ -652,6 +652,11 @@
         <li ui-sref-active="active" ng-show="show_tab('view_purchaseorder')">
           <a ui-sref="app.reports.SupplierWisePOs">
             <span>Supplier Wise PO's</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_purchaseorder')">
+          <a ui-sref="app.reports.PoSupplierMailReport">
+            <span>PO Supplier Mail Report</span>
           </a>
         </li>
         <li ng-show="show_tab('view_orderreturns') && !show_tab('show_vehiclemaster')" ui-sref-active="active" >

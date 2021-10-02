@@ -1469,7 +1469,6 @@ var app = angular.module('urbanApp')
         })
         .state('app.inbound.MaterialPlanning', {
           url: '/MaterialPlanning',
-          permission: 'change_replenushmentmaster',
           templateUrl: 'views/inbound/material_planning.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -2885,7 +2884,18 @@ var app = angular.module('urbanApp')
             title: 'Shipment Report',
           }
         })
-
+        .state('app.reports.PoSupplierMailReport', {
+          url: '/PoSupplierMailReport',
+          templateUrl: 'views/reports/po_supplier_mail_report.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/reports/po_supplier_mail_report.js');
+            }]
+          },
+          data: {
+            title: 'PO Supplier Mail Report',
+          }
+        })
         .state('app.reports.POReport', {
           url: '/POReport',
           templateUrl: 'views/reports/po_report.html',

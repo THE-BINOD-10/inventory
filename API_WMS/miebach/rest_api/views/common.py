@@ -1491,8 +1491,22 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         pac_filter['sku_category'] = sku_category
     else:
         pac_filter['sku_category'] = ''
+    pac_filter1 = copy.deepcopy(pac_filter)
     # 1) It Checks Zone, Product Categry, sku categoery, Dept, plant
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    # Special Condition for kits and consumables to match Plant and Dept
+    if not purchase_config and product_category == 'Kits&Consumables':
+        if 'sku_category' in pac_filter.keys():
+            del pac_filter['sku_category']
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+            if not purchase_config:
+                # Kits Special Condition) It Checks Zone, Product category, Plant
+                if 'department_type' in pac_filter.keys():
+                    del pac_filter['department_type']
+                purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+                if not purchase_config:
+                    pac_filter['sku_category'] = pac_filter1['sku_category']
+                    pac_filter['department_type'] = pac_filter1['department_type']
     if not purchase_config:
         # 2) It Checks Zone, Product Categry, sku categoery, Dept
         if 'plant__name' in pac_filter.keys():

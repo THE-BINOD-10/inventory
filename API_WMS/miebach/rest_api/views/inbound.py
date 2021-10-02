@@ -4343,11 +4343,16 @@ def approve_pr(request, user=''):
                             os.remove(master_docs_obj.uploaded_file.path)
                         master_docs_obj.uploaded_file = file_obj
                         master_docs_obj.save()
-        if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
+        if (is_auto_pr and pending_level == lastLevel and not is_resubmitted) or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
+            pr_user = pendingPRObj.wh_user
+            if pr_user.userprofile.warehouse_type == 'DEPT':
+                store_obj = get_admin(pr_user)
+                if store_obj:
+                    user = store_obj
             if purchase_type == 'PR':
                 if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
                     nextLevel = 'level0'
-                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                    reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type=purchase_type, product_category=product_category,
                                       approval_type='default', sku_category=sku_category)
                     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
                                         master_type=master_type, forPO=poFor, approval_type='default', save_level=nextLevel)
@@ -5486,8 +5491,10 @@ def add_pr(request, user=''):
                     pendingPRObj.save()
                     totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
-                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
-                                                product_category=product_category, approval_type='default',
+                    pr_user = pendingPRObj.wh_user
+                    approval_type = 'ranges'
+                    reqConfigName = findReqConfigName(pr_user, totalAmt, purchase_type='PR',
+                                                product_category=product_category, approval_type=approval_type,
                                               sku_category=sku_category)
                 prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,

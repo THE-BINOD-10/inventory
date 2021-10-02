@@ -3376,6 +3376,7 @@ class StaffMaster(models.Model):
     email_id = models.EmailField(max_length=64, default='')
     reportingto_email_id = models.EmailField(max_length=64, default='')
     phone_number = models.CharField(max_length=32)
+    mrp_user = models.BooleanField(default=False)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

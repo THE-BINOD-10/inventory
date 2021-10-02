@@ -459,6 +459,10 @@ def wms_login(request):
         version_number= get_git_current_version_number()
         if not version_number:
             version_number= base.VERSION_NUMBER
+        try:
+            response_data['data']['user_profile']['mrp_flag'] = StaffMaster.objects.get(email_id=response_data['data']['userName']).mrp_user
+        except:
+            response_data['data']['user_profile']['mrp_flag'] = False;
         response_data["data"].update({"version_number":version_number})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -538,6 +542,10 @@ def status(request):
     version_number= get_git_current_version_number()
     if not version_number:
         version_number= base.VERSION_NUMBER
+    try:
+        response_data['data']['user_profile']['mrp_flag'] = StaffMaster.objects.get(email_id=response_data['data']['userName']).mrp_user
+    except:
+        response_data['data']['user_profile']['mrp_flag'] = False;
     response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 

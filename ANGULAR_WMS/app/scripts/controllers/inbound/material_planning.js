@@ -14,6 +14,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.mrp_access = Session.user_profile.mrp_flag;
+    vm.current_user = Session.user_profile.first_name;
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = false;
@@ -59,7 +61,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
        });
 
     var columns = ['Plant Code', 'Plant Name', 'Department', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty', 'Lead Time Qty',
-                   'Min Days Qty', 'Max Days Qty', 'System Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty'];
+                   'Min Days Qty', 'Max Days Qty', 'Dept Stock Qty', 'Allocated Plant Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty',
+                   'Supplier Id', 'Suggested Value'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -185,72 +188,76 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
     vm.html = "";
     vm.create_pr = create_pr;
     function create_pr() {
-      var data_ids = [];
-      var formData = new FormData();
-      var plant_code = '';
-      var dept = ''
-      var plant_check = false;
-      var non_zero_qty = false;
-      angular.forEach(vm.selected, function(value, key){
-        if(value) {
-          var table_data = vm.dtInstance.DataTable.context[0].aoData[key];
-          var row_plant = table_data._aData['Plant Code'];
-          var row_dept = table_data._aData['Department'];
-          if(!plant_code){
-            plant_code = row_plant;
+      if (!vm.mrp_access) {
+        vm.service.showNoty(vm.current_user + " - MRP Access Denied, please Contact Admin to get Access");
+      } else {
+        var data_ids = [];
+        var formData = new FormData();
+        var plant_code = '';
+        var dept = ''
+        var plant_check = false;
+        var non_zero_qty = false;
+        angular.forEach(vm.selected, function(value, key){
+          if(value) {
+            var table_data = vm.dtInstance.DataTable.context[0].aoData[key];
+            var row_plant = table_data._aData['Plant Code'];
+            var row_dept = table_data._aData['Department'];
+            if(!plant_code){
+              plant_code = row_plant;
+            }
+            if(!dept){
+              dept = row_dept;
+            }
+            var sugg_qty = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Suggested Qty'];
+            if(sugg_qty != ''){
+              sugg_qty = parseFloat(sugg_qty);
+              formData.append('id', vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId);
+              formData.append('suggested_qty', sugg_qty);
+              formData.append('capacity', vm.dtInstance.DataTable.context[0].aoData[key]._aData['System Stock Qty']);
+              formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Daily Consumption Qty']);
+              formData.append('openpr_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PR Qty']);
+              formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
+              non_zero_qty = true;
+            }
+            if(plant_code != row_plant || dept != row_dept){
+              plant_check = true;
+            }
           }
-          if(!dept){
-            dept = row_dept;
-          }
-          var sugg_qty = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Suggested Qty'];
-          if(sugg_qty != ''){
-            sugg_qty = parseFloat(sugg_qty);
-            formData.append('id', vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId);
-            formData.append('suggested_qty', sugg_qty);
-            formData.append('capacity', vm.dtInstance.DataTable.context[0].aoData[key]._aData['System Stock Qty']);
-            formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Daily Consumption Qty']);
-            formData.append('openpr_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PR Qty']);
-            formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
-            non_zero_qty = true;
-          }
-          if(plant_code != row_plant || dept != row_dept){
-            plant_check = true;
-          }
+        });
+        if(plant_check) {
+          vm.service.showNoty('Please Select one plant and department only');
+          return false;
         }
-      });
-      if(plant_check) {
-        vm.service.showNoty('Please Select one plant and department only');
-        return false;
+        if(!non_zero_qty && !vm.selectAll) {
+          vm.service.showNoty('Suggested Quantity is zero for all selected lines');
+          return false;
+        }
+        //formData.append('select_all', vm.selectAll);
+        formData.append('select_all', false);
+        angular.forEach(vm.model_data.filters, function(value, key){
+          formData.append(key, value);
+        });
+        var url = "prepare_material_planning_pr_data/"
+        $rootScope.process = true;
+        $.ajax({url: Session.url + url,
+              data: formData,
+              method: 'POST',
+              processData : false,
+              contentType : false,
+              xhrFields: {
+                  withCredentials: true
+              },
+              'success': function(response) {
+                response = JSON.parse(response);
+                if(!response.data_list){
+                  vm.service.showNoty('Suggested Quantity is zero for all selected lines');
+                  return false;
+                }
+                $rootScope.$current_raise_pr = JSON.stringify(response);
+                $rootScope.process = false;
+                $state.go('app.inbound.RaisePr');
+              }});
       }
-      if(!non_zero_qty && !vm.selectAll) {
-        vm.service.showNoty('Suggested Quantity is zero for all selected lines');
-        return false;
-      }
-      //formData.append('select_all', vm.selectAll);
-      formData.append('select_all', false);
-      angular.forEach(vm.model_data.filters, function(value, key){
-        formData.append(key, value);
-      });
-      var url = "prepare_material_planning_pr_data/"
-      $rootScope.process = true;
-      $.ajax({url: Session.url + url,
-            data: formData,
-            method: 'POST',
-            processData : false,
-            contentType : false,
-            xhrFields: {
-                withCredentials: true
-            },
-            'success': function(response) {
-              response = JSON.parse(response);
-              if(!response.data_list){
-                vm.service.showNoty('Suggested Quantity is zero for all selected lines');
-                return false;
-              }
-              $rootScope.$current_raise_pr = JSON.stringify(response);
-              $rootScope.process = false;
-              $state.go('app.inbound.RaisePr');
-            }});
     }
 
     function check_receive() {
@@ -352,6 +359,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);
+          vm.service.refresh(vm.dtInstance);
         });
       }
     });

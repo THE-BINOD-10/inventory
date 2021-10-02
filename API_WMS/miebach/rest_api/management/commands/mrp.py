@@ -17,7 +17,7 @@ from rest_api.views.common import *
 from rest_api.views.sendgrid_mail import *
 from rest_api.views.reports import *
 from rest_api.views.sendgrid_mail import send_sendgrid_mail
-
+from rest_api.views.mail_server import send_mail, send_mail_attachment
 
 
 def init_logger(log_file):
@@ -34,7 +34,7 @@ def init_logger(log_file):
 
 
 log = init_logger('logs/Material_requirement_planning.log')
-host = 'http://72.stockone.in:7023'
+host = 'http://95.216.96.177:7030'
 
 
 def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
@@ -190,9 +190,11 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         print data.id
         user = User.objects.get(id=data.user)
         if data.user in plant_dept.keys():
-            plant_usr_id = plant_dept[data.user]
+            plant_usr = plant_dept[data.user]
         else:
-            plant_usr_id = get_admin(user).id
+            plant_usr = get_admin(user)
+        plant_usr_id = plant_usr.id
+        supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
         data_dict = {}
         uom_dict = sku_uoms.get(data.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
@@ -223,6 +225,12 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
             suggested_qty = (max_days + lead_time - total_stock)
             suggested_qty = math.ceil(suggested_qty)
         if suggested_qty > 0:
+            supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
+            supplier_id, amount = '', 0
+            if supp_details.get('supplierDetails'):
+                sku_supplier = supp_details['supplierDetails'][supp_details['preferred_supplier']]
+                supplier_id = sku_supplier['supplier_id']
+                amount = suggested_qty * sku_supplier['price']
             data_dict = {
                         'sku': data,
                         'user': user,
@@ -231,10 +239,13 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
                         'min_days_qty': min_days,
                         'max_days_qty': max_days,
                         'system_stock_qty': stock_qty,
+                        'plant_stock_qty': plant_stock_qty,
                         'pending_pr_qty': sku_pending_pr,
                         'pending_po_qty': sku_pending_po,
                         'total_stock_qty': total_stock,
                         'suggested_qty': suggested_qty,
+                        'supplier_id': supplier_id,
+                        'amount': amount,
                         'status': 1
             }
             mrp_obj = MRP(**data_dict)
@@ -249,8 +260,11 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
         url = '%s/#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
         email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
-        emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User').values_list('email_id', flat=True)
-        send_sendgrid_mail('mhl_mail@stockone.in', ['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'], email_subject, email_body, files=[])
+        emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True)
+        if len(emails) > 0:
+            emails.extend(['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'])
+        send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
+        # send_sendgrid_mail('mhl_mail@stockone.in', ['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'], email_subject, email_body, files=[])
 
 class Command(BaseCommand):
     """

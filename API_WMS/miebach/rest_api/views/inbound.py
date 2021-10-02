@@ -2985,6 +2985,8 @@ def switches(request, user=''):
                        'auto_putaway_grn': 'auto_putaway_grn',
                        'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
                        'block_pr_po_transactions': 'block_pr_po_transactions',
+                       'mrp_pr_days': 'mrp_pr_days',
+                       'mrp_po_days': 'mrp_po_days',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

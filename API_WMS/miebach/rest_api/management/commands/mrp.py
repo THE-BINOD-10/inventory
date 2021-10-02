@@ -55,6 +55,8 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids}
     main_user = get_company_admin_user(user)
+    mrp_pr_days = get_misc_value('mrp_pr_days', main_user.id)
+    mrp_po_days = get_misc_value('mrp_po_days', main_user.id)
     if not run_sku_codes:
         kandc_skus = list(SKUMaster.objects.filter(user=main_user.id).exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all()).\
                                         exclude(id__in=OtherItemsMaster.objects.all()).exclude(id__in=TestMaster.objects.all()).values_list('sku_code', flat=True))
@@ -126,7 +128,13 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         plant_consumption_qtys.setdefault(plant_grp, 0)
         plant_consumption_qtys[plant_grp] += cons.quantity
     print "Preparing consumption dict completed"
-    pr_pending = PendingLineItems.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, pending_pr__final_status__in=['pending', 'approved'])
+    pr_pending_filter_dict = {'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes, 'pending_pr__final_status__in': ['pending', 'approved']}
+    if mrp_pr_days not in ['false', '']:
+        try:
+            pr_pending_filter_dict['creation_date__gte'] = (datetime.datetime.now() - datetime.timedelta(float(mrp_pr_days))).date()
+        except:
+            pass
+    pr_pending = PendingLineItems.objects.filter(**pr_pending_filter_dict)
     pending_pr_dict = {}
     for pr_pend in pr_pending:
         #if pr_pend.sku.user in user_id_mapping:
@@ -141,9 +149,14 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         pending_pr_dict.setdefault(grp_key, {'qty': 0})
         pending_pr_dict[grp_key]['qty'] += pr_pend.quantity
     print "Preparing pr pending dict completed"
-    po_pending = PendingLineItems.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes,
-                                                pending_po__final_status__in=['saved', 'pending', 'approved'],
-                                                ).only('id', 'sku', 'quantity', 'pending_po__open_po_id', 'pending_po__pending_prs__wh_user_id')
+    po_pending_filter_dict = {'sku__user__in': plant_user_ids, 'sku__sku_code__in': sku_codes, 'pending_po__final_status__in': ['saved', 'pending', 'approved']}
+    if mrp_po_days not in ['false', '']:
+        try:
+            po_pending_filter_dict['creation_date__gte'] = (datetime.datetime.now() - datetime.timedelta(float(mrp_po_days))).date()
+        except:
+            pass
+
+    po_pending = PendingLineItems.objects.filter(**po_pending_filter_dict).only('id', 'sku', 'quantity', 'pending_po__open_po_id', 'pending_po__pending_prs__wh_user_id')
                                                 #pending_po__open_po__purchaseorder__isnull=True).only('id', 'sku', 'quantity')
     pending_po_dict = {}
     po_pending_open_po_ids = list(po_pending.values_list('pending_po__open_po_id', flat=True))
@@ -167,8 +180,14 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         pending_po_dict.setdefault(grp_key, {'qty': 0})
         pending_po_dict[grp_key]['qty'] += po_pend.quantity
     print "Preparing po pending dict completed"
+    po_filter_dict = {}
+    if mrp_po_days not in ['false', '']:
+        try:
+            po_filter_dict['creation_date__gte'] = (datetime.datetime.now() - datetime.timedelta(float(mrp_po_days))).date()
+        except:
+            pass
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=plant_user_ids , open_po__sku__sku_code__in=sku_codes,
-                                                    open_po__order_quantity__gt=F('received_quantity')).\
+                                                    open_po__order_quantity__gt=F('received_quantity'), **po_filter_dict).\
                                             exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted'])
     po_dict = {}
     for purchase_order in purchase_orders:

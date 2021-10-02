@@ -11,7 +11,7 @@
           <!-- <th>Brand</th> -->
           <th>Type</th>
           <th class="w10_">Quantity*</th>
-          <th>Base Price excluding GST</th>
+          <th ng-hide="true">Base Price excluding GST</th>
           <!-- <th>UOM</th> -->
           <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
           <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
@@ -66,7 +66,7 @@
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-hide="true">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
-          <td class="text-center">
+          <td class="text-center" ng-hide="true">
             <input ng-model="product.fields.temp_price" type="text" name="temp_price"
               class="form-control detectTab"
               ng-class="service.get_decimal_perm()"

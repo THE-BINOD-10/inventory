@@ -43,6 +43,7 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
+              <span ng-if="showCase.model_data.display_suggested_qty == true" class="label label-warning" style="font-size: 10px;">Auto PR - MRP</span>
             </div>
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>

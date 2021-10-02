@@ -949,13 +949,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if(data.message) {
           vm.service.refresh(vm.dtInstance);
           if(data.data.search("<div") != -1) {
-            vm.title = 'Confirmed PO'
-            vm.extra_width = {'width': '1150px'};
-            vm.html = $(data.data);
-            angular.element(".modal-body").html($(data.data));
+            // vm.title = 'Confirmed PO'
+            // vm.extra_width = {'width': '1150px'};
+            // vm.html = $(data.data);
+            // angular.element(".modal-body").html($(data.data));
+            vm.service.showNoty('Success');
             swal2.close()
             vm.print_enable = true;
             vm.confirm_btn_disable = false;
+            vm.close();
           } else {
             swal2.close()
             vm.confirm_btn_disable = true;

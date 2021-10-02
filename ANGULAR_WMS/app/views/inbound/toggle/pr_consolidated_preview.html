@@ -20,7 +20,7 @@
                   </th>
                   <!-- <th>Checkbox</th> -->
                   <th>Supplier Id/Names</th>
-                  <!-- <th></th> -->
+                  <th>Supplier Name</th>
                   <th>PR Number</th>
                   <th>Product Category</th>
                   <th>SKU Code</th>
@@ -47,6 +47,9 @@
                     value="{{supplier_id_name}}">{{supplier_id_name}}
                     </option>
                   </select>
+                </td>
+                <td>
+                  {{data.supplier_id_name.split(':')[1]}}
                 </td>
                 <!-- <td>
                   <span class="badge bg-warning" ng-if="data.is_doa_sent"> SentDOA</span>

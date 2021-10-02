@@ -75,7 +75,8 @@
             <input name="hsn_code" ng-model="product.fields.hsn_code" type="text" class="form-control detectTab">
           </td>
           <td ng-show="showCase.current_raise_pr">
-            <input type="text" name="suggested_qty" ng-model="product.fields.suggested_qty" value="{{ product.fields.suggested_qty }}" class="form-control" ng-readonly="true">
+            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.suggested_qty }}</span>
+            <input type="text" name="suggested_qty" ng-model="product.fields.suggested_qty" value="{{ product.fields.suggested_qty }}" class="form-control hide" ng-readonly="true">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"

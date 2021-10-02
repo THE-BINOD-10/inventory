@@ -34,7 +34,7 @@ def init_logger(log_file):
 
 
 log = init_logger('logs/Material_requirement_planning.log')
-host = 'http://72.stockone.in:7023'
+host = 'http://95.216.96.177:7023'
 
 
 def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):

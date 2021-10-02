@@ -26,6 +26,7 @@ var app = angular.module('urbanApp')
      $rootScope.$on('$stateChangeSuccess', function () {
        window.scrollTo(0, 0);
      });
+     $rootScope.$location_href = location.href;
      FastClick.attach(document.body);
      if(window.location.href.includes('notifications/email')){
        var request_hash_code = window.location.href.split('notifications/email/')[1];
@@ -1470,18 +1471,23 @@ var app = angular.module('urbanApp')
         .state('app.inbound.MaterialPlanning', {
           url: '/MaterialPlanning',
           permission: 'change_replenushmentmaster',
-          templateUrl: 'views/inbound/material_planning.html',
+          templateUrl: 'views/inbound/material_planning/material_planning_main.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                  return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/material_planning.js'
-                  ]);
-              }]
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/material_planning/material_planning.js'
+                ]).then( function() {
+                    return $ocLazyLoad.load([
+                        'scripts/controllers/inbound/material_planning/material_planning_summary.js'
+                    ])
+                })
+            }]
           },
           data: {
             title: 'Material Planning',
           }
         })
+
         //.state('app.inbound.PrimarySegregation.AddSegregation', {
         //  url: '/AddSegregation',
         //  templateUrl: 'views/inbound/toggle/add_segregation.html'

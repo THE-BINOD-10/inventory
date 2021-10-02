@@ -17962,3 +17962,59 @@ def generate_material_planning(request, user):
     else:
         return HttpResponse("No Data Found")
 
+
+@csrf_exempt
+def get_material_planning_summary_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, cus_filters={}):
+    headers1, filters, filter_params1 = get_search_params(request)
+    if cus_filters:
+        filters = copy.deepcopy(cus_filters)
+    lis = ['user', 'user', 'user', 'user', 'user']
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants_depts(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE', 'DEPT'])
+    if 'plant_code' in filters and filters['plant_code']:
+        plant_code = filters['plant_code']
+        plant_users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in filters and filters['plant_name']:
+        plant_name = filters['plant_name']
+        plant_users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if request.POST.get('dept_type'):
+        dept_type = request.POST['dept_type']
+        users = users.filter(userprofile__stockone_code=dept_type)
+
+    if 'zone_code' in filters and filters['zone_code']:
+        zone_code = filters['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_params = {'user__in': user_ids, 'status': 1}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    main_user = get_company_admin_user(user)
+    master_data = MRP.objects.filter(**search_params).values('user').annotate(Sum('amount')).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    master_data = master_data[start_index:stop_index]
+    sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
+    sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
+    for data in master_data:
+        dept = User.objects.get(id=data['user'])
+        plant = get_admin(dept)
+        data_dict = OrderedDict(( ('DT_RowId', data['user']), ('Zone', dept.userprofile.zone), ('State', plant.userprofile.state), ('Plant', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+                                    ('Department', dept.first_name), ('Value of MRP Generated', data['amount__sum']),
+                                  ('DT_RowAttr', {'data-id': data['user']}),
+                                ))
+        temp_data['aaData'].append(data_dict)
+

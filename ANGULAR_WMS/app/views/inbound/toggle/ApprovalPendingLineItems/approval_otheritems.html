@@ -11,7 +11,7 @@
           <th>Qty*</th>
           <!-- <th>UOM</th> -->
           <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
-          <th>Base Price excluding GST</th>
+          <th ng-hide="true">Base Price excluding GST</th>
           <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
           <th ng-if="showCase.model_data.tax_display">Tax %</th>
           <th ng-if="showCase.model_data.tax_display">Cess Tax %</th>
@@ -72,7 +72,7 @@
             ng-keyup="showCase.getTotals(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="12"
             ng-readonly="!showCase.permissions.change_pendinglineitems">
           </td>
-          <td class="text-center">
+          <td class="text-center" ng-hide="true">
           <input ng-model="product.fields.temp_price" type="text" name="temp_price"
             class="form-control detectTab"
             ng-class="service.get_decimal_perm()"

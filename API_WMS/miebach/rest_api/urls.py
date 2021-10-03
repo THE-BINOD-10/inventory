@@ -267,6 +267,7 @@ urlpatterns = [
     url(r'^confirm_asn_order/$', confirm_asn_order),
     url(r'^get_asn_qr_code/$', get_asn_qr_code),
     url(r'^generate_material_planning/$', generate_material_planning),
+    url(r'^next_approvals_with_staff_master_mails/$', next_approvals_with_staff_master_mails),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -628,6 +629,8 @@ urlpatterns = [
     url(r'^get_order_flow_report/$', get_order_flow_report),
     url(r'^print_order_flow_report/$', print_order_flow_report),
     url(r'^get_move_inventory_report/$', get_move_inventory_report),
+    url(r'^get_po_supplier_mail_report/$', get_po_supplier_mail_report),
+    url(r'^print_po_supplier_mail_report/$', print_po_supplier_mail_report),
     url(r'^get_financial_report/$', get_financial_report),
     url(r'^print_financial_report_report/$', print_financial_report_report),
     url(r'^get_bulk_stock_update/$', get_bulk_stock_update),

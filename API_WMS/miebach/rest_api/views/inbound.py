@@ -691,6 +691,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         wh_user = result['pending_po__wh_user']
         storeObj = User.objects.filter(id=wh_user)
         if storeObj:
+            user = storeObj[0]
             store = storeObj[0].first_name
         else:
             store = ''
@@ -705,7 +706,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = result['pending_po__full_po_number'] #'%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'], purchase_type='PO')
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'], purchase_type='PO', approval_type='ranges')
         prApprQs = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'], pr_user=wh_user,
                                     level=result['pending_po__pending_level'])
 
@@ -2045,14 +2046,20 @@ def generated_pr_data(request, user=''):
     supplier_name = ''
     supplier_payment_desc = ''
     supplier_email = ''
+    supplier_phone_number = ''
     po_all_mails = []
     supplier_currency = ['INR']
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
         supplier_email = record[0].supplier.email_id
+        supplier_phone_number = record[0].supplier.phone_number
         if supplier_email:
             po_all_mails.append(supplier_email)
+            secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=record[0].supplier.id, user_id=record[0].supplier.user, master_type='supplier').values_list(
+                                                                                    'email_id', flat=True).distinct())
+            if len(secondary_supplier_email) > 0:
+                po_all_mails.extend(secondary_supplier_email)
         if record[0].supplier.currency.filter().exists():
             supplier_currency = list(record[0].supplier.currency.filter().values_list('currency_code', flat=True))
         if record[0].supplier_payment:
@@ -2082,6 +2089,7 @@ def generated_pr_data(request, user=''):
                                     'pa_uploaded_file_dict':pa_uploaded_file_dict,
                                     'supplier_email':supplier_email,
                                     'po_all_mails':po_all_mails,
+                                    'supplier_phone_number':supplier_phone_number,
                                     'full_pr_number': full_pr_number,
                                     'warehouse_id': warehouse_id}))
 
@@ -3661,6 +3669,22 @@ def get_raisepo_group_data(user, myDict):
                 all_po_emails = ''
         except Exception as e:
             pass
+        try:
+            suplier_secondary_mails = myDict.get('suplier_secondary_mails', [])
+            if len(suplier_secondary_mails)>0:
+                suplier_secondary_mails = suplier_secondary_mails[0]
+            else:
+                suplier_secondary_mails = ''
+        except Exception as e:
+            pass
+        try:
+            suplier_mobile_number = myDict.get('suplier_mobile_number', [])
+            if len(suplier_mobile_number)>0:
+                suplier_mobile_number = suplier_mobile_number[0]
+            else:
+                suplier_mobile_number = ''
+        except Exception as e:
+            pass
         cond = (myDict['wms_code'][i])
         all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': supplierId, 'supplier_payment': supplier_payment_id, 'ship_to_name':ship_to_name,
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type, 'currency':currency, 'currency_rate':currency_rate,
@@ -3675,7 +3699,7 @@ def get_raisepo_group_data(user, myDict):
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
                                    'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax, 'tax': tax, 'sku_supplier':sku_supplier,
                                    'temp_cess_tax': temp_cess_tax, 'pr_extra_data': pr_extra_data, 'discount_percent': discount_percent, 'delta': delta,
-                                   'mrp_id': mrp_id, 'suggested_qty': suggested_qty})
+                                   'mrp_id': mrp_id, 'suggested_qty': suggested_qty, 'suplier_secondary_mails': suplier_secondary_mails, 'suplier_mobile_number':suplier_mobile_number})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -4147,6 +4171,17 @@ def approve_pr(request, user=''):
         if is_actual_pr:
             currentLevelMails = list(pendingPRObj.pending_prApprovals.filter(status='').values_list('validated_by', flat=True))
         else:
+            suplier_secondary_mails = request.POST.get('suplier_secondary_mails', '')
+            if suplier_secondary_mails and pendingPRObj.supplier:
+                filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': suplier_secondary_mails}
+                master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+                if not master_email_map.exists():
+                    master_email_map = MasterEmailMapping.objects.create(**filter_dict)
+                    master_email_map.save()
+            all_po_emails = request.POST.get('all_po_emails', '')
+            if all_po_emails:
+                pendingPRObj.po_mail_members = all_po_emails
+                pendingPRObj.save()
             currentLevelMails = list(pendingPRObj.pending_poApprovals.filter(status='').values_list('validated_by', flat=True))
         if currentLevelMails:
             currentLevelMailList = currentLevelMails[0].split(', ')
@@ -4169,6 +4204,14 @@ def approve_pr(request, user=''):
             # TO Skip All default Level
             # if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             #     approval_type = 'ranges'
+        else:
+            try:
+                approval_type = pendingPRObj.pending_poApprovals.filter(level=pending_level).exclude(status='resubmitted').order_by('-creation_date')[0].approval_type
+                prev_approval_type = approval_type
+                if prev_approval_type == '':
+                    prev_approval_type = 'ranges'
+            except:
+                prev_approval_type = 'ranges'
         pr_user = pendingPRObj.wh_user
         if 'total' in myDict.keys():
             totalAmt = 0
@@ -4190,6 +4233,8 @@ def approve_pr(request, user=''):
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
+        if purchase_type == 'PO':
+            approval_type = 'ranges'
         reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                     purchase_type=purchase_type, product_category=product_category,
                                     approval_type=approval_type, sku_category=sku_category)
@@ -4334,11 +4379,16 @@ def approve_pr(request, user=''):
                             os.remove(master_docs_obj.uploaded_file.path)
                         master_docs_obj.uploaded_file = file_obj
                         master_docs_obj.save()
-        if is_auto_pr or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
+        if (is_auto_pr and pending_level == lastLevel and not is_resubmitted) or (pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted):
+            pr_user = pendingPRObj.wh_user
+            if pr_user.userprofile.warehouse_type == 'DEPT':
+                store_obj = get_admin(pr_user)
+                if store_obj:
+                    user = store_obj
             if purchase_type == 'PR':
                 if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
                     nextLevel = 'level0'
-                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                    reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type=purchase_type, product_category=product_category,
                                       approval_type='default', sku_category=sku_category)
                     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
                                         master_type=master_type, forPO=poFor, approval_type='default', save_level=nextLevel)
@@ -4499,6 +4549,23 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.currency = firstEntryValues.get('currency', 'INR')
         pendingPurchaseObj.po_mail_members = firstEntryValues.get('all_po_emails', '')
         pendingPurchaseObj.currency_rate = firstEntryValues.get('currency_rate', 1)
+        if pendingPurchaseObj.supplier:
+            suplier_secondary_mails = firstEntryValues.get('suplier_secondary_mails', '')
+            suplier_mobile_number = firstEntryValues.get('suplier_mobile_number', '')
+            if suplier_mobile_number:
+                supp = pendingPurchaseObj.supplier
+                supp.phone_number = suplier_mobile_number
+                supp.save()
+            if suplier_secondary_mails:
+                filter_dict = {}
+                filter_dict['user_id'] = pendingPurchaseObj.supplier.user
+                filter_dict['master_type'] = 'supplier'
+                filter_dict['master_id'] = pendingPurchaseObj.supplier.id
+                filter_dict['email_id'] = suplier_secondary_mails
+                master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+                if not master_email_map.exists():
+                    master_email_map = MasterEmailMapping.objects.create(**filter_dict)
+                    master_email_map.save()
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
@@ -5477,8 +5544,10 @@ def add_pr(request, user=''):
                     pendingPRObj.save()
                     totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
-                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
-                                                product_category=product_category, approval_type='default',
+                    pr_user = pendingPRObj.wh_user
+                    approval_type = 'ranges'
+                    reqConfigName = findReqConfigName(pr_user, totalAmt, purchase_type='PR',
+                                                product_category=product_category, approval_type=approval_type,
                                               sku_category=sku_category)
                 prObj, mailsList, mail_roles = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
@@ -5511,7 +5580,7 @@ def add_pr(request, user=''):
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
-                                    product_category=product_category, sku_category=sku_category)
+                                    product_category=product_category, approval_type='ranges', sku_category=sku_category)
                 pr_doa_log.info("Approval Config for PO Number %s is %s" % (full_pr_number, reqConfigName))
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
@@ -10888,6 +10957,7 @@ def confirm_add_po(request, sales_data='', user=''):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
+        PendingPO.objects.filter(full_po_number=po_num, open_po__sku__user = user.id).update(mail_status=False, mail_failed_reason = str(e))
         log.info("Confirm Add PO failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
@@ -11161,7 +11231,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
-        send_sendgrid_mail('mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
+        send_sendgrid_mail(f_name, user, 'mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
         #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
     if phone_no:

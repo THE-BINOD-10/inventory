@@ -804,8 +804,8 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     user = models.ForeignKey(User, blank=True, null=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
     zone = models.CharField(max_length=64, default='')
-    name = models.CharField(max_length=128, default='')
-    display_name = models.CharField(max_length=128, default='')
+    name = models.CharField(max_length=256, default='')
+    display_name = models.CharField(max_length=256, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
@@ -3376,6 +3376,7 @@ class StaffMaster(models.Model):
     email_id = models.EmailField(max_length=64, default='')
     reportingto_email_id = models.EmailField(max_length=64, default='')
     phone_number = models.CharField(max_length=32)
+    mrp_user = models.BooleanField(default=False)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -3920,6 +3921,7 @@ class MasterEmailMapping(models.Model):
 
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
+        index_together = (('user', 'master_id', 'master_type', 'email_id'),('user', 'master_id', 'master_type'))
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
 
 class InvoiceOrderCharges(models.Model) :

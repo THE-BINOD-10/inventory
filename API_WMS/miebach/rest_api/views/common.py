@@ -459,6 +459,10 @@ def wms_login(request):
         version_number= get_git_current_version_number()
         if not version_number:
             version_number= base.VERSION_NUMBER
+        try:
+            response_data['data']['user_profile']['mrp_flag'] = StaffMaster.objects.get(email_id=response_data['data']['userName']).mrp_user
+        except:
+            response_data['data']['user_profile']['mrp_flag'] = False;
         response_data["data"].update({"version_number":version_number})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -538,6 +542,10 @@ def status(request):
     version_number= get_git_current_version_number()
     if not version_number:
         version_number= base.VERSION_NUMBER
+    try:
+        response_data['data']['user_profile']['mrp_flag'] = StaffMaster.objects.get(email_id=response_data['data']['userName']).mrp_user
+    except:
+        response_data['data']['user_profile']['mrp_flag'] = False;
     response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -1466,6 +1474,7 @@ def delete_pr_config(request, user=''):
 def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
+    admin_user = ''
     confMap = OrderedDict()
     company_id = get_company_id(user)
     try:
@@ -1481,6 +1490,8 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         zone = user.userprofile.zone
         dept_code = ''
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type, 'approval_type': approval_type,'zone':zone, 'product_category': product_category }
+    if admin_user:
+        pac_filter['plant__name'] = admin_user.username
     if dept_code:
         pac_filter['department_type'] = dept_code
     else:
@@ -1489,21 +1500,40 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         pac_filter['sku_category'] = sku_category
     else:
         pac_filter['sku_category'] = ''
-    # 1) It Checks Zone, Product Categry, sku categoery, Dept
+    pac_filter1 = copy.deepcopy(pac_filter)
+    # 1) It Checks Zone, Product Categry, sku categoery, Dept, plant
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    # Special Condition for kits and consumables to match Plant and Dept
+    if not purchase_config and product_category == 'Kits&Consumables':
+        if 'sku_category' in pac_filter.keys():
+            del pac_filter['sku_category']
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+            if not purchase_config:
+                # Kits Special Condition) It Checks Zone, Product category, Plant
+                if 'department_type' in pac_filter.keys():
+                    del pac_filter['department_type']
+                purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+                if not purchase_config:
+                    pac_filter['sku_category'] = pac_filter1['sku_category']
+                    pac_filter['department_type'] = pac_filter1['department_type']
     if not purchase_config:
-        # 2) It Checks Zone, Product Categry, sku categoery
+        # 2) It Checks Zone, Product Categry, sku categoery, Dept
+        if 'plant__name' in pac_filter.keys():
+            del pac_filter['plant__name']
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 3) It Checks Zone, Product Categry, sku categoery
         if 'department_type' in pac_filter.keys():
             del pac_filter['department_type']
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     if not purchase_config:
-        # 3) It Checks Zone, Product Categry, Dept
+        # 4) It Checks Zone, Product Categry, Dept
         if 'sku_category' in pac_filter.keys():
             del pac_filter['sku_category']
             pac_filter['department_type'] = dept_code
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
         if not purchase_config:
-            # 4) It Checks Zone, Product Categry
+            # 5) It Checks Zone, Product Categry
             if 'department_type' in pac_filter.keys():
                 del pac_filter['department_type']
             if 'sku_category' in pac_filter.keys():
@@ -15219,4 +15249,118 @@ def get_currency_tax_display(user):
     else:
         msg = 'No Currency Mapping'
     return status, msg, code, words
+
+def get_next_approval(pr_obj, pos, level=''):
+    if pos == 'Purchase Approver':
+        level = 'On Approved'
+    # staff_check = {}
+    # temp = {}
+    # staff_check = {'position': pos, 'status': 1}
+    # if pr_obj.wh_user.userprofile.warehouse_type == 'DEPT':
+    #     staff_check['plant__name'] = get_admin(pr_obj.wh_user).username
+    #     if pr_obj.wh_user.userprofile.stockone_code:
+    #         staff_check['department_type__name'] = pr_obj.wh_user.userprofile.stockone_code
+    # emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    # if len(emails) == 0:
+    #     del staff_check['department_type__name']
+    #     emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    #     if len(emails) == 0:
+    #         temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': '', 'level':level}
+    #         return temp
+    # if len(emails) > 0:
+    #     temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': ','.join(emails), 'level': level}
+    #     return temp
+    # return temp
+    emails = []
+    mail_list = []
+    user = pr_obj.wh_user
+    staff_check = {'user': user, 'position': pos, 'status': 1}
+    if user.userprofile.warehouse_type == 'DEPT':
+        del staff_check['user']
+        staff_check['department_type__name'] = user.userprofile.stockone_code
+        staff_check['plant__name'] = get_admin(user).username
+    elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        del staff_check['user']
+        staff_check['plant__name'] = user.username
+    if not emails:
+        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    if not emails:
+        break_loop = True
+        admin_user = user
+        while break_loop:
+            prev_admin_user = admin_user
+            admin_user = get_admin(admin_user)
+            if admin_user.id == prev_admin_user.id:
+                break_loop = False
+            emails = list(StaffMaster.objects.filter(plant__name=admin_user.username,
+                                                     department_type__isnull=True, position=pos, status=1).\
+                    values_list('email_id', flat=True))
+            if emails:
+                break_loop = False
+    if not emails:
+        emails = list(StaffMaster.objects.filter(plant__isnull=True,
+                                                 department_type__isnull=True, position=pos, status=1). \
+                      values_list('email_id', flat=True))
+    mail_list = list(chain(mail_list, emails))
+    return mail_list
+
+def next_approvals_with_staff_master_mails(request, user=''):
+    pr_number = request.POST.get('pr_number', '')
+    response_data = []
+    display_name = ''
+    if not pr_number:
+        return HttpResponse('Invalid PR Number')
+    pr_obj = PendingPR.objects.filter(full_pr_number=pr_number)
+    if pr_obj.exists():
+        pr_obj = pr_obj[0]
+        temp_pos = StaffMaster.objects.get(email_id=pr_obj.requested_user.username).position
+        response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': pr_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': pr_obj.requested_user.username})
+        if pr_obj.final_status == 'saved':
+            return HttpResponse('Saved PR, Configuration Not Yet Decided')
+    last_config_datas = pr_obj.pending_prApprovals.filter().order_by('-creation_date')
+    if last_config_datas.exists():
+        last_config_data = last_config_datas[0]
+        current_level = last_config_data.level
+        if last_config_data.configName.find('default') == -1:
+            current_config = last_config_data.configName
+        else:
+            current_config = last_config_datas[1].configName
+        ranges_datum = PurchaseApprovalConfig.objects.filter(name=current_config).order_by('level').values('level', 'approval_type', 'user_role__role_name', 'name', 'display_name', 'emails__name')
+        if ranges_datum.exists():
+            for dat in ranges_datum:
+                display_name = dat['display_name']
+                histories = pr_obj.pending_prApprovals.filter(approval_type=dat['approval_type'], configName=dat['name'], level=dat['level']).values('status', 'validated_by', 'updation_date')
+                if histories.exists():
+                    for histo in histories:
+                        if histo['status'] == '':
+                            histo['status'] = 'Pending'
+                            histo['is_current'] = True
+                        else:
+                            histo['status'] = histo['status'].title()
+                            histo['is_current'] = False
+                        histo['level'] = dat['level']
+                        histo['updation_date'] = histo['updation_date'].strftime('%Y-%m-%d')
+                        histo['position'] = dat['user_role__role_name']
+                        response_data.append(histo)
+                else:
+                    datum = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
+                    response_data.append(datum)
+            else:
+                histories = pr_obj.pending_prApprovals.filter(configName__icontains = 'default_0_0').exclude(status='on_approved').values('status', 'validated_by', 'updation_date')
+                if histories.exists():
+                    histo = histories[0]
+                    if histo['status'] == '':
+                        histo['status'] = 'On Approved'
+                        histo['is_current'] = True
+                    temp = {'is_current': histo['is_current'], 'status': histo['status'], 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
+                    response_data.append(temp)
+                else:
+                    datum = get_next_approval(pr_obj, 'Purchase Approver')
+                    if len(datum) > 0:
+                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
+                        response_data.append(temp)
+                    else:
+                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
+                        response_data.append(temp)
+    return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

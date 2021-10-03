@@ -157,14 +157,21 @@
                 <input type="text" ng-model="showCase.model_data.supplier_currency_rate" name="supplier_currency_rate" class="form-control" ng-class="service.get_decimal_perm()" required>
               </div>
             </div>
-            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6" ng-hide="true">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
               <div class="form-group">
-                <input type="text" ng-model="showCase.model_data.supplier_email" required/>
+                <label class="control-label">Supplier EmailID *</label>
+                <input class="form-control" type="text" ng-model="showCase.model_data.supplier_email" required readonly/>
               </div>
             </div>
-            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Supplier Mobile Number</label>
+                <input class="form-control" type="text" ng-model="showCase.model_data.supplier_phone_number"/>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-2 col-xs-6">
               <div class="form-group bootstrap-tagsinput">
-                <label class="control-label">SupplierEmail ({{showCase.model_data.supplier_email}}) / Buyer / PR User mails *</label>
+                <label class="control-label">SupplierEmail / Buyer / PR User mails *</label>
                 <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>

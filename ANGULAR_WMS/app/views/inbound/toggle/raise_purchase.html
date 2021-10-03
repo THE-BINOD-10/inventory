@@ -540,11 +540,11 @@
         </div> -->
         <div class="modal-footer">
           <!-- <label>{{showCase.print_enable}} - {{showCase.confirm_btn_disable}}</label> -->
+          <button ng-if="!showCase.print_enable && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
           <button ng-if="showCase.print_enable" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_grn()">Print</button>
           <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-yellow" data-dismiss="modal" ng-click="showCase.confirm(form, true)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
           <button ng-if="showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.final_po_confirmation()">Confirm PO</button>
           <button ng-if="!showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.confirm(form, false)">Confirm PO</button>
-          
           <!-- <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button> -->
         </div>
         <!-- <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">

@@ -25,6 +25,10 @@
  .sidebar-panel{
     z-index: 1000;
  }
+ .fa_class {
+    font-size: 12px !important;
+    padding-top: 1px !important;
+ }
 </style>
 
 <div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision" style="z-index: 1050 !important;">
@@ -39,11 +43,12 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
+              <span ng-if="showCase.model_data.display_suggested_qty == true" class="label label-warning" style="font-size: 10px;">Auto PR - MRP</span>
             </div>
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body" ng-class="(showCase.confirm_print)? 'hide': 'show'" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
+        <div class="modal-body" ng-class="(showCase.confirm_print)? 'hide': 'show'" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;overflow-x: hidden;">
           <div class="row">
             <div class="col-md-2 col-sm-3 col-xs-4">
               <div class="form-group">
@@ -161,13 +166,26 @@
               </tbody>
             </table>
           </div>
+          <div class="row" align="center" style="padding-bottom: 8px; padding-top: 8px; background-color: #f0f8ff38;">
+            <span class="label label-warning pull-left" style="font-size: 12px;">DOA & Next Approvals</span>&nbsp<span class="label label-success pull-left" style="font-size: 12px;">{{showCase.current_pr_app_data['name']}}</span>
+            <img ng-if="showCase.current_pr_app_data_flag" ng-src="images/default_loader.gif" style="margin: auto;display: block;width: 70px;"><br>
+            <div ng-if="!showCase.current_pr_app_data_flag" class="col-md-12 col-lg-12" align="left" style="padding-top: 8px;">
+              <div class="col-lg-2 col-md-2" ng-repeat="prdoa in showCase.current_pr_app_data['datum']" style="word-wrap: break-word;">
+                <!-- label label-default -->
+                <p style="margin: 1px;padding: 1px;"><span ng-if="!prdoa['is_current']" class="label label-default" style="font-size: 9px;">{{prdoa['position']}}</span><span ng-if="prdoa['is_current']" class="label label-success" style="font-size: 9px;">{{prdoa['position']}}</span></p>
+                <p style="margin: 1px;"><i class="fa fa-tags fa_class"></i> : <span>{{prdoa['level']}} - {{prdoa['status']}}</span></p>
+                <p style="margin: 1px;"><i class="fa fa-user fa_class"></i> : <span>{{prdoa['validated_by']}}</span></p>
+                <p style="margin: 1px;"><i class="fa fa-calendar fa_class"></i> : <span>{{prdoa['updation_date']}}</span></p>
+              </div>
+            </div>
+          </div>
           <div class="col-md-12"><hr></div>
           <div class="row">
             <div class="col-lg-2 col-md-2">
               <div class="form-group">
                 <label class="control-label">EnquiryTo</label>
                 <select class="form-control" name="enquiry_to" ng-model="showCase.model_data.enquiry_to">
-                  <option ng-repeat="user in showCase.model_data.validated_users" 
+                  <option ng-repeat="user in showCase.model_data.validated_users"
                           value="{{user}}">{{user}}
                   </option>
                 </select>
@@ -184,7 +202,7 @@
               <textarea ng-init="showCase.model_data.enquriy_remarks=''" rows="2" class="form-control" cols="15" name="enquiry_remarks" ng-model="showCase.model_data.enquriy_remarks" placeholder="Enter Enquiry"></textarea>
             </div>
             <div class="col-md-2 pull-left" style="margin-top: 17px;">
-              <button ng-if="showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>  
+              <button ng-if="showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>
             </div>
           </div>
           <div class="row" ng-if="showCase.model_data.enquiryRemarks">

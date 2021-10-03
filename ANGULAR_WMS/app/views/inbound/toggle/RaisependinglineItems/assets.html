@@ -11,7 +11,7 @@
     <table class="table" class="pull-left">
       <thead>
         <tr>
-          <th>Asset Code*</th>
+          <th>SKU Code*</th>
           <th>Supplier*</th>
           <th>Supplier Name</th>
           <th>SKU Description-HSN</th>
@@ -19,7 +19,7 @@
           <!-- <th>Brand</th> -->
           <th>Class</th>
           <th class="w10_">Quantity*</th>
-          <th>Base Price excluding GST</th>
+          <th ng-hide="true">Base Price excluding GST</th>
           <th>Unit Rate( {{showCase.model_data.warehouse_currency}} )</th>
           <th>Amount( {{showCase.model_data.warehouse_currency}} )</th>
           <th ng-if="showCase.model_data.tax_display">Tax</th>
@@ -48,7 +48,7 @@
             <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
-            ng-blur="showCase.validateSupplier(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="40">
+            ng-blur="showCase.validateSupplier(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="40" required>
             <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
           </td>
           <td class="text-center"> <span style="font-size: 9px;font-weight: 440;">{{ product.fields.supplier_id_name.split(':')[1] }}</span> </td>
@@ -72,7 +72,7 @@
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
-          <td class="text-center">
+          <td class="text-center" ng-hide="true">
             <input ng-model="product.fields.temp_price" type="text" name="temp_price"
               class="form-control detectTab"
               ng-class="service.get_decimal_perm()"

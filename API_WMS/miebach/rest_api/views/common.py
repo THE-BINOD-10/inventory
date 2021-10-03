@@ -707,6 +707,7 @@ data_datatable = {  # masters
     'MaterialRequestOrders': 'get_material_request_orders',
     'PendingMaterialRequest' : 'get_pending_material_request_data',
     'MaterialPlanning': 'get_material_planning_data',
+    'MaterialPlanningSummary': 'get_material_planning_summary_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \

@@ -1122,7 +1122,7 @@ METROPOLIS_PO_REPORT_DICT = {
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Created by', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
-                   'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
+                   'PO Amount with Tax','PO Received Quantity', 'PO Received Amount','PO Receivable Quantity', 'PO Receivable Amount', 'GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
                    'Supplier ID', 'Supplier Name', "Integration Status", "Integration Reason", "Integration Date"],
 
     'dt_url': 'get_metropolis_po_report', 'excel_name': 'get_metropolis_po_report',
@@ -17871,9 +17871,9 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['open_po__sku__user__in'] = user_ids
-    if search_params.get('excel_name'):
-        temp_data = po_report_download(user_ids, search_params, user)
-        return temp_data
+    #if search_params.get('excel_name'):
+    #    temp_data = po_report_download(user_ids, search_params, user)
+    #    return temp_data
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -17903,7 +17903,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         po_int_date.setdefault(po_int.stockone_reference, po_int.updation_date)
 
     open_po_data = PurchaseOrder.objects.filter(po_number__in=po_numbers,open_po__isnull=False).exclude(status='deleted').\
-                                            values('po_number','open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
+                                            values('po_number','open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax', 'received_quantity',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
                                             'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
                                             'open_po__sku__user', 'updation_date' , 'open_po__cess_tax', 'status')
@@ -17914,14 +17914,22 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             temp_tax = open_po_row['open_po__cgst_tax'] + open_po_row['open_po__sgst_tax'] + open_po_row['open_po__igst_tax'] + open_po_row['open_po__cess_tax']
             temp_amt = (open_po_row['open_po__order_quantity']* open_po_row['open_po__price'])
             open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] += (temp_amt/100) * temp_tax
-            open_po_data_dict[open_po_row["po_number"]]["po_amount"] += open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] + temp_amt
+            open_po_data_dict[open_po_row["po_number"]]["po_amount"] += ((temp_amt/100) * temp_tax) + temp_amt
             open_po_data_dict[open_po_row["po_number"]]["po_status"] = open_po_row["status"]
+	    receivable_quantity = open_po_row['open_po__order_quantity'] - open_po_row["received_quantity"]
+            received_quantity = open_po_row["received_quantity"]
+            open_po_data_dict[open_po_row["po_number"]]["received_quantity"] += received_quantity
+            open_po_data_dict[open_po_row["po_number"]]["receivable_quantity"] += receivable_quantity
+            open_po_data_dict[open_po_row["po_number"]]["received_amount"] += (((received_quantity * open_po_row['open_po__price'])/100) * temp_tax)+ (received_quantity * open_po_row['open_po__price'])
+            open_po_data_dict[open_po_row["po_number"]]["receivable_amount"] += (((receivable_quantity* open_po_row['open_po__price'])/100) * temp_tax)  + (receivable_quantity * open_po_row['open_po__price'])
         else:
             po_quantity = open_po_row['open_po__order_quantity']
             temp_tax = open_po_row['open_po__cgst_tax'] + open_po_row['open_po__sgst_tax'] + open_po_row['open_po__igst_tax'] + open_po_row['open_po__cess_tax']
             temp_amt = (open_po_row['open_po__order_quantity']*open_po_row['open_po__price'])
             po_tax_amount = (temp_amt/100) * temp_tax
             po_amount = po_tax_amount + temp_amt
+	    receivable_quantity = po_quantity - open_po_row["received_quantity"]
+	    received_quantity = open_po_row["received_quantity"]
             temp_dict = {"po_amount": po_amount, 
                    "po_tax_amount": po_tax_amount,
                    "po_quantity": po_quantity,
@@ -17931,7 +17939,11 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
                    "po_date": open_po_row["po_date"],
                    "updation_date": open_po_row["updation_date"],
                    "sku_category": open_po_row["open_po__sku__sku_category"],
-                  } 
+		   "received_quantity": received_quantity,
+                   "receivable_quantity": receivable_quantity,
+                   "received_amount": (((received_quantity * open_po_row['open_po__price'])/100) * temp_tax) + (received_quantity * open_po_row['open_po__price']),
+                   "receivable_amount": (((receivable_quantity* open_po_row['open_po__price'])/100) * temp_tax) + (receivable_quantity * open_po_row['open_po__price']),
+                  }
             open_po_data_dict[open_po_row["po_number"]] = temp_dict
     for result in results:
         pr_plant, pr_plant_code, pr_department, pr_number, pr_date, pr_user, po_date, supplier_id, supplier_name, po_update_date= '', '', '', '', '', '', '', '', '', ''
@@ -17957,6 +17969,10 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         po_quantity = open_po_data_dict.get(result['po_number'], {}).get("po_quantity", 0)
         po_tax_amount =  open_po_data_dict.get(result['po_number'], {}).get("po_tax_amount", 0)
         po_amount = open_po_data_dict.get(result['po_number'], {}).get("po_amount", 0)
+	received_quantity = open_po_data_dict.get(result['po_number'], {}).get("received_quantity", 0)
+	receivable_quantity = open_po_data_dict.get(result['po_number'], {}).get("receivable_quantity", 0)
+	received_amount = open_po_data_dict.get(result['po_number'], {}).get("received_amount", 0)
+	receivable_amount = open_po_data_dict.get(result['po_number'], {}).get("receivable_amount", 0)
         # if open_po_data:
         #     open_po_row = open_po_data[0]
         #     supplier_id = open_po_row['open_po__supplier__supplier_id']
@@ -18096,7 +18112,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             ('PO Quantity', po_quantity),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', round(po_amount,4)),
+            ('Total Amount', round(po_amount,2)),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('PO Status', final_status.title()),
             ('Final Approver date', last_approvals_date),
@@ -18104,9 +18120,13 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             ('Supplier Name', supplier_name),
             ('Order Quantity', po_quantity),
             ('GRN Numbers', grn_numbers),
-            ('PO Amount Pre Tax', round(po_amount - po_tax_amount, 4)),
-            ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(po_amount, 4))),
+            ('PO Amount Pre Tax', round(po_amount - po_tax_amount, 2)),
+            ('Tax Amount', round(po_tax_amount, 2)),
+            ('PO Amount with Tax', (round(po_amount, 2))),
+	    ('PO Received Quantity', round(received_quantity, 2)),
+            ('PO Receivable Quantity', round(receivable_quantity, 2)),
+            ('PO Received Amount', round(received_amount, 2)),
+            ('PO Receivable Amount', round(receivable_amount, 2)),
             ('PO Created by', po_user),
             ('Integration Status', integration_status),
             ('Integration Reason', integration_error),
@@ -18207,9 +18227,9 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['open_po__sku__user__in'] = user_ids
-    if search_params.get('excel_name'):
-        temp_data = po_report_download(user_ids, search_params, user)
-        return temp_data
+    #if search_params.get('excel_name'):
+    #    temp_data = po_report_download(user_ids, search_params, user)
+    #    return temp_data
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -18656,9 +18676,9 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         if result['stock_mapping__stock__batch_detail__puom']:
             measurement_type =result['stock_mapping__stock__batch_detail__puom']
         uom_dict = get_uom_with_sku_code(user, result['sku__sku_code'], uom_type='purchase')
-        pcf = uom_dict['sku_conversion']
+        pcf = uom_dict.get('sku_conversion', 1)
         pcf = pcf if pcf else 1
-        base_uom = uom_dict['base_uom']
+        base_uom = uom_dict.get('base_uom', '')
         # if result['consumption_type']:
         #     pcf = 1
         if result['sku_pcf']:

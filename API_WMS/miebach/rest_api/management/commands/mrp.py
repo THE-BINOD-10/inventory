@@ -48,10 +48,13 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
             users = check_and_get_plants(request, req_users)
             users = users.filter(userprofile__warehouse_type__in=['DEPT'])
         plant_users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        plant_user_ids = list(plant_users.values_list('id', flat=True))
     else:
         users = User.objects.filter(id__in=run_user_ids, userprofile__warehouse_type__in=['DEPT'])
-        plant_users = User.objects.filter(id__in=run_user_ids, userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
-    plant_user_ids = list(plant_users.values_list('id', flat=True))
+        plant_user_ids = []
+        for user in users:
+            if user.userprofile.warehouse_type == 'DEPT':
+                plant_user_ids.append(get_admin(user).id)
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids}
     main_user = get_company_admin_user(user)

@@ -4411,6 +4411,7 @@ class GateIn(models.Model):
         ordering    = ['-in_date']
 class MRP(models.Model):
     id = BigAutoField(primary_key=True)
+    transact_number = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
     user = models.ForeignKey(User, related_name='mrp_user')
     avg_sku_consumption_day = models.FloatField(default=0)

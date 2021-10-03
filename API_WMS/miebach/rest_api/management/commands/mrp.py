@@ -208,6 +208,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
     MRP.objects.filter(user__in=dept_user_ids, status=1, sku__sku_code__in=sku_codes).update(status=0)
     master_data = master_data.filter(sku_code__in=repl_sku_codes).only('sku_code', 'user')
     plant_dept = {}
+    transact_number = ''
     for data in master_data.iterator():
         print data.id
         user = User.objects.get(id=data.user)
@@ -247,6 +248,8 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
             suggested_qty = (max_days + lead_time - total_stock)
             suggested_qty = math.ceil(suggested_qty)
         if suggested_qty > 0:
+            if not transact_number:
+                transact_number = datetime.datetime.now().strftime('%Y%m%d') + '-' + str(get_incremental_with_lock(main_user, 'mrp_run', default_val=1)).zfill(3)
             supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
             supplier_id, amount = '', 0
             if supp_details.get('supplierDetails'):
@@ -254,6 +257,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
                 supplier_id = sku_supplier['supplier_id']
                 amount = suggested_qty * sku_supplier['price']
             data_dict = {
+                        'transact_number': transact_number,
                         'sku': data,
                         'user': user,
                         'avg_sku_consumption_day': cons_qty,

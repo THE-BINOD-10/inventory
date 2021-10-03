@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, S
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Zone', 'State', 'Plant', 'Department', 'Value of MRP Generated'];
+    var columns = ['MRP Run Id', 'Zone', 'State', 'Plant', 'Department', 'Value of MRP Generated'];
     vm.dtColumns = vm.service.build_colums(columns);
     //var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     //vm.dtColumns.unshift(toggle);

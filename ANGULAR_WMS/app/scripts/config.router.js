@@ -2540,6 +2540,19 @@ var app = angular.module('urbanApp')
             title: 'Netsuite Integration Report',
           }
         })
+        .state('app.reports.MRPExceptionReport', {
+          url: '/MRPExceptionReport',
+          templateUrl: 'views/reports/mrp_exception_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/mrp_exception_report.js');
+              }]
+          },
+          data: {
+            title: 'MRP Exception Report',
+          }
+        })
+
         .state('app.reports.LocationWiseFilter', {
           url: '/LocationWiseFilter',
           templateUrl: 'views/reports/location_wise_filter.html',

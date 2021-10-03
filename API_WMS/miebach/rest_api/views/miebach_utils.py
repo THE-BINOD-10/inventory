@@ -19864,10 +19864,14 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     for data in model_data:
         plant = get_admin(data.user)
+        staff_name = ''
+        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        if staff:
+            staff_name = staff[0].email_id
         pr_value = ((data.amount)/data.suggested_qty) * data.mrp_pr_raised_qty
         ord_dict = OrderedDict((
             ('MRP Run Id', data.transact_number),
-            ('MRP Receiver User', ''),
+            ('MRP Receiver User', staff_name),
             ('Zone', data.user.userprofile.zone),
             ('State', plant.userprofile.state),
             ('Plant', plant.userprofile.stockone_code),

@@ -1476,8 +1476,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
       vm.model_data.loss_expected = 0;
-      if (data.fields.temp_price && data.fields.temp_price > 0){
-          if (Number(data.fields.price) > Number(data.fields.temp_price)){
+      if (data.fields.temp_price && data.fields.temp_price > 0) {
+          if (Number(data.fields.price) > Number(data.fields.temp_price)) {
             Service.showNoty('Price cant be more than Base Price'); 
             data.fields.price = 0
         }

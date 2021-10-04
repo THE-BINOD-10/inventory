@@ -230,6 +230,11 @@
             <span>Inventory Norm Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_purchaseapprovalconfig')">
+          <a ui-sref="app.masters.PR_PO_Migrations">
+            <span>PR PO Migrations</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -307,7 +312,7 @@
             <span>GRN Edit</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+        <li ui-sref-active="active">
           <a ui-sref="app.inbound.MaterialPlanning">
             <span>Material Planning</span>
           </a>
@@ -649,6 +654,11 @@
             <span>Supplier Wise PO's</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_purchaseorder')">
+          <a ui-sref="app.reports.PoSupplierMailReport">
+            <span>PO Supplier Mail Report</span>
+          </a>
+        </li>
         <li ng-show="show_tab('view_orderreturns') && !show_tab('show_vehiclemaster')" ui-sref-active="active" >
           <a ui-sref="app.reports.SalesReturnReport">
             <span>Sales Return</span>
@@ -905,6 +915,18 @@
             <span>Netsuite Integration Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+          <a ui-sref="app.reports.MRPExceptionReport">
+            <span>MRP Exception</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('change_replenushmentmaster')">
+          <a ui-sref="app.reports.MRPDepartmentReport">
+            <span>MRP Department</span>
+          </a>
+        </li>
+
+
       </ul>
     </li>
     <!-- ready pages -->

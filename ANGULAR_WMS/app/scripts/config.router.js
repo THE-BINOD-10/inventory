@@ -26,6 +26,7 @@ var app = angular.module('urbanApp')
      $rootScope.$on('$stateChangeSuccess', function () {
        window.scrollTo(0, 0);
      });
+     $rootScope.$location_href = location.href;
      FastClick.attach(document.body);
      if(window.location.href.includes('notifications/email')){
        var request_hash_code = window.location.href.split('notifications/email/')[1];
@@ -982,6 +983,19 @@ var app = angular.module('urbanApp')
             url: '/machine',
             templateUrl: 'views/masters/toggles/machine_update.html'
           })
+      //PR PO Migrations
+      .state('app.masters.PR_PO_Migrations', {
+        url: '/PR_PO_Migrations',
+        templateUrl: 'views/masters/pr_po_migrations.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            return $ocLazyLoad.load('scripts/controllers/masters/pr_po_migrations.js');
+                  }]
+        },
+        data: {
+          title: 'PR PO Migrations'
+        }
+      })
       // Inbound routes
       .state('app.inbound.MaterialRequest', {
         url: '/MaterialRequest',
@@ -1457,18 +1471,23 @@ var app = angular.module('urbanApp')
         .state('app.inbound.MaterialPlanning', {
           url: '/MaterialPlanning',
           permission: 'change_replenushmentmaster',
-          templateUrl: 'views/inbound/material_planning.html',
+          templateUrl: 'views/inbound/material_planning/material_planning_main.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                  return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/material_planning.js'
-                  ]);
-              }]
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/material_planning/material_planning.js'
+                ]).then( function() {
+                    return $ocLazyLoad.load([
+                        'scripts/controllers/inbound/material_planning/material_planning_summary.js'
+                    ])
+                })
+            }]
           },
           data: {
             title: 'Material Planning',
           }
         })
+
         //.state('app.inbound.PrimarySegregation.AddSegregation', {
         //  url: '/AddSegregation',
         //  templateUrl: 'views/inbound/toggle/add_segregation.html'
@@ -2521,6 +2540,31 @@ var app = angular.module('urbanApp')
             title: 'Netsuite Integration Report',
           }
         })
+        .state('app.reports.MRPExceptionReport', {
+          url: '/MRPExceptionReport',
+          templateUrl: 'views/reports/mrp_exception_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/mrp_exception_report.js');
+              }]
+          },
+          data: {
+            title: 'MRP Exception Report',
+          }
+        })
+        .state('app.reports.MRPDepartmentReport', {
+          url: '/MRPDepartmentReport',
+          templateUrl: 'views/reports/mrp_department_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/mrp_department_report.js');
+              }]
+          },
+          data: {
+            title: 'MRP Department Report',
+          }
+        })
+
         .state('app.reports.LocationWiseFilter', {
           url: '/LocationWiseFilter',
           templateUrl: 'views/reports/location_wise_filter.html',
@@ -2872,7 +2916,18 @@ var app = angular.module('urbanApp')
             title: 'Shipment Report',
           }
         })
-
+        .state('app.reports.PoSupplierMailReport', {
+          url: '/PoSupplierMailReport',
+          templateUrl: 'views/reports/po_supplier_mail_report.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/reports/po_supplier_mail_report.js');
+            }]
+          },
+          data: {
+            title: 'PO Supplier Mail Report',
+          }
+        })
         .state('app.reports.POReport', {
           url: '/POReport',
           templateUrl: 'views/reports/po_report.html',

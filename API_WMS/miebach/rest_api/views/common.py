@@ -459,6 +459,10 @@ def wms_login(request):
         version_number= get_git_current_version_number()
         if not version_number:
             version_number= base.VERSION_NUMBER
+        try:
+            response_data['data']['user_profile']['mrp_flag'] = StaffMaster.objects.get(email_id=response_data['data']['userName']).mrp_user
+        except:
+            response_data['data']['user_profile']['mrp_flag'] = False;
         response_data["data"].update({"version_number":version_number})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -538,6 +542,10 @@ def status(request):
     version_number= get_git_current_version_number()
     if not version_number:
         version_number= base.VERSION_NUMBER
+    try:
+        response_data['data']['user_profile']['mrp_flag'] = StaffMaster.objects.get(email_id=response_data['data']['userName']).mrp_user
+    except:
+        response_data['data']['user_profile']['mrp_flag'] = False;
     response_data["data"].update({"version_number":version_number })
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -699,6 +707,7 @@ data_datatable = {  # masters
     'MaterialRequestOrders': 'get_material_request_orders',
     'PendingMaterialRequest' : 'get_pending_material_request_data',
     'MaterialPlanning': 'get_material_planning_data',
+    'MaterialPlanningSummary': 'get_material_planning_summary_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -1317,6 +1326,8 @@ def update_pr_po_config_roles(company_id, eachConfig, roles):
 
 def update_purchase_approval_config_data(company_id, purchase_type, data, user, approval_type):
     mailsMap = data.get('%s_level_data' % approval_type, {})
+    if not data.get('zone', False):
+        return 'Zone is Missing!'
     final_data = []
     if approval_type == 'ranges':
         final_data = mailsMap
@@ -1327,7 +1338,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
         pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=data['name'],
                                                              purchase_type=purchase_type, approval_type=approval_type,
                                                              min_Amt=final_dat['min_Amt'], max_Amt=final_dat['max_Amt'],
-                                                             name=actual_name)
+                                                             name=actual_name, zone=data['zone'])
         existingLevels = list(pr_approvals.values_list('level', flat=True))
         updatingLevels = map(lambda d: d['level'], final_dat['range_levels'])
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
@@ -1348,6 +1359,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                 'company_id': company_id,
                 'name': actual_name,
                 'display_name': data['name'],
+                'zone': data['zone'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
                 #'plant': data.get('plant', ''),
@@ -1462,6 +1474,7 @@ def delete_pr_config(request, user=''):
 def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
+    admin_user = ''
     confMap = OrderedDict()
     company_id = get_company_id(user)
     try:
@@ -1469,7 +1482,66 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
             company_id = user.userprofile.company.id
     except Exception as e:
         pass
-    admin_user = get_admin(user)
+    if user.userprofile.warehouse_type == 'DEPT':
+        admin_user = get_admin(user)
+        zone = admin_user.userprofile.zone
+        dept_code = user.userprofile.stockone_code
+    else:
+        zone = user.userprofile.zone
+        dept_code = ''
+    pac_filter = {'company_id': company_id, 'purchase_type': purchase_type, 'approval_type': approval_type,'zone':zone, 'product_category': product_category }
+    if admin_user:
+        pac_filter['plant__name'] = admin_user.username
+    if dept_code:
+        pac_filter['department_type'] = dept_code
+    else:
+        pac_filter['department_type'] = ''
+    if sku_category:
+        pac_filter['sku_category'] = sku_category
+    else:
+        pac_filter['sku_category'] = ''
+    pac_filter1 = copy.deepcopy(pac_filter)
+    # 1) It Checks Zone, Product Categry, sku categoery, Dept, plant
+    purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    # Special Condition for kits and consumables to match Plant and Dept
+    if not purchase_config and product_category == 'Kits&Consumables':
+        if 'sku_category' in pac_filter.keys():
+            del pac_filter['sku_category']
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+            if not purchase_config:
+                # Kits Special Condition) It Checks Zone, Product category, Plant
+                if 'department_type' in pac_filter.keys():
+                    del pac_filter['department_type']
+                purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+                if not purchase_config:
+                    pac_filter['sku_category'] = pac_filter1['sku_category']
+                    pac_filter['department_type'] = pac_filter1['department_type']
+    if not purchase_config:
+        # 2) It Checks Zone, Product Categry, sku categoery, Dept
+        if 'plant__name' in pac_filter.keys():
+            del pac_filter['plant__name']
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 3) It Checks Zone, Product Categry, sku categoery
+        if 'department_type' in pac_filter.keys():
+            del pac_filter['department_type']
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        # 4) It Checks Zone, Product Categry, Dept
+        if 'sku_category' in pac_filter.keys():
+            del pac_filter['sku_category']
+            pac_filter['department_type'] = dept_code
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+        if not purchase_config:
+            # 5) It Checks Zone, Product Categry
+            if 'department_type' in pac_filter.keys():
+                del pac_filter['department_type']
+            if 'sku_category' in pac_filter.keys():
+                del pac_filter['sku_category']
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        return confMap
+    '''admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant__isnull': True}
@@ -1520,7 +1592,7 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     if not purchase_config:
         pac_filter['sku_category'] = ''
         # all plants all departments without sku category
-        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)'''
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
@@ -5615,6 +5687,16 @@ def search_wms_data(request, user=''):
     return HttpResponse(json.dumps(total_data))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_staff_members(request, user=''):
+    data_id = request.GET.get('q', '')
+    all_sub_users = list(StaffMaster.objects.filter(Q(staff_name__icontains=data_id) | Q(email_id__icontains=data_id)).\
+        annotate(email=Concat('email_id', Value(':'), 'staff_name', output_field=CharField())).values_list('email', flat=True))
+    return HttpResponse(json.dumps(list(set(all_sub_users))))
+
+
 @get_admin_user
 def search_makemodel_wms_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -5672,7 +5754,10 @@ def get_supplier_sku_prices(request, user=""):
     sku_codes = request.POST.get('sku_codes', '')
     warehouse_id = request.POST.get('warehouse_id', '')
     if warehouse_id:
-        user = User.objects.get(id=warehouse_id)
+        try:
+            user = User.objects.get(id=warehouse_id)
+        except Exception as e:
+            user = User.objects.get(username=warehouse_id)
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)
@@ -6853,6 +6938,57 @@ def findIfContractedSupplier(user, sku_code):
         contracted_supplier = supObj.supplier.is_contracted
     return contracted_supplier
 
+def get_sku_supplier_data_suggestions (sku_code, storeObj, qty=''):
+    supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=storeObj.id).order_by('price')
+    result_data = {}
+    supplierDetailsMap = OrderedDict()
+    preferred_supplier = ''
+    if not qty:
+        qty = 1
+    if supplierMappings.exists():
+        for supplierMapping in supplierMappings:
+            supplierId = supplierMapping.supplier.supplier_id
+            supplierName = supplierMapping.supplier.name
+            supplier_gstin = supplierMapping.supplier.tin_number
+            skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id,sku_code, storeObj)
+            if skuTaxes:
+                skuTaxVal = skuTaxes[0]
+                taxes = skuTaxVal['taxes']
+                if taxes:
+                    sgst_tax = taxes[0]['sgst_tax']
+                    cgst_tax = taxes[0]['cgst_tax']
+                    igst_tax = taxes[0]['igst_tax']
+                    cess_tax = taxes[0]['cess_tax']
+                else:
+                    sgst_tax, cgst_tax, igst_tax, cess_tax = 0, 0, 0, 0
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    price = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    price = skuTaxVal['mrp']
+                if skuTaxVal.get('sku_supplier_moq', ''):
+                    moq = skuTaxVal['sku_supplier_moq']
+                else:
+                    moq = 0
+                tax = sgst_tax + cgst_tax + igst_tax
+                cess_tax = get_kerala_cess_tax(tax, supplierMapping.supplier)
+                amount = qty * price
+                total = amount + (amount * (tax/100)) + (amount * (cess_tax/100))
+                supplier_id_name = '%s:%s' %(supplierId, supplierName)
+            supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
+                                                      'supplier_name': supplierName,
+                                                      'moq': moq,
+                                                      'price': round(price, 2),
+                                                      'amount': round(amount, 2),
+                                                      'tax': tax,
+                                                      'cess_tax': cess_tax,
+                                                      'total': round(total, 2),
+                                                      'gstin': supplier_gstin
+                                                    }
+            if not preferred_supplier:
+                preferred_supplier = supplier_id_name
+    result_data = {'preferred_supplier': preferred_supplier, 'supplierDetails': supplierDetailsMap}
+    return result_data
+
 
 @csrf_exempt
 @login_required
@@ -6867,8 +7003,12 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     comment = request.GET.get('comment', '')
     send_supp_info = request.GET.get('send_supp_info', '')
     consumption_dict = {'avg_qty': 0, 'base_qty': 0}
+    warehouse_currency, tax_display = '', False
     if plant:
-        consumption_dict = get_average_consumption_qty(User.objects.get(username=plant), sku_code)
+        storeObj = User.objects.get(username=plant)
+        tax_display, msg, cu_code, currency_words = get_currency_tax_display(storeObj)
+        warehouse_currency = cu_code
+        consumption_dict = get_average_consumption_qty(storeObj, sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
     dept_avail_qty, avlb_qty = [0]*2
@@ -6900,13 +7040,16 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     is_contracted_supplier = findIfContractedSupplier(user, sku_code)
     pr_extra_data = get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info)
+    sku_suppliers_data = {}
+    if send_supp_info:
+        sku_suppliers_data = get_sku_supplier_data_suggestions(sku_code, storeObj)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                 'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
-                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict,
-                'pr_extra_data': pr_extra_data }))
+                'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict, 'tax_display': tax_display,
+                'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found', 'pr_extra_data': pr_extra_data }))
     avlb_qty = (avail_qty+st_avail_qty)
     if comment:
@@ -6916,8 +7059,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
-                                    'avg_price': avg_price, 'consumption_dict': consumption_dict,
-                                    'pr_extra_data': pr_extra_data,
+                                    'avg_price': avg_price, 'consumption_dict': consumption_dict, 'tax_display':tax_display,
+                                    'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency
                                     }))
 
 
@@ -13753,6 +13896,22 @@ def all_purchase_approval_config_data(request, user=''):
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
     return HttpResponse(HttpResponse(json.dumps({'config_data': config_dict})))
 
+def get_product_category_based_sku_categories(user):
+    final_dict = {}
+    final_dict['Kits&Consumables'] = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category='').\
+                                        exclude(id__in=AssetMaster.objects.all()). \
+                                        exclude(id__in=ServiceMaster.objects.all()). \
+                                        exclude(id__in=OtherItemsMaster.objects.all()). \
+                                        values_list('sku_category', flat=True).distinct())
+    final_dict['Services'] = list(ServiceMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    final_dict['Assets'] = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    final_dict['OtherItems'] = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
+    return final_dict
+
+
 @login_required
 @csrf_exempt
 @get_admin_user
@@ -15019,6 +15178,9 @@ def get_pr_number_from_po(pend_po):
     pr_numbers = ', '.join(list(pend_po.pending_prs.filter().values_list('full_pr_number', flat=True)))
     return pr_numbers
 
+def get_re_user_from_po(pend_po):
+    requested_user = ', '.join(list(pend_po.pending_prs.filter().values_list('requested_user__username', flat=True)))
+    return requested_user
 
 def get_sku_code_inc_number(user, instanceName, category, check=False):
     if instanceName == AssetMaster:
@@ -15055,13 +15217,13 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
             open_po = last_po_obj.open_po
             taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
             total_val = open_po.price + ((open_po.price/100) * taxes)
-            pr_extra_data['last_supplier_price'] = total_val
+            pr_extra_data['last_supplier_price'] = round(total_val, 1)
             least_po_obj = last_po.order_by('open_po__price').first()
             pr_extra_data['least_supplier'] = least_po_obj.open_po.supplier.name
             open_po = least_po_obj.open_po
             taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
             total_val = open_po.price + ((open_po.price/100) * taxes)
-            pr_extra_data['least_supplier_price'] = total_val
+            pr_extra_data['least_supplier_price'] = round(total_val, 1)
         all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
         least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
                                                 creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
@@ -15071,7 +15233,7 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
             taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
             total_val = open_po.price + ((open_po.price/100) * taxes)
             pr_extra_data['least_supplier_pi'] = least_po_obj.open_po.supplier.name
-            pr_extra_data['least_supplier_price_pi'] = total_val
+            pr_extra_data['least_supplier_price_pi'] = round(total_val, 1)
     return pr_extra_data
 
 
@@ -15087,4 +15249,118 @@ def get_currency_tax_display(user):
     else:
         msg = 'No Currency Mapping'
     return status, msg, code, words
+
+def get_next_approval(pr_obj, pos, level=''):
+    if pos == 'Purchase Approver':
+        level = 'On Approved'
+    # staff_check = {}
+    # temp = {}
+    # staff_check = {'position': pos, 'status': 1}
+    # if pr_obj.wh_user.userprofile.warehouse_type == 'DEPT':
+    #     staff_check['plant__name'] = get_admin(pr_obj.wh_user).username
+    #     if pr_obj.wh_user.userprofile.stockone_code:
+    #         staff_check['department_type__name'] = pr_obj.wh_user.userprofile.stockone_code
+    # emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    # if len(emails) == 0:
+    #     del staff_check['department_type__name']
+    #     emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    #     if len(emails) == 0:
+    #         temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': '', 'level':level}
+    #         return temp
+    # if len(emails) > 0:
+    #     temp = {'status': 'Yet to receive', 'updation_date': '', 'position': pos, 'validated_by': ','.join(emails), 'level': level}
+    #     return temp
+    # return temp
+    emails = []
+    mail_list = []
+    user = pr_obj.wh_user
+    staff_check = {'user': user, 'position': pos, 'status': 1}
+    if user.userprofile.warehouse_type == 'DEPT':
+        del staff_check['user']
+        staff_check['department_type__name'] = user.userprofile.stockone_code
+        staff_check['plant__name'] = get_admin(user).username
+    elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        del staff_check['user']
+        staff_check['plant__name'] = user.username
+    if not emails:
+        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+    if not emails:
+        break_loop = True
+        admin_user = user
+        while break_loop:
+            prev_admin_user = admin_user
+            admin_user = get_admin(admin_user)
+            if admin_user.id == prev_admin_user.id:
+                break_loop = False
+            emails = list(StaffMaster.objects.filter(plant__name=admin_user.username,
+                                                     department_type__isnull=True, position=pos, status=1).\
+                    values_list('email_id', flat=True))
+            if emails:
+                break_loop = False
+    if not emails:
+        emails = list(StaffMaster.objects.filter(plant__isnull=True,
+                                                 department_type__isnull=True, position=pos, status=1). \
+                      values_list('email_id', flat=True))
+    mail_list = list(chain(mail_list, emails))
+    return mail_list
+
+def next_approvals_with_staff_master_mails(request, user=''):
+    pr_number = request.POST.get('pr_number', '')
+    response_data = []
+    display_name = ''
+    if not pr_number:
+        return HttpResponse('Invalid PR Number')
+    pr_obj = PendingPR.objects.filter(full_pr_number=pr_number)
+    if pr_obj.exists():
+        pr_obj = pr_obj[0]
+        temp_pos = StaffMaster.objects.get(email_id=pr_obj.requested_user.username).position
+        response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': pr_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': pr_obj.requested_user.username})
+        if pr_obj.final_status == 'saved':
+            return HttpResponse('Saved PR, Configuration Not Yet Decided')
+    last_config_datas = pr_obj.pending_prApprovals.filter().order_by('-creation_date')
+    if last_config_datas.exists():
+        last_config_data = last_config_datas[0]
+        current_level = last_config_data.level
+        if last_config_data.configName.find('default') == -1:
+            current_config = last_config_data.configName
+        else:
+            current_config = last_config_datas[1].configName
+        ranges_datum = PurchaseApprovalConfig.objects.filter(name=current_config).order_by('level').values('level', 'approval_type', 'user_role__role_name', 'name', 'display_name', 'emails__name')
+        if ranges_datum.exists():
+            for dat in ranges_datum:
+                display_name = dat['display_name']
+                histories = pr_obj.pending_prApprovals.filter(approval_type=dat['approval_type'], configName=dat['name'], level=dat['level']).values('status', 'validated_by', 'updation_date')
+                if histories.exists():
+                    for histo in histories:
+                        if histo['status'] == '':
+                            histo['status'] = 'Pending'
+                            histo['is_current'] = True
+                        else:
+                            histo['status'] = histo['status'].title()
+                            histo['is_current'] = False
+                        histo['level'] = dat['level']
+                        histo['updation_date'] = histo['updation_date'].strftime('%Y-%m-%d')
+                        histo['position'] = dat['user_role__role_name']
+                        response_data.append(histo)
+                else:
+                    datum = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
+                    response_data.append(datum)
+            else:
+                histories = pr_obj.pending_prApprovals.filter(configName__icontains = 'default_0_0').exclude(status='on_approved').values('status', 'validated_by', 'updation_date')
+                if histories.exists():
+                    histo = histories[0]
+                    if histo['status'] == '':
+                        histo['status'] = 'On Approved'
+                        histo['is_current'] = True
+                    temp = {'is_current': histo.get('is_current', ''), 'status': histo.get('status', ''), 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
+                    response_data.append(temp)
+                else:
+                    datum = get_next_approval(pr_obj, 'Purchase Approver')
+                    if len(datum) > 0:
+                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
+                        response_data.append(temp)
+                    else:
+                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
+                        response_data.append(temp)
+    return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

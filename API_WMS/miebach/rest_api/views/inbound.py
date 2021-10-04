@@ -4271,11 +4271,10 @@ def approve_pr(request, user=''):
                 central_po_data = temp_jsons[0].model_json
         is_resubmitted = False
         if purchase_type == 'PR':
-            # if is_purchase_approver or (pendingPRObj.is_new_pr and pending_level == 'level0'):
-            if is_purchase_approver:
+            if is_purchase_approver or (pendingPRObj.is_new_pr and pending_level == lastLevel):
+            # if is_purchase_approver:
                 lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
-                temp_data = TempJson.objects.filter(model_id__in=lineItemIds,
-                                        model_name='PENDING_PR_PURCHASE_APPROVER')
+                temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name='PENDING_PR_PURCHASE_APPROVER')
                 if temp_data:
                     is_resubmitted = True
                     approval_type = 'ranges'
@@ -4386,40 +4385,41 @@ def approve_pr(request, user=''):
                 if store_obj:
                     user = store_obj
             if purchase_type == 'PR':
-                if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
-                    nextLevel = 'level0'
-                    reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type=purchase_type, product_category=product_category,
-                                      approval_type='default', sku_category=sku_category)
-                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
-                                        master_type=master_type, forPO=poFor, approval_type='default', save_level=nextLevel)
+                # if pendingPRObj.is_new_pr and not is_purchase_approver: #In New PR PO Process Purchase Approval will come last Adjusting the Code NOt the DOA
+                #     nextLevel = 'level0'
+                #     reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                #                       approval_type='default', sku_category=sku_category)
+                #     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
+                #                         master_type=master_type, forPO=poFor, approval_type='default', save_level=nextLevel)
+                #     if not prObj and reqConfigName:
+                #         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
+                #     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
+                #                         remarks, purchase_type=purchase_type)
+                #     PRQs.update(pending_level=nextLevel)
+                #     for eachMail in mailsList:
+                #         hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
+                #         sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
+                #                 eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
+                #                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
+                # else: 
+                #In last Level, no need to generate Hashcode, just confirmation mail is enough
+                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
+                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
+                                                                     approval_type='approved')
+                if approval_obj.exists():
+                    prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
+                                            master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
                     if not prObj and reqConfigName:
                         return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
+                    PRQs.update(final_status=validation_type)
                     updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
-                                        remarks, purchase_type=purchase_type)
-                    PRQs.update(pending_level=nextLevel)
+                                     remarks, purchase_type=purchase_type)
                     for eachMail in mailsList:
-                        hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
-                        sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
-                                eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
-                                currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
-                else: #In last Level, no need to generate Hashcode, just confirmation mail is enough
-                    display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
-                    approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
-                                                                         approval_type='approved')
-                    if approval_obj.exists():
-                        prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
-                                                master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
-                        if not prObj and reqConfigName:
-                            return HttpResponse(json.dumps({"status": "Staff not found/Staff Inactive for %s" % (','.join(mail_roles))}))
-                        PRQs.update(final_status=validation_type)
-                        updatePRApproval(pendingPRObj, pr_user, pending_level, currentUserEmailId, validation_type,
-                                         remarks, purchase_type=purchase_type)
-                        for eachMail in mailsList:
-                            generateHashCodeForMail(prObj, eachMail, 'level0')
-                            sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
-                                '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
-                                central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
-                                is_resubmitted=is_resubmitted)
+                        generateHashCodeForMail(prObj, eachMail, 'level0')
+                        sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
+                            '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
+                            central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
+                            is_resubmitted=is_resubmitted)
                 # pass
                 try:
                     netsuite_pr(user, PRQs, full_pr_number, request)

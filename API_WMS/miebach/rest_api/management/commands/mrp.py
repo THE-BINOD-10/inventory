@@ -195,7 +195,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
     po_dict = {}
     for purchase_order in purchase_orders:
         print purchase_order.id
-        p_pos = purchase_order.open_po.pendingpos.filter()
+        p_pos = PendingPO.objects.filter(full_po_number=purchase_order.po_number)
         if p_pos.exists():
             p_prs = p_pos[0].pending_prs.filter()
             if p_prs:
@@ -217,7 +217,6 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
         else:
             plant_usr = get_admin(user)
         plant_usr_id = plant_usr.id
-        supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
         data_dict = {}
         uom_dict = sku_uoms.get(data.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)

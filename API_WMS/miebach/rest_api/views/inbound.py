@@ -3435,6 +3435,9 @@ def get_mapping_values(request, user=''):
 def get_supplier_payment_terms(request, user=''):
     payment_desc = ''
     supplier_id = request.POST.get('supplier_id', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user= User.objects.get(id=warehouse_id)
     payment_terms = []
     supplier_ids = list(SupplierMaster.objects.filter(supplier_id= supplier_id, user=user.id).values_list('id', flat=True))
     payments = PaymentTerms.objects.filter(supplier__in = supplier_ids)

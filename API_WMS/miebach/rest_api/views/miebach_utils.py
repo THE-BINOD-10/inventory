@@ -2096,6 +2096,22 @@ PRAOD_REPORT_DICT = {
     'print_url': 'get_praod_report',
 }
 
+MRP_EXCEPTION_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+    ],
+    'dt_headers': ['MRP Run Id', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'SKU Code', 'MRP Qty', 'PR Qty', 'MRP Value', 'PR Value', 'Diff in MRP vs PR Qty', 'Diff in MRP vs PR Value'],
+    'dt_url': 'get_mrp_exception_report', 'excel_name': 'get_mrp_exception_report',
+    'print_url': 'get_mrp_exception_report',
+}
+
+
 SUPPLIER_WISE_PO_REPORT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -2177,6 +2193,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'get_consumption_data': CONSUMPTION_DATA_DICT,
                      'PRAOD_report': PRAOD_REPORT_DICT,
                      'get_asn_detail': ASN_DATA_DICT,
+                     'get_mrp_exception_report': MRP_EXCEPTION_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2894,6 +2911,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise_po_report': 'get_supplier_details_data',
                         'get_consumption_data': 'get_consumption_data_',
                         'PRAOD_report': 'get_praod_report_data',
+                        'get_mrp_exception_report': 'get_mrp_exception_report',
                         'get_asn_detail': 'get_asn_data',
                         'get_pr_performance_report_dat': 'get_pr_report_data_performance',
                         'get_po_performance_report_dat': 'get_po_report_data_performance',
@@ -19764,4 +19782,109 @@ def po_report_download(user_list, search_params, user):
     return temp_data
 
 
+def get_mrp_exception_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
+                                    get_admin, get_utc_start_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    #user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {}
+    lis = ['transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'sku__sku_code', 'suggested_qty', 'mrp_pr_raised_qty',
+            'suggested_qty', 'mrp_pr_raised_qty', 'suggested_qty', 'suggested_qty']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'pr_number' in search_params:
+        search_parameters['pending_line_items__pending_pr__full_pr_number'] = search_params['pr_number']
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['user_id__in'] = user_ids
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    model_data = MRP.objects.filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
+
+    if order_term:
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    for data in model_data:
+        plant = get_admin(data.user)
+        staff_name = ''
+        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        if staff:
+            staff_name = staff[0].email_id
+        pr_value = ((data.amount)/data.suggested_qty) * data.mrp_pr_raised_qty
+        ord_dict = OrderedDict((
+            ('MRP Run Id', data.transact_number),
+            ('MRP Receiver User', staff_name),
+            ('Zone', data.user.userprofile.zone),
+            ('State', plant.userprofile.state),
+            ('Plant', plant.userprofile.stockone_code),
+            ('Department', dept_mapping.get(data.user.userprofile.stockone_code, data.user.userprofile.stockone_code)),
+            ('SKU Code', data.sku.sku_code),
+            ('MRP Qty', data.suggested_qty),
+            ('PR Qty', data.mrp_pr_raised_qty),
+            ('MRP Value', data.amount),
+            ('PR Value', pr_value),
+            ('Diff in MRP vs PR Qty', data.suggested_qty - data.mrp_pr_raised_qty),
+            ('Diff in MRP vs PR Value', data.amount - pr_value),
+        ))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
 

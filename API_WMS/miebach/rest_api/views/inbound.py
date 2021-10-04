@@ -17628,7 +17628,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['id', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
+    lis = ['id', 'transact_number', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
             'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'supplier_id', 'amount']
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
@@ -17683,7 +17683,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         plant = data.user
         if data.user.userprofile.warehouse_type == 'DEPT':
             plant = get_admin(data.user)
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
                                     ('Department', data.user.first_name),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
@@ -18073,7 +18073,7 @@ def get_material_planning_summary_data(start_index, stop_index, temp_data, searc
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    master_data = MRP.objects.filter(**search_params).values('user').annotate(Sum('amount')).order_by(order_data)
+    master_data = MRP.objects.filter(**search_params).values('user', 'transact_number').distinct().annotate(Sum('amount')).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     master_data = master_data[start_index:stop_index]
@@ -18082,8 +18082,9 @@ def get_material_planning_summary_data(start_index, stop_index, temp_data, searc
     for data in master_data:
         dept = User.objects.get(id=data['user'])
         plant = get_admin(dept)
-        data_dict = OrderedDict(( ('DT_RowId', data['user']), ('Zone', dept.userprofile.zone), ('State', plant.userprofile.state), ('Plant', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
-                                    ('Department', dept.first_name), ('Value of MRP Generated', data['amount__sum']),
+        data_dict = OrderedDict(( ('DT_RowId', data['user']), ('MRP Run Id', data['transact_number']), ('Zone', dept.userprofile.zone), ('State', plant.userprofile.state),
+                                    ('Plant', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+                                    ('Department', dept.first_name), ('Value of MRP Generated', int(data['amount__sum'])),
                                   ('DT_RowAttr', {'data-id': data['user']}),
                                 ))
         temp_data['aaData'].append(data_dict)

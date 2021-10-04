@@ -1482,6 +1482,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             data.fields.price = 0
         }
       }
+      if (data.fields.order_quantity <= parseFloat(data.fields.resubmit_quantity) && parseInt(data.fields.order_quantity) > 0 && data.fields.order_quantity != '') {
+        data.fields.order_quantity = data.fields.order_quantity;
+      } else if (data.fields.order_quantity == ''){
+        data.fields.order_quantity = 0;
+      } else {
+        data.fields.order_quantity = data.fields.resubmit_quantity;
+        Service.showNoty('Quantity cannot be Greater than ' + data.fields.resubmit_quantity);
+      }
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(parseFloat(data.fields.price) - parseFloat(data.fields.price) * parseFloat((data.fields.discount/100)));

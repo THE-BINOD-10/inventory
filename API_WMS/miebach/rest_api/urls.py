@@ -266,6 +266,8 @@ urlpatterns = [
     url(r'^update_po_values/$', update_po_values),
     url(r'^confirm_asn_order/$', confirm_asn_order),
     url(r'^get_asn_qr_code/$', get_asn_qr_code),
+    url(r'^generate_material_planning/$', generate_material_planning),
+    url(r'^next_approvals_with_staff_master_mails/$', next_approvals_with_staff_master_mails),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -393,6 +395,9 @@ urlpatterns = [
     url(r'^get_company_master_id/$', get_company_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
+    url(r'^search_staff_members/$', search_staff_members),
+    url(r'^get_staff_pr_po_data/$', get_staff_pr_po_data),
+    url(r'^migrate_staff_user_pr_pos/$', migrate_staff_user_pr_pos),
     url(r'^search_makemodel_wms_data/$', search_makemodel_wms_data),
     url(r'^search_style_data/$', search_style_data),
     url(r'^update_payment_status/$', update_payment_status),
@@ -624,6 +629,8 @@ urlpatterns = [
     url(r'^get_order_flow_report/$', get_order_flow_report),
     url(r'^print_order_flow_report/$', print_order_flow_report),
     url(r'^get_move_inventory_report/$', get_move_inventory_report),
+    url(r'^get_po_supplier_mail_report/$', get_po_supplier_mail_report),
+    url(r'^print_po_supplier_mail_report/$', print_po_supplier_mail_report),
     url(r'^get_financial_report/$', get_financial_report),
     url(r'^print_financial_report_report/$', print_financial_report_report),
     url(r'^get_bulk_stock_update/$', get_bulk_stock_update),
@@ -651,6 +658,8 @@ urlpatterns = [
     url(r'^download_pr_attachments/$', download_pr_attachments),
     url(r'^get_pr_performance_report/$', get_pr_performance_report),
     url(r'^get_po_performance_report/$', get_po_performance_report),
+    url(r'^get_mrp_exception_report/$', get_mrp_exception_report),
+    url(r'^get_mrp_department_report/$', get_mrp_department_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -778,6 +787,8 @@ urlpatterns += [
     url(r'^inventory_norm_upload/$', inventory_norm_upload),
     url(r'^staff_master_plant_dept_form/$', staff_master_plant_dept_form),
     url(r'^staff_master_plant_dept_form_upload/$', staff_master_plant_dept_form_upload),
+    url(r'^pr_po_approvals_form/$', pr_po_approvals_form),
+    url(r'^pr_po_approvals_upload/$', pr_po_approvals_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

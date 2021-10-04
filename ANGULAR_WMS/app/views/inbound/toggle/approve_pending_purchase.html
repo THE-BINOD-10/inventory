@@ -24,10 +24,10 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
-        <div class="modal-header">
+        <div class="modal-header" style="padding: 5px !important;">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 class="modal-title pull-left">{{showCase.title}}</h4>
@@ -38,7 +38,7 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
+        <div class="modal-body raise_po" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row">
             <div class="col-md-2 col-sm-2 col-xs-3">
             <div class="form-group">
@@ -90,6 +90,27 @@
               <div class="form-group">
                 <label class="control-label"> PR Number </label>
                 <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
+              <div class="form-group">
+                <label class="control-label"> Ship To *</label>
+                <input type="text"
+                       ng-readonly="showCase.model_data.is_approval"
+                       ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" required> </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
+              <div class="form-group">
+                <label class="control-label">Supplier Currency *</label>
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                    <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6">
+              <div class="form-group bootstrap-tagsinput">
+                <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
+                <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>
             <div class="col-md-12"><hr></div>
@@ -236,7 +257,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-md-10">
+        <div class="col-lg-12 col-md-12">
           <strong class="pull-left" style="margin-left: 10px;">
           Remarks History:
           </strong>
@@ -274,7 +295,7 @@
       </div>
       <div class="col-md-12"><hr></div>
       <div class="row">
-        <div class="col-md-3" style="margin-left: 10px;">
+        <div class="col-lg-2 col-md-2">
           <div class="form-group">
             <label class="control-label">EnquiryTo</label>
             <select class="form-control" name="enquiry_to" ng-model="showCase.model_data.enquiry_to">
@@ -284,16 +305,22 @@
             </select>
           </div>
         </div>
+        <div class="col-lg-2 col-md-2">
+          <div class="form-group">
+            <label class="control-label"> Select Staff User </label>
+            <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.enquiry_to">
+          </div>
+        </div>
         <div class="col-md-6">
           <label class="control-label">Enquiry Remarks</label>
           <textarea rows="2" class="form-control" cols="15" name="enquiry_remarks" ng-model="showCase.model_data.enquriy_remarks" placeholder="Enter Enquiry"></textarea>
         </div>
-        <div class="col-md-2 pull-left" style="margin-top: 27px;">
+        <div class="col-md-2 pull-left" style="margin-top: 17px;">
           <button ng-if="showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>  
         </div>
       </div>
       <div class="row" ng-if="showCase.model_data.enquiryRemarks">
-        <div class="col-md-10">
+        <div class="col-lg-12 col-md-12">
           <strong class="pull-left" style="margin-left: 10px;">
           Enquiry History:
           </strong>
@@ -344,9 +371,10 @@
       </div>
 		</div>
       <div class="modal-footer">
-        <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">Preview PO</button>
+        <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-green" data-dismiss="modal" ng-click="showCase.confirm(form, true)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
+        <!-- <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">Preview PO</button> -->
         <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpo) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PO</button>
-        <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpo) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
+        <button ng-if="!showCase.print_enable && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
         <!-- <button ng-if="(!(showCase.print_enable) && (!showCase.is_direct_po)) " type="submit" class="btn pop pop-green pull-left" ng-click="showCase.send_back_to_pr(form)">Send Back To PR</button> -->
       </div>
       </div>

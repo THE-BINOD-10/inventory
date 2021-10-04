@@ -623,6 +623,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    disable: false,
                    show: 'change_replenushmentmaster',
+                 },
+                 {
+                   title: "PR/PO Approvals Config Upload",
+                   download: "Download Approval Config Form",
+                   upload: "Upload Approval Config Form",
+                   durl: "pr_po_approvals_form/",
+                   uurl: "pr_po_approvals_upload/",
+                   dparam: "download-PR_PO-ApprovalConfig-file",
+                   value: "",
+                   show: true,
+                   show: 'add_purchaseapprovalconfig',
                  }
                 ]
 

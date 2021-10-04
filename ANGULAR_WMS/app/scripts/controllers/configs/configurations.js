@@ -68,6 +68,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pending_pr_prefix': false,
                     'auto_putaway_grn': false,
                     'block_pr_po_transactions': false,
+                    'mrp_pr_days': '',
+                    'mrp_po_days': '',
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -125,7 +127,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      121: 'auto_putaway_grn',
                      122: 'block_pr_po_transactions',
                      132: 'idle_timeout',
-
+                     133: 'mrp_pr_days',
+                     134: 'mrp_po_days',
                      }
 
 

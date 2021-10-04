@@ -203,6 +203,7 @@ class MastersDOA(models.Model):
 
     class Meta:
         db_table = 'MASTERS_DOA'
+        index_together = (('doa_status','model_name','requested_user','json_data'))
         permissions = [
             ('approve_source_sku_doa', 'Approve Source SKU Doa'),
             ('approve_sku_master_doa', 'Approve SKU Master Doa'),
@@ -394,7 +395,7 @@ class SKUSupplier(models.Model):
 
     class Meta:
         db_table = 'SKU_SUPPLIER_MAPPING'
-        index_together = ('supplier', 'sku')
+        index_together = (('supplier', 'sku'),('sku',))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.supplier)
@@ -632,7 +633,7 @@ class GenericEnquiry(models.Model):
 
     class Meta:
         db_table = 'GENERIC_ENQUIRY'
-
+        index_together = (('master_id','master_type'))
 
 class CompanyMaster(models.Model):
     id = BigAutoField(primary_key=True)
@@ -690,6 +691,9 @@ class PendingPR(models.Model):
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
     is_auto_pr = models.IntegerField(default=0)
+    is_new_pr = models.IntegerField(default=0)
+    migrate_pr_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PR_User')
+    migrate_pr_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PR_User_From')
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -713,10 +717,18 @@ class PendingPO(models.Model):
     prefix = models.CharField(max_length=32, default='')
     full_po_number = models.CharField(max_length=32, default='', db_index=True)
     delivery_date = models.DateField(blank=True, null=True)
-    ship_to = models.CharField(max_length=256, default='')
+    ship_to = models.CharField(max_length=512, default='')
+    ship_to_name = models.CharField(max_length=32, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
+    migrate_po_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PO_User')
+    migrate_po_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_PO_User_From')
+    currency = models.TextField(default='INR')
+    currency_rate = models.FloatField(default=1)
+    po_mail_members = models.TextField(default='')
+    mail_status = models.BooleanField(default=True)
+    mail_failed_reason = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -741,6 +753,10 @@ class PendingLineItems(models.Model):
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    remarks = models.TextField(default='')
+    delta = models.FloatField(default=0)
+    suggested_qty = models.FloatField(default=0)
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default=None)
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -759,6 +775,8 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser', db_index=True)
+    migrate_user = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_User')
+    migrate_from = models.ForeignKey(User, blank=True, null=True, related_name='Migrate_From')
     level = models.CharField(max_length=64, default='')
     validated_by = models.TextField(default='')
     status = models.CharField(max_length=32, default='')
@@ -768,8 +786,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-        index_together = (('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
-
+        index_together = (('pending_pr','level'), ('pending_po','level'), ('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
 
 class TableLists(models.Model):
     name = models.CharField(max_length=64, default='', db_index=True)
@@ -786,15 +803,16 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True, db_index=True)
-    name = models.CharField(max_length=64, default='')
-    display_name = models.CharField(max_length=64, default='')
+    zone = models.CharField(max_length=64, default='')
+    name = models.CharField(max_length=256, default='')
+    display_name = models.CharField(max_length=256, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
     approval_type = models.CharField(max_length=32, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
-    sku_category = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='')
     plant = models.ManyToManyField(TableLists, default=None)
     department_type = models.CharField(max_length=64, default='')
     user_role = models.ManyToManyField(CompanyRoles, default=None)
@@ -865,7 +883,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'), ('open_po',))
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
         permissions = [
             ('update_purchaseorder', 'Update Purchase Order'),
         ]
@@ -1579,6 +1597,7 @@ class UserGroups(models.Model):
 
     class Meta:
         db_table = 'USER_GROUPS'
+        index_together = (('user',),('user','company'),('company',),('admin_user',))
 
 
 class WarehouseCustomerMapping(models.Model):
@@ -2542,7 +2561,7 @@ class SellerPOSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
-        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'), ('creation_date', ), ('grn_number', ), ('grn_number', 'purchase_order',), ('grn_number', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2918,7 +2937,7 @@ class TaxMaster(models.Model):
     class Meta:
         db_table = 'TAX_MASTER'
         # unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
-        index_together = (('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
+        index_together = (('user','product_type','inter_state','max_amt','min_amt'),('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
 
     def json(self):
         return {
@@ -3357,6 +3376,7 @@ class StaffMaster(models.Model):
     email_id = models.EmailField(max_length=64, default='')
     reportingto_email_id = models.EmailField(max_length=64, default='')
     phone_number = models.CharField(max_length=32)
+    mrp_user = models.BooleanField(default=False)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -3541,7 +3561,7 @@ class MasterDocs(models.Model):
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = (('master_id', 'master_type', 'uploaded_file'),
+        index_together = (('master_id', 'master_type', 'uploaded_file'), ('master_id', 'user', 'extra_flag', ),
                           ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
@@ -3901,6 +3921,7 @@ class MasterEmailMapping(models.Model):
 
     class Meta:
         db_table = 'MASTER_EMAIL_MAPPING'
+        index_together = (('user', 'master_id', 'master_type', 'email_id'),('user', 'master_id', 'master_type'))
         unique_together = ('user', 'master_id', 'master_type', 'email_id')
 
 class InvoiceOrderCharges(models.Model) :
@@ -4147,6 +4168,7 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
+        index_together = (('purchase_order', 'user'))
 
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)
@@ -4175,7 +4197,7 @@ class UOMMaster(models.Model):
 
     class Meta:
         db_table = 'UOM_MASTER'
-        unique_together = ('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+        index_together = (('sku_code','company','uom_type'),('sku_code','uom_type','company'),('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion'))
 
     def __unicode__(self):
         return '%s-%s' % (self.company, self.name)
@@ -4392,6 +4414,7 @@ class GateIn(models.Model):
         ordering    = ['-in_date']
 class MRP(models.Model):
     id = BigAutoField(primary_key=True)
+    transact_number = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
     user = models.ForeignKey(User, related_name='mrp_user')
     avg_sku_consumption_day = models.FloatField(default=0)
@@ -4399,15 +4422,22 @@ class MRP(models.Model):
     min_days_qty = models.FloatField(default=0)
     max_days_qty = models.FloatField(default=0)
     system_stock_qty = models.FloatField(default=0)
+    plant_stock_qty = models.FloatField(default=0)
     pending_pr_qty = models.FloatField(default=0)
     pending_po_qty = models.FloatField(default=0)
     total_stock_qty = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
+    mrp_pr_raised_qty = models.FloatField(default=0)
+    supplier_id = models.CharField(max_length=20, null=True, blank=True)
+    amount = models.FloatField(default=0)
+    status = models.PositiveIntegerField(default=0)
+    pending_line_items = models.ForeignKey(PendingLineItems, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MRP'
+        unique_together = ('sku', 'status', 'creation_date')
         index_together = (('sku', 'user'), ('sku', 'creation_date'))
 
 class ASNMapping(models.Model):

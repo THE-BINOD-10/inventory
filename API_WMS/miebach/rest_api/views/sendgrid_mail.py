@@ -8,14 +8,14 @@ from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
 from email import encoders, Encoders
 from sendgrid.helpers.mail import *
-
+from miebach_admin.models import PendingPO
 
 
 
 log = init_logger('logs/sendgrid_mail.log')
 
 
-def send_sendgrid_mail(from_address, send_to, subject, text, files=[]):
+def send_sendgrid_mail(po_num, user, from_address, send_to, subject, text, files=[]):
     try:
         if isinstance(send_to,list):
             send_to = [i for i in send_to if i]
@@ -52,6 +52,7 @@ def send_sendgrid_mail(from_address, send_to, subject, text, files=[]):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
+        PendingPO.objects.filter(full_po_number=po_num, open_po__sku__user = user.id).update(mail_status=False, mail_failed_reason = str(e))
         log.info("Sending mail through sendgrid api failed for params" + from_address + " " + subject)
 
 

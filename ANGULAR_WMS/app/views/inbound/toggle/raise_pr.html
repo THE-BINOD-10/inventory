@@ -137,24 +137,25 @@
    }
 </style>
 
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" style="z-index: 1050 !important;">
   <form name="form" id="raise_pr_request_form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
-    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width" style="font-size: xx-small;">
+    <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
-        <div class="modal-header">
+        <div class="modal-header" style="padding: 5px !important;">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">
               <h4 class="modal-title pull-left">{{showCase.title}}</h4>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="col-md-4 col-sm-4 col-xs-12" align="center">
               <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
               <h6 align="center"><b>{{showCase.model_data.wh_address}}</b></h4>
+              <span ng-if="showCase.current_raise_pr" class="label label-warning" style="font-size: 10px;">Auto PR - MRP</span>
             </div>
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body" style="padding:5px">
+        <div class="modal-body" ng-class="(showCase.confirm_print)? 'hide': 'show'" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 30px;">
           <div class="row">
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
@@ -251,21 +252,30 @@
           <div class="row" ng-if="showCase.model_data.product_category=='OtherItems'" >
             <div ng-include="'views/inbound/toggle/RaisependinglineItems/other_items.html'"></div>
           </div>
-          <div class="col-md-12 col-sm-12 col-xs-12">
-            <div class="col-md-2 col-sm-2 col-xs-2">
-              <strong>Remarks :</strong>
+          <div class="row" style="padding-bottom:0px;">
+            <div class="col-md-6 col-sm-6">
             </div>
-            <div class="col-md-10 col-sm-10 col-xs-10">
-              <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Total Value Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number:0}}</b></p>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Total Value With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number:0}}</b></p>
             </div>
           </div>
-
           <div class="row">
-            <div class="form-group col-md-3" style="padding-top: 30px;">
-               <span>
-                 <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple />
-               </span>
-            </div>
+            <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+              <div class="form-group col-lg-4 col-md-4" style="padding-top: 20px;">
+                 <span><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple /></span>
+              </div>
+              <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+                <div class="col-md-2 col-sm-2 col-xs-2">
+                  <strong>Remarks :</strong>
+                </div>
+                <div class="col-md-10 col-sm-10 col-xs-10">
+                  <textarea rows="2" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+                </div>
+              </div>
+            </div>  
           </div>
     		</div>
       </div>

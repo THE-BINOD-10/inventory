@@ -15352,7 +15352,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
                     if histo['status'] == '':
                         histo['status'] = 'On Approved'
                         histo['is_current'] = True
-                    temp = {'is_current': histo['is_current'], 'status': histo['status'], 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
+                    temp = {'is_current': histo.get('is_current', ''), 'status': histo.get('status', ''), 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
                     response_data.append(temp)
                 else:
                     datum = get_next_approval(pr_obj, 'Purchase Approver')

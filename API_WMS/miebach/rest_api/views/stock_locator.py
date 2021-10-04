@@ -241,9 +241,15 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
         sku_conversion = 1
         sku_conversion = uom_dict['sku_conversion']
-        ptotal = total/uom_dict['sku_conversion']
-        pquantity = quantity/uom_dict['sku_conversion']
-        preserved = reserved/uom_dict['sku_conversion']
+        try:
+            ptotal = total/uom_dict['sku_conversion']
+            pquantity = quantity/uom_dict['sku_conversion']
+            preserved = reserved/uom_dict['sku_conversion']
+        except:
+            uom_dict['sku_conversion'] = 1
+            ptotal = total/uom_dict['sku_conversion']
+            pquantity = quantity/uom_dict['sku_conversion']
+            preserved = reserved/uom_dict['sku_conversion']
         total_stock_value = 0
         sku_packs = 0
         measurement_type = sku.measurement_type
@@ -296,9 +302,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
             dept_name = "%s %s"%(sku_user.first_name, sku_user.last_name)
         #sku_conversion, measurement_unit, base_uom = get_uom_data(user, sku, 'Purchase')
-        base_uom = uom_dict['base_uom']
-        sku_conversion = uom_dict['sku_conversion']
-        measurement_unit = uom_dict['measurement_unit']
+        base_uom = uom_dict.get('base_uom', '')
+        sku_conversion = uom_dict.get('sku_conversion', 1)
+        measurement_unit = uom_dict.get('measurement_unit', '')
         if sku_conversion == 0:
             sku_conversion = 1
         sku_avg_price = SKUMaster.objects.get(user=data[4], sku_code=data[0]).average_price
@@ -4049,7 +4055,7 @@ def stock_detail_update(request, user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_inventory_adjust(request, user=''):
-    #return HttpResponse("Inventory Adj Disable Due to Consumption Uploads!..")
+    return HttpResponse("Inventory Adj Disable Due to Consumption Uploads!..")
     reversion.set_user(request.user)
     reversion.set_comment("insert_inv_adj: %s" % str(get_user_ip(request)))
     warehouse = request.POST['warehouse']

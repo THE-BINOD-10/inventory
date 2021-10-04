@@ -17905,7 +17905,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     open_po_data = PurchaseOrder.objects.filter(po_number__in=po_numbers,open_po__isnull=False).exclude(status='deleted').\
                                             values('po_number','open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax', 'received_quantity',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
-                                            'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
+                                            'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date', 'reason',
                                             'open_po__sku__user', 'updation_date' , 'open_po__cess_tax', 'status')
     open_po_data_dict= {}
     for open_po_row in open_po_data:
@@ -17915,7 +17915,11 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             temp_amt = (open_po_row['open_po__order_quantity']* open_po_row['open_po__price'])
             open_po_data_dict[open_po_row["po_number"]]["po_tax_amount"] += (temp_amt/100) * temp_tax
             open_po_data_dict[open_po_row["po_number"]]["po_amount"] += ((temp_amt/100) * temp_tax) + temp_amt
-            open_po_data_dict[open_po_row["po_number"]]["po_status"] = open_po_row["status"]
+            if not open_po_data_dict[open_po_row["po_number"]]["po_status"] == "Short Closed":
+                if open_po_row.get("reason", ""):
+                    open_po_data_dict[open_po_row["po_number"]]["po_status"] = "Short Closed"
+
+            #open_po_data_dict[open_po_row["po_number"]]["po_status"] = open_po_row["status"]
 	    receivable_quantity = open_po_row['open_po__order_quantity'] - open_po_row["received_quantity"]
             received_quantity = open_po_row["received_quantity"]
             open_po_data_dict[open_po_row["po_number"]]["received_quantity"] += received_quantity
@@ -17930,9 +17934,13 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             po_amount = po_tax_amount + temp_amt
 	    receivable_quantity = po_quantity - open_po_row["received_quantity"]
 	    received_quantity = open_po_row["received_quantity"]
+            po_status = "Yet To Receive"
+            if open_po_row.get("reason", ""):
+                po_status= "Short Closed"
             temp_dict = {"po_amount": po_amount, 
                    "po_tax_amount": po_tax_amount,
                    "po_quantity": po_quantity,
+                   "po_status": po_status,
                    "sku_user": open_po_row["open_po__sku__user"],
                    "supplier_name": open_po_row["open_po__supplier__name"],
                    "supplier_id": open_po_row["open_po__supplier__supplier_id"],
@@ -18092,11 +18100,18 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         integration_date = po_int_date[result['po_number']].strftime("%d %b, %Y") if po_int_date.get(
             result['po_number'], '') else ''
         po_status= open_po_data_dict.get(result['po_number'], {}).get("po_status", "")
-        if not final_status.title():
+        if po_status == "Yet To Receive":
+            if received_quantity==po_quantity:
+                po_status = "Fully Received"
+            elif received_quantity:
+                po_status = "Partially Received"
+        if not po_status:
+            po_status= "Yet To Receive"
+        '''if not final_status.title():
             if not po_status:
                 po_status= "Yet To Receive"
         else:
-            po_status= final_status.title()
+            po_status= final_status.title()'''
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),
@@ -18114,7 +18129,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             ('PR Quantity', pr_quantity),
             ('Total Amount', round(po_amount,2)),
             ('Approved by all Approvers', all_approvals[0:-1]),
-            ('PO Status', final_status.title()),
+            ('PO Status', po_status),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', supplier_id),
             ('Supplier Name', supplier_name),

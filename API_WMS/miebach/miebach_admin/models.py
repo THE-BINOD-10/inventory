@@ -883,7 +883,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_ids', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
         permissions = [
             ('update_purchaseorder', 'Update Purchase Order'),
         ]

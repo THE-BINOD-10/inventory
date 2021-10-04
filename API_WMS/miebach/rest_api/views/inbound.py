@@ -4173,11 +4173,14 @@ def approve_pr(request, user=''):
         else:
             suplier_secondary_mails = request.POST.get('suplier_secondary_mails', '')
             if suplier_secondary_mails and pendingPRObj.supplier:
-                filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': suplier_secondary_mails}
-                master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
-                if not master_email_map.exists():
-                    master_email_map = MasterEmailMapping.objects.create(**filter_dict)
-                    master_email_map.save()
+                for second_supp in suplier_secondary_mails.split(','):
+                    if second_supp.find('metropolis') != -1:
+                        continue
+                    filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': suplier_secondary_mails}
+                    master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+                    if not master_email_map.exists():
+                        master_email_map = MasterEmailMapping.objects.create(**filter_dict)
+                        master_email_map.save()
             all_po_emails = request.POST.get('all_po_emails', '')
             if all_po_emails:
                 pendingPRObj.po_mail_members = all_po_emails
@@ -4558,15 +4561,18 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                     supp.phone_number = suplier_mobile_number
                     supp.save()
                 if suplier_secondary_mails:
-                    filter_dict = {}
-                    filter_dict['user_id'] = pendingPurchaseObj.supplier.user
-                    filter_dict['master_type'] = 'supplier'
-                    filter_dict['master_id'] = pendingPurchaseObj.supplier.id
-                    filter_dict['email_id'] = suplier_secondary_mails
-                    master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
-                    if not master_email_map.exists():
-                        master_email_map = MasterEmailMapping.objects.create(**filter_dict)
-                        master_email_map.save()
+                    for second_supp in suplier_secondary_mails.split(','):
+                        if second_supp.find('metropolis') != -1:
+                            continue
+                        filter_dict = {}
+                        filter_dict['user_id'] = pendingPurchaseObj.supplier.user
+                        filter_dict['master_type'] = 'supplier'
+                        filter_dict['master_id'] = pendingPurchaseObj.supplier.id
+                        filter_dict['email_id'] = suplier_secondary_mails
+                        master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+                        if not master_email_map.exists():
+                            master_email_map = MasterEmailMapping.objects.create(**filter_dict)
+                            master_email_map.save()
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)

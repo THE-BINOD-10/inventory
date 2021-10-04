@@ -5527,6 +5527,10 @@ def add_pr(request, user=''):
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
+                    else:
+                        return HttpResponse(json.dumps({"status": "NO Supplier Found in SKU Level, Please Refresh the page For Updated UI With Supplier Input !"}))
+            else:
+                return HttpResponse(json.dumps({"status": "Input MisMatch, Please Refresh the page For Updated UI With Supplier Input !"}))
             '''totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number, is_auto_pr=is_auto_pr)
             if totalAmts > totalAmt:

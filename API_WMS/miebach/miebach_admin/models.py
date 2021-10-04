@@ -734,7 +734,7 @@ class PendingPO(models.Model):
 
     class Meta:
         db_table = 'PENDING_PO'
-	index_together = (('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ) )
+	index_together = (('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ),('open_po', ) )
 
 
 @reversion.register()
@@ -762,7 +762,7 @@ class PendingLineItems(models.Model):
 
     class Meta:
         db_table = 'PENDING_LINE_ITEMS'
-	index_together = (('purchase_type', 'pending_pr', 'creation_date'), ('pending_pr', 'purchase_type' ), ('pending_po', 'purchase_type'),  ('sku', ), ('creation_date', ))
+	index_together = (('purchase_type', 'pending_pr', 'creation_date'), ('pending_pr', 'purchase_type' ), ('pending_po', 'purchase_type'),  ('sku', ), ('creation_date', ), ('pending_po',), ('pending_pr', ),)
 
 @reversion.register()
 class PurchaseApprovals(models.Model):  #PRApprovals
@@ -786,7 +786,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-        index_together = (('pending_pr','level'),('pending_po','level'))
+        index_together = (('pending_pr','level'), ('pending_po','level'), ('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
 
 class TableLists(models.Model):
     name = models.CharField(max_length=64, default='', db_index=True)
@@ -3384,7 +3384,7 @@ class StaffMaster(models.Model):
     class Meta:
         db_table = 'STAFF_MASTER'
         unique_together = ('company', 'email_id')
-        index_together = ('company', 'email_id')
+        index_together = (('company', 'email_id'), ('user', ), ('company', 'status'))
 
 
 class MastersMapping(models.Model):

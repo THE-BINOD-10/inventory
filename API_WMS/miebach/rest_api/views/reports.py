@@ -1710,10 +1710,10 @@ def excel_reports(request, user=''):
         params = [request, search_params, user, request.user]
     if excel_name in ['excel_name=get_metropolis_po_detail_report', 'excel_name=get_metropolis_po_report']:
         search_params['excel_name'] = excel_name
-        headers = ['Plant', 'Plant Name', 'Username', 'Supplier Name', 'Supplier ID', 'GST Number', 'PO No', 'PR No', 'SKU Code', 'SKU Category', 'SKU Description', 
-                    'HSN Code', 'PO Date', 'PO Qty', 'Recieved Qty', 'Recievable Qty', 'PO Price', 'Pre Tax Value', 'Reason', 
-                    'CGST', 'IGST', 'SGST', 'UTGST', 'Post Tax value', 'Recieved Pre Tax Value', 'Recieved Post Tax Value', 
-                    'Recievable Pre Tax Value', 'Recievable Post Tax Value', 'PO Creation Date','Open PO Status',  'PO Status']
+        #headers = ['Plant', 'Plant Name', 'Username', 'Supplier Name', 'Supplier ID', 'GST Number', 'PO No', 'PR No', 'SKU Code', 'SKU Category', 'SKU Description', 
+        #            'HSN Code', 'PO Date', 'PO Qty', 'Recieved Qty', 'Recievable Qty', 'PO Price', 'Pre Tax Value', 'Reason', 
+        #            'CGST', 'IGST', 'SGST', 'UTGST', 'Post Tax value', 'Recieved Pre Tax Value', 'Recieved Post Tax Value', 
+        #            'Recievable Pre Tax Value', 'Recievable Post Tax Value', 'PO Creation Date','Open PO Status',  'PO Status']
         params = [request, search_params, user, request.user]
     if 'excel_name=integration_report' in excel_name:
         params = [request, search_params, user, request.user]

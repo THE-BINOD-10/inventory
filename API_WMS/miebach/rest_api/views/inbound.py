@@ -5527,17 +5527,23 @@ def add_pr(request, user=''):
                         supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
-            totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+            '''totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number, is_auto_pr=is_auto_pr)
             if totalAmts > totalAmt:
-                totalAmt = totalAmts
-            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
+                totalAmt = totalAmts'''
+            reqConfigName = findReqConfigName(user, totalAmts, purchase_type='PR',
                                                 product_category=product_category, approval_type=approval_type,
                                                 sku_category=sku_category)
+            if not reqConfigName or is_contract_supplier:
+                return HttpResponse(json.dumps({"status": "NO DOA Found"}))
+            totalAmt, pendingPRObj = createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,prefix, full_pr_number, is_auto_pr=is_auto_pr)
+            if totalAmts > totalAmt:
+                totalAmt = totalAmts
             pr_doa_log.info("Approval Config for PR Number %s is %s" % (full_pr_number, reqConfigName))
             if not reqConfigName or is_contract_supplier:
-                pendingPRObj.final_status = 'approved'
+                pendingPRObj.final_status = 'saved'
                 pendingPRObj.save()
+                return HttpResponse(json.dumps({"status": "NO DOA Found"}))
             else:
                 if is_resubmitted == 'true':
                     prApprQs = pendingPRObj.pending_prApprovals.filter()

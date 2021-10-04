@@ -2552,6 +2552,18 @@ var app = angular.module('urbanApp')
             title: 'MRP Exception Report',
           }
         })
+        .state('app.reports.MRPDepartmentReport', {
+          url: '/MRPDepartmentReport',
+          templateUrl: 'views/reports/mrp_department_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/mrp_department_report.js');
+              }]
+          },
+          data: {
+            title: 'MRP Department Report',
+          }
+        })
 
         .state('app.reports.LocationWiseFilter', {
           url: '/LocationWiseFilter',

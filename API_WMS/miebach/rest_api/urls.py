@@ -659,6 +659,7 @@ urlpatterns = [
     url(r'^get_pr_performance_report/$', get_pr_performance_report),
     url(r'^get_po_performance_report/$', get_po_performance_report),
     url(r'^get_mrp_exception_report/$', get_mrp_exception_report),
+    url(r'^get_mrp_department_report/$', get_mrp_department_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

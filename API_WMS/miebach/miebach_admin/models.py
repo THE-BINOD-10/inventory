@@ -2561,7 +2561,7 @@ class SellerPOSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
-        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'), ('creation_date', ), ('grn_number', ), ('grn_number', 'purchase_order',), ('grn_number', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)
@@ -3561,7 +3561,7 @@ class MasterDocs(models.Model):
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = (('master_id', 'master_type', 'uploaded_file'),('master_id','master_type'),
+        index_together = (('master_id', 'master_type', 'uploaded_file'), ('master_id', 'user', 'extra_flag', ),
                           ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
@@ -4168,6 +4168,7 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
+        index_together = (('purchase_order', 'user'))
 
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)

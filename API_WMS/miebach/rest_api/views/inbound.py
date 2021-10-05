@@ -4644,6 +4644,44 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                     model_name='PendingLineItemMiscDetails',
                     model_json=misc_json
                 )
+            if purchase_type == 'PR':
+                try:
+                    pendingLineItems['discount_percent'] = float(value['discount_percent'])
+                except:
+                    pendingLineItems['discount_percent'] = 0
+                try:
+                    pendingLineItems['delta'] = float(value['delta'])
+                except:
+                    pendingLineItems['delta'] = 0
+                try:
+                    pendingLineItems['remarks'] = value['remarks']
+                except:
+                    pendingLineItems['remarks'] = ''
+                try:
+                    if float(value['tax']) > 0:
+                        value['tax'] = float(value['tax'])
+                except:
+                    value['tax'] = 0
+                try:
+                    pr_user = pendingPurchaseObj.wh_user
+                    if pr_user.userprofile.warehouse_type == 'DEPT':
+                        store_user = get_admin(pr_user)
+                    else:
+                        store_user = pr_user
+                    supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=value['sku_supplier'])
+                    if supplyQs.exists():
+                        pendingLineItems['supplier'] = supplyQs[0]
+                        tax_type = supplyQs[0].tax_type
+                        if tax_type == 'inter_state':
+                            pendingLineItems['igst_tax'] = value['tax']
+                            pendingLineItems['cgst_tax'] = 0
+                            pendingLineItems['sgst_tax'] = 0
+                        else:
+                            pendingLineItems['igst_tax'] = 0
+                            pendingLineItems['cgst_tax'] = value['tax']/2
+                            pendingLineItems['sgst_tax'] = value['tax']/2
+                except:
+                    pass
             continue
         pendingLineItems = {
             apprType: pendingPurchaseObj,

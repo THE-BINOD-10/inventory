@@ -4679,7 +4679,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                         store_user = pr_user
                     supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=value['sku_supplier'])
                     if supplyQs.exists():
-                        pendingLineItems['supplier'] = supplyQs[0]
+                        record.supplier = supplyQs[0]
                         tax_type = supplyQs[0].tax_type
                         if tax_type == 'inter_state':
                             record.igst_tax = value['tax']
@@ -4689,7 +4689,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                             record.igst_tax = 0
                             record.cgst_tax = value['tax']/2
                             record.sgst_tax = value['tax']/2
-                record.save()
+                    record.save()
                 except:
                     pass
                 record.save()

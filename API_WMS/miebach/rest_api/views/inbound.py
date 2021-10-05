@@ -3550,7 +3550,11 @@ def get_raisepo_group_data(user, myDict):
         if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
             po_delivery_date = datetime.datetime.strptime(str(myDict['po_delivery_date'][0]), "%m/%d/%Y")
         if 'pr_delivery_date' in myDict.keys() and myDict['pr_delivery_date'][0]:
-            pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d-%m-%Y")
+            try:
+                pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d-%m-%Y")
+            except:
+                pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d/%m/%Y")
+                pass
         if 'ship_to' in myDict.keys():
             ship_to = myDict['ship_to'][0]
         if 'measurement_unit' in myDict.keys():

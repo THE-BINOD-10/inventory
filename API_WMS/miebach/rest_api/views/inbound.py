@@ -4653,6 +4653,46 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                     model_name='PendingLineItemMiscDetails',
                     model_json=misc_json
                 )
+            if purchase_type == 'PR':
+                try:
+                    record.discount_percent = float(value['discount_percent'])
+                except:
+                    record.discount_percent = 0
+                try:
+                    record.delta = float(value['delta'])
+                except:
+                    record.delta = 0
+                try:
+                    record.remarks = value['remarks']
+                except:
+                    record.remarks = ''
+                try:
+                    if float(value['tax']) > 0:
+                        value['tax'] = float(value['tax'])
+                except:
+                    value['tax'] = 0
+                try:
+                    pr_user = pendingPurchaseObj.wh_user
+                    if pr_user.userprofile.warehouse_type == 'DEPT':
+                        store_user = get_admin(pr_user)
+                    else:
+                        store_user = pr_user
+                    supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=value['sku_supplier'])
+                    if supplyQs.exists():
+                        pendingLineItems['supplier'] = supplyQs[0]
+                        tax_type = supplyQs[0].tax_type
+                        if tax_type == 'inter_state':
+                            record.igst_tax = value['tax']
+                            record.cgst_tax = 0
+                            record.sgst_tax = 0
+                        else:
+                            record.igst_tax = 0
+                            record.cgst_tax = value['tax']/2
+                            record.sgst_tax = value['tax']/2
+                record.save()
+                except:
+                    pass
+                record.save()
             continue
         pendingLineItems = {
             apprType: pendingPurchaseObj,

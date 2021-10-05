@@ -3614,11 +3614,20 @@ def get_raisepo_group_data(user, myDict):
         if 'temp_cess_tax' in myDict.keys():
             temp_cess_tax = myDict['temp_cess_tax'][i]
         if 'supplier_id' in myDict.keys():
-            sku_supplier = myDict['supplier_id'][i]
+            try:
+                sku_supplier = myDict['supplier_id'][i]
+            except:
+                sku_supplier = ''
         if 'mrp_id' in myDict.keys():
-            mrp_id = myDict['mrp_id'][i]
+            try:
+                mrp_id = myDict['mrp_id'][i]
+            except:
+                mrp_id = ''
         if 'suggested_qty' in myDict.keys():
-            suggested_qty = myDict['suggested_qty'][i]
+            try:
+                suggested_qty = myDict['suggested_qty'][i]
+            except:
+                suggested_qty = 0
         pr_extra_data = ''
         if 'pr_extra_data' in myDict.keys():
             pr_extra_data = myDict['pr_extra_data'][i]

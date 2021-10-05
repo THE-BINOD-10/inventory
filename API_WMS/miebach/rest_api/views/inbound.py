@@ -4646,17 +4646,17 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 )
             if purchase_type == 'PR':
                 try:
-                    pendingLineItems['discount_percent'] = float(value['discount_percent'])
+                    record.discount_percent = float(value['discount_percent'])
                 except:
-                    pendingLineItems['discount_percent'] = 0
+                    record.discount_percent = 0
                 try:
-                    pendingLineItems['delta'] = float(value['delta'])
+                    record.delta = float(value['delta'])
                 except:
-                    pendingLineItems['delta'] = 0
+                    record.delta = 0
                 try:
-                    pendingLineItems['remarks'] = value['remarks']
+                    record.remarks = value['remarks']
                 except:
-                    pendingLineItems['remarks'] = ''
+                    record.remarks = ''
                 try:
                     if float(value['tax']) > 0:
                         value['tax'] = float(value['tax'])
@@ -4673,15 +4673,17 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                         pendingLineItems['supplier'] = supplyQs[0]
                         tax_type = supplyQs[0].tax_type
                         if tax_type == 'inter_state':
-                            pendingLineItems['igst_tax'] = value['tax']
-                            pendingLineItems['cgst_tax'] = 0
-                            pendingLineItems['sgst_tax'] = 0
+                            record.igst_tax = value['tax']
+                            record.cgst_tax = 0
+                            record.sgst_tax = 0
                         else:
-                            pendingLineItems['igst_tax'] = 0
-                            pendingLineItems['cgst_tax'] = value['tax']/2
-                            pendingLineItems['sgst_tax'] = value['tax']/2
+                            record.igst_tax = 0
+                            record.cgst_tax = value['tax']/2
+                            record.sgst_tax = value['tax']/2
+                record.save()
                 except:
                     pass
+                record.save()
             continue
         pendingLineItems = {
             apprType: pendingPurchaseObj,

@@ -18800,21 +18800,27 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         pcf = uom_dict.get('sku_conversion', 1)
         pcf = pcf if pcf else 1
         base_uom = uom_dict.get('base_uom', '')
+        try:
+            date = get_local_date(user, result['creation_date'])
+        except:
+            date = result['creation_date'].strftime("%d, %b, %Y")
         # if result['consumption_type']:
         #     pcf = 1
         if result['sku_pcf']:
             pcf = result['sku_pcf']
-        if result['stock_mapping__stock__batch_detail__pcf']:
-            pcf = result['stock_mapping__stock__batch_detail__pcf']
+        new_date = datetime.datetime.strptime('2021-08-31', '%Y-%m-%d')
+        if result['creation_date'].strftime("%Y-%m-%d") <= new_date.strftime("%Y-%m-%d"):
+            if result['stock_mapping__stock__batch_detail__pcf']:
+                pcf = result['stock_mapping__stock__batch_detail__pcf']
         quantity = result['stock_mapping__quantity']
         if result['quantity'] < 0:
             quantity = -1 * quantity
         pqty = quantity/pcf
         stock_value = pqty * result['price']
-        try:
+        '''try:
             date = get_local_date(user, result['creation_date'])
         except:
-            date = result['creation_date'].strftime("%d, %b, %Y")
+            date = result['creation_date'].strftime("%d, %b, %Y")'''
         ord_dict = OrderedDict((
             ('Date', date),
             ('Plant Code', plant_code),

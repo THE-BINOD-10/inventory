@@ -4677,6 +4677,11 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 except:
                     value['tax'] = 0
                 try:
+                    if value.get('tax', 0) <= float(value.get('temp_tax', 0)):
+                        value['tax'] = float(value.get('temp_tax', 0))
+                except:
+                    pass
+                try:
                     pr_user = pendingPurchaseObj.wh_user
                     if pr_user.userprofile.warehouse_type == 'DEPT':
                         store_user = get_admin(pr_user)

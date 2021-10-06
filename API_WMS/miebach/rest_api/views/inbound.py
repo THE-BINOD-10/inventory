@@ -11310,6 +11310,15 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
+        final = []
+        if len(receivers) > 0:
+            for rec in receivers:
+                if rec.lower() not in final:
+                    if '@' in rec:
+                        final.append(rec.lower())
+        if len(final) > 0:
+            final.append('mhl_doa@stockone.in')
+            receivers = final
         send_sendgrid_mail(f_name, user, 'mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
         #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)

@@ -1476,11 +1476,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
       vm.model_data.loss_expected = 0;
-      if (data.fields.temp_price && data.fields.temp_price > 0){
-          if (Number(data.fields.price) > Number(data.fields.temp_price)){
+      if (data.fields.temp_price && data.fields.temp_price > 0) {
+          if (Number(data.fields.price) > Number(data.fields.temp_price)) {
             Service.showNoty('Price cant be more than Base Price'); 
             data.fields.price = 0
         }
+      }
+      if (data.fields.order_quantity <= parseFloat(data.fields.resubmit_quantity) && parseInt(data.fields.order_quantity) > 0 && data.fields.order_quantity != '') {
+        data.fields.order_quantity = data.fields.order_quantity;
+      } else if (data.fields.order_quantity == ''){
+        data.fields.order_quantity = 0;
+      } else {
+        data.fields.order_quantity = data.fields.resubmit_quantity;
+        Service.showNoty('Quantity cannot be Greater than ' + data.fields.resubmit_quantity);
       }
       data.fields.amount = 0
       data.fields.total = 0

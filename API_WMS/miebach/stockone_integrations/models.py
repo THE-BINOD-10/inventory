@@ -36,3 +36,6 @@ class IntegrationMaster(models.Model):
 
     def natural_key(self):
         return {'id': self.id, 'user': self.user, 'zone': self.zone, 'level': self.level}
+
+    class Meta:
+        index_together = (('user',), ('user', 'integration_type'), ('user', 'stockone_reference', 'module_type'))

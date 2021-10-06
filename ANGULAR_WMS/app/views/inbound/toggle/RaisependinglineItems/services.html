@@ -85,6 +85,7 @@
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+                   ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
@@ -105,11 +106,11 @@
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
           <td ng-hide="!showCase.model_data.tax_display" class="text-center">
-            <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="hide">
+            <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" ng-keyup="showCase.getTotals(product)" class="hide">
             <span class="text_element">{{product.fields.temp_tax}}</span>
           </td>
           <td ng-hide="true" class="text-center">
-            <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="hide">
+            <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" ng-keyup="showCase.getTotals(product)" class="hide">
             <span class="text_element">{{product.fields.temp_cess_tax}}</span>
           </td>
           <td class="text-center">

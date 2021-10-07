@@ -885,6 +885,22 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       return d.promise;
     }
 
+ vm.export_to_excel = function(data, file_name){
+    var result_table = data
+        var lineArray = []; 
+        result_table.forEach(function(infoArray, index) {
+            var line = infoArray.join(" \t");
+            lineArray.push(index == 0 ? line : line);
+        });
+        var csvContent = lineArray.join("\r\n");
+        var excel_file = document.createElement('a');
+        excel_file.setAttribute('href', 'data:application/vnd.ms-excel;charset=utf-8,' + encodeURIComponent(csvContent));
+        excel_file.setAttribute('download', file_name+'.xls');
+        document.body.appendChild(excel_file);
+        excel_file.click();
+        document.body.removeChild(excel_file);
+    } 
+
   vm.get_style = function(type) {
 
     if(Session.userName = "adam_clothing") {

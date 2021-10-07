@@ -62,7 +62,7 @@ def get_dept_from_store_search(user, search_term):
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': [], 'quantity__gt': 0}
     status =  request.POST.get('special-key', '')
-    exe_prs = ['15-99927-ITTEC00271', '15-27001-MOLPA00030', '15-27001-NACOP00009', '15-27001-CUSCA00053', '15-24022-BIOCHE00001', '15-19207-ALLDE00001', '44-32200-ALLDE00010', '15-27007-ADMIN00102', '15-99927-MARKE00029', '44-29005-ADMIN00086', '15-28050-BIOCHE00004', '15-33066-BIOCHE00005', '11-99927-MARKE00597', '15-99927-ITTEC00270', '15-27129-SECRE00013']
+    #exe_prs = ['15-99927-ITTEC00271', '15-27001-MOLPA00030', '15-27001-NACOP00009', '15-27001-CUSCA00053', '15-24022-BIOCHE00001', '15-19207-ALLDE00001', '44-32200-ALLDE00010', '15-27007-ADMIN00102', '15-99927-MARKE00029', '44-29005-ADMIN00086', '15-28050-BIOCHE00004', '15-33066-BIOCHE00005', '11-99927-MARKE00597', '15-99927-ITTEC00270', '15-27129-SECRE00013']
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -139,7 +139,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         'pending_pr__sku_category', 'pending_pr__wh_user__username']
     #.exclude(pending_pr__full_pr_number__in = exe_prs)
     results = PendingLineItems.objects.filter(**filtersMap). \
-                exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']).exclude(pending_pr__full_pr_number__in = exe_prs).\
+                exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']).\
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
@@ -4193,7 +4193,7 @@ def approve_pr(request, user=''):
                 for second_supp in suplier_secondary_mails.split(','):
                     if second_supp.find('metropolis') != -1:
                         continue
-                    filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': suplier_secondary_mails}
+                    filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': second_supp}
                     master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
                     if not master_email_map.exists():
                         master_email_map = MasterEmailMapping.objects.create(**filter_dict)
@@ -4585,7 +4585,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                         filter_dict['user_id'] = pendingPurchaseObj.supplier.user
                         filter_dict['master_type'] = 'supplier'
                         filter_dict['master_id'] = pendingPurchaseObj.supplier.id
-                        filter_dict['email_id'] = suplier_secondary_mails
+                        filter_dict['email_id'] = second_supp
                         master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
                         if not master_email_map.exists():
                             master_email_map = MasterEmailMapping.objects.create(**filter_dict)

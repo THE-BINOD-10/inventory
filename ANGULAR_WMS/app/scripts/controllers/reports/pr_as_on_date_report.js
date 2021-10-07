@@ -54,10 +54,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {
                     'from_date': '',
                     'to_date': '',
-                    'wms_code': ''
+                    'wms_code': '',
+                    'status': '',
+                    'zone': ''
                     };
 
   vm.model_data = {};
   angular.copy(vm.empty_data, vm.model_data);
-
+vm.statuses = ['saved', 'pending']
+vm.zones = [];
+vm.service.apiCall('zones_list/').then(function(data){
+  if(data.message) {
+    vm.zones = data.data.zones;
+  }
+})
 }

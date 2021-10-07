@@ -2088,10 +2088,9 @@ PRAOD_REPORT_DICT = {
         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
-        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
     'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'PR Status', 'Product Category', 'SKU Category',
-        'Pending with Email Id', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
+        'Pending with Email Id', 'Staff position', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
     'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
     'print_url': 'get_praod_report',
 }
@@ -19684,18 +19683,24 @@ def get_praod_report_data(search_params, user, sub_user):
             users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
         else:
             users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
-    if 'zone_code' in search_params:
-        zone_code = search_params['zone_code']
+    if 'zone' in search_params:
+        zone_code = search_params['zone']
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['wh_user_id__in'] = user_ids
+    search_parameters['final_status'] = 'saved'
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status']
+    model_data1 = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     search_parameters['final_status'] = 'pending'
     search_parameters['pending_prApprovals__status'] = ''
+    model_data2 = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+    model_data = model_data1 | model_data2
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
-    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status']
-    model_data = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected']).values(*values_list).distinct()
+    search_parameter = {}
+    if 'status' in search_params:
+        search_parameter['final_status'] = search_params['status']
+    model_data = model_data.filter(**search_parameter).values(*values_list).distinct()
 
     if order_term:
         model_data = model_data.order_by(order_data)
@@ -19716,6 +19721,10 @@ def get_praod_report_data(search_params, user, sub_user):
     for pas in pas_objs:
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    staff_dict = {}
+    staff_objects = StaffMaster.objects.filter(user__in=user_ids).values('email_id','position')
+    for staff_object in staff_objects:
+        staff_dict[staff_object.get('email_id')] =  staff_object.get('position','')
     for result in results:
         user_obj = User.objects.get(id=result['wh_user'])
         plant_code = user_obj.userprofile.stockone_code
@@ -19731,7 +19740,8 @@ def get_praod_report_data(search_params, user, sub_user):
         raised_date = get_local_date(user, result['creation_date'])
         pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
-	pa_data_since_from = ""
+	staff_position = staff_dict.get(pa_emails,'')
+        pa_data_since_from = ""
 	if pas_dict.get(result['id'], {}).get("creation_date", ""):
             pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
 	level = pas_dict.get(result['id'], {}).get("level", "")
@@ -19747,7 +19757,8 @@ def get_praod_report_data(search_params, user, sub_user):
             ('Product Category', result['product_category']),
             ('SKU Category', result['sku_category']),
             ('Pending with Email Id', pa_emails),
-	    ('Pending since days', pa_data_since_from),
+	    ('Staff position', staff_position),
+            ('Pending since days', pa_data_since_from),
 	    ('Pending Level', level),
             ('Pending Since from PR Raised(Days)', pending_since),
         ))

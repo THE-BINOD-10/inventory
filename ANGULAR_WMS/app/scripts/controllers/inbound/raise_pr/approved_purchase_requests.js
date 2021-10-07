@@ -158,6 +158,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
       vm.form = 'final_for_approval';
+      vm.total_check_data = {}
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
         vm.current_pr_app_data = {};
@@ -313,6 +314,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               if(data.message){
                 if (Object.keys(data.data).length ==2) {
                   vm.current_pr_app_data = data.data;
+                  setTimeout(function(){
+                    angular.forEach(vm.model_data.data, function(datum){
+                      vm.total_check_data[datum.fields.sku.wms_code] = {'total': datum.fields.total, 'quantity': datum.fields.order_quantity, 'price': datum.fields.price};
+                    });
+                  }, 500);
                 } else {
                   Service.showNoty(data.data);
                 }
@@ -1068,7 +1074,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.raise_po = function(url, elem) {
       vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
         if (msg == "true") {
-          vm.service.apiCall(url, 'POST', elem).then(function(data){
+          vm.service.apiCall(url, 'POST', elem).then(function(data) {
             if(data.message) {
               vm.service.pop_msg(data.data);
               vm.service.refresh(vm.dtInstance);
@@ -1491,11 +1497,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       if (data.fields.order_quantity <= parseFloat(data.fields.resubmit_quantity) && parseInt(data.fields.order_quantity) > 0 && data.fields.order_quantity != '') {
         data.fields.order_quantity = data.fields.order_quantity;
-      } else if (data.fields.order_quantity == ''){
+      } else if (data.fields.order_quantity == '') {
         data.fields.order_quantity = 0;
       } else {
-        data.fields.order_quantity = data.fields.resubmit_quantity;
-        Service.showNoty('Quantity cannot be Greater than ' + data.fields.resubmit_quantity);
+        if (vm.model_data.product_category == 'Kits&Consumables') {
+          data.fields.order_quantity = data.fields.resubmit_quantity;
+          Service.showNoty('Quantity cannot be Greater than ' + data.fields.resubmit_quantity);
+        }
       }
       data.fields.amount = 0
       data.fields.total = 0
@@ -1507,6 +1515,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         data.fields.cess_tax = 0;
       }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
+      if (vm.model_data.product_category != 'Kits&Consumables' && data.fields.total > 0) {
+        if (Object.keys(vm.total_check_data).includes(data.fields.sku.wms_code)) {
+          if (vm.total_check_data[data.fields.sku.wms_code]['total'] < data.fields.total) {
+            data.fields.order_quantity = vm.total_check_data[data.fields.sku.wms_code]['quantity'];
+            data.fields.price = vm.total_check_data[data.fields.sku.wms_code]['price'];
+            vm.service.showNoty('Total Value Should Not Be Greater than : ' + data.fields.sku.wms_code +' - ' + vm.total_check_data[data.fields.sku.wms_code]['total']);
+            vm.getTotals(data);
+          } 
+        }
+      }
       var min_price_value = vm.check_price_comparision(data);
       if (min_price_value != 0) {
         data.fields.delta = min_price_value - (parseFloat(data.fields.price) + ((parseFloat(data.fields.price) / 100) * parseFloat(data.fields.tax)));

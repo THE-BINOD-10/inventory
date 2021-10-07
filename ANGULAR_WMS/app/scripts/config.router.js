@@ -1105,7 +1105,8 @@ var app = angular.module('urbanApp')
           })
           .state('app.inbound.RaisePr.ConvertPRtoPO', {
           url: '/ConverPRtoPO',
-          templateUrl: 'views/inbound/toggle/convert_pr_to_po.html'
+          // templateUrl: 'views/inbound/toggle/convert_pr_to_po.html'
+          templateUrl: 'views/inbound/toggle/approve_pr.html'
           })
           .state('app.inbound.RaisePr.PRemptyPreview', {
           url: '/ConverPRtoPO',

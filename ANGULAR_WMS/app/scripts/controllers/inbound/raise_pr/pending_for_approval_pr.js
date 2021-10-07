@@ -27,6 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.quantity_editable = false;
     vm.current_pr_app_data = {};
     vm.current_pr_app_data_flag = true;
+    vm.pending_tab_footer = true;
 //    if(vm.permissions.change_pendinglineitems) {
 //      vm.quantity_editable = true;
 //    }
@@ -167,7 +168,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if (data.message && typeof(data.data) == 'object') {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
-          var empty_data = { //"supplier_id":vm.supplier_id,
+          var empty_data = {
                   "po_name": "",
                   "ship_to": data.data.ship_to,
                   "terms_condition": data.data.terms_condition,
@@ -187,7 +188,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
-                  // "supplier_name": data.data.supplier_name,
                   "is_purchase_approver": data.data.is_purchase_approver,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -256,7 +256,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               });
 
               angular.forEach(vm.model_data.data, function(data){
-
                 data.fields.dedicated_seller = vm.dedicated_seller;
               })
 
@@ -1445,7 +1444,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
       vm.getTotals(vm.model_data, true);
     }
-
     vm.check_price_comparision = function(data) {
       var check_array = []
       var min_unit_price_comparision = 0

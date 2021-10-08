@@ -269,6 +269,7 @@
         </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin' && showCase.pending_tab_footer">
           <!-- <button type="button" class="btn pop pop-green pull-left col-md-3 col-sm-4 col-xs-12" ng-click="showCase.print_excel(showCase.model_data.picklist_id)">Print to Excel</button> -->
+          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.excel()">Download Excel</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PR</button>
           <button ng-if="(!(showCase.print_enable) && !showCase.quantity_editable) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')"
           ng-disabled="!showCase.is_pa_resubmitted">{{showCase.model_data.is_purchase_approver ? 'Finalize PR' : 'Approve PR'}}</buttonz>
@@ -277,6 +278,7 @@
           <button ng-if="(!(showCase.print_enable) && !showCase.quantity_editable) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PR</button>
         </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin' && !showCase.pending_tab_footer">
+          <button type="submit" class="btn pop pop-yellow" ng-click="showCase.excel()">Download Excel</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PR</button>
           <button ng-if="(!(showCase.print_enable) && !showCase.quantity_editable) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Finalize PR</button>
         </div>

@@ -83,6 +83,7 @@ urlpatterns = [
     url(r'^add_location/$', add_location),
     url(r'^update_location/$', update_location),
     url(r'^get_zones_list/$', get_zones_list),
+    url(r'^zones_list/$', zones_list),
     url(r'^insert_sku/$', insert_sku),
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),

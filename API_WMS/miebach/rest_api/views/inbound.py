@@ -2356,6 +2356,8 @@ def generated_actual_pr_data(request, user=''):
                                 price = skuTaxVal.get('sku_supplier_price', '')
                             else:
                                 price = skuTaxVal['mrp']
+                        if supplierMapping.price > 0:
+                            price = supplierMapping.price
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:

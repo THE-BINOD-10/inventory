@@ -2356,6 +2356,8 @@ def generated_actual_pr_data(request, user=''):
                                 price = skuTaxVal.get('sku_supplier_price', '')
                             else:
                                 price = skuTaxVal['mrp']
+                        if supplierMapping.price > 0:
+                            price = supplierMapping.price
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:
@@ -18351,6 +18353,8 @@ def finalize_pr(request, user=''):
                     temp_data = TempJson.objects.filter(model_id = lineItemObj.id, model_name='PENDING_PR_PURCHASE_APPROVER')
                     if temp_data.exists():
                         TempJson.objects.filter(model_id = lineItemObj.id, model_name='PENDING_PR_PURCHASE_APPROVER').delete()
+                        TempJson.objects.create(model_id=lineItemQs[0].id,model_name='PENDING_PR_PURCHASE_APPROVER',model_json=pr_approver_data)
+                    else:
                         TempJson.objects.create(model_id=lineItemQs[0].id,model_name='PENDING_PR_PURCHASE_APPROVER',model_json=pr_approver_data)
     except Exception as e:
         import traceback

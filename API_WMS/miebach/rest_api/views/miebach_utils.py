@@ -5496,9 +5496,9 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     search_parameters[field_mapping['user']] = user_ids
     search_parameters['purchase_order__received_quantity__gt'] = 0
-    if search_params.get('excel_name'):
+    '''if search_params.get('excel_name'):
         temp_data = grn_download(user_ids, search_params, user)
-        return temp_data
+        return temp_data'''
     query_data = model_name.objects.select_related(
         'purchase_order__open_po',
         'purchase_order__open_po__sku',
@@ -7012,12 +7012,12 @@ def get_po_filter_data(request, search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user_ids
     #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['purchase_order__received_quantity__gt'] = 0
-    if search_params.get('excel_name'):
+    '''if search_params.get('excel_name'):
         search_params['from_date'] = search_params['grn_from_date']
         if 'grn_to_date' in search_params:
             search_params['to_date'] = search_params['grn_to_date']
         temp_data = grn_download(user_ids, search_params, user)
-        return temp_data
+        return temp_data'''
     query_data = model_name.objects.prefetch_related('purchase_order__open_po__sku', 'purchase_order__open_po__supplier').select_related('purchase_order__open_po',
                                                                                                          'purchase_order__open_po__sku',
                                                                                                          'purchase_order__open_po__supplier').exclude(

@@ -1700,13 +1700,13 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
         search_params['excel_name'] = excel_name
-        headers = [ 'Zone', 'WareHouse', 'Supplier Name', 'Supplier ID', 'PO No', 'SKU Code', 'SKU Category',
+        '''headers = [ 'Zone', 'WareHouse', 'Supplier Name', 'Supplier ID', 'PO No', 'SKU Code', 'SKU Category',
                     'SKU Description', 'HSN Code', 'SKU Brand', 'PO Date', 'PO Qty', 'PO Basic Price', 'CGST',
-                    'IGST', 'SGST', 'UTGST', 'PO Total Amount', 'UOM', 'Expected delivery date', 'CESS', 
-                    'GRN Qty', 'Recievable Quantity', 'GRN Price', 'Pre Tax Value', 'Post Tax Value', 'GRN Number', 
-                    'Type of GRN', 'GRN date', 'Invoice Number', 'Invoice Date', 'Invoice Value', 'Tcs Value', 
-                    'Challan Number', 'Challan Date', 'GRN Status', 'Credit Note Applicable', 'Credit Note Number', 
-                    'Remarks', 'Supplier GSTIN Number', 'Plant']
+                    'IGST', 'SGST', 'UTGST', 'PO Total Amount', 'UOM', 'Expected delivery date', 'CESS',
+                    'GRN Qty', 'Recievable Quantity', 'GRN Price', 'Pre Tax Value', 'Post Tax Value', 'GRN Number',
+                    'Type of GRN', 'GRN date', 'Invoice Number', 'Invoice Date', 'Invoice Value', 'Tcs Value',
+                    'Challan Number', 'Challan Date', 'GRN Status', 'Credit Note Applicable', 'Credit Note Number',
+                    'Remarks', 'Supplier GSTIN Number', 'Plant']'''
         params = [request, search_params, user, request.user]
     if excel_name in ['excel_name=get_metropolis_po_detail_report', 'excel_name=get_metropolis_po_report']:
         search_params['excel_name'] = excel_name

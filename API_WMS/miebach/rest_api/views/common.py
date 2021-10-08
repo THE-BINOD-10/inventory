@@ -584,7 +584,7 @@ def get_search_params(request, user=''):
     headers = []
     date_fields = ['from_date', 'to_date','invoice_date','creation_date', 'grn_to_date', 'grn_from_date']
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
-                    'order[0][dir]': 'order_term',
+                    'order[0][dir]': 'order_term', 'zone': 'zone',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
                     'wms_code': 'wms_code','status':'status', 'sku_brand':'sku_brand', 'manufacturer':'manufacturer',
                     'searchable':'searchable','bundle':'bundle',
@@ -15364,3 +15364,9 @@ def next_approvals_with_staff_master_mails(request, user=''):
                         response_data.append(temp)
     return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def zones_list(request, user=''):
+    zones_list = list(UserProfile.objects.filter().values_list('zone', flat=True).distinct())
+    return HttpResponse(json.dumps({'zones': zones_list}))

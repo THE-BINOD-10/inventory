@@ -1619,6 +1619,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
+vm.excel = function(data) {
+	vm.headers = ['Supplier', 'WMS Code', 'SKU Desc - HSN code', 'Qty', 'Unit rate', 'Dis', 'Final Unit Price', 'Amount', 'Tax %', 'Cess Tax %', 'Total', 'Last Supplier-Price', 'Least Supplier-Price', 'Least Supplier-Price(Pan India)', 'Reason', 'Delta With Tax', 'Suggested PR qty']
+	var data = []
+	data.push(vm.headers)
+	for(var i=0; i<vm.model_data.data.length; i++)  {
+		let temp_data = [vm.model_data.data[i].fields.supplier_id_name, vm.model_data.data[i].fields.sku.wms_code, vm.model_data.data[i].fields.description + ' -' + vm.model_data.data[i].fields.hsn_code, vm.model_data.data[i].fields.order_quantity,
+					vm.model_data.data[i].fields.price, vm.model_data.data[i].fields.discount, vm.model_data.data[i].fields.final_price, vm.model_data.data[i].fields.amount, vm.model_data.data[i].fields.tax,
+					vm.model_data.data[i].fields.cess_tax, vm.model_data.data[i].fields.total, vm.model_data.data[i].fields.pr_extra_data.last_supplier + ' -' + vm.model_data.data[i].fields.pr_extra_data.last_supplier_price, 
+					vm.model_data.data[i].fields.pr_extra_data.least_supplier + ' -' + vm.model_data.data[i].fields.pr_extra_data.least_supplier_price, vm.model_data.data[i].fields.pr_extra_data.least_supplier_pi + ' -' + vm.model_data.data[i].fields.pr_extra_data.least_supplier_price_pi, 
+					vm.model_data.data[i].fields.sku_comment, vm.model_data.data[i].fields.delta, vm.model_data.data[i].fields.sku.suggested_pr_qty]
+		data.push(temp_data)
+}
+    let file_name = 'Approved_Pr_' +  vm.model_data.pr_number
+	vm.service.export_to_excel(data, file_name)
+}
+
   vm.checkSupplierExist = function (sup_id) {
     console.log(sup_id);
     $http.get(Session.url + 'search_supplier?', {

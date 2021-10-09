@@ -18,6 +18,7 @@
         <!-- <th>HSN Code</th> -->
         <th ng-if="showCase.model_data.display_suggested_qty == true">MRP Suggested Qty</th>
         <th>Qty*</th>
+        <th>No.Of Base Units</th>
         <!-- <th>UOM</th> -->
         <!-- <th>No.Of Base Units</th>
         <th>Base UOM</th> -->
@@ -94,6 +95,7 @@
                  ng-keyup="showCase.getTotals(product)"
                  size="4">
         </td>
+        <td class="text-center"><span class="text_element">{{ product.fields.conversion | number:0}}</span></td>
         <td class="text-center" ng-hide="true">
           <!-- <span style="font-size: 9px;font-weight: 440;">{{product.fields.measurement_unit}}</span> -->
           <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly>

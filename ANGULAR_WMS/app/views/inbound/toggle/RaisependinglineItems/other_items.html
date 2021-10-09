@@ -39,7 +39,7 @@
           </td>
           <td>
             <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
-            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
+            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.plant)" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id = showCase.service.change_search_value(product.fields.supplier_id_name); showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
             ng-blur="showCase.validateSupplier(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="60" required>
             <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">

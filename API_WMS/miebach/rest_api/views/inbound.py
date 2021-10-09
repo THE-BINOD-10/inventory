@@ -3366,7 +3366,10 @@ def search_supplier(request, user=''):
     arg_type = request.GET.get('type', '')
     warehouse_id = request.GET.get('warehouse_id', '')
     if warehouse_id:
-        user = User.objects.get(id=warehouse_id)
+        try:
+            user = User.objects.get(id=warehouse_id)
+        except:
+            user = User.objects.get(username=warehouse_id)
     if arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |

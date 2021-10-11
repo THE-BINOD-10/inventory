@@ -2823,7 +2823,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
 
 
 def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',
-                                       adjustment_objs=[]):
+                                       adjustment_objs=[], price = ''):
     data = copy.deepcopy(INVENTORY_FIELDS)
     data['cycle_id'] = dat.id
     data['adjusted_quantity'] = quantity
@@ -2831,12 +2831,14 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     data['adjusted_location'] = location[0].id
     data['creation_date'] = now
     data['updation_date'] = now
-    data['price'] = stock.sku.average_price
+    if price == '':
+        price = stock.sku.average_price
+    data['price'] = price
     inv_adj_filter = {'cycle__cycle': dat.cycle, 'adjusted_location': location[0].id,
                       'cycle__sku__user': user.id}
     if stock:
         inv_adj_filter['stock_id'] = stock.id
-        inv_adj_filter['price'] = stock.sku.average_price
+        inv_adj_filter['price'] = price
         data['stock_id'] = stock.id
     if seller_id:
         inv_adj_filter['seller_id'] = seller_id
@@ -3190,6 +3192,8 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                     dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
                                                                       remaining_quantity)
                     if transact_type == 'inventory-adjustment':
+                        if price != '':
+                            price = float(price);
                         adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason,
                                                                              [stock.location], now, pallet_present,
                                                                              stock=stock, seller_id=seller_master_id,
@@ -3296,7 +3300,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, dest_stocks.quantity, reason,
                                                                      location, now, pallet_present,
                                                                      stock=dest_stocks, seller_id=seller_master_id,
-                                                                     adjustment_objs=adjustment_objs)
+                                                                     adjustment_objs=adjustment_objs, price=price)
             stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
     if adjustment_objs:

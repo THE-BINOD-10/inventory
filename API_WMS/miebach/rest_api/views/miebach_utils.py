@@ -4485,7 +4485,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
             reason = data.reason
         po_reference = data.po_number
         updated_user_name = user.username
-        version_obj = Version.objects.using(reports_database).using('reversion').get_for_object(data)
+        version_obj = Version.objects.using('reversion').get_for_object(data)
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
@@ -5612,7 +5612,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         seller_po_summary = SellerPOSummary.objects.using(reports_database).get(id=data['id'])
         updated_user_name = user.username
-        version_obj = Version.objects.using(reports_database).using('reversion').get_for_object(seller_po_summary).\
+        version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
                                                         filter(revision__comment='generate_grn')
         if version_obj.exists():
             version_single_obj = version_obj.order_by('-revision__date_created').only('revision__user__username', 'revision__date_created')
@@ -6025,7 +6025,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         updated_user_name = user.username
-        version_obj = Version.objects.using(reports_database).get_for_object(SellerPOSummary.objects.using(reports_database).get(id=data['id']))
+        version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=data['id']))
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         seller_po_summary = SellerPOSummary.objects.using(reports_database).get(id=data['id'])
@@ -7069,7 +7069,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                 GRN_total_qty, GRN_total_price, GRN_total_tax= get_po_grn_price_and_taxes(sellerposummary_data,"GRN")
                 grn_date = get_local_date(user, sellerposummary_data[0].creation_date).split(' ')
                 grn_date = ' '.join(grn_date[0:3])
-                version_obj = Version.objects.using(reports_database).using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
+                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
                                                     filter(revision__comment='generate_grn')
                 if version_obj.exists():
                     updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
@@ -9509,7 +9509,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                     delivery_date = open_po.delivery_date
                 rtv_reason = rtv.return_reason
 
-                version_obj = Version.objects.using(reports_database).get_for_object(rtv)
+                version_obj = Version.objects.using('reversion').get_for_object(rtv)
                 if version_obj.exists():
                     updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
 
@@ -13213,7 +13213,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 elif temp_inv_qty == 0:
                     dest_received_qty = 0
             if (request.POST.get('special_key', '') == 'ST_INTRA' or search_params.get('special_key', '') == 'ST_INTRA') and datums.exists():
-                version_obj = Version.objects.using(reports_database).using('reversion').get_for_object(datums[0]).filter(revision__comment='generate_grn')
+                version_obj = Version.objects.using('reversion').get_for_object(datums[0]).filter(revision__comment='generate_grn')
                 if version_obj.exists():
                     send_accepted_user_dest = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if request.POST.get('special_key', '') == 'MR' or search_params.get('special_key', '') == 'MR':
@@ -14546,7 +14546,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
         seller_name = ''
         if sku_data.seller:
             seller_name = sku_data.seller.name
-        version_obj = Version.objects.using(reports_database).using('reversion').get_for_object(sku_data)
+        version_obj = Version.objects.using('reversion').get_for_object(sku_data)
         updated_user_name = ''
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username

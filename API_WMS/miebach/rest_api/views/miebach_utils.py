@@ -19689,7 +19689,7 @@ def get_praod_report_data(search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['wh_user_id__in'] = user_ids
     search_parameters['final_status'] = 'saved'
-    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status']
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status', 'requested_user__username']
     model_data1 = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     search_parameters['final_status'] = 'pending'
     search_parameters['pending_prApprovals__status'] = ''
@@ -19740,11 +19740,13 @@ def get_praod_report_data(search_params, user, sub_user):
         raised_date = get_local_date(user, result['creation_date'])
         pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
-	staff_position = staff_dict.get(pa_emails,'')
+        if pa_emails == '':
+            pa_emails = result['requested_user__username']
+        staff_position = staff_dict.get(pa_emails,'')
         pa_data_since_from = ""
-	if pas_dict.get(result['id'], {}).get("creation_date", ""):
+        if pas_dict.get(result['id'], {}).get("creation_date", ""):
             pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-	level = pas_dict.get(result['id'], {}).get("level", "")
+        level = pas_dict.get(result['id'], {}).get("level", "")
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
@@ -19757,9 +19759,9 @@ def get_praod_report_data(search_params, user, sub_user):
             ('Product Category', result['product_category']),
             ('SKU Category', result['sku_category']),
             ('Pending with Email Id', pa_emails),
-	    ('Staff position', staff_position),
+            ('Staff position', staff_position),
             ('Pending since days', pa_data_since_from),
-	    ('Pending Level', level),
+            ('Pending Level', level),
             ('Pending Since from PR Raised(Days)', pending_since),
         ))
         temp_data['aaData'].append(ord_dict)

@@ -176,15 +176,15 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: false,//Session.roles.permissions.is_staff,
                    perm: "add_skumaster"
                  }, {
-                   title: "Inventory Adjustment Download/ Upload",
-                   download: "Download Adjustment Form",
+                   title: "Inventory Adjustments Download/ Upload",
+                   download: "Download Adjustments Form",
                    upload: "Upload Adjustment Form",
                    durl: "inventory_adjust_form/",
                    uurl: "inventory_adjust_upload/",
                    dparam: "download-inventory-adjust-file",
                    value: "",
-                   show: false,
-                   perm: "add_inventoryadjustment"
+                   show: true,
+                   //perm: "add_inventoryadjustment"
                  }, {
                    title: "Vendor Download/ Upload",
                    download: "Download Vendor Form",

@@ -1931,6 +1931,7 @@ class OpenST(models.Model):
 
     class Meta:
         db_table = 'OPEN_ST'
+        index_together = (('sku',))
 
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.warehouse_id))
@@ -1945,8 +1946,7 @@ class STPurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'ST_PURCHASE_ORDER'
-        index_together = ('open_st', 'po')
-
+        index_together = (('open_st',),('open_st', 'po'))
     def __unicode__(self):
         return str(self.po_id)
 

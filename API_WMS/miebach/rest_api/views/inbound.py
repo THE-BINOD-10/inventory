@@ -1158,7 +1158,7 @@ def generate_po_qty_dict(purchase_ord_qty, start_index, stop_index):
         return temp_dict
 
 def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num, order_term, start_index, stop_index):
-    company_name =user_company_name(request.user)
+    #company_name =user_company_name(request.user)
     all_prod_catgs = True
     sort_col = 'po__creation_date'
     if order_term == 'desc':
@@ -1190,13 +1190,13 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     # Stock Transfer Purchase Records
     stock_results_objs = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway',
                          'stock-transfer']).exclude(stocktransfer__st_type='MR').filter(st_search_query, po__open_po__isnull=True,open_st__sku__user__in=user, **search_params1)
-    st_result_order_ids = STPurchaseOrder.objects.filter(po__po_number__in=stock_results_objs.values_list('po__po_number', flat=True)).exclude(stocktransfer__st_type='MR').order_by(sort_col, '-po__order_id')
+    '''st_result_order_ids = STPurchaseOrder.objects.filter(po__po_number__in=stock_results_objs.values_list('po__po_number', flat=True)).exclude(stocktransfer__st_type='MR').order_by(sort_col, '-po__order_id')
     stock_trs_ord_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix', 'po__po_number').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
     stock_trs_recv_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix', 'po__po_number').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
     if stock_trs_ord_qty.exists():
         st_order_qtys_dict = generate_po_qty_dict(stock_trs_ord_qty, start_index, stop_index)
     if stock_trs_recv_qty.exists():
-        st_receive_qtys_dict = generate_po_qty_dict(stock_trs_recv_qty, start_index, stop_index)
+        st_receive_qtys_dict = generate_po_qty_dict(stock_trs_recv_qty, start_index, stop_index)'''
     st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')).values_list('po__id', flat=True)
     '''rw_results_objs = RWPurchase.objects.exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway',
                                                                              'stock-transfer']). \
@@ -1211,27 +1211,23 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     rw_order_ids_list = rw_results_objs.filter(
         purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
         values_list('purchase_order_id', flat=True)'''
-    # asn_pos = list(ASNMapping.objects.filter(status=0).values_list('purchase_order_id',flat=True))
-    tmp_sort_col = 'creation_date'
-    if order_term == 'desc':
-        tmp_sort_col = '-creation_date'
     results_objs = PurchaseOrder.objects.filter(**search_params). \
         filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway'])
-    po_result_order_ids = PurchaseOrder.objects.filter(po_number__in=results_objs.values_list('po_number', flat=True)).order_by(tmp_sort_col, '-order_id')
+    '''po_result_order_ids = PurchaseOrder.objects.filter(po_number__in=results_objs.values_list('po_number', flat=True)).order_by(tmp_sort_col, '-order_id')
     po_ord_qty = po_result_order_ids.values_list('order_id', 'prefix', 'po_number').distinct().annotate(total_order_qty=Sum('open_po__order_quantity'))
     po_recv_qty = po_result_order_ids.values_list('order_id', 'prefix', 'po_number').distinct().annotate(total_received_qty=Sum('received_quantity'))
     if po_ord_qty.exists():
         order_qtys_dict.update(generate_po_qty_dict(po_ord_qty, start_index, stop_index))
     if po_recv_qty.exists():
-        receive_qtys_dict.update(generate_po_qty_dict(po_recv_qty, start_index, stop_index))
+        receive_qtys_dict.update(generate_po_qty_dict(po_recv_qty, start_index, stop_index))'''
     po_order_ids_list = results_objs.exclude(status__in=['location-assigned', 'confirmed-putaway']). \
         filter(received_quantity__lt=F('open_po__order_quantity')).values_list('id',flat=True)
     results1 = list(set((chain(po_order_ids_list, st_order_ids_list))))
     results = PurchaseOrder.objects.filter(id__in=results1).exclude(status='deleted').\
                 annotate(po__creation_date=Cast('creation_date', DateField())).\
                 order_by(sort_col, '-order_id').\
-                values('open_po__sku__user', 'stpurchaseorder__open_st__sku__user', 'po_number').distinct()
-    return results, order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict
+                values('po_number').distinct()
+    return results
 
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1249,9 +1245,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         users = check_and_get_plants(request, users)
     parent_po_prefix = ''
     parent_user = get_admin(user)
-    parent_user_profile = UserProfile.objects.filter(user_id=parent_user.id)
+    '''parent_user_profile = UserProfile.objects.filter(user_id=parent_user.id)
     if parent_user_profile:
-        parent_po_prefix = parent_user_profile[0].prefix
+        parent_po_prefix = parent_user_profile[0].prefix'''
     # vendor Portal Its required
     '''supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
     if supplier_status:
@@ -1264,40 +1260,27 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     #     warehouses = get_sister_warehouse(user)
     #     wh_details = dict(warehouses.values_list('user_id','user__username'))
     #     users = wh_details.keys()
-    results, order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = get_filtered_purchase_order_ids(request, users, search_term, filters, col_num, order_term, start_index, stop_index)
+    results = get_filtered_purchase_order_ids(request, users, search_term, filters, col_num, order_term, start_index, stop_index)
+    # order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict
     temp_data['recordsTotal'] = len(results)
     temp_data['recordsFiltered'] = len(results)
     for result in results[start_index:stop_index]:
-        sr_number = ''
-        warehouse = ''
+        warehouse, store = '', ''
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
-        if result['open_po__sku__user']:
-            wh_user = result['open_po__sku__user']
-            supplier = PurchaseOrder.objects.filter(open_po__sku__user=result['open_po__sku__user'], po_number=result['po_number'])
-            if supplier.exists():
-                supplier = supplier[0]
-                # if supplier.open_po and supplier.open_po.order_type == 'VR':
-                #     order_type = 'Vendor Receipt'
-                # if supplier.open_po and supplier.open_po.order_type == 'SP':
-                #     order_type = 'Sample Order'
-                # if str(user.username) != str(parent_user.username) and str(parent_po_prefix) == str(supplier.prefix):
-                #     order_type = 'Central Order'
-        # elif result['rwpurchase__rwo__vendor__user']:
-        #     supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
-        #                                         rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'], prefix=result['prefix'])[0]
-        #     order_type = 'Returnable Work Order'
-        #     wh_user = result['rwpurchase__rwo__vendor__user']
+        supplier_objs = PurchaseOrder.objects.filter(po_number=result['po_number'])
+        supplier = supplier_objs[0]
+        if supplier.open_po:
+            wh_user = supplier.open_po.sku.user
         else:
-            supplier = PurchaseOrder.objects.filter(po_number=result['po_number'],stpurchaseorder__open_st__sku__user=result['stpurchaseorder__open_st__sku__user'])[0]
             order_type = 'Stock Transfer'
-            wh_user = result['stpurchaseorder__open_st__sku__user']
-        storeObj = User.objects.filter(id=wh_user)
-        if storeObj:
-            store = storeObj[0].first_name
-        else:
-            store = ''
-        order_data = get_purchase_order_data(supplier)
+            wh_user = supplier.stpurchaseorder_set.filter()[0].open_st.sku.user
+        storeObj = User.objects.get(id=wh_user)
+        store = storeObj.first_name
+        try:
+            order_data = get_purchase_order_data(supplier)
+        except:
+            continue
         po_reference = supplier.po_number
         _date = get_local_date(user, supplier.creation_date, True)
         _date = _date.strftime("%d %b, %Y")
@@ -1307,12 +1290,12 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                    'Expected Date', 'Remarks', 'Warehouse','Order Type', 'Receive Status']
         full_po_id = supplier.po_number
         if order_type == 'Stock Transfer':
-            total_order_qty = st_order_qtys_dict.get(full_po_id, 0)
-            total_received_qty = st_receive_qtys_dict.get(full_po_id, 0)
+            total_order_qty = supplier_objs.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+            total_received_qty = supplier_objs.aggregate(Sum('received_quantity'))['received_quantity__sum']
             total_receivable_qty = total_order_qty - total_received_qty
         else:
-            total_order_qty = order_qtys_dict.get(full_po_id, 0)
-            total_received_qty = receive_qtys_dict.get(full_po_id, 0)
+            total_order_qty = supplier_objs.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
+            total_received_qty = supplier_objs.aggregate(Sum('received_quantity'))['received_quantity__sum']
             total_receivable_qty = total_order_qty - total_received_qty
         if total_received_qty:
             receive_status = 'Partially Receive'
@@ -1373,7 +1356,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         # if gateIns.exists():
         #     gatein = gateIns[0]
         #     inv_number = gatein.invoice_number
-        
         # if inv_number:
         #     fm = FileLocationMapping.objects.filter(reference_key=gatein.id, reference_text='invoice_image')
         #     if fm.exists():

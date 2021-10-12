@@ -359,6 +359,7 @@ class PaymentTerms(models.Model):
 
     class Meta:
         db_table = 'PAYMENT_TERMS'
+        index_together = (('supplier',), ('supplier', 'payment_code'))
         unique_together = ('payment_code', 'payment_description', 'supplier')
 
 class NetTerms(models.Model):
@@ -616,6 +617,7 @@ class GenericEnquiryMails(models.Model):
 
     class Meta:
         db_table = "GENERIC_ENQUIRY_MAILS"
+        index_together = (('master_id', 'master_type'), ('master_id', ))
 
 
 @reversion.register()
@@ -734,7 +736,7 @@ class PendingPO(models.Model):
 
     class Meta:
         db_table = 'PENDING_PO'
-	index_together = (('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ),('open_po', ) )
+	index_together = (('id', 'requested_user'), ('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ),('open_po', ) )
 
 
 @reversion.register()
@@ -786,7 +788,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-        index_together = (('pending_pr','level'), ('pending_po','level'), ('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
+        index_together = (('status',), ('pending_pr','level'), ('pending_po','level'), ('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
 
 class TableLists(models.Model):
     name = models.CharField(max_length=64, default='', db_index=True)
@@ -1501,6 +1503,7 @@ class UserAddresses(models.Model):
 
     class Meta:
         db_table = 'USER_ADDRESSES'
+        index_together = (('user',),('user','address_type'),('user','address_type', 'address_name'))
 
 class UserAccessTokens(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1620,7 +1623,7 @@ class AdminGroups(models.Model):
 
     class Meta:
         db_table = 'ADMIN_GROUPS'
-
+        index_together = (('group',),('user','group'))
 
 class StockMismatch(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3561,7 +3564,7 @@ class MasterDocs(models.Model):
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = (('master_id', 'master_type', 'uploaded_file'), ('master_id', 'user', 'extra_flag', ),
+        index_together = (('master_id', 'master_type'), ('master_id', 'master_type', 'uploaded_file'), ('master_id', 'user', 'extra_flag', ),
                           ('user', 'master_id', 'master_type', 'extra_flag'))
 
 

@@ -1848,7 +1848,7 @@ def generated_pr_data(request, user=''):
     else:
         requestedUserId = User.objects.get(username=requested_user).id
         pr_user = get_warehouse_user_from_sub_user(requestedUserId)
-        record = PendingPO.objects.filter(requested_user__username=requested_user, id=pr_number)
+        record = PendingPO.objects.filter(id=pr_number, requested_user__username=requested_user)
     if not record[0].wh_user.userprofile.currency:
         return HttpResponse("Please Update currency for : " + str(record[0].wh_user.username) + " - or else contact to Admin !")
     else:
@@ -1881,23 +1881,20 @@ def generated_pr_data(request, user=''):
     validateFlag = 0
     uploaded_file_dict = {}
     if len(record) > 0:
-        if record[0].pending_prs.filter():
-            full_pr_number = get_pr_number_from_po(record[0])
-            req_pr_user = get_re_user_from_po(record[0])
+        if record[0].pending_prs.filter().exists():
+            penidng_prss = record[0].pending_prs.filter()
+            full_pr_number = ', '.join(list(penidng_prss.values_list('full_pr_number', flat=True)))
+            req_pr_user = ', '.join(list(penidng_prss.values_list('requested_user__username', flat=True)))
+            pr_remarks = penidng_prss[0].remarks
         if record[0].remarks:
             pr_remarks = record[0].remarks
-        elif record[0].pending_prs.filter():
-            pr_rec = record[0].pending_prs.filter()[0]
-            pr_remarks = pr_rec.remarks
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
     if master_docs.exists():
-        uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                              'file_url': '/' + master_docs[0].uploaded_file.name}
-
+        uploaded_file_dict = { 'file_name': 'Uploaded File', 'id': master_docs[0].id, 'file_url': '/' + master_docs[0].uploaded_file.name }
     pr_uploaded_file_dict = []
     pa_uploaded_file_dict = {}
     respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
@@ -1906,18 +1903,9 @@ def generated_pr_data(request, user=''):
         for master_doc in master_docs:
             pr_uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
                                   'file_url': '/' + master_doc.uploaded_file.name})
-
-        #if master_docs.exists():
-        #    pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-        #                          'file_url': '/' + master_docs[0].uploaded_file.name}
-
         pa_master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
         if pa_master_docs.exists():
-            pa_uploaded_file_dict = {'file_name': 'PA File', 'id': pa_master_docs[0].id,
-                                  'file_url': '/' + pa_master_docs[0].uploaded_file.name}
-
-
-
+            pa_uploaded_file_dict = {'file_name': 'PA File', 'id': pa_master_docs[0].id, 'file_url': '/' + pa_master_docs[0].uploaded_file.name}
     prApprQs = record[0].pending_poApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -1926,9 +1914,7 @@ def generated_pr_data(request, user=''):
             validateFlag = 1
     for eachRemark in allRemarks:
         level, validated_by, remarks, re_creation_date, re_updation_date = eachRemark
-	
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks, 'creation_date': re_creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': re_updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
-
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPO')
     if currentPOenquiries.exists():
         for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response', 'creation_date', "updation_date"):
@@ -1936,7 +1922,6 @@ def generated_pr_data(request, user=''):
             enquiryRemarks.append({"sender":sender, "receiver": receiver,
                         "enquiry": enquiry, "response": response , 'creation_date': creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date':updation_date.strftime("%d-%m-%Y, %H:%M:%S") if response else ""
                 })
-
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     validated_users.insert(0, record[0].requested_user.email)
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
@@ -1973,7 +1958,7 @@ def generated_pr_data(request, user=''):
                     temp_cess_tax = updatedJson['temp_cess_tax']
                 else:
                     temp_cess_tax = ''
-        search_params = {'sku__user': record[0].wh_user.id, 'sku__sku_code': sku_code}
+        search_params = { 'sku__user': record[0].wh_user.id, 'sku__sku_code': sku_code }
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
@@ -2015,7 +2000,7 @@ def generated_pr_data(request, user=''):
         supplier_phone_number = record[0].supplier.phone_number
         if supplier_email:
             po_all_mails.append(supplier_email)
-            secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=record[0].supplier.id, user_id=record[0].supplier.user, master_type='supplier').values_list(
+            secondary_supplier_email = list(MasterEmailMapping.objects.filter(user_id=record[0].supplier.user, master_id=record[0].supplier.id, master_type='supplier').values_list(
                                                                                     'email_id', flat=True).distinct())
             if len(secondary_supplier_email) > 0:
                 po_all_mails.extend(secondary_supplier_email)

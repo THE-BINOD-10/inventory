@@ -22,15 +22,15 @@
 <!--      </div>-->
 <!--      <div ng-include="'views/common/datatable.html'"></div>-->
 <!--    </div>-->
-    <tabset class="box-tab">
-      <tab heading="Receive Purchase Orders" ng-if="showCase.permissions.add_purchaseorder">
-        <div class="col-md-12 col-sm-12 col-xs-12" style="padding-bottom: 5px;">
+    <tabset class="box-tab" ng-init="ReceivePOCtrl = true; CreditNoteCtrl = false; ReceivePODOACtrl=false">
+      <tab heading="Receive Purchase Orders" ng-controller="ReceivePOCtrl as showCase" ng-if="showCase.permissions.add_purchaseorder" ng-click="ReceivePOCtrl = true; CreditNoteCtrl = false; ReceivePODOACtrl=false">
+        <div class="col-md-12 col-sm-12 col-xs-12" style="padding-bottom: 5px;" ng-if="ReceivePOCtrl">
           <div ng-include="'views/common/excel.html'"></div>
         </div>
         <div ng-include="'views/inbound/receive_po/receive_po_order.html'"></div>
       </tab>
-      <tab heading="Pending Invoice Mismatches" ng-controller="CreditNoteCtrl as showCase" ng-click="showCase.firstReload()" ng-if="showCase.permissions.receive_po_inv_value_qty_check&&showCase.permissions.change_pocreditnote">
-        <div class="panel">
+      <tab heading="Pending Invoice Mismatches" ng-controller="CreditNoteCtrl as showCase" ng-if="showCase.permissions.receive_po_inv_value_qty_check&&showCase.permissions.change_pocreditnote" ng-click="ReceivePOCtrl = false; CreditNoteCtrl = true; ReceivePODOACtrl=false">
+        <div class="panel" ng-if="CreditNoteCtrl">
           <div class="col-md-12 col-sm-12 col-xs-12" style="padding-bottom: 12px;">
             <div class="col-lg-2 col-md-2 col-xs-6 col-sm-6" align="center">
               <div ng-include="'views/common/excel.html'"></div>
@@ -48,8 +48,10 @@
       <!-- <tab heading="Receive Purchase Orders DOA" ng-controller="ReceivePODOACtrl as showCase">
           <div ng-include="'views/common/datatable.html'"  ></div>
       </tab> -->
-      <tab heading="Receive Purchase Orders DOA" ng-if="showCase.permissions.change_mastersdoa" ng-controller="ReceivePODOACtrl as showCase" >
+      <tab heading="Receive Purchase Orders DOA" ng-if="showCase.permissions.change_mastersdoa" ng-controller="ReceivePODOACtrl as showCase" ng-click="ReceivePOCtrl = false; CreditNoteCtrl = false; ReceivePODOACtrl=true">
+        <div class="panel" ng-if="ReceivePODOACtrl">
           <div ng-include="'views/common/datatable.html'"></div>
+        </div>
       </tab>
     </tabset>
   </div>

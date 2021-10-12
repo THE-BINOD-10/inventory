@@ -11302,7 +11302,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
             extra_data = 'ASPL'
         email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('number',''),
                                                                  extra_data,user.username,data_dict_po.get('supplier_name',''))
-
+    elif report_type == 'Purchase Order':
+        email_subject = '%s %s(%s)-%s-%s' % (company_name, report_type, f_name, data_dict_po['supplier_name'], user.first_name)
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')

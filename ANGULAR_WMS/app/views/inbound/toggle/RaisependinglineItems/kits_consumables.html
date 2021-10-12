@@ -19,6 +19,7 @@
           <!-- <th>Brand</th> -->
           <th ng-show="showCase.current_raise_pr">Suggested Quantity</th>
           <th class="w10_">Quantity*</th>
+          <th>No.Of Base Units</th>
           <!-- <th>UOM</th> -->
           <th>Unit Rate({{showCase.model_data.warehouse_currency}})</th>
           <th>Dis %</th>
@@ -27,7 +28,6 @@
           <th ng-if="showCase.model_data.tax_display">Tax %</th>
           <th ng-if="showCase.model_data.tax_display">Cess Tax %</th>
           <th>Total({{showCase.model_data.warehouse_currency}})</th>
-          <th ng-hide="true">No.Of Base Units</th>
           <th ng-hide="true">Base UOM</th>
           <!-- <th>OpenPR Qty</th>
           <th>Last 3M Avg Consumption</th>
@@ -85,14 +85,9 @@
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields);showCase.getTotals(product);showCase.get_info_delta_value(product.fields);"
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
+          <td class="text-center"><span class="text_element">{{ product.fields.conversion | number:0}}</span></td>
           <td class="text-center" ng-hide="true">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly>
-          </td>
-          <td ng-hide="true">
-            <input ng-model="product.fields.conversion" type="text" name="no_of_tests" 
-                   class="form-control detectTab"
-                   ng-class="service.get_decimal_perm()" ng-readonly="true"
-                   size="12">
           </td>
           <td ng-hide="true">
             <input name="base_uom" ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">

@@ -2356,6 +2356,8 @@ def generated_actual_pr_data(request, user=''):
                                 price = skuTaxVal.get('sku_supplier_price', '')
                             else:
                                 price = skuTaxVal['mrp']
+                        if supplierMapping.price > 0:
+                            price = supplierMapping.price
                         if skuTaxVal.get('sku_supplier_moq', ''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:
@@ -3613,11 +3615,20 @@ def get_raisepo_group_data(user, myDict):
         if 'temp_cess_tax' in myDict.keys():
             temp_cess_tax = myDict['temp_cess_tax'][i]
         if 'supplier_id' in myDict.keys():
-            sku_supplier = myDict['supplier_id'][i]
+            try:
+                sku_supplier = myDict['supplier_id'][i]
+            except:
+                sku_supplier = ''
         if 'mrp_id' in myDict.keys():
-            mrp_id = myDict['mrp_id'][i]
+            try:
+                mrp_id = myDict['mrp_id'][i]
+            except:
+                mrp_id = ''
         if 'suggested_qty' in myDict.keys():
-            suggested_qty = myDict['suggested_qty'][i]
+            try:
+                suggested_qty = myDict['suggested_qty'][i]
+            except:
+                suggested_qty = 0
         pr_extra_data = ''
         if 'pr_extra_data' in myDict.keys():
             pr_extra_data = myDict['pr_extra_data'][i]
@@ -4179,7 +4190,7 @@ def approve_pr(request, user=''):
                 for second_supp in suplier_secondary_mails.split(','):
                     if second_supp.find('metropolis') != -1:
                         continue
-                    filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': suplier_secondary_mails}
+                    filter_dict = {'user_id': pendingPRObj.supplier.user, 'master_type':'supplier', 'master_id': pendingPRObj.supplier.id, 'email_id': second_supp}
                     master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
                     if not master_email_map.exists():
                         master_email_map = MasterEmailMapping.objects.create(**filter_dict)
@@ -4571,7 +4582,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                         filter_dict['user_id'] = pendingPurchaseObj.supplier.user
                         filter_dict['master_type'] = 'supplier'
                         filter_dict['master_id'] = pendingPurchaseObj.supplier.id
-                        filter_dict['email_id'] = suplier_secondary_mails
+                        filter_dict['email_id'] = second_supp
                         master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
                         if not master_email_map.exists():
                             master_email_map = MasterEmailMapping.objects.create(**filter_dict)
@@ -4675,7 +4686,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                         store_user = pr_user
                     supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=value['sku_supplier'])
                     if supplyQs.exists():
-                        pendingLineItems['supplier'] = supplyQs[0]
+                        record.supplier = supplyQs[0]
                         tax_type = supplyQs[0].tax_type
                         if tax_type == 'inter_state':
                             record.igst_tax = value['tax']
@@ -11296,6 +11307,15 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_subject = 'Purchase Order %s  from ASPL %s to %s dated %s' % (f_name, user.username, data_dict_po['supplier_name'], full_order_date)
         send_mail_attachment(receivers, email_subject, email_body, files=attachments, milkbasket_mail_credentials=milkbasket_mail_credentials)
     elif supplier_email or internal or internal_mail:
+        final = []
+        if len(receivers) > 0:
+            for rec in receivers:
+                if rec.lower() not in final:
+                    if '@' in rec:
+                        final.append(rec.lower())
+        if len(final) > 0:
+            final.append('mhl_doa@stockone.in')
+            receivers = final
         send_sendgrid_mail(f_name, user, 'mhl_mail@stockone.in', receivers, email_subject, email_body, files=attachments)
         #send_mail_attachment(receivers, email_subject, email_body, files=attachments)
     table_headers = data_dict_po.get('table_headers', None)
@@ -18153,4 +18173,194 @@ def get_material_planning_summary_data(start_index, stop_index, temp_data, searc
                                   ('DT_RowAttr', {'data-id': data['user']}),
                                 ))
         temp_data['aaData'].append(data_dict)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def finalize_pr(request, user=''):
+    reversion.set_user(request.user)
+    urlPath = request.META.get('HTTP_ORIGIN')
+    myDict = dict(request.POST.iterlists())
+    approve_pr_data.info("Finalize pr PR data for request user %s and user %s request params are %s click Time %s" % (request.user.username, user.username, str(myDict), datetime.datetime.now()))
+    status = 'Approved Failed'
+    full_pr_number = request.POST.get('pr_number', '')
+    purchase_id = request.POST.get('purchase_id', '')
+    validation_type = request.POST.get('validation_type', '')
+    validated_by = request.POST.get('validated_by', '')
+    levelToBeValidatedFor = request.POST.get('pending_level', '')
+    remarks = request.POST.get('approval_remarks', '')
+    is_actual_pr = request.POST.get('is_actual_pr', '')
+    is_auto_pr = request.POST.get('is_auto_pr', '')
+    is_auto_pr = 1 if is_auto_pr=="1" else 0
+    requested_userName = request.POST.get('requested_user', '')
+    central_data_id = request.POST.get('data_id', '')
+    requestedUserId = User.objects.get(username=requested_userName).id
+    input_product_category = myDict.get('product_category', '')
+    if input_product_category:
+        input_product_category = input_product_category[0]
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    company_id = get_company_id(user)
+    filtersMap = {}
+    is_purchase_approver = find_purchase_approver_permission(request.user)
+    try:
+        master_type = 'actual_pr_approvals_conf_data'
+        model_name = PendingPR
+        filtersMap['id'] = purchase_id
+        mailSubTypePrefix = 'pr'
+        poFor = False
+        purchase_type = 'PR'
+        reversion.set_comment("ValidatePendingPR: %s" % str(get_user_ip(request)))
+        purchase_number = 'pr_number'
+        currentUserEmailId = request.user.email
+        PRQs = model_name.objects.filter(**filtersMap)
+        if not PRQs:
+            status = 'NO Purchase Request Object found'
+            return HttpResponse(status)
+        pendingPRObj = PRQs[0]
+        if pendingPRObj.final_status in ['cancelled', 'rejected']:
+            status = "This PO has been already %s. Further action cannot be made."%(pendingPRObj.final_status)
+            return HttpResponse(status)
+        pr_number = getattr(pendingPRObj, purchase_number)
+        if is_purchase_approver and validation_type != 'rejected' and is_actual_pr:
+            if pendingPRObj.wh_user.userprofile.warehouse_type == 'DEPT':
+                supplier_check_user = get_admin(pendingPRObj.wh_user)
+            else:
+                supplier_check_user = pendingPRObj.wh_user
+            if 'supplier_id' not in myDict.keys():
+                return HttpResponse("Failed ! Supplier Inputs are Missing, Please Refresh the page and try again ! ")
+            if 'price' not in myDict.keys():
+                return HttpResponse("Failed ! Price Inputs are Missing, Please Refresh the page and try again ! ")
+            if 'wms_code' in myDict.keys():
+                for i in range(0, len(myDict['wms_code'])):
+                    if myDict['order_quantity'][i] != '' and float(myDict['order_quantity'][i]) != 0:
+                        if not float(myDict['price'][i]) > 0:
+                            if input_product_category == 'Kits&Consumables':
+                                prices_list = list(SKUSupplier.objects.filter(sku__sku_code=myDict['wms_code'][i], sku__user=supplier_check_user.id).values_list('price', flat=True))
+                                if len(prices_list) > 0:
+                                    if float(myDict['price'][i]) not in prices_list:
+                                        return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
+                            else:
+                                return HttpResponse("Failed ! Price Should Not Be 0 For %s" % myDict['wms_code'][i])
+        product_category = pendingPRObj.product_category
+        sku_category = pendingPRObj.sku_category
+        if sku_category.lower() == 'all':
+            sku_category = ''
+        approval_type, prev_approval_type = '', ''
+        pr_user = pendingPRObj.wh_user
+        if 'total' in myDict.keys():
+            totalAmt = 0
+            for i in range(0, len(myDict['wms_code'])):
+                try:
+                    totalAmt += float(myDict['total'][i])
+                except:
+                    pass
+                if is_purchase_approver and validation_type != 'rejected':
+                    supplier_id = myDict['supplier_id'][i]
+                    if pr_user.userprofile.warehouse_type == 'DEPT':
+                        store_user = get_admin(pr_user)
+                    else:
+                        store_user = pr_user
+                    if supplier_id:
+                        if ':' in supplier_id:
+                            supplier_id = supplier_id.split(':')[0]
+                            myDict['supplier_id'][i] = supplier_id
+                        supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
+                        if not supp_obj.exists():
+                            return HttpResponse("Invalid Supplier found %s" % supplier_id)
+        if is_purchase_approver:
+            lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
+            lineItems = pendingPRObj.pending_prlineItems
+            for i in range(0, len(myDict['wms_code'])):
+                if myDict.has_key('discount_percentage'):
+                    discount_percentage = float(myDict['discount_percentage'][i])
+                    lineItems.filter(sku__sku_code=myDict['wms_code'][i]).update(discount_percent=discount_percentage)
+                eachSku = myDict['wms_code'][i]
+                try:
+                    amount = float(myDict['amount'][i])
+                except:
+                    amount = 0
+                if myDict['tax'][i]:
+                    tax = float(myDict['tax'][i])
+                else:
+                    tax = 0
+                try:
+                    cess_tax = float(myDict['cess_tax'][i])
+                except:
+                    cess_tax = 0
+                try:
+                    quantity = float(myDict['order_quantity'][i])
+                except:
+                    quantity = ''
+                try:
+                    total = float(myDict['total'][i])
+                except:
+                    total = 0
+                unit_price = myDict['price'][i]
+                try:
+                    unit_price = float(unit_price)
+                except:
+                    unit_price = 0
+                if myDict.has_key('moq'):
+                    moq = myDict['moq'][i]
+                else:
+                    moq = 0
+                supplier_id = myDict['supplier_id'][i]
+                if not supplier_id and validation_type == 'approved' and quantity:
+                    return HttpResponse("Provide Supplier Details")
+                pr_approver_data = {
+                    'supplier_id': supplier_id,
+                    'tax': tax,
+                    'cess_tax': cess_tax,
+                    'amount': round(amount, 3),
+                    'price': unit_price,
+                    'moq': moq,
+                    'total': round(total, 3)
+                }
+                pr_user = pendingPRObj.wh_user
+                if pr_user.userprofile.warehouse_type == 'DEPT':
+                    store_user = get_admin(pr_user)
+                else:
+                    store_user = pr_user
+                supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=supplier_id)
+                if supplyQs.exists():
+                    tax_type = supplyQs[0].tax_type
+                    if tax_type == 'inter_state':
+                            igst_tax = tax
+                            cgst_tax = 0
+                            sgst_tax = 0
+                    else:
+                        igst_tax = 0
+                        cgst_tax = tax/2
+                        sgst_tax = tax/2
+                else:
+                    cgst_tax, sgst_tax, igst_tax = [0]*3
+
+                lineItemQs = lineItems.filter(sku__sku_code=eachSku)
+                if lineItemQs.exists():
+                    lineItemObj = lineItemQs[0]
+                    lineItemObj.price = unit_price
+                    lineItemObj.cgst_tax = cgst_tax
+                    lineItemObj.sgst_tax = sgst_tax
+                    lineItemObj.igst_tax = igst_tax
+                    lineItemObj.cess_tax = cess_tax
+                    if quantity != '':
+                        lineItemObj.quantity = quantity
+                    lineItemObj.save()
+                if lineItemQs.exists():
+                    lineItemObj = lineItemQs[0]
+                    temp_data = TempJson.objects.filter(model_id = lineItemObj.id, model_name='PENDING_PR_PURCHASE_APPROVER')
+                    if temp_data.exists():
+                        TempJson.objects.filter(model_id = lineItemObj.id, model_name='PENDING_PR_PURCHASE_APPROVER').delete()
+                        TempJson.objects.create(model_id=lineItemQs[0].id,model_name='PENDING_PR_PURCHASE_APPROVER',model_json=pr_approver_data)
+                    else:
+                        TempJson.objects.create(model_id=lineItemQs[0].id,model_name='PENDING_PR_PURCHASE_APPROVER',model_json=pr_approver_data)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Finalize PR Failed for" + str(e))
+        return HttpResponse('Finalize PR Failed! please Try Again')
+    status = 'Approved Successfully'
+    return HttpResponse(status)
 

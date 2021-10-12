@@ -27,6 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.quantity_editable = false;
     vm.current_pr_app_data = {};
     vm.current_pr_app_data_flag = true;
+    vm.pending_tab_footer = true;
 //    if(vm.permissions.change_pendinglineitems) {
 //      vm.quantity_editable = true;
 //    }
@@ -167,7 +168,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if (data.message && typeof(data.data) == 'object') {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
-          var empty_data = { //"supplier_id":vm.supplier_id,
+          var empty_data = {
                   "po_name": "",
                   "ship_to": data.data.ship_to,
                   "terms_condition": data.data.terms_condition,
@@ -187,7 +188,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
-                  // "supplier_name": data.data.supplier_name,
                   "is_purchase_approver": data.data.is_purchase_approver,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -256,7 +256,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               });
 
               angular.forEach(vm.model_data.data, function(data){
-
                 data.fields.dedicated_seller = vm.dedicated_seller;
               })
 
@@ -1445,7 +1444,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
       vm.getTotals(vm.model_data, true);
     }
-
     vm.check_price_comparision = function(data) {
       var check_array = []
       var min_unit_price_comparision = 0
@@ -1593,6 +1591,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
+
+  vm.excel = function(data) {
+    vm.headers = ['Supplier', 'WMS Code', 'SKU Desc - HSN code', 'Qty', 'Unit rate', 'Dis', 'Final Unit Price', 'Amount', 'Tax %', 'Cess Tax %', 'Total', 'Last Supplier-Price', 'Least Supplier-Price', 'Least Supplier-Price(Pan India)', 'Reason', 'Delta With Tax', 'Suggested PR qty']
+    var data = []
+    data.push(vm.headers);
+    for(var i=0; i<vm.model_data.data.length; i++)  {
+      let temp_data = [vm.model_data.data[i].fields.supplier_id_name, vm.model_data.data[i].fields.sku.wms_code, vm.model_data.data[i].fields.description + ' -' + vm.model_data.data[i].fields.hsn_code, vm.model_data.data[i].fields.order_quantity,
+            vm.model_data.data[i].fields.price, vm.model_data.data[i].fields.discount, vm.model_data.data[i].fields.final_price, vm.model_data.data[i].fields.amount, vm.model_data.data[i].fields.tax,
+            vm.model_data.data[i].fields.cess_tax, vm.model_data.data[i].fields.total, vm.model_data.data[i].fields.pr_extra_data.last_supplier + ' -' + vm.model_data.data[i].fields.pr_extra_data.last_supplier_price, 
+            vm.model_data.data[i].fields.pr_extra_data.least_supplier + ' -' + vm.model_data.data[i].fields.pr_extra_data.least_supplier_price, vm.model_data.data[i].fields.pr_extra_data.least_supplier_pi + ' -' + vm.model_data.data[i].fields.pr_extra_data.least_supplier_price_pi, 
+            vm.model_data.data[i].fields.sku_comment, vm.model_data.data[i].fields.delta, vm.model_data.data[i].fields.sku.suggested_pr_qty]
+      data.push(temp_data);
+  }
+      let file_name = 'Approved_Pr_' +  vm.model_data.pr_number
+    vm.service.export_to_excel(data, file_name);
+  }
 
   vm.checkSupplierExist = function (sup_id) {
     $http.get(Session.url + 'search_supplier?', {

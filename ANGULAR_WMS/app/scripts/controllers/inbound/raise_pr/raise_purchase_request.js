@@ -1147,6 +1147,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               product.fields.temp_tax = product.fields.tax
               product.fields.cess_tax = taxes[0].cess_tax;
               product.fields.temp_cess_tax = product.fields.cess_tax;
+              vm.getTotals(product);
             }
           }
         });

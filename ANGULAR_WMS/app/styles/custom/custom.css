@@ -749,7 +749,7 @@ select.error {
   width: 170px;
 }
 .sidebar-panel > nav .open > ul.sub-menu {
-  max-height: 1700px;
+  max-height: 2500px !important;
 }
 .reports .dataTables_filter {
   display: none;
@@ -1626,4 +1626,7 @@ pre {
 .item_styles{
   border: none !important;
   box-shadow: 0px 0px 3px #a09595 !important;
+}
+.sidebar-panel nav ul.nav:first-child{
+	margin-bottom: 80px;
 }

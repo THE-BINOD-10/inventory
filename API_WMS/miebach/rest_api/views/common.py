@@ -12626,6 +12626,20 @@ def get_sku_mrp(request ,user =''):
     return HttpResponse(json.dumps({'mrp':mrp}))
 
 
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_extra_row_data(request ,user =''):
+    sku_code = request.POST.get('wms_code','')
+    store_id = request.POST.get('store_id','')
+    temp_store = User.objects.filter(id = store_id)[0]
+    consumption_dict = get_average_consumption_qty(temp_store, sku_code)
+    search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
+    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,\
+            search_params, includeStoreStock=False)
+    return HttpResponse(json.dumps({'openpr_qty': openpr_qty if openpr_qty else 0, 'capacity': st_avail_qty + avail_qty, 'intransit_quantity': intransitQty, 'consumption_dict': consumption_dict}))
+
 def get_firebase_order_data(order_id):
     from firebase import firebase
     firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)

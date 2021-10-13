@@ -1,3 +1,4 @@
+from miebach.settings.base import reports_database
 import  datetime
 import time
 from functools import wraps
@@ -4046,7 +4047,7 @@ def get_sku_filter_data(search_params, user, sub_user):
         manufacturer, searchable, bundle = '', '', ''
         if data.zone:
             zone = data.zone.zone
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data.id, attribute_name__in=attributes_list)
 
         if attributes_obj.exists():
             for attribute in attributes_obj:
@@ -4083,7 +4084,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
     #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ["stockone_reference", "stockone_reference","stockone_reference", "stockone_reference", "module_type", "action_type", "creation_date",  "status", "integration_error"]
     unsorted_dict = {}
     model_name = IntegrationMaster
@@ -4131,7 +4132,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
     if 'supplier' in search_params and ':' in search_params['supplier']:
         # search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
         #     search_params['supplier'].split(':')[0]
-        grn_results= SellerPOSummary.objects.filter(purchase_order__open_po__supplier__supplier_id__iexact=search_params['supplier'].split(':')[0]).values("purchase_order__po_number", "grn_number").distinct()
+        grn_results= SellerPOSummary.objects.using(reports_database).filter(purchase_order__open_po__supplier__supplier_id__iexact=search_params['supplier'].split(':')[0]).values("purchase_order__po_number", "grn_number").distinct()
         for e_row in grn_results:
             po_grn_numbers_list.append(e_row["purchase_order__po_number"])
             po_grn_numbers_list.append(e_row["grn_number"])
@@ -4142,7 +4143,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -4150,7 +4151,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     # if 'sister_warehouse' in search_params:
     #     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     #     dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -4168,7 +4169,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user_ids
     if po_grn_numbers_list:
         search_parameters['stockone_reference__in']= po_grn_numbers_list
-    model_data = model_name.objects.filter(**search_parameters).exclude(**excl_status)
+    model_data = model_name.objects.using(reports_database).filter(**search_parameters).exclude(**excl_status)
     # model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
     #                                                                    total_received=Sum(rec_quan))
     # grn_rec=Sum(rec_quan1))
@@ -4286,7 +4287,7 @@ def get_location_stock_data(search_params, user, sub_user):
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_parameters:
-        stock_detail = StockDetail.objects.exclude(receipt_number=0).filter(**search_parameters)
+        stock_detail = StockDetail.objects.using(reports_database).exclude(receipt_number=0).filter(**search_parameters)
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if order_term:
         stock_detail = stock_detail.order_by(order_data)
@@ -4308,12 +4309,12 @@ def get_location_stock_data(search_params, user, sub_user):
     if stop_index:
         stock_detail_keys = stock_detail_keys[start_index:stop_index]
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        picklist_reserved = dict(PicklistLocation.objects.using(reports_database).filter(status=1, stock__sku__user=user.id). \
                                  annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
                                                              'stock__location__location', Value('<<>>'),
                                                              'stock__batch_detail__mrp', output_field=CharField())). \
                                  values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
-        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        raw_reserved = dict(RMLocation.objects.using(reports_database).filter(status=1, stock__sku__user=user.id). \
                             annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
                                                         Value('<<>>'), 'stock__location__location', Value('<<>>'),
                                                         'stock__batch_detail__mrp',
@@ -4321,11 +4322,11 @@ def get_location_stock_data(search_params, user, sub_user):
             'grouped_val').distinct(). \
                             annotate(rm_reserved=Sum('reserved')))
     else:
-        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        picklist_reserved = dict(PicklistLocation.objects.using(reports_database).filter(status=1, stock__sku__user=user.id). \
                                  annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
                                                              'stock__location__location', output_field=CharField())). \
                                  values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
-        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        raw_reserved = dict(RMLocation.objects.using(reports_database).filter(status=1, stock__sku__user=user.id). \
                             annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
                                                         Value('<<>>'), 'stock__location__location',
                                                         output_field=CharField())).values_list(
@@ -4341,8 +4342,8 @@ def get_location_stock_data(search_params, user, sub_user):
             sku_code, location, mrp, weight = stock_detail_key.split('<<>>')
         else:
             sku_code, location = stock_detail_key.split('<<>>')
-        sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
-        location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
+        sku_master = SKUMaster.objects.using(reports_database).get(sku_code=sku_code, user=user.id)
+        location_master = LocationMaster.objects.using(reports_database).get(location=location, zone__user=user.id)
         if stock_detail_key in picklist_reserved.keys():
             reserved += float(picklist_reserved[stock_detail_key])
         if stock_detail_key in raw_reserved.keys():
@@ -4356,7 +4357,7 @@ def get_location_stock_data(search_params, user, sub_user):
             ean_num = ''
         attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_master.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -4459,7 +4460,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
     search_parameters[query_prefix + 'status__in'] = ['grn-generated', 'location-assigned', 'confirmed-putaway']
     search_parameters[query_prefix + 'open_po__sku_id__in'] = sku_master_ids
 
-    purchase_order = model_obj.objects.filter(**search_parameters)
+    purchase_order = model_obj.objects.using(reports_database).filter(**search_parameters)
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -4489,7 +4490,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.open_po.sku.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data.open_po.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -4608,14 +4609,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
             warehouse_users[user.id] = user.username
-        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        # sku_master = SKUMaster.objects.using(reports_database).filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
         search_parameters['order__user__in'] = warehouse_users.keys()
 
@@ -4629,7 +4630,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         else:
             search_parameters['order_id__in'] = []
         if serial_view:
-            order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1,
+            order_ids = OrderIMEIMapping.objects.using(reports_database).filter(order__user=user.id, status=1,
                                                         order_reference=search_params['order_id']). \
                 values_list('order_id', flat=True)
             search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
@@ -4637,7 +4638,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = model_obj.objects.filter(**search_parameters)
+    model_data = model_obj.objects.using(reports_database).filter(**search_parameters)
     if customer_view:
         model_data = model_data.values(*lis).distinct() \
             .annotate(qty=Sum('order__original_quantity'), tot_count=Count('order__original_quantity')) \
@@ -4662,7 +4663,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             if data['order__sku__wms_code']:
                 sku_code_attr = data['order__sku__wms_code']
             if sku_code_attr:
-                attributes_obj = SKUAttributes.objects.filter(sku__sku_code=sku_code_attr,
+                attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku__sku_code=sku_code_attr,
                                                               attribute_name__in=attributes_list)
                 if attributes_obj.exists():
                     for attribute in attributes_obj:
@@ -4695,7 +4696,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             if data.order.sku.sku_code:
                 sku_code_attr = data.order.sku.sku_code
             if sku_code_attr:
-                attributes_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=sku_code_attr,
+                attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku__user=user.id, sku__sku_code=sku_code_attr,
                                                               attribute_name__in=attributes_list)
                 if attributes_obj.exists():
                     for attribute in attributes_obj:
@@ -4741,7 +4742,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         wms_code_mrp = data.order.sku.mrp
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
-                        child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code=data.sku_code).values('mrp')[0][
+                        child_sku_mrp = SKUMaster.objects.using(reports_database).filter(user=user.id, sku_code=data.sku_code).values('mrp')[0][
                             'mrp']
                     ord_dict = OrderedDict((('Order ID', order_id), ('SKU Code', data.order.sku.sku_code),
                                             ('SKU MRP', wms_code_mrp), ('Child SKU', child_sku_code),
@@ -4783,12 +4784,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                 child_sku_weight = data.stock.batch_detail.weight
                             child_sku_code = data.stock.sku.sku_code
                             child_sku_mrp = \
-                            SKUMaster.objects.filter(user=user.id, sku_code=data.stock.sku.sku_code).values('mrp')[0][
+                            SKUMaster.objects.using(reports_database).filter(user=user.id, sku_code=data.stock.sku.sku_code).values('mrp')[0][
                                 'mrp']
                         else:
                             child_sku_code = data.order.sku.sku_code
                             child_sku_mrp = \
-                            SKUMaster.objects.filter(user=user.id, sku_code=data.order.sku.sku_code).values('mrp')[0][
+                            SKUMaster.objects.using(reports_database).filter(user=user.id, sku_code=data.order.sku.sku_code).values('mrp')[0][
                                 'mrp']
                     cost_price = 0
                     if data.stock and data.stock.batch_detail:
@@ -4881,7 +4882,7 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
         else:
             search_parameters['order_id__in'] = []
 
-        order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1,
+        order_ids = OrderIMEIMapping.objects.using(reports_database).filter(order__user=user.id, status=1,
                                                     order_reference=search_params['order_id']). \
             values_list('order_id', flat=True)
         search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
@@ -4889,7 +4890,7 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     attributes_list = ['ForCarvariant', 'InventoryType']
-    model_data = model_obj.objects.filter(**search_parameters)
+    model_data = model_obj.objects.using(reports_database).filter(**search_parameters)
 
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -4909,7 +4910,7 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
         order_date = data.order.creation_date
         if not order_id:
             order_id = str(data.order.order_code) + str(data.order.order_id)
-        customer_data = CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id)
+        customer_data = CustomerMaster.objects.using(reports_database).filter(user=user.id, customer_id=data.order.customer_id)
         chassis_number = ''
         make, model = '', ''
         issued_from, issued_to = '', ''
@@ -4918,13 +4919,13 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
         if customer_data:
             chassis_number = customer_data[0].chassis_number
             attr_data = dict(
-                MasterAttributes.objects.filter(attribute_id=customer_data[0].id, attribute_model='customer',
+                MasterAttributes.objects.using(reports_database).filter(attribute_id=customer_data[0].id, attribute_model='customer',
                                                 attribute_name__in=['make', 'model']).values_list(
                     'attribute_name', 'attribute_value'))
             make = attr_data.get('Make')
             model = attr_data.get('Model')
             make_model = str(make) + '-' + str(model)
-            sku_attr_data = SKUAttributes.objects.filter(sku__sku_code=data.order.sku.sku_code,
+            sku_attr_data = SKUAttributes.objects.using(reports_database).filter(sku__sku_code=data.order.sku.sku_code,
                                                          attribute_name__in=attributes_list)
             if sku_attr_data.exists():
                 for attribute in sku_attr_data:
@@ -4986,7 +4987,7 @@ def get_deallocation_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     attributes_list = ['ForCarvariant', 'InventoryType']
-    model_data = model_obj.objects.filter(**search_parameters)
+    model_data = model_obj.objects.using(reports_database).filter(**search_parameters)
 
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -5006,7 +5007,7 @@ def get_deallocation_report_data(search_params, user, sub_user):
         order_date = data.creation_date
         if not order_id:
             order_id = str(data.order.order_code) + str(data.order.order_id)
-        customer_data = CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id)
+        customer_data = CustomerMaster.objects.using(reports_database).filter(user=user.id, customer_id=data.order.customer_id)
         chassis_number = ''
         make, model = '', ''
         issued_from, issued_to = '', ''
@@ -5015,13 +5016,13 @@ def get_deallocation_report_data(search_params, user, sub_user):
         if customer_data:
             chassis_number = customer_data[0].chassis_number
             attr_data = dict(
-                MasterAttributes.objects.filter(attribute_id=customer_data[0].id, attribute_model='customer',
+                MasterAttributes.objects.using(reports_database).filter(attribute_id=customer_data[0].id, attribute_model='customer',
                                                 attribute_name__in=['make', 'model']).values_list(
                     'attribute_name', 'attribute_value'))
             make = attr_data.get('Make')
             model = attr_data.get('Model')
             make_model = str(make) + '-' + str(model)
-            sku_attr_data = SKUAttributes.objects.filter(sku__sku_code=data.order.sku.sku_code,
+            sku_attr_data = SKUAttributes.objects.using(reports_database).filter(sku__sku_code=data.order.sku.sku_code,
                                                          attribute_name__in=attributes_list)
             if sku_attr_data.exists():
                 for attribute in sku_attr_data:
@@ -5029,7 +5030,7 @@ def get_deallocation_report_data(search_params, user, sub_user):
                         carvariant = attribute.attribute_value
                     if attribute.attribute_name == 'InventoryType':
                         inventory_type = attribute.attribute_value
-            location_data = ReturnsLocation.objects.filter(returns__return_id=return_id)
+            location_data = ReturnsLocation.objects.using(reports_database).filter(returns__return_id=return_id)
             if location_data:
                 des_loc = str(location_data[0].location)
             order_date = get_local_date(user, order_date)
@@ -5063,7 +5064,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         fmcg_marketplace = True
     search_parameters = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['po_date', 'order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name',
            'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
            'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
@@ -5103,10 +5104,10 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['open_po__sku__user'] = user.id
     search_parameters['open_po__sku_id__in'] = sku_master_ids
-    purchase_orders = PurchaseOrder.objects.filter(**search_parameters)
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(**search_parameters)
     temp_data['recordsTotal'] = purchase_orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    quality_checks = QualityCheck.objects.filter(po_location__location__zone__user=user.id,
+    quality_checks = QualityCheck.objects.using(reports_database).filter(po_location__location__zone__user=user.id,
                                                  purchase_order_id__in=purchase_orders.values_list('id', flat=True)). \
         values('purchase_order_id').distinct().annotate(total_rejected=Sum('rejected_quantity'))
     qc_po_ids = map(lambda d: d['purchase_order_id'], quality_checks)
@@ -5146,7 +5147,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             status = 'Closed PO'
         order_data = get_purchase_order_data(data)
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=order_data['sku'].id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=order_data['sku'].id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -5224,7 +5225,7 @@ def get_pending_po_grn_dict(user, po_numbers):
     from rest_api.views.common import get_local_date, get_warehouse_user_from_sub_user, get_admin, get_user_time_zone,\
                                         get_local_date_with_time_zone
     user_time_zone = get_user_time_zone(user)
-    po_datas =  PendingPO.objects.prefetch_related('pending_prs', 'pending_prs__pending_prlineItems',
+    po_datas =  PendingPO.objects.using(reports_database).prefetch_related('pending_prs', 'pending_prs__pending_prlineItems',
                                                 'pending_prs__pending_prApprovals').filter(full_po_number__in=po_numbers)
     pending_po_dict = {}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
@@ -5242,7 +5243,7 @@ def get_pending_po_grn_dict(user, po_numbers):
             pending_po_dict[grp_key]['pr_date'] = ' '.join(pr_date[0:3])
             pending_po_dict[grp_key]['pr_raised_user'] = pending_pr.requested_user.username
             pr_dept = pending_pr.wh_user#get_warehouse_user_from_sub_user(pending_pr.requested_user_id)
-            user_profile= UserProfile.objects.get(user_id=pr_dept.id)
+            user_profile= UserProfile.objects.using(reports_database).get(user_id=pr_dept.id)
             if(user_profile.warehouse_type=="DEPT"):
                 if(user_profile.stockone_code):
                     pending_po_dict[grp_key]['pr_department'] = dept_mapping.get(user_profile.stockone_code, user_profile.stockone_code)
@@ -5373,7 +5374,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
            'purchase_order__open_po__po_name',
            'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
@@ -5472,7 +5473,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -5480,7 +5481,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -5498,7 +5499,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     '''if search_params.get('excel_name'):
         temp_data = grn_download(user_ids, search_params, user)
         return temp_data'''
-    query_data = model_name.objects.select_related(
+    query_data = model_name.objects.using(reports_database).select_related(
         'purchase_order__open_po',
         'purchase_order__open_po__sku',
         'purchase_order__open_po__supplier').exclude(
@@ -5532,12 +5533,12 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         po_numbers.append(model_dat['purchase_order__po_number'])
         grn_numbers.append(model_dat['grn_number'])
 
-    purchase_orders = PurchaseOrder.objects.filter(po_number__in=po_numbers).\
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(po_number__in=po_numbers).\
                                             select_related('open_po')
     po_price_dict = get_sku_wise_grn_price_dict(purchase_orders)
     skus_uom_dict = get_uom_with_multi_skus(user, model_sku_codes, uom_type='purchase')
     pending_po_dict = get_pending_po_grn_dict(user, po_numbers)
-    grn_integration_object = IntegrationMaster.objects.filter(module_type="grn", stockone_reference__in=grn_numbers)
+    grn_integration_object = IntegrationMaster.objects.using(reports_database).filter(module_type="grn", stockone_reference__in=grn_numbers)
     grn_int_status, grn_int_err, grn_int_date = {},{},{}
     for grn_int in grn_integration_object:
         grn_int_status.setdefault(grn_int.stockone_reference,  grn_int.status)
@@ -5609,7 +5610,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
-        seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
+        seller_po_summary = SellerPOSummary.objects.using(reports_database).get(id=data['id'])
         updated_user_name = user.username
         version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
                                                         filter(revision__comment='generate_grn')
@@ -5619,7 +5620,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             last_updated_date = get_local_date(user, version_single_obj[0].revision.date_created)
         lr_detail_no = ''
         #if data['purchase_order__id']:
-        #    lr_detail = LRDetail.objects.filter(purchase_order=data['purchase_order__id'],
+        #    lr_detail = LRDetail.objects.using(reports_database).filter(purchase_order=data['purchase_order__id'],
         #                                        purchase_order__open_po__sku__user=user.id)
         #    if lr_detail.exists():
         #        lr_detail_no = lr_detail[0].lr_number
@@ -5641,7 +5642,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             Type_of_GRN="DC"
         vendor_code, vendor_name,vendor_dispatch_date="","",""
         Expected_delivery_date=""
-        grn_genrated_user= User.objects.get(id=data["purchase_order__open_po__sku__user"])
+        grn_genrated_user= User.objects.using(reports_database).get(id=data["purchase_order__open_po__sku__user"])
         pr_plant = sku_pending_po_dict.get('pr_plant', '')
         if not pr_plant:
             pr_plant = grn_genrated_user.first_name
@@ -5680,7 +5681,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         invoice_details, http_data = '', ''
         '''try:
             invoice_details, http_data = '', ''
-            invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__po_number'],
+            invoice_data = MasterDocs.objects.using(reports_database).filter(master_id=data['purchase_order__po_number'],
                                                          user=data["purchase_order__open_po__sku__user"],
                                                          extra_flag=data['receipt_number'])
             url_request = ""
@@ -5700,7 +5701,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             purchase_uom = uom_dict.get('measurement_unit')
         if data['purchase_order__pcf']:
             sku_conversion = data['purchase_order__pcf']
-        st_data = StockDetail.objects.filter(grn_number=grn_number, sku__user=data['purchase_order__open_po__sku__user'],sku__sku_code=data['purchase_order__open_po__sku__sku_code']).only('batch_detail__pcf')
+        st_data = StockDetail.objects.using(reports_database).filter(grn_number=grn_number, sku__user=data['purchase_order__open_po__sku__user'],sku__sku_code=data['purchase_order__open_po__sku__sku_code']).only('batch_detail__pcf')
         if st_data.exists():
             if st_data[0].batch_detail:
                 sku_conversion = st_data[0].batch_detail.pcf
@@ -5709,7 +5710,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         base_quantity = purchase_quantity * sku_conversion
         sku_user = data['purchase_order__open_po__sku__user']
         if sku_user:
-            user = User.objects.filter(id=sku_user)[0]
+            user = User.objects.using(reports_database).filter(id=sku_user)[0]
         if user:
             if user.userprofile.warehouse_type.lower() == 'dept':
                 admin_user = get_admin(user)
@@ -5841,7 +5842,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     is_market_user = False
     if user_profile.user_type == 'marketplace_user':
         is_market_user = True
@@ -5945,7 +5946,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
         search_parameters[field_mapping['sku_brand']] = search_params['sub_category']
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
-    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
+    query_data = model_name.objects.using(reports_database).exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct()
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
@@ -5961,12 +5962,12 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(stpurchaseorder__open_st__sku__user=user.id)
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(stpurchaseorder__open_st__sku__user=user.id)
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
         manufacturer, searchable, bundle = '', '', ''
         if data['purchase_order__stpurchaseorder__open_st__sku_id']:
-            attributes_obj = SKUAttributes.objects.filter(
+            attributes_obj = SKUAttributes.objects.using(reports_database).filter(
                 sku_id=data['purchase_order__stpurchaseorder__open_st__sku_id'], attribute_name__in=attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
@@ -6024,13 +6025,13 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         updated_user_name = user.username
-        version_obj = Version.objects.get_for_object(SellerPOSummary.objects.get(id=data['id']))
+        version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=data['id']))
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-        seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
+        seller_po_summary = SellerPOSummary.objects.using(reports_database).get(id=data['id'])
         lr_detail_no = ''
         if data['purchase_order__id']:
-            lr_detail = LRDetail.objects.filter(purchase_order=data['purchase_order__id'],
+            lr_detail = LRDetail.objects.using(reports_database).filter(purchase_order=data['purchase_order__id'],
                                                 purchase_order__open_po__sku__user=user.id)
             if lr_detail.exists():
                 lr_detail_no = lr_detail[0].lr_number
@@ -6047,7 +6048,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
             remarks = result.remarks
         gst_num = ''
         if data['purchase_order__stpurchaseorder__open_st__warehouse_id']:
-            user_profile = UserProfile.objects.get(
+            user_profile = UserProfile.objects.using(reports_database).get(
                 user_id=data['purchase_order__stpurchaseorder__open_st__warehouse_id'])
             gst_num = user_profile.gst_number
         ord_dict = OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
@@ -6178,7 +6179,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = []
     unsorted_dict = {}
     model_name = SellerPOSummary
@@ -6311,7 +6312,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             if plant_users:
                 users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
             else:
-                users = User.objects.none()
+                users = User.objects.using(reports_database).none()
         if 'plant_name' in search_params.keys():
             plant_name = search_params['plant_name']
             payload_dict["plant_name"]= plant_name
@@ -6320,7 +6321,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             if plant_users:
                 users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
             else:
-                users = User.objects.none()
+                users = User.objects.using(reports_database).none()
         if 'sister_warehouse' in search_params:
             dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -6354,7 +6355,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             temp_data['aaData']= final_data["data"]
             return temp_data
     return temp_data
-    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values).order_by('-id')
+    model_data_result= PendingPR.objects.using(reports_database).filter(**search_parameters).values(*pr_result_values).order_by('-id')
     po_numbers_sku =[]
     temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6380,7 +6381,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
     for model_dat in model_data:
         po_numbers.append(model_dat['pendingpo__full_po_number'])
         sku_codes.append(model_dat['pending_prlineItems__sku__sku_code'])
-    pending_po_results = PendingLineItems.objects.filter(pending_po__full_po_number__in=po_numbers, sku__sku_code__in=sku_codes).values(*pending_po_result_values)
+    pending_po_results = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number__in=po_numbers, sku__sku_code__in=sku_codes).values(*pending_po_result_values)
     po_model_data= {}
     for po_dat in pending_po_results:
         pending_po_key = (po_dat["pending_po__full_po_number"], po_dat['sku__sku_code'])
@@ -6389,7 +6390,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
                 'igst_tax': po_dat["igst_tax"], 'cess_tax': po_dat["cess_tax"],
                 'supplier_id': po_dat["pending_po__supplier__supplier_id"], 'supplier__name': po_dat["pending_po__supplier__name"],
                 'price': po_dat["price"], 'po_final_status': po_dat["pending_po__final_status"]})
-    po_grn_results= PurchaseOrder.objects.filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
+    po_grn_results= PurchaseOrder.objects.using(reports_database).filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
     skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     for record in model_data:
         pending_po_key= (record.get("pendingpo__full_po_number", ""), record.get("pending_prlineItems__sku__sku_code", ""))
@@ -6407,7 +6408,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             po_price = po_model_data[pending_po_key]["price"]
         pr_department= record.get("wh_user__userprofile__stockone_code", "")
         if record.get("wh_user_id", ''):
-            pr_dept_obj = User.objects.get(id=record.get("wh_user_id", ''))
+            pr_dept_obj = User.objects.using(reports_database).get(id=record.get("wh_user_id", ''))
         if pr_dept_obj:
             pr_plant = get_admin(pr_dept_obj)
             pr_plant_zone = pr_plant.userprofile.zone
@@ -6420,7 +6421,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
         pr_date= record.get("creation_date").strftime("%d %b, %Y") if record.get("creation_date", '') else ''
         exp_delivery_date= record.get("pendingpo__delivery_date").strftime("%d %b, %Y") if record.get("pendingpo__delivery_date", '') else ''
         po_grn_check=False
-        pending_approval = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=record.get('full_pr_number', ""),
+        pending_approval = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=record.get('full_pr_number', ""),
         status='', pending_pr__final_status='pending').values("level", "approval_type", "validated_by")
         next_approver_mail, pending_level, approval_type = [''] * 3
         if pending_approval.exists():
@@ -6546,7 +6547,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = []
     unsorted_dict = {}
     model_name = SellerPOSummary
@@ -6660,7 +6661,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             if plant_users:
                 users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
             else:
-                users = User.objects.none()
+                users = User.objects.using(reports_database).none()
         if 'plant_name' in search_params.keys():
             plant_name = search_params['plant_name']
             plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -6668,7 +6669,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             if plant_users:
                 users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
             else:
-                users = User.objects.none()
+                users = User.objects.using(reports_database).none()
         if 'sister_warehouse' in search_params:
             dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
             dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -6684,7 +6685,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     '''if user.userprofile.warehouse_type == 'ADMIN' and 'po_number' not in search_params and 'pr_number' not in search_params:
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user_data = User.objects.filter(first_name=sister_warehouse_name)
+            user_data = User.objects.using(reports_database).filter(first_name=sister_warehouse_name)
             temp_dict,warehouses_dict = {}, {}
             if user_data.exists():
                 for user_1 in user_data:
@@ -6702,8 +6703,8 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
         if 'sister_warehouse' in search_params:
             search_parameters['wh_user__first_name'] = search_params['sister_warehouse']
         elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
-            sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+            sister_wh = UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            user_ids = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                         'user__id', flat=True))
             search_parameters['wh_user__in'] = set(user_ids)
         else:
@@ -6711,8 +6712,8 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'ADMIN' and 'po_number' not in search_params and 'pr_number' not in search_params:
         if 'plant_code' in search_params:
             plant_code = search_params['plant_code']
-            main_user= User.objects.get(username="mhl_admin")
-            plant_user_profile= UserProfile.objects.filter(warehouse_type="STORE", stockone_code=search_params['plant_code'])
+            main_user= User.objects.using(reports_database).get(username="mhl_admin")
+            plant_user_profile= UserProfile.objects.using(reports_database).filter(warehouse_type="STORE", stockone_code=search_params['plant_code'])
             if plant_user_profile.exists():
                 users_data = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[plant_user_profile[0].user.username], send_parent=True).values("id")
                 plant_users_list= []
@@ -6724,8 +6725,8 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     #     if 'plant_code' in search_params:
     #         plant_code = search_params['plant_code']
     #     elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
-    #         sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-    #         user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="STORE").values_list(
+    #         sister_wh = UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+    #         user_ids = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="STORE").values_list(
     #                     'user__id', flat=True))
     #         search_parameters['wh_user__in'] = user_ids
     #     else:
@@ -6733,7 +6734,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     # pr_search_params= {}
     search_parameters[pr_field_mapping['user']] = user_ids
     start_time = time.time()
-    model_data_result= PendingPR.objects.filter(**search_parameters).values(*pr_result_values).order_by('-id')
+    model_data_result= PendingPR.objects.using(reports_database).filter(**search_parameters).values(*pr_result_values).order_by('-id')
     po_numbers_sku =[]
     temp_data['recordsTotal'] = model_data_result.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -6759,7 +6760,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     for model_dat in model_data:
         po_numbers.append(model_dat['pendingpo__full_po_number'])
         sku_codes.append(model_dat['pending_prlineItems__sku__sku_code'])
-    pending_po_results = PendingLineItems.objects.filter(pending_po__full_po_number__in=po_numbers, sku__sku_code__in=sku_codes).values(*pending_po_result_values)
+    pending_po_results = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number__in=po_numbers, sku__sku_code__in=sku_codes).values(*pending_po_result_values)
     po_model_data= {}
     for po_dat in pending_po_results:
         pending_po_key = (po_dat["pending_po__full_po_number"], po_dat['sku__sku_code'])
@@ -6768,7 +6769,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
                 'igst_tax': po_dat["igst_tax"], 'cess_tax': po_dat["cess_tax"],
                 'supplier_id': po_dat["pending_po__supplier__supplier_id"], 'supplier__name': po_dat["pending_po__supplier__name"],
                 'price': po_dat["price"], 'po_final_status': po_dat["pending_po__final_status"]})
-    po_grn_results= PurchaseOrder.objects.filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
+    po_grn_results= PurchaseOrder.objects.using(reports_database).filter(po_number__in=po_numbers, open_po__sku__sku_code__in=sku_codes).values(*po_grn_result_values)
     skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     for record in model_data:
         pending_po_key= (record.get("pendingpo__full_po_number", ""), record.get("pending_prlineItems__sku__sku_code", ""))
@@ -6786,7 +6787,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             po_price = po_model_data[pending_po_key]["price"]
         pr_department= record.get("wh_user__userprofile__stockone_code", "")
         if record.get("wh_user_id", ''):
-            pr_dept_obj = User.objects.get(id=record.get("wh_user_id", ''))
+            pr_dept_obj = User.objects.using(reports_database).get(id=record.get("wh_user_id", ''))
         if pr_dept_obj:
             pr_plant = get_admin(pr_dept_obj)
             pr_plant_zone = pr_plant.userprofile.zone
@@ -6799,7 +6800,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
         pr_date= record.get("creation_date").strftime("%d %b, %Y") if record.get("creation_date", '') else ''
         exp_delivery_date= record.get("pendingpo__delivery_date").strftime("%d %b, %Y") if record.get("pendingpo__delivery_date", '') else ''
         po_grn_check=False
-        pending_approval = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=record.get('full_pr_number', ""),
+        pending_approval = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=record.get('full_pr_number', ""),
         status='', pending_pr__final_status='pending').values("level", "approval_type", "validated_by")
         next_approver_mail, pending_level, approval_type = [''] * 3
         if pending_approval.exists():
@@ -6920,7 +6921,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
     #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['purchase_order__order_id', 'purchase_order__order_id',  'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
@@ -6987,7 +6988,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -6995,7 +6996,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -7017,7 +7018,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
             search_params['to_date'] = search_params['grn_to_date']
         temp_data = grn_download(user_ids, search_params, user)
         return temp_data'''
-    query_data = model_name.objects.prefetch_related('purchase_order__open_po__sku', 'purchase_order__open_po__supplier').select_related('purchase_order__open_po',
+    query_data = model_name.objects.using(reports_database).prefetch_related('purchase_order__open_po__sku', 'purchase_order__open_po__supplier').select_related('purchase_order__open_po',
                                                                                                          'purchase_order__open_po__sku',
                                                                                                          'purchase_order__open_po__supplier').exclude(
         **excl_status).filter(**search_parameters)
@@ -7042,11 +7043,11 @@ def get_po_filter_data(request, search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user__in=user_ids)
     for data in model_data:
         po_result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids)
         result = po_result[0]
-        warehouse = User.objects.get(id=result.open_po.sku.user)
+        warehouse = User.objects.using(reports_database).get(id=result.open_po.sku.user)
         po_total_qty, po_total_price, po_total_tax,GRN_total_qty, GRN_total_price, GRN_total_tax = [0]*6
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
         plant_code = ""
@@ -7063,12 +7064,12 @@ def get_po_filter_data(request, search_params, user, sub_user):
             receipt_no = ''
         else:
             grn_number = data['grn_number']
-            sellerposummary_data=SellerPOSummary.objects.filter(receipt_number=receipt_no, grn_number=grn_number)
+            sellerposummary_data=SellerPOSummary.objects.using(reports_database).filter(receipt_number=receipt_no, grn_number=grn_number)
             if sellerposummary_data.exists():
                 GRN_total_qty, GRN_total_price, GRN_total_tax= get_po_grn_price_and_taxes(sellerposummary_data,"GRN")
                 grn_date = get_local_date(user, sellerposummary_data[0].creation_date).split(' ')
                 grn_date = ' '.join(grn_date[0:3])
-                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=sellerposummary_data[0].id)).\
+                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
                                                     filter(revision__comment='generate_grn')
                 if version_obj.exists():
                     updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
@@ -7089,12 +7090,12 @@ def get_po_filter_data(request, search_params, user, sub_user):
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         lr_detail_no = ''
         if result.id:
-            lr_detail = LRDetail.objects.filter(purchase_order=result.id,
+            lr_detail = LRDetail.objects.using(reports_database).filter(purchase_order=result.id,
                                                 purchase_order__open_po__sku__user=user.id)
             if lr_detail.exists():
                 lr_detail_no = lr_detail[0].lr_number
         product_category, category, pr_number, pr_date, pr_raised_user ,uom, pr_qty = '', '', '', '', '', '',0
-        po_data =  PendingPO.objects.filter(full_po_number=result.po_number)
+        po_data =  PendingPO.objects.using(reports_database).filter(full_po_number=result.po_number)
         pr_plant,last_approvals_date,pr_Total_Amt,pr_price, pr_tax_amount="","",0,0,0
         all_approvals=[]
         pr_date_time, pr_department = '', ''
@@ -7111,7 +7112,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                 pr_date = ' '.join(pr_date[0:3])
                 pr_raised_user = pending_pr.requested_user.username
                 pr_dept = pending_pr.wh_user #get_warehouse_user_from_sub_user(pending_pr.requested_user_id)
-                user_profile= UserProfile.objects.get(user_id=pr_dept.id)
+                user_profile= UserProfile.objects.using(reports_database).get(user_id=pr_dept.id)
                 if(user_profile.warehouse_type=="DEPT"):
                     if(user_profile.stockone_code):
                         pr_department = user_profile.stockone_code
@@ -7134,7 +7135,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                     last_approvals_date= get_local_date(user, all_approvals_data[-1][1]).split(' ')
                     last_approvals_date = ' '.join(last_approvals_date[0:3])
                 category = pending_pr.sku_category
-                pending_line_item=PendingLineItems.objects.filter(pending_pr=pending_pr.id)
+                pending_line_item=PendingLineItems.objects.using(reports_database).filter(pending_pr=pending_pr.id)
                 if pending_line_item.exists():
                     for row in pending_line_item:
                         # uom=row.measurement_unit
@@ -7147,7 +7148,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
             discrepancy_filter['user'] = user.id
             discrepancy_filter['purchase_order__order_id'] = data[field_mapping['order_id']]
             discrepancy_quantity = sum(
-                list(Discrepancy.objects.exclude(purchase_order=None).filter(**discrepancy_filter) \
+                list(Discrepancy.objects.using(reports_database).exclude(purchase_order=None).filter(**discrepancy_filter) \
                      .values_list('quantity', flat=True)))
         if(data["invoice_number"]):
             Type_of_GRN="Invoice"
@@ -7155,7 +7156,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
             Type_of_GRN="DC"
         vendor_code, vendor_name,vendor_dispatch_date="","",""
         Expected_delivery_date=""
-        grn_genrated_user= User.objects.get(id=data["purchase_order__open_po__sku__user"])
+        grn_genrated_user= User.objects.using(reports_database).get(id=data["purchase_order__open_po__sku__user"])
         if not pr_plant:
             pr_plant = grn_genrated_user.first_name
         if(data["purchase_order__open_po__delivery_date"]):
@@ -7176,7 +7177,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
 
         try:
             invoice_details, http_data = '', ''
-            invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__po_number'],
+            invoice_data = MasterDocs.objects.using(reports_database).filter(master_id=data['purchase_order__po_number'],
                                                          user=data["purchase_order__open_po__sku__user"],
                                                          extra_flag=data['receipt_number'])
             url_request = ""
@@ -7192,10 +7193,10 @@ def get_po_filter_data(request, search_params, user, sub_user):
         except IOError:
             pass
 
-        open_po_data = PurchaseOrder.objects.filter(po_number = po_number)
+        open_po_data = PurchaseOrder.objects.using(reports_database).filter(po_number = po_number)
         if open_po_data.exists():
             sku_user = open_po_data[0].open_po.sku.user
-            user = User.objects.filter(id = sku_user)[0]
+            user = User.objects.using(reports_database).filter(id = sku_user)[0]
         if user:
             if user.userprofile.warehouse_type.lower() == 'dept':
                 admin_user = get_admin(pr_raised_user)
@@ -7271,7 +7272,7 @@ def get_st_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['order_id', 'stpurchaseorder__open_st__warehouse__username', 'stpurchaseorder__open_st__warehouse',
            'stpurchaseorder__open_st__warehouse__username', 'ordered_qty', 'received_quantity']
     unsorted_dict = {}
@@ -7311,7 +7312,7 @@ def get_st_po_filter_data(search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0
-    query_data = model_name.objects.prefetch_related('stpurchaseorder__open_st__sku__user',
+    query_data = model_name.objects.using(reports_database).prefetch_related('stpurchaseorder__open_st__sku__user',
                                                      'stpurchaseorder__open_st__warehouse').select_related(
         'stpurchaseorder__open_st', 'stpurchaseorder__open_st__sku', 'stpurchaseorder__open_st__warehouse_id',
         'stpurchaseorder__open_st__warehouse__username').exclude(**excl_status).filter(**search_parameters)
@@ -7331,7 +7332,7 @@ def get_st_po_filter_data(search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(stpurchaseorder__open_st__sku__user=user.id)
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(stpurchaseorder__open_st__sku__user=user.id)
     for data in model_data:
         po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']],
                                            stpurchaseorder__open_st__sku__user=user.id, prefix=data['prefix'])
@@ -7390,8 +7391,8 @@ def get_stock_summary_data(search_params, user, sub_user):
     if search_stage:
         stage_filter['stage_name'] = search_stage
     extra_headers = list(
-        ProductionStages.objects.filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
-    job_order = JobOrder.objects.filter(product_code__user=user.id,
+        ProductionStages.objects.using(reports_database).filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
+    job_order = JobOrder.objects.using(reports_database).filter(product_code__user=user.id,
                                         status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
 
     start_index = search_params.get('start', 0)
@@ -7420,17 +7421,17 @@ def get_stock_summary_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
         warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master = SKUMaster.objects.using(reports_database).filter(user__in=warehouse_users.keys())
         sku_master_ids = sku_master.values_list('id', flat=True)
     else:
         search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
+    sku_master = StockDetail.objects.using(reports_database).exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc',
                                                                            'sku__sku_brand',
                                                                            'sku__sku_category',
                                                                            'sku__sub_category',
@@ -7449,7 +7450,7 @@ def get_stock_summary_data(search_params, user, sub_user):
                                                                                                     ).distinct()
     sku_master = list(chain(sku_master, sku_master1))
 
-    purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(
+    purchase_orders = PurchaseOrder.objects.using(reports_database).exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(
         open_po__sku__user=user.id). \
         values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
                                            total_received=Sum('received_quantity'))
@@ -7457,7 +7458,7 @@ def get_stock_summary_data(search_params, user, sub_user):
         purchase_orders = []
 
     status_filter = {'status_type': 'JO', 'status_value__in': extra_headers}
-    status_tracking = StatusTracking.objects.filter(**status_filter)
+    status_tracking = StatusTracking.objects.using(reports_database).filter(**status_filter)
 
     intransit_skus = map(lambda d: d['open_po__sku_id'], purchase_orders)
     intransit_ordered = map(lambda d: d['total_order'], purchase_orders)
@@ -7469,7 +7470,7 @@ def get_stock_summary_data(search_params, user, sub_user):
         total_stock_value = 0
         intransit_quantity = 0
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=sku[0], attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku[0], attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -7576,8 +7577,8 @@ def get_daily_production_data(search_params, user, sub_user):
     if jo_code:
         search_parameters['job_code'] = jo_code
     extra_headers = list(
-        ProductionStages.objects.filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
-    job_orders = JobOrder.objects.filter(product_code__user=user.id,
+        ProductionStages.objects.using(reports_database).filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
+    job_orders = JobOrder.objects.using(reports_database).filter(product_code__user=user.id,
                                          status__in=['grn-generated', 'pick_confirm', 'partial_pick',
                                                      'location-assigned', 'confirmed-putaway'], **search_parameters)
     job_code_ids = job_orders.values('job_code', 'id').distinct()
@@ -7593,7 +7594,7 @@ def get_daily_production_data(search_params, user, sub_user):
             search_params['to_date'] + datetime.timedelta(1), datetime.time())
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    status_tracking_objs = StatusTrackingSummary.objects.filter(**status_filter)
+    status_tracking_objs = StatusTrackingSummary.objects.using(reports_database).filter(**status_filter)
     col_sorted = False
     if not isinstance(order_index, int):
         order_index = 0
@@ -7618,7 +7619,7 @@ def get_daily_production_data(search_params, user, sub_user):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for summary_dict in status_summary:
         temp_val = summary_dict['grouping_val'].split('<<>>')
-        summary = StatusTrackingSummary.objects.filter(status_tracking__status_id=temp_val[0],
+        summary = StatusTrackingSummary.objects.using(reports_database).filter(status_tracking__status_id=temp_val[0],
                                                        processed_stage=temp_val[1])[0]
         job_order = job_orders.get(id=summary.status_tracking.status_id)
         summary_date = get_local_date(user, summary.creation_date).split(' ')
@@ -7630,7 +7631,7 @@ def get_daily_production_data(search_params, user, sub_user):
         #         job_order.product_code.sku_brand, job_order.product_code.sku_category, job_order.product_quantity,
         #         summary.processed_stage)
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=job_order.product_code.id,
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=job_order.product_code.id,
                                                       attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
@@ -7718,7 +7719,7 @@ def get_openjo_details(search_params, user, sub_user):
     if 'job_code' in search_params:
         search_parameters['job_code'] = int(search_params['job_code'])
     if 'stage' in search_params:
-        jos = JobOrder.objects.filter(**search_parameters).exclude(status='confirmed-putaway')
+        jos = JobOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='confirmed-putaway')
         if search_params['stage'] == 'Putaway pending':
             jos = jos.filter(status__in=['location-assigned', 'grn-generated'])
         elif search_params['stage'] == 'Picklist Generated':
@@ -7732,14 +7733,14 @@ def get_openjo_details(search_params, user, sub_user):
         else:
             # jos = jos.filter(status = 'pick_confirm')
             jos = list(jos.filter(**search_parameters).values_list('id', flat=True))
-            jos = StatusTracking.objects.filter(status_id__in=jos, status_value=search_params['stage'],
+            jos = StatusTracking.objects.using(reports_database).filter(status_id__in=jos, status_value=search_params['stage'],
                                                 status_type='JO').values_list('status_id', flat=True)
-            jos = JobOrder.objects.filter(id__in=jos)
+            jos = JobOrder.objects.using(reports_database).filter(id__in=jos)
     else:
-        jos = JobOrder.objects.filter(**search_parameters).exclude(status='confirmed-putaway')
+        jos = JobOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='confirmed-putaway')
 
     putaway_qtys = dict(
-        POLocation.objects.filter(status=1, quantity__gt=0, job_order__product_code__user=user.id).values_list(
+        POLocation.objects.using(reports_database).filter(status=1, quantity__gt=0, job_order__product_code__user=user.id).values_list(
             'job_order_id'). \
             distinct().annotate(tsum=Sum('quantity')))
     all_stages = get_user_stages(user, user)
@@ -7761,7 +7762,7 @@ def get_openjo_details(search_params, user, sub_user):
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
         # elif (data.status == 'pick_confirm'):
         elif (data.status == 'partial_pick'):
-            MaterialPicklist.objects.filter(jo_material__job_order__job_code=data.id)
+            MaterialPicklist.objects.using(reports_database).filter(jo_material__job_order__job_code=data.id)
             stage = 'Partially Picked'
             quantity = data.product_quantity
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
@@ -7769,9 +7770,9 @@ def get_openjo_details(search_params, user, sub_user):
         #    stage = 'Picked'
         #    quantity = data.product_quantity
         #    final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
-        stages_list = StatusTracking.objects.filter(status_id=data.id).values_list('original_quantity', 'status_value')
+        stages_list = StatusTracking.objects.using(reports_database).filter(status_id=data.id).values_list('original_quantity', 'status_value')
         if 'stage' in search_params:
-            stages_list = StatusTracking.objects.filter(status_id=data.id, **stage_filter).values_list(
+            stages_list = StatusTracking.objects.using(reports_database).filter(status_id=data.id, **stage_filter).values_list(
                 'original_quantity', 'status_value')
         if stages_list and search_params.get('stage', '') in ([''] + all_stages):
             for sing_stage in stages_list:
@@ -7791,7 +7792,7 @@ def get_openjo_details(search_params, user, sub_user):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for one_data in final_data:
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=one_data['data'].product_code.id,
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=one_data['data'].product_code.id,
                                                       attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
@@ -7839,7 +7840,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
             if opening_stock_date:
                 fields_parameters2['stock_reconciliation__creation_date__regex'] = opening_stock_date
             fields_parameters2['stock_reconciliation__%s_quantity__gt' % fields_parameters1['field_type']] = 0
-            purchase_data = StockReconciliationFields.objects.annotate(
+            purchase_data = StockReconciliationFields.objects.using(reports_database).annotate(
                 tax_percent=Sum(F('cgst_tax') + F('sgst_tax') + F('igst_tax'))). \
                 filter(**fields_parameters2)
             # if purchase_data.exists() and send_first_day:
@@ -7878,7 +7879,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
     elif stock_rec_data:
 
         if opening_stock_date:
-            stock_reconciliation_objs = StockReconciliation.objects.filter(sku_id=stock_rec_data.sku_id,
+            stock_reconciliation_objs = StockReconciliation.objects.using(reports_database).filter(sku_id=stock_rec_data.sku_id,
                                                                            mrp=stock_rec_data.mrp,
                                                                            weight=stock_rec_data.weight,
                                                                            creation_date__regex=opening_stock_date)
@@ -7890,7 +7891,7 @@ def get_financial_group_dict(fields_parameters1, data_objs=None, send_last_day=F
             if fields_parameters1.get('stock_reconciliation__creation_date__lte', ''):
                 stock_rec_extra_filter['creation_date__lte'] = fields_parameters1[
                     'stock_reconciliation__creation_date__lte']
-            stock_reconciliation_objs = StockReconciliation.objects.filter(**stock_rec_extra_filter)
+            stock_reconciliation_objs = StockReconciliation.objects.using(reports_database).filter(**stock_rec_extra_filter)
         if send_last_day:
             last_date = stock_reconciliation_objs.latest('creation_date').creation_date.date()
             stock_reconciliation_objs = stock_reconciliation_objs.filter(creation_date__regex=last_date)
@@ -7957,22 +7958,22 @@ def get_financial_report_data(search_params, user, sub_user):
     fields_parameters['stock_reconciliation__sku__user'] = user.id
 
     if 'from_date' in search_params:
-        stock_recs = StockReconciliation.objects.filter(**search_parameters).only('creation_date')
+        stock_recs = StockReconciliation.objects.using(reports_database).filter(**search_parameters).only('creation_date')
         if stock_recs.exists():
             if not stop_index:
-                manufacturer_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                manufacturer_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                                       attribute_name='Manufacturer').values_list(
                     'sku_id', 'attribute_value'))
-                searchable_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                searchable_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                                     attribute_name='Searchable').values_list(
                     'sku_id', 'attribute_value'))
-                bundle_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                bundle_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                                 attribute_name='Bundle').values_list('sku_id',
                                                                                                      'attribute_value'))
-                hub_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                hub_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                              attribute_name='Hub').values_list('sku_id',
                                                                                                'attribute_value'))
-                vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                vendor_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                                 attribute_name='Vendor').values_list('sku_id',
                                                                                                      'attribute_value'))
             opening_stock_date = stock_recs[0].creation_date.date()
@@ -7994,7 +7995,7 @@ def get_financial_report_data(search_params, user, sub_user):
                 counter += 1
                 stock_rec_data = stock_recs.filter(sku_id=stock_rec_data_dict['sku_id'], mrp=stock_rec_data_dict['mrp'],
                                                    weight=stock_rec_data_dict['weight'])[0]
-                opening_stock_query = StockReconciliationFields.objects.filter(
+                opening_stock_query = StockReconciliationFields.objects.using(reports_database).filter(
                     stock_reconciliation__sku_id=stock_rec_data_dict['sku_id'],
                     stock_reconciliation__mrp=stock_rec_data_dict['mrp'],
                     stock_reconciliation__weight=stock_rec_data_dict['weight'],
@@ -8008,7 +8009,7 @@ def get_financial_report_data(search_params, user, sub_user):
                            'stock_reconciliation__sku_id', 'stock_reconciliation__sku__sku_brand',
                            'stock_reconciliation__sku__hsn_code', 'stock_reconciliation__mrp',
                            'stock_reconciliation__weight', 'tax_percent').distinct()
-                closing_objs = StockReconciliationFields.objects.filter(
+                closing_objs = StockReconciliationFields.objects.using(reports_database).filter(
                     stock_reconciliation__creation_date__regex=closing_stock_date,
                     stock_reconciliation__sku__user=user.id,
                     field_type='closing')
@@ -8019,7 +8020,7 @@ def get_financial_report_data(search_params, user, sub_user):
                     searchable = searchable_dict.get(sku_id, '')
                     bundle = bundle_dict.get(sku_id, '')
                 else:
-                    attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
+                    attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_id, attribute_name__in=attributes_list)
                     if attributes_obj.exists():
                         for attribute in attributes_obj:
                             if attribute.attribute_name == 'Manufacturer':
@@ -8114,7 +8115,7 @@ def get_financial_report_data(search_params, user, sub_user):
                     adjustment_dict, used_damage_qtys = get_financial_group_dict(fields_parameters1,
                                                                                  stock_rec_data=stock_rec_data1,
                                                                                  used_damage_qtys=used_damage_qtys)
-                    physical_qty = StockDetail.objects.filter(sku_id=sku_id, batch_detail__mrp=mrp,
+                    physical_qty = StockDetail.objects.using(reports_database).filter(sku_id=sku_id, batch_detail__mrp=mrp,
                                                               batch_detail__weight=weight,
                                                               batch_detail__tax_percent=tax_rate).distinct(). \
                         aggregate(Sum('quantity'))['quantity__sum']
@@ -8126,10 +8127,10 @@ def get_financial_report_data(search_params, user, sub_user):
                         hub = hub_dict.get(sku_id, '')
                         vendor = vendor_dict.get(sku_id, '')
                     else:
-                        hub_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name='Hub')
+                        hub_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_id, attribute_name='Hub')
                         if hub_obj.exists():
                             hub = hub_obj[0].attribute_value
-                        vendor_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name='Vendor')
+                        vendor_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_id, attribute_name='Vendor')
                         if vendor_obj.exists():
                             vendor = vendor_obj[0].attribute_value
                     # price_before_tax = 0
@@ -8308,7 +8309,7 @@ def get_order_summary_data(search_params, user, sub_user):
     # if central_order_reassigning == 'true':
     if 'sister_warehouse' in search_params and search_params['sister_warehouse']:
         sister_warehouse_name = search_params['sister_warehouse']
-        user = User.objects.get(username=sister_warehouse_name)
+        user = User.objects.using(reports_database).get(username=sister_warehouse_name)
         user = user
         sub_user = user
     else:
@@ -8318,7 +8319,7 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     if search_params.get('invoice', '') == 'true':
-        orders = OrderDetail.objects.filter(**search_parameters).values('user', 'id', 'order_id', 'status',
+        orders = OrderDetail.objects.using(reports_database).filter(**search_parameters).values('user', 'id', 'order_id', 'status',
                                                                         'creation_date', 'order_code', 'unit_price',
                                                                         'invoice_amount', 'sku__sku_code',
                                                                         'sku__sku_class', 'sku__sku_size', 'order_code',
@@ -8337,7 +8338,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                         'cancelled_quantity').distinct().annotate(
             sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
-        orders = OrderDetail.objects.filter(**search_parameters).values('user', 'id', 'order_id', 'status',
+        orders = OrderDetail.objects.using(reports_database).filter(**search_parameters).values('user', 'id', 'order_id', 'status',
                                                                         'creation_date', 'order_code', 'unit_price',
                                                                         'invoice_amount', 'sku__sku_code',
                                                                         'sku__sku_class', 'sku__sku_size',
@@ -8355,30 +8356,30 @@ def get_order_summary_data(search_params, user, sub_user):
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
-    order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(**search_parameters). \
+    order_id_status = dict(OrderDetail.objects.using(reports_database).select_related('order_id', 'status').filter(**search_parameters). \
                            only('id', 'status').values_list('id', 'status').distinct())
 
-    picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open', picked_quantity=0,
+    picklist_generated = Picklist.objects.using(reports_database).select_related('order').filter(status__icontains='open', picked_quantity=0,
                                                                          **pick_filters).only('order_id').values_list(
         'order_id', flat=True).distinct()
 
-    partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
+    partially_picked = Picklist.objects.using(reports_database).filter(status__icontains='open', picked_quantity__gt=0,
                                                reserved_quantity__gt=0, **pick_filters).values_list('order_id',
                                                                                                     flat=True).distinct()
 
-    picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
+    picked_orders = Picklist.objects.using(reports_database).filter(status__icontains='picked', picked_quantity__gt=0,
                                             reserved_quantity=0, **pick_filters).values_list('order_id',
                                                                                              flat=True).distinct()
 
-    # order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
-    pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE") |
+    # order_ids = OrderDetail.objects.using(reports_database).filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
+    pos_order_ids = OrderDetail.objects.using(reports_database).filter(Q(order_code__icontains="PRE") |
                                                Q(order_code__icontains="DC"), status=1,
                                                **search_parameters).values_list('id', flat=True).distinct()
-    partial_generated = Picklist.objects.filter(**pick_filters) \
+    partial_generated = Picklist.objects.using(reports_database).filter(**pick_filters) \
         .exclude(order_id__in=pos_order_ids).values_list( \
         'order_id', flat=True).distinct()
-    # dispatched = OrderDetail.objects.filter(status=2, **search_parameters).values_list('order_id', flat=True).distinct()
-    # reschedule_cancelled = OrderDetail.objects.filter(status=5, **search_parameters).values_list('order_id',
+    # dispatched = OrderDetail.objects.using(reports_database).filter(status=2, **search_parameters).values_list('order_id', flat=True).distinct()
+    # reschedule_cancelled = OrderDetail.objects.using(reports_database).filter(status=5, **search_parameters).values_list('order_id',
     #                                                                                     flat=True).distinct()
 
     _status = ""
@@ -8386,7 +8387,7 @@ def get_order_summary_data(search_params, user, sub_user):
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         ord_ids = ""
         if status_search == 'Open':
-            ord_ids = OrderDetail.objects.filter(status=1, **search_parameters). \
+            ord_ids = OrderDetail.objects.using(reports_database).filter(status=1, **search_parameters). \
                 values_list('id', flat=True).distinct()
         elif status_search == 'Picklist generated':
             ord_ids = picklist_generated
@@ -8471,14 +8472,14 @@ def get_order_summary_data(search_params, user, sub_user):
     status = ''
     count = 1
     extra_fields = []
-    extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+    extra_fields_obj = MiscDetail.objects.using(reports_database).filter(user=user.id, misc_type__icontains="pos_extra_fields")
     for field in extra_fields_obj:
         tmp = field.misc_value.split(',')
         for i in tmp:
             extra_fields.append(str(i))
-    invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
+    invoice_no_gen = MiscDetail.objects.using(reports_database).filter(user=user.id, misc_type='increment_invoice')
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    inv_eway_mapping = dict(ShipmentInfo.objects.filter(order_id__in=list(orders.values_list('id', flat=True))). \
+    inv_eway_mapping = dict(ShipmentInfo.objects.using(reports_database).filter(order_id__in=list(orders.values_list('id', flat=True))). \
                             exclude(order_shipment__ewaybill_number=''). \
                             values_list('invoice_number', 'order_shipment__ewaybill_number'))
     for data in orders.iterator():
@@ -8495,7 +8496,7 @@ def get_order_summary_data(search_params, user, sub_user):
         payment_type = ''
         reference_number = ''
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data['sku_id'], attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data['sku_id'], attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -8506,12 +8507,12 @@ def get_order_summary_data(search_params, user, sub_user):
                     bundle = attribute.attribute_value
 
         if 'DC' in data['order_code'] or 'PRE' in data['order_code']:
-            payment_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
+            payment_obj = OrderFields.objects.using(reports_database).filter(original_order_id=data['original_order_id'], \
                                                      name__contains='payment', user=user.id)
             if payment_obj.exists():
                 payment_obj = payment_obj[0]
                 payment_type = payment_obj.name.replace("payment_", "")
-            reference_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], \
+            reference_obj = OrderFields.objects.using(reports_database).filter(original_order_id=data['original_order_id'], \
                                                        name='reference_number', user=user.id)
             if reference_obj.exists():
                 reference_obj = reference_obj[0]
@@ -8519,7 +8520,7 @@ def get_order_summary_data(search_params, user, sub_user):
         cost_price = 0
         cost_price_dict = {}
         if milkbasket_user:
-            picklist_obj = Picklist.objects.filter(order_id=data['id'], order__user=user.id, picked_quantity__gt=0)
+            picklist_obj = Picklist.objects.using(reports_database).filter(order_id=data['id'], order__user=user.id, picked_quantity__gt=0)
             qty_price = dict(picklist_obj.values_list('order__sku__wms_code').distinct() \
                              .annotate(weighted_cost=Sum(F('stock__batch_detail__buy_price') * F('picked_quantity'))))
             sku_quantity = dict(
@@ -8562,7 +8563,7 @@ def get_order_summary_data(search_params, user, sub_user):
         vehicle_number = ''
         ewaybill_number = ''
         payment_card, payment_cash, payment_PhonePe, payment_Paytm, payment_GooglePay = 0, 0, 0, 0, 0
-        order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data['id'])
+        order_summary = CustomerOrderSummary.objects.using(reports_database).filter(order__user=user.id, order_id=data['id'])
         unit_price, unit_price_inclusive_tax = [data['unit_price']] * 2
         tax_percent = 0
         if order_summary.exists():
@@ -8601,7 +8602,7 @@ def get_order_summary_data(search_params, user, sub_user):
         unit_price = "%.2f" % unit_price
 
         # otherordercharges
-        order_charges_obj = OrderCharges.objects.filter(user=user.id, order_id=data['original_order_id'],
+        order_charges_obj = OrderCharges.objects.using(reports_database).filter(user=user.id, order_id=data['original_order_id'],
                                                         order_type='order')
         if order_charges_obj.exists():
             total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
@@ -8609,7 +8610,7 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_amount = '%.2f' % (float(invoice_amount) + float(total_charge_amount) + float(total_charge_tax))
 
         # payment mode
-        payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_", \
+        payment_obj = OrderFields.objects.using(reports_database).filter(user=user.id, name__icontains="payment_", \
                                                  original_order_id=data['original_order_id']).values_list('name',
                                                                                                           'value')
         if payment_obj.exists():
@@ -8621,7 +8622,7 @@ def get_order_summary_data(search_params, user, sub_user):
 
         # pos extra fields
         pos_extra = {}
-        extra_vals = OrderFields.objects.filter(user=user.id, \
+        extra_vals = OrderFields.objects.using(reports_database).filter(user=user.id, \
                                                 original_order_id=data['original_order_id']).values('name', 'value')
         for field in extra_fields:
             pos_extra[field] = ''
@@ -8636,7 +8637,7 @@ def get_order_summary_data(search_params, user, sub_user):
             invoice_number = data['sellerordersummary__full_invoice_number']
             challan_number = data['sellerordersummary__challan_number']
             if not invoice_number:
-                invoice_number_obj = SellerOrderSummary.objects.filter(order_id=data['id'])
+                invoice_number_obj = SellerOrderSummary.objects.using(reports_database).filter(order_id=data['id'])
                 if invoice_number_obj.exists():
                     challan_number = invoice_number_obj[0].challan_number
                     if not invoice_no_gen.exists() or (
@@ -8647,7 +8648,7 @@ def get_order_summary_data(search_params, user, sub_user):
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
             if invoice_number:
                 ewaybill_number = inv_eway_mapping.get(invoice_number, '')
-                # shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'])
+                # shipment_info = ShipmentInfo.objects.using(reports_database).filter(order__user=user.id,order__original_order_id=data['original_order_id'])
                 # if shipment_info.exists():
                 #    ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 
@@ -8655,13 +8656,13 @@ def get_order_summary_data(search_params, user, sub_user):
                 invoice_date = data['sellerordersummary__creation_date'].strftime('%d %b %Y')
             else:
                 invoice_date = ''
-            user_profile = UserProfile.objects.get(user_id=user.id)
+            user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
             invoice_qty_filter = {}
             if user_profile.user_type == 'marketplace_user':
                 invoice_qty_filter['seller_order__order_id'] = data['id']
                 if data['sellerordersummary__full_invoice_number']:
                     invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
-                seller_order_objects = SellerOrderSummary.objects.filter(**invoice_qty_filter)
+                seller_order_objects = SellerOrderSummary.objects.using(reports_database).filter(**invoice_qty_filter)
                 quantity = seller_order_objects.aggregate(Sum('quantity'))['quantity__sum']
             else:
                 invoice_qty_filter['order_id'] = data['id']
@@ -8669,7 +8670,7 @@ def get_order_summary_data(search_params, user, sub_user):
                     invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
                 else:
                     invoice_date = ''
-                seller_order_objects = SellerOrderSummary.objects.filter(**invoice_qty_filter)
+                seller_order_objects = SellerOrderSummary.objects.using(reports_database).filter(**invoice_qty_filter)
                 quantity = seller_order_objects.aggregate(Sum('quantity'))['quantity__sum']
 
             if not invoice_qty_filter.get('full_invoice_number', ''):
@@ -8680,8 +8681,8 @@ def get_order_summary_data(search_params, user, sub_user):
                 else:
                     cancelled_qty = 0
         try:
-            # serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
-            serial_number = OrderIMEIMapping.objects.filter(order__id=data['id'])
+            # serial_number = OrderIMEIMapping.objects.using(reports_database).filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
+            serial_number = OrderIMEIMapping.objects.using(reports_database).filter(order__id=data['id'])
         except:
             serial_number = ''
         if serial_number and serial_number[0].po_imei:
@@ -8692,7 +8693,7 @@ def get_order_summary_data(search_params, user, sub_user):
         billing_address = shipping_address = customer_type = ''
         if order_summary.exists():
             shipping_address = order_summary[0].consignee
-        customer_master_obj = CustomerMaster.objects.filter(user=user.id, customer_id=data['customer_id'])
+        customer_master_obj = CustomerMaster.objects.using(reports_database).filter(user=user.id, customer_id=data['customer_id'])
         gst_number = ''
         if customer_master_obj.exists():
             gst_number = customer_master_obj[0].tin_number
@@ -8718,7 +8719,7 @@ def get_order_summary_data(search_params, user, sub_user):
 
         order_extra_fields = {}
         for extra in extra_order_fields:
-            order_field_obj = OrderFields.objects.filter(original_order_id=data['original_order_id'], user=user.id,
+            order_field_obj = OrderFields.objects.using(reports_database).filter(original_order_id=data['original_order_id'], user=user.id,
                                                          name=extra)
             order_extra_fields[extra] = ''
             if order_field_obj.exists():
@@ -8850,7 +8851,7 @@ def tally_dump(user, order_id, invoice_amount_picked, unit_price_inclusive_tax, 
 
 def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_quantity):
     total_procurement_price, procurement_price, margin = 0, 0, 0
-    pick_obj = SellerOrderSummary.objects.filter(**invoice_qty_filter).values('picklist__stock__unit_price', 'quantity')
+    pick_obj = SellerOrderSummary.objects.using(reports_database).filter(**invoice_qty_filter).values('picklist__stock__unit_price', 'quantity')
     if pick_obj:
         for picklist in pick_obj:
             if picklist.get('picklist__stock__unit_price', '') and picklist.has_key('quantity'):
@@ -8929,10 +8930,10 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
 
     search_parameters['open_po__sku__user'] = user.id
     search_parameters['open_po__sku_id__in'] = sku_master_ids
-    exc_po_ids = PurchaseOrder.objects.filter(open_po__sku__user=user.id, status='').values_list('open_po_id',
+    exc_po_ids = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user=user.id, status='').values_list('open_po_id',
                                                                                                  flat=True)
-    seller_pos = SellerPO.objects.exclude(open_po_id__in=exc_po_ids).filter(**search_parameters)
-    quality_checks = QualityCheck.objects.filter(po_location__location__zone__user=user.id,
+    seller_pos = SellerPO.objects.using(reports_database).exclude(open_po_id__in=exc_po_ids).filter(**search_parameters)
+    quality_checks = QualityCheck.objects.using(reports_database).filter(po_location__location__zone__user=user.id,
                                                  purchase_order__open_po_id__in=seller_pos.values_list('open_po_id',
                                                                                                        flat=True)). \
         values('purchase_order__open_po_id').distinct().annotate(total_rejected=Sum('rejected_quantity'),
@@ -8965,7 +8966,7 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
         accepted_quan = 0
         rejected_quan = 0
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.open_po.sku.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data.open_po.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -9048,16 +9049,16 @@ def get_grn_inventory_addition_data(search_params, user, sub_user):
 
     search_parameters['seller_po__seller__user'] = user.id
     search_parameters['seller_po__open_po__sku_id__in'] = sku_master_ids
-    damaged_ids = SellerStock.objects.filter(stock__location__zone__zone='DAMAGED_ZONE', seller__user=user.id,
+    damaged_ids = SellerStock.objects.using(reports_database).filter(stock__location__zone__zone='DAMAGED_ZONE', seller__user=user.id,
                                              seller_po_summary__isnull=False). \
         values_list('seller_po_summary_id', flat=True)
-    query_data = SellerPOSummary.objects.filter(**search_parameters).exclude(id__in=damaged_ids)
+    query_data = SellerPOSummary.objects.using(reports_database).filter(**search_parameters).exclude(id__in=damaged_ids)
     model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
 
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user=user.id)
     for data in model_data:
         result = purchase_orders.filter(order_id=data['purchase_order__order_id'], open_po__sku__user=user.id)[0]
         po_number = '%s%s_%s' % (
@@ -9122,13 +9123,13 @@ def get_returns_addition_data(search_params, user, sub_user):
 
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    query_data = OrderReturns.objects.filter(get_dictionary_query(query_filter), quantity__gt=0, **search_parameters)
+    query_data = OrderReturns.objects.using(reports_database).filter(get_dictionary_query(query_filter), quantity__gt=0, **search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
 
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    order_returns = OrderReturns.objects.filter(sku__user=user.id)
+    order_returns = OrderReturns.objects.using(reports_database).filter(sku__user=user.id)
     for data in model_data:
         sku_code = data['sku__sku_code']
         return_id = data['return_id']
@@ -9173,7 +9174,7 @@ def get_seller_stock_summary_replace(search_params, user, sub_user):
 
     search_parameters['seller__user'] = user.id
     search_parameters['stock__sku_id__in'] = sku_master_ids
-    query_data = SellerStock.objects.filter(**search_parameters).exclude(stock__location__zone__zone='DAMAGED_ZONE')
+    query_data = SellerStock.objects.using(reports_database).filter(**search_parameters).exclude(stock__location__zone__zone='DAMAGED_ZONE')
     model_data = query_data.values('seller__seller_id', 'stock__sku__sku_code').distinct().annotate(
         total_received=Sum('quantity'))
 
@@ -9240,7 +9241,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    rm_picklist = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id)
+    rm_picklist = RMLocation.objects.using(reports_database).filter(material_picklist__jo_material__material_code__user=user.id)
     if 'from_date' in search_params:
         status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -9319,7 +9320,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
-    stock_stats = StockStats.objects.filter(sku__user__in=user_ids)
+    stock_stats = StockStats.objects.using(reports_database).filter(sku__user__in=user_ids)
     if 'from_date' in search_params:
         status_filter['creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -9369,7 +9370,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for obj in stock_stats:
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=obj.sku.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=obj.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -9379,7 +9380,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
         date = get_local_date(user, obj.creation_date, send_date=True).strftime('%d %b %Y')
-        user_obj = User.objects.get(id=obj.sku.user)
+        user_obj = User.objects.using(reports_database).get(id=obj.sku.user)
         dept_name = ''
         store_name = user_obj.first_name
         if user_obj.userprofile.warehouse_type == 'DEPT':
@@ -9447,7 +9448,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
             warehouses = get_warehouses_data(user)
             warehouse_users = warehouses
         else:
@@ -9464,7 +9465,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
 
     values_list = ['rtv_number']
 
-    model_data = ReturnToVendor.objects.filter(**search_parameters).values(*values_list).distinct()
+    model_data = ReturnToVendor.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct()
 
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -9481,7 +9482,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     for data in model_data:
         rtv_reason, updated_user_name,vendor_code, vendor_name = '', '', '', ''
         challan_number, challan_date, delivery_date= '', '', ''
-        rtv_data = ReturnToVendor.objects.filter(rtv_number=data['rtv_number'])
+        rtv_data = ReturnToVendor.objects.using(reports_database).filter(rtv_number=data['rtv_number'])
         if rtv_data.exists():
             for rtv in rtv_data:
                 open_po = rtv.seller_po_summary.purchase_order.open_po
@@ -9508,7 +9509,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                     delivery_date = open_po.delivery_date
                 rtv_reason = rtv.return_reason
 
-                version_obj = Version.objects.get_for_object(rtv)
+                version_obj = Version.objects.using('reversion').get_for_object(rtv)
                 if version_obj.exists():
                     updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
 
@@ -9536,7 +9537,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
             pr_plant, pr_department, pr_request_user = '', '', ''
             product_category, warehouse, warehouse_type, dc_number, category, pr_number, pr_date, pr_raised_user, vendor_dispatch_date = '', '', '', '', '', '', '', '', ''
             if po_number:
-                pr_data = PendingLineItems.objects.filter(pending_po__full_po_number=po_number).values(
+                pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number=po_number).values(
                     'pending_po__product_category', 'pending_po__pending_prs__creation_date',
                     'pending_po__sku_category', 'pending_po__requested_user', 'pending_po__pending_prs__full_pr_number',
                     'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__requested_user__id')
@@ -9549,14 +9550,14 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                     if pr_data[0]['pending_po__requested_user']:
                         req_user = pr_data[0]['pending_po__requested_user']
                         pr_user = get_warehouse_user_from_sub_user(req_user)
-                        warehouse = User.objects.filter(id=req_user).values('first_name')
+                        warehouse = User.objects.using(reports_database).filter(id=req_user).values('first_name')
                         plant = warehouse[0]['first_name']
                         warehouse_type = pr_user.userprofile.warehouse_type
 
                 pr_department, pr_plant = '', ''
                 if pr_data:
                     pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
-                    user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+                    user_profile = UserProfile.objects.using(reports_database).get(user_id=pr_dept.id)
                     if (user_profile.warehouse_type == "DEPT"):
                         if (user_profile.stockone_code):
                             pr_department = user_profile.stockone_code
@@ -9626,20 +9627,20 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   zone__icontains=zone_code).values_list('user_id', flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
-    dist_resellers_qs = CustomerMaster.objects.filter(user__in=distributors). \
+    dist_resellers_qs = CustomerMaster.objects.using(reports_database).filter(user__in=distributors). \
         values_list('user', 'customerusermapping__customer')
     resellers = []
     res_dist_map = {}
@@ -9647,19 +9648,19 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     for dist, res in dist_resellers_qs:
         res_dist_map[res] = dist
         resellers.append(res)
-    dist_cust_ids_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors).values_list('customer_id',
+    dist_cust_ids_qs = WarehouseCustomerMapping.objects.using(reports_database).filter(warehouse__in=distributors).values_list('customer_id',
                                                                                                        'warehouse_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.keys()
 
-    orderdetail_objs = dict(GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers).
+    orderdetail_objs = dict(GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id__in=dist_customers).
                             values_list('orderdetail_id', 'customer_id'))
     orderdetail_ids = orderdetail_objs.keys()
     for reseller in resellers:
         dist = res_dist_map.get(reseller, '')
         if not dist:
             continue
-        res_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).exclude(cust_wh_id=dist)
+        res_ord_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=reseller).exclude(cust_wh_id=dist)
         res_orders = list(res_ord_objs.values_list('orderdetail_id', flat=True))
         for ord_id in res_orders:
             ord_res_map[ord_id] = reseller
@@ -9667,8 +9668,8 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
-    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
-    names_map = dict(UserProfile.objects.filter(user__in=distributors).
+    zones_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).values_list('user_id', 'zone'))
+    names_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).
                      values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
 
     if 'from_date' in search_params:
@@ -9686,7 +9687,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         order_id = search_params['order_id']
         order_id_search = ''.join(re.findall('\d+', order_id))
         order_code_search = ''.join(re.findall('\D+', order_id))
-        order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+        order_detail_objs = OrderDetail.objects.using(reports_database).filter(Q(order_id=order_id_search, order_code=order_code_search) |
                                                        Q(original_order_id=order_id), **search_parameters)
         if order_detail_objs:
             search_parameters['id__in'] = order_detail_objs.values_list('id', flat=True)
@@ -9696,24 +9697,24 @@ def get_dist_sales_report_data(search_params, user, sub_user):
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    order_qs = OrderDetail.objects.filter(**search_parameters)
+    order_qs = OrderDetail.objects.using(reports_database).filter(**search_parameters)
 
     ##Orders Status Functionality
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
-    order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(**search_parameters). \
+    order_id_status = dict(OrderDetail.objects.using(reports_database).select_related('order_id', 'status').filter(**search_parameters). \
                            only('order_id', 'status').values_list('order_id', 'status').distinct())
 
-    picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open', picked_quantity=0,
+    picklist_generated = Picklist.objects.using(reports_database).select_related('order').filter(status__icontains='open', picked_quantity=0,
                                                                          **pick_filters).only(
         'order__order_id').values_list('order__order_id', flat=True).distinct()
 
-    partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
+    partially_picked = Picklist.objects.using(reports_database).filter(status__icontains='open', picked_quantity__gt=0,
                                                reserved_quantity__gt=0, **pick_filters).values_list('order__order_id',
                                                                                                     flat=True).distinct()
 
-    picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
+    picked_orders = Picklist.objects.using(reports_database).filter(status__icontains='picked', picked_quantity__gt=0,
                                             reserved_quantity=0, **pick_filters).values_list('order__order_id',
                                                                                              flat=True).distinct()
     _status = ""
@@ -9721,7 +9722,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         ord_ids = ""
         if status_search == 'Open':
-            ord_ids = OrderDetail.objects.filter(status=1, **search_parameters). \
+            ord_ids = OrderDetail.objects.using(reports_database).filter(status=1, **search_parameters). \
                 values_list('order_id', flat=True).distinct()
         elif status_search == 'Picklist generated':
             ord_ids = picklist_generated
@@ -9838,24 +9839,24 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   zone__icontains=zone_code).values_list('user_id', flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
-    reseller_dist_mapping = dict(CustomerMaster.objects.filter(user__in=distributors).values_list('id', 'user'))
-    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
-    dist_names_map = dict(UserProfile.objects.filter(user__in=distributors).
+    reseller_dist_mapping = dict(CustomerMaster.objects.using(reports_database).filter(user__in=distributors).values_list('id', 'user'))
+    zones_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).values_list('user_id', 'zone'))
+    dist_names_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).
                           values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -9872,14 +9873,14 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         order_id = search_params['order_id']
         order_id_search = ''.join(re.findall('\d+', order_id))
         order_code_search = ''.join(re.findall('\D+', order_id))
-        order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+        order_detail_objs = OrderDetail.objects.using(reports_database).filter(Q(order_id=order_id_search, order_code=order_code_search) |
                                                        Q(original_order_id=order_id), **search_parameters)
         if order_detail_objs:
             search_parameters['orderdetail__id__in'] = order_detail_objs.values_list('id', flat=True)
         else:
             search_parameters['orderdetail__id__in'] = []
     if 'reseller_code' in search_params:
-        res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']). \
+        res_ids = CustomerMaster.objects.using(reports_database).filter(name__contains=search_params['reseller_code']). \
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
     if 'corporate_name' in search_params:
@@ -9891,26 +9892,26 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     # search_parameters['cust_wh_id__in'] = distributors
-    search_parameters['customer_id__in'] = CustomerMaster.objects.filter(user__in=distributors).values_list('id',
+    search_parameters['customer_id__in'] = CustomerMaster.objects.using(reports_database).filter(user__in=distributors).values_list('id',
                                                                                                             flat=True)
-    generic_order_qs = GenericOrderDetailMapping.objects.filter(**search_parameters)
+    generic_order_qs = GenericOrderDetailMapping.objects.using(reports_database).filter(**search_parameters)
 
     ##Orders Status Functionality
     orderdetail_ids = generic_order_qs.values_list('orderdetail_id', flat=True)
-    order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(id__in=orderdetail_ids). \
+    order_id_status = dict(OrderDetail.objects.using(reports_database).select_related('order_id', 'status').filter(id__in=orderdetail_ids). \
                            only('order_id', 'status').values_list('order_id', 'status').distinct())
 
-    picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open',
+    picklist_generated = Picklist.objects.using(reports_database).select_related('order').filter(status__icontains='open',
                                                                          picked_quantity=0,
                                                                          order__id__in=orderdetail_ids).only(
         'order__order_id').values_list('order__order_id', flat=True).distinct()
 
-    partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
+    partially_picked = Picklist.objects.using(reports_database).filter(status__icontains='open', picked_quantity__gt=0,
                                                reserved_quantity__gt=0, order__id__in=orderdetail_ids).values_list(
         'order__order_id',
         flat=True).distinct()
 
-    picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
+    picked_orders = Picklist.objects.using(reports_database).filter(status__icontains='picked', picked_quantity__gt=0,
                                             reserved_quantity=0, order__id__in=orderdetail_ids). \
         values_list('order__order_id', flat=True).distinct()
     _status = ""
@@ -9918,7 +9919,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         ord_ids = ""
         if status_search == 'Open':
-            ord_ids = OrderDetail.objects.filter(status=1, id__in=orderdetail_ids). \
+            ord_ids = OrderDetail.objects.using(reports_database).filter(status=1, id__in=orderdetail_ids). \
                 values_list('order_id', flat=True).distinct()
         elif status_search == 'Picklist generated':
             ord_ids = picklist_generated
@@ -9940,7 +9941,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                          'client_name', 'customer_id', 'orderdetail_id'
                                          )
     customer_ids = generic_order_qs.values_list('customer_id', flat=True)
-    cust_id_names_map = dict(CustomerUserMapping.objects.filter(customer_id__in=customer_ids).
+    cust_id_names_map = dict(CustomerUserMapping.objects.using(reports_database).filter(customer_id__in=customer_ids).
                              values_list('customer_id', Concat('user__username', Value(' - '), 'customer__name')))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -10033,18 +10034,18 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
     distributors = get_same_level_warehouses(2, user)
     if sub_user.userprofile.zone:
         zone_id = sub_user.userprofile.zone
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   zone__icontains=zone_id).values_list('user_id', flat=True)
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors, zone=zone_code).values_list('user_id',
                                                                                                      flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
-    dist_resellers_qs = CustomerMaster.objects.filter(user__in=distributors). \
+    dist_resellers_qs = CustomerMaster.objects.using(reports_database).filter(user__in=distributors). \
         values_list('user', 'customerusermapping__customer')
     resellers = []
     res_dist_map = {}
@@ -10052,12 +10053,12 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
     for dist, res in dist_resellers_qs:
         res_dist_map[res] = dist
         resellers.append(res)
-    dist_cust_ids_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors).values_list('warehouse_id',
+    dist_cust_ids_qs = WarehouseCustomerMapping.objects.using(reports_database).filter(warehouse__in=distributors).values_list('warehouse_id',
                                                                                                        'customer_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.values()
     if 'reseller_code' in search_params:
-        res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']). \
+        res_ids = CustomerMaster.objects.using(reports_database).filter(name__contains=search_params['reseller_code']). \
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
     if 'from_date' in search_params:
@@ -10072,13 +10073,13 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
         from_date = search_params['from_date']
         to_date = search_params['to_date']
         days_range = (to_date - from_date).days
-    orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
+    orderdetail_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id__in=dist_customers)
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
         dist = res_dist_map.get(reseller, '')
         if not dist:
             continue
-        res_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).exclude(cust_wh_id=dist)
+        res_ord_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=reseller).exclude(cust_wh_id=dist)
         res_orders = list(res_ord_objs.values_list('orderdetail_id', flat=True))
         for ord_id in res_orders:
             ord_res_map[ord_id] = reseller
@@ -10086,11 +10087,11 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
-    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user__username', 'zone'))
-    names_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'user__username'))
-    target_qs = TargetMaster.objects.filter(distributor__in=distributors)
+    zones_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).values_list('user__username', 'zone'))
+    names_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).values_list('user_id', 'user__username'))
+    target_qs = TargetMaster.objects.using(reports_database).filter(distributor__in=distributors)
     zone_targets = dict(target_qs.values_list('distributor__userprofile__zone').annotate(Sum('target_amt')))
-    order_qs = OrderDetail.objects.filter(**search_parameters)
+    order_qs = OrderDetail.objects.using(reports_database).filter(**search_parameters)
     model_data = order_qs.values('id', 'user', 'quantity', 'unit_price', 'invoice_amount')
     dist_totals_map = {}
     for data in model_data:
@@ -10172,18 +10173,18 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     distributors = get_same_level_warehouses(2, user)
     if sub_user.userprofile.zone:
         zone_id = sub_user.userprofile.zone
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   zone__icontains=zone_id).values_list('user_id', flat=True)
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors, zone=zone_code).values_list('user_id',
                                                                                                      flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
-    dist_resellers_qs = CustomerMaster.objects.filter(user__in=distributors). \
+    dist_resellers_qs = CustomerMaster.objects.using(reports_database).filter(user__in=distributors). \
         values_list('user', 'customerusermapping__customer')
     resellers = []
     res_dist_map = {}
@@ -10206,20 +10207,20 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
         to_date = search_params['to_date']
         days_range = (to_date - from_date).days
     # if 'reseller_code' in search_params:
-    #     res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']).\
+    #     res_ids = CustomerMaster.objects.using(reports_database).filter(name__contains=search_params['reseller_code']).\
     #         values_list('id', flat=True)
     #     search_parameters['customer_id__in'] = res_ids
-    dist_cust_ids_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors).values_list('warehouse_id',
+    dist_cust_ids_qs = WarehouseCustomerMapping.objects.using(reports_database).filter(warehouse__in=distributors).values_list('warehouse_id',
                                                                                                        'customer_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.values()
-    orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
+    orderdetail_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id__in=dist_customers)
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
         dist = res_dist_map.get(reseller, '')
         if not dist:
             continue
-        res_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).exclude(cust_wh_id=dist)
+        res_ord_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=reseller).exclude(cust_wh_id=dist)
         res_orders = list(res_ord_objs.values_list('orderdetail_id', flat=True))
         for ord_id in res_orders:
             ord_res_map[ord_id] = reseller
@@ -10231,14 +10232,14 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     tgt_filters = {'distributor__in': distributors}
     if 'reseller_code' in search_params:
-        res_qs = CustomerUserMapping.objects.filter(customer__name__icontains=search_params['reseller_code'])
+        res_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__name__icontains=search_params['reseller_code'])
         tgt_filters['reseller__id__in'] = res_qs.values_list('user__id', flat=True)
     if 'corporate_name' in search_params:
-        corp_qs = CorporateMaster.objects.filter(name__icontains=search_params['corporate_name'])
+        corp_qs = CorporateMaster.objects.using(reports_database).filter(name__icontains=search_params['corporate_name'])
         corp_ids = corp_qs.values_list('id', flat=True)
         tgt_filters['corporate_id__in'] = corp_ids
-    target_qs = TargetMaster.objects.filter(**tgt_filters)
-    # target_qs = TargetMaster.objects.filter(distributor__in=distributors)
+    target_qs = TargetMaster.objects.using(reports_database).filter(**tgt_filters)
+    # target_qs = TargetMaster.objects.using(reports_database).filter(distributor__in=distributors)
     zone_targets = dict(target_qs.values_list('distributor__userprofile__zone').annotate(Sum('target_amt')))
     dist_targets = dict(target_qs.values_list('distributor__username').annotate(Sum('target_amt')))
     res_targets = dict(target_qs.values_list('reseller__username').annotate(Sum('target_amt')))
@@ -10267,14 +10268,14 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
         reseller_usr_id = target['reseller_id']
         reseller_name = reseller_code + ' - ' + target['reseller__first_name']
         res_target = res_targets[reseller_code]
-        res_cm_id = CustomerUserMapping.objects.filter(user_id=reseller_usr_id)
+        res_cm_id = CustomerUserMapping.objects.using(reports_database).filter(user_id=reseller_usr_id)
         if res_cm_id:
             res_cm_id = res_cm_id[0].customer_id
         else:
             continue
         corp_id = target['corporate_id']
-        corp_name = CorporateMaster.objects.get(id=corp_id).name
-        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id,
+        corp_name = CorporateMaster.objects.using(reports_database).get(id=corp_id).name
+        achieved_tgt_obj = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=res_cm_id,
                                                                     client_name=corp_name).filter(**date_filters)
         if achieved_tgt_obj:
             achieved_tgt = achieved_tgt_obj.values('customer_id', 'client_name'). \
@@ -10353,20 +10354,20 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors, zone=zone_code).values_list('user_id',
                                                                                                      flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
-    dist_resellers_qs = CustomerMaster.objects.filter(user__in=distributors). \
+    dist_resellers_qs = CustomerMaster.objects.using(reports_database).filter(user__in=distributors). \
         values_list('user', 'customerusermapping__customer')
     resellers = []
     res_dist_map = {}
@@ -10374,17 +10375,17 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     for dist, res in dist_resellers_qs:
         res_dist_map[res] = dist
         resellers.append(res)
-    dist_cust_ids_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors).values_list('warehouse_id',
+    dist_cust_ids_qs = WarehouseCustomerMapping.objects.using(reports_database).filter(warehouse__in=distributors).values_list('warehouse_id',
                                                                                                        'customer_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.values()
-    orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
+    orderdetail_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id__in=dist_customers)
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
         dist = res_dist_map.get(reseller, '')
         if not dist:
             continue
-        res_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).exclude(cust_wh_id=dist)
+        res_ord_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=reseller).exclude(cust_wh_id=dist)
         res_orders = list(res_ord_objs.values_list('orderdetail_id', flat=True))
         for ord_id in res_orders:
             ord_res_map[ord_id] = reseller
@@ -10402,19 +10403,19 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         to_date = search_params['to_date']
         days_range = (to_date - from_date).days
     if 'corporate_name' in search_params:
-        corp_filtered_order_objs = GenericOrderDetailMapping.objects. \
+        corp_filtered_order_objs = GenericOrderDetailMapping.objects.using(reports_database). \
             filter(client_name__icontains=search_params['corporate_name'], orderdetail_id__in=orderdetail_ids)
         orderdetail_ids = list(corp_filtered_order_objs.values_list('orderdetail_id', flat=True))
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
-    names_map = dict(UserProfile.objects.filter(user__in=distributors).
+    names_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).
                      values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
-    target_qs = TargetMaster.objects.filter(distributor__in=distributors)
+    target_qs = TargetMaster.objects.using(reports_database).filter(distributor__in=distributors)
     dist_targets = dict(
         target_qs.values_list(Concat('distributor__username', Value(' - '), 'distributor__first_name')).annotate(
             Sum('target_amt')))
-    order_qs = OrderDetail.objects.filter(**search_parameters)
+    order_qs = OrderDetail.objects.using(reports_database).filter(**search_parameters)
     model_data = order_qs.values('id', 'user', 'quantity', 'unit_price', 'invoice_amount')
     tgt_totals_map = {}
     for data in model_data:
@@ -10494,20 +10495,20 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors, zone=zone_code).values_list('user_id',
                                                                                                      flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
-    dist_resellers_qs = CustomerMaster.objects.filter(user__in=distributors). \
+    dist_resellers_qs = CustomerMaster.objects.using(reports_database).filter(user__in=distributors). \
         values_list('user', 'customerusermapping__customer')
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -10529,17 +10530,17 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     for dist, res in dist_resellers_qs:
         res_dist_map[res] = dist
         resellers.append(res)
-    dist_cust_ids_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors).values_list('warehouse_id',
+    dist_cust_ids_qs = WarehouseCustomerMapping.objects.using(reports_database).filter(warehouse__in=distributors).values_list('warehouse_id',
                                                                                                        'customer_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.values()
-    orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
+    orderdetail_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id__in=dist_customers)
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
         dist = res_dist_map.get(reseller, '')
         if not dist:
             continue
-        res_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).exclude(cust_wh_id=dist)
+        res_ord_objs = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=reseller).exclude(cust_wh_id=dist)
         res_orders = list(res_ord_objs.values_list('orderdetail_id', flat=True))
         for ord_id in res_orders:
             ord_res_map[ord_id] = reseller
@@ -10549,24 +10550,24 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
-    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user__username', 'zone'))
-    names_map = dict(UserProfile.objects.filter(user__in=distributors).
+    zones_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).values_list('user__username', 'zone'))
+    names_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).
                      values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
     tgt_filters = {'distributor__in': distributors}
     if 'reseller_code' in search_params:
-        res_qs = CustomerUserMapping.objects.filter(customer__name__icontains=search_params['reseller_code'])
+        res_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__name__icontains=search_params['reseller_code'])
         tgt_filters['reseller__id__in'] = res_qs.values_list('user__id', flat=True)
     if 'corporate_name' in search_params:
-        corp_qs = CorporateMaster.objects.filter(name__icontains=search_params['corporate_name'])
+        corp_qs = CorporateMaster.objects.using(reports_database).filter(name__icontains=search_params['corporate_name'])
         corp_ids = corp_qs.values_list('id', flat=True)
         tgt_filters['corporate_id__in'] = corp_ids
-    target_qs = TargetMaster.objects.filter(**tgt_filters)
+    target_qs = TargetMaster.objects.using(reports_database).filter(**tgt_filters)
     dist_targets = dict(target_qs.values_list('distributor__username').annotate(Sum('target_amt')))
     res_targets = dict(target_qs.values_list('reseller__username').annotate(Sum('target_amt')))
     target_vals = target_qs.values('distributor__userprofile__zone', 'distributor__username', 'distributor__first_name',
                                    'reseller__username', 'reseller__first_name',
                                    'corporate_id', 'target_amt', 'reseller_id')
-    order_qs = OrderDetail.objects.filter(**search_parameters)
+    order_qs = OrderDetail.objects.using(reports_database).filter(**search_parameters)
     model_data = order_qs.values('id', 'user', 'quantity', 'unit_price', 'invoice_amount')
     totals_map = {}
     for data in model_data:
@@ -10615,17 +10616,17 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
         reseller_usr_id = target['reseller_id']
         res_target = res_targets[reseller_code]
         reseller_name = reseller_code + ' - ' + target['reseller__first_name']
-        res_cm_id = CustomerUserMapping.objects.filter(user_id=reseller_usr_id)
+        res_cm_id = CustomerUserMapping.objects.using(reports_database).filter(user_id=reseller_usr_id)
         if res_cm_id:
             res_cm_id = res_cm_id[0].customer_id
         else:
             print
             "No res_cm_id: ", target
         corp_id = target['corporate_id']
-        corp_name = CorporateMaster.objects.get(id=corp_id).name
+        corp_name = CorporateMaster.objects.using(reports_database).get(id=corp_id).name
         corp_target = target['target_amt']
         ytd_target = round((corp_target / 365) * days_passed, 2)
-        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id,
+        achieved_tgt_obj = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=res_cm_id,
                                                                     client_name=corp_name).filter(**date_filters)
         if achieved_tgt_obj:
             achieved_tgt = achieved_tgt_obj.values('customer_id', 'client_name'). \
@@ -10691,17 +10692,17 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   zone__icontains=zone_code).values_list('user_id', flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
     search_parameters['cust_wh_id__in'] = distributors
@@ -10711,24 +10712,24 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = GenericOrderDetailMapping.objects.filter(**search_parameters). \
+    model_data = GenericOrderDetailMapping.objects.using(reports_database).filter(**search_parameters). \
         values('generic_order_id', 'orderdetail__order_id', 'orderdetail__order_code', 'cust_wh_id',
                'quantity', 'creation_date', 'orderdetail__status', 'unit_price', 'orderdetail__invoice_amount',
                'client_name', 'customer_id'
                )
     totals_map = {}
-    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__user__in=distributors)
     resellers = resellers_qs.values_list('user_id', flat=True)
     resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))
     tgt_filters = {'reseller__in': resellers}
     if 'reseller_code' in search_params:
-        res_qs = CustomerUserMapping.objects.filter(customer__name__icontains=search_params['reseller_code'])
+        res_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__name__icontains=search_params['reseller_code'])
         tgt_filters['reseller__id__in'] = res_qs.values_list('user__id', flat=True)
     if 'corporate_name' in search_params:
-        corp_qs = CorporateMaster.objects.filter(name__icontains=search_params['corporate_name'])
+        corp_qs = CorporateMaster.objects.using(reports_database).filter(name__icontains=search_params['corporate_name'])
         corp_ids = corp_qs.values_list('id', flat=True)
         tgt_filters['corporate_id__in'] = corp_ids
-    target_qs = TargetMaster.objects.filter(**tgt_filters)
+    target_qs = TargetMaster.objects.using(reports_database).filter(**tgt_filters)
     reseller_targets = dict(target_qs.values_list('reseller__username').annotate(Sum('target_amt')))
     resellers_names = dict(target_qs.values_list('reseller__username',
                                                  Concat('reseller__username', Value(' - '), 'reseller__first_name')))
@@ -10802,7 +10803,7 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
@@ -10812,17 +10813,17 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__user__in=distributors)
     resellers = resellers_qs.values_list('user_id', flat=True)
     tgt_filters = {'reseller__in': resellers}
     if 'reseller_code' in search_params:
-        res_qs = CustomerUserMapping.objects.filter(customer__name__iexact=search_params['reseller_code'])
+        res_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__name__iexact=search_params['reseller_code'])
         tgt_filters['reseller__id__in'] = res_qs.values_list('user__id', flat=True)
     if 'corporate_name' in search_params:
-        corp_qs = CorporateMaster.objects.filter(name__iexact=search_params['corporate_name'])
+        corp_qs = CorporateMaster.objects.using(reports_database).filter(name__iexact=search_params['corporate_name'])
         corp_ids = corp_qs.values_list('id', flat=True)
         tgt_filters['corporate_id__in'] = corp_ids
-    target_qs = TargetMaster.objects.filter(**tgt_filters)
+    target_qs = TargetMaster.objects.using(reports_database).filter(**tgt_filters)
     res_targets = dict(target_qs.values_list('reseller__username').annotate(Sum('target_amt')))
     resellers_names = dict(target_qs.values_list('reseller__username',
                                                  Concat('reseller__username', Value(' - '), 'reseller__first_name')))
@@ -10840,16 +10841,16 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
         reseller_code = target['reseller__username']
         reseller_usr_id = target['reseller_id']
         res_target = res_targets[reseller_code]
-        res_cm_id = CustomerUserMapping.objects.filter(user_id=reseller_usr_id)
+        res_cm_id = CustomerUserMapping.objects.using(reports_database).filter(user_id=reseller_usr_id)
         if res_cm_id:
             res_cm_id = res_cm_id[0].customer_id
         else:
             continue
         corp_id = target['corporate_id']
-        corp_name = CorporateMaster.objects.get(id=corp_id).name
+        corp_name = CorporateMaster.objects.using(reports_database).get(id=corp_id).name
         corp_target = target['target_amt']
         ytd_target = round((corp_target / 365) * days_passed, 2)
-        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id, client_name=corp_name)
+        achieved_tgt_obj = GenericOrderDetailMapping.objects.using(reports_database).filter(customer_id=res_cm_id, client_name=corp_name)
         if achieved_tgt_obj:
             achieved_tgt = achieved_tgt_obj.values('customer_id', 'client_name'). \
                 annotate(net_amt=Sum(F('unit_price') * F('quantity')))
@@ -10907,7 +10908,7 @@ def get_corporate_target_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
@@ -10917,16 +10918,16 @@ def get_corporate_target_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__user__in=distributors)
     resellers = resellers_qs.values_list('user_id', flat=True)
     tgt_filters = {'reseller__in': resellers}
     if 'corporate_name' in search_params:
-        corp_qs = CorporateMaster.objects.filter(name__iexact=search_params['corporate_name'])
+        corp_qs = CorporateMaster.objects.using(reports_database).filter(name__iexact=search_params['corporate_name'])
         corp_ids = corp_qs.values_list('id', flat=True)
         tgt_filters['corporate_id__in'] = corp_ids
-    target_qs = TargetMaster.objects.filter(**tgt_filters)
+    target_qs = TargetMaster.objects.using(reports_database).filter(**tgt_filters)
     corp_targets = dict(target_qs.values_list('corporate_id').annotate(Sum('target_amt')))
-    achieved_tgt_map = dict(GenericOrderDetailMapping.objects.values_list('client_name').
+    achieved_tgt_map = dict(GenericOrderDetailMapping.objects.using(reports_database).values_list('client_name').
                             annotate(net_amt=Sum(F('unit_price') * F('quantity'))))
     temp_data['recordsTotal'] = len(corp_targets)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -10937,7 +10938,7 @@ def get_corporate_target_report_data(search_params, user, sub_user):
 
     totals_map = {}
     for corp_id, corp_target in corp_targets.items():
-        corp_name = CorporateMaster.objects.get(id=corp_id).name
+        corp_name = CorporateMaster.objects.using(reports_database).get(id=corp_id).name
         ytd_target = round((corp_target / 365) * days_passed, 2)
         ytd_act_sale = achieved_tgt_map.get(corp_name, 0)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
@@ -10976,7 +10977,7 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
             zone_id = sub_user.userprofile.zone
-            distributors = UserProfile.objects.filter(user__in=distributors,
+            distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                       zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
@@ -10986,32 +10987,32 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
 
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors, zone__icontains=zone_code). \
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors, zone__icontains=zone_code). \
             values_list('user_id', flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
-    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
-    names_map = dict(UserProfile.objects.filter(user__in=distributors).
+    zones_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).values_list('user_id', 'zone'))
+    names_map = dict(UserProfile.objects.using(reports_database).filter(user__in=distributors).
                      values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
-    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__user__in=distributors)
     resellers = resellers_qs.values_list('customer_id', flat=True)
     res_dist_ids_map = dict(resellers_qs.values_list('customer_id', 'customer__user'))
     resellers_names_map = dict(resellers_qs.values_list('customer_id',
                                                         Concat('user__username', Value(' - '), 'user__first_name')))
     res_corp_filters = {'reseller_id__in': resellers}
     if 'reseller_code' in search_params:
-        res_qs = CustomerUserMapping.objects.filter(customer__name__iexact=search_params['reseller_code'])
+        res_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__name__iexact=search_params['reseller_code'])
         res_corp_filters['reseller_id__in'] = res_qs.values_list('customer__id', flat=True)
     if 'corporate_name' in search_params:
-        corp_qs = CorporateMaster.objects.filter(name__iexact=search_params['corporate_name'])
+        corp_qs = CorporateMaster.objects.using(reports_database).filter(name__iexact=search_params['corporate_name'])
         corp_ids = corp_qs.values_list('id', flat=True)
         res_corp_filters['corporate_id__in'] = corp_ids
-    res_corp_qs = CorpResellerMapping.objects.filter(**res_corp_filters). \
+    res_corp_qs = CorpResellerMapping.objects.using(reports_database).filter(**res_corp_filters). \
         exclude(status=0).values_list('reseller_id', 'corporate_id')
-    corp_id_names = dict(CorporateMaster.objects.values_list('id', 'name'))
+    corp_id_names = dict(CorporateMaster.objects.using(reports_database).values_list('id', 'name'))
     temp_data['recordsTotal'] = len(res_corp_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
@@ -11037,7 +11038,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         distributors = get_same_level_warehouses(2, user)
         # if sub_user.userprofile.zone:
         #     zone_id = sub_user.userprofile.zone
-        #     distributors = UserProfile.objects.filter(user__in=distributors,
+        #     distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
         #                                               zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
@@ -11048,11 +11049,11 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     search_parameters = {}
     zone_code = search_params.get('zone_code', '')
     if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors, zone__icontains=zone_code). \
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors, zone__icontains=zone_code). \
             values_list('user_id', flat=True)
     dist_code = search_params.get('distributor_code', '')
     if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
+        distributors = UserProfile.objects.using(reports_database).filter(user__in=distributors,
                                                   user__first_name__icontains=dist_code).values_list('user_id',
                                                                                                      flat=True)
     if 'from_date' in search_params:
@@ -11065,7 +11066,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 
     search_parameters['enquiry__user__in'] = distributors
     if 'reseller_code' in search_params:
-        res_ids = CustomerMaster.objects.filter(name__icontains=search_params['reseller_code']). \
+        res_ids = CustomerMaster.objects.using(reports_database).filter(name__icontains=search_params['reseller_code']). \
             values_list('id', flat=True)
         search_parameters['enquiry__customer_id__in'] = res_ids
     if 'enquiry_status' in search_params:
@@ -11086,13 +11087,13 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     if 'corporate_name' in search_params:
         search_parameters['enquiry__customer_name'] = search_params['corporate_name']
 
-    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers_qs = CustomerUserMapping.objects.using(reports_database).filter(customer__user__in=distributors)
     resellers_names_map = dict(resellers_qs.values_list('customer_id',
                                                         Concat('user__username', Value(' - '), 'user__first_name')))
 
-    enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
+    enquired_sku_qs = EnquiredSku.objects.using(reports_database).filter(**search_parameters)
     enq_ids = enquired_sku_qs.values_list('id', flat=True)
-    asn_res_qs = ASNReserveDetail.objects.filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1,
+    asn_res_qs = ASNReserveDetail.objects.using(reports_database).filter(enquirydetail_id__in=enq_ids, enquirydetail__warehouse_level=1,
                                                  reserved_qty__gt=0)
     temp_data['recordsTotal'] = enquired_sku_qs.count() + asn_res_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -11114,13 +11115,13 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         else:
             days_left = 0
         customer_name = resellers_names_map.get(em_obj.customer_id, '')
-        dist_obj = User.objects.get(id=em_obj.user)
+        dist_obj = User.objects.using(reports_database).get(id=em_obj.user)
         distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
         zone = dist_obj.userprofile.zone
         user_name = en_obj.sku.user
         warehouse = ''
         if user_name:
-            user = User.objects.get(id=user_name)
+            user = User.objects.using(reports_database).get(id=user_name)
             warehouse = user.username
         sku_code = en_obj.sku.sku_code
         quantity = asn_obj.reserved_qty
@@ -11161,13 +11162,13 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         else:
             days_left = 0
         customer_name = resellers_names_map.get(em_obj.customer_id, '')
-        dist_obj = User.objects.get(id=em_obj.user)
+        dist_obj = User.objects.using(reports_database).get(id=em_obj.user)
         distributor_name = dist_obj.username + ' - ' + dist_obj.first_name
         zone = dist_obj.userprofile.zone
         user_name = en_obj.sku.user
         warehouse = ''
         if user_name:
-            user = User.objects.get(id=user_name)
+            user = User.objects.using(reports_database).get(id=user_name)
             warehouse = user.username
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
@@ -11213,7 +11214,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     sister_whs = [user.id]
     if user.userprofile.warehouse_type == 'admin':
         sister_whs = list(
-            User.objects.filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
+            User.objects.using(reports_database).filter(username__in=get_linked_user_objs(user, user)).values_list('id', flat=True))
         sister_whs.append(user.id)
     if not firebase_response:
         firebase_response = {}
@@ -11263,7 +11264,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = ShipmentInfo.objects.filter(**search_parameters) \
+    model_data = ShipmentInfo.objects.using(reports_database).filter(**search_parameters) \
         .values('order_shipment__shipment_number', 'order__order_id', 'id', 'order__status',
                 'order__original_order_id', 'order__id', 'order__order_code', 'order__sku__sku_code', 'order__sku_id',
                 'order__sku__sku_category', 'order__sku__sub_category', 'order__sku__sku_brand',
@@ -11277,7 +11278,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     ship_search_params = {}
     for key, value in search_parameters.iteritems():
         ship_search_params['shipment__%s' % key] = value
-    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status'). \
+    ship_status = dict(ShipmentTracking.objects.using(reports_database).filter(**ship_search_params).values_list('shipment_id', 'ship_status'). \
                        distinct().order_by('creation_date'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -11294,16 +11295,16 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
     seventytwo_networks = False
     ord_det_ids = [i['order__id'] for i in model_data]
     ord_invoice_map = dict(
-        SellerOrderSummary.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'invoice_number'))
+        SellerOrderSummary.objects.using(reports_database).filter(order_id__in=ord_det_ids).values_list('order_id', 'invoice_number'))
     ord_serialnum_map = dict(
-        OrderIMEIMapping.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'po_imei__imei_number'))
+        OrderIMEIMapping.objects.using(reports_database).filter(order_id__in=ord_det_ids).values_list('order_id', 'po_imei__imei_number'))
     ord_inv_dates_map = dict(
-        OrderIMEIMapping.objects.filter(order_id__in=ord_det_ids).values_list('order_id', 'creation_date'))
+        OrderIMEIMapping.objects.using(reports_database).filter(order_id__in=ord_det_ids).values_list('order_id', 'creation_date'))
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
         sku_id = data['order__sku_id']
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -11340,7 +11341,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                         str(user.username), str(e)))
         delivered_time = ''
         if data['order__original_order_id']:
-            order = OrderDetail.objects.filter(original_order_id=data['order__original_order_id'], user=user.id)
+            order = OrderDetail.objects.using(reports_database).filter(original_order_id=data['order__original_order_id'], user=user.id)
             payment_status = order.values('customerordersummary__payment_status')[0].get(
                 'customerordersummary__payment_status', '')
         if ord_invoice_map and central_order_reassigning == 'true':
@@ -11398,14 +11399,14 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
             shipment_status = 'Delivered'
         if refusal:
             shipment_status = 'Refused'
-        order_return_obj = OrderReturns.objects.filter(order__original_order_id=order_id,
+        order_return_obj = OrderReturns.objects.using(reports_database).filter(order__original_order_id=order_id,
                                                        sku__wms_code=data['order__sku__sku_code'], sku__user=user.id)
         if order_return_obj.exists() and central_order_reassigning == 'true':
             shipment_status = 'Returned'
         if id_proof_number and shipment_status == 'Returned':
             shipment_status = 'Delivered'
         serial_number = ''
-        # serial_number_qs = OrderIMEIMapping.objects.filter(order_id=data['order__id'])
+        # serial_number_qs = OrderIMEIMapping.objects.using(reports_database).filter(order_id=data['order__id'])
         # if serial_number_qs:
         #     if serial_number_qs[0].po_imei:
         #         serial_number = serial_number_qs[0].po_imei.imei_number
@@ -11498,21 +11499,21 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
 
     if 'sister_warehouse' in search_params:
         sister_warehouse_name = search_params['sister_warehouse']
-        user = User.objects.get(username=sister_warehouse_name)
-        warehouses = UserGroups.objects.filter(user_id=user.id)
+        user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+        warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
     else:
-        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
     warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
     warehouse_users[user.id] = user.username
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=warehouse_users.keys(),
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user__in=warehouse_users.keys(),
                                                    received_quantity__lt=F('open_po__order_quantity')). \
         exclude(status='location-assigned').filter(**search_parameters).order_by(order_data)
     # if not purchase_orders:
-    #     rw_orders = RWPurchase.objects.filter(rwo__vendor__user=user.id,
+    #     rw_orders = RWPurchase.objects.using(reports_database).filter(rwo__vendor__user=user.id,
     #                                           rwo__job_order__product_code_id__in=sku_master_ids). \
     #         exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
     #         values_list('purchase_order_id', flat=True)
-    #     purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
+    #     purchase_orders = PurchaseOrder.objects.using(reports_database).filter(id__in=rw_orders)
 
     temp_data['recordsTotal'] = purchase_orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -11524,7 +11525,7 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for order in purchase_orders:
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=order.open_po.sku_id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=order.open_po.sku_id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -11537,14 +11538,14 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
             order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
         customer_name, sr_number = '', ''
         if oneassist_condition == 'true':
-            customer_data = OrderMapping.objects.filter(mapping_id=order.id, mapping_type='PO')
+            customer_data = OrderMapping.objects.using(reports_database).filter(mapping_id=order.id, mapping_type='PO')
             if customer_data:
                 customer_name = customer_data[0].order.customer_name
-                interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id,
+                interorder_data = IntermediateOrders.objects.using(reports_database).filter(order_id=customer_data[0].order_id,
                                                                     user_id=admin_user.id)
                 if interorder_data:
                     inter_order_id = interorder_data[0].interm_order_id
-                    courtesy_sr_number = OrderFields.objects.filter(original_order_id=inter_order_id,
+                    courtesy_sr_number = OrderFields.objects.using(reports_database).filter(original_order_id=inter_order_id,
                                                                     user=admin_user.id, name='original_order_id')
                     if courtesy_sr_number:
                         sr_number = courtesy_sr_number[0].value
@@ -11598,14 +11599,14 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
 
     if 'sister_warehouse' in search_params:
         sister_warehouse_name = search_params['sister_warehouse']
-        user = User.objects.get(username=sister_warehouse_name)
-        warehouses = UserGroups.objects.filter(user_id=user.id)
+        user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+        warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
     else:
-        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
     for warehouse in warehouses:
-        view_orders = OrderDetail.objects.filter(user=warehouse.user_id, status=1, quantity__gt=0).filter(
+        view_orders = OrderDetail.objects.using(reports_database).filter(user=warehouse.user_id, status=1, quantity__gt=0).filter(
             **search_parameters)
-        picked_orders = Picklist.objects.filter(status__contains='open', order__user=warehouse.user_id,
+        picked_orders = Picklist.objects.using(reports_database).filter(status__contains='open', order__user=warehouse.user_id,
                                                 reserved_quantity__gt=0).filter(**serach_picked).select_related('order')
         temp_data['recordsTotal'] += view_orders.count() + picked_orders.count()
         temp_data['recordsFiltered'] += temp_data['recordsTotal']
@@ -11614,9 +11615,9 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
             view_orders = view_orders[start_index:stop_index]
         for order in view_orders:
             try:
-                interm_obj = IntermediateOrders.objects.filter(order_id=str(order.id))
+                interm_obj = IntermediateOrders.objects.using(reports_database).filter(order_id=str(order.id))
                 if interm_obj.exists():
-                    orderfield_obj = OrderFields.objects.filter(original_order_id=str(order.original_order_id),
+                    orderfield_obj = OrderFields.objects.using(reports_database).filter(original_order_id=str(order.original_order_id),
                                                                 order_type='intermediate_order',
                                                                 user=str(interm_obj[0].user.id)).values('name', 'value')
                     if orderfield_obj:
@@ -11668,9 +11669,9 @@ def get_open_order_report_data(search_params, user, sub_user, serial_view=False)
             picked_orders = picked_orders[start_index:stop_index]
         for picked_order in picked_orders:
             try:
-                interm_obj = IntermediateOrders.objects.filter(order_id=str(picked_order.order.id))
+                interm_obj = IntermediateOrders.objects.using(reports_database).filter(order_id=str(picked_order.order.id))
                 if interm_obj.exists():
-                    orderfield_obj = OrderFields.objects.filter(
+                    orderfield_obj = OrderFields.objects.using(reports_database).filter(
                         original_order_id=str(picked_order.order.original_order_id), order_type='intermediate_order',
                         user=str(interm_obj[0].user.id)).values('name', 'value')
                     if orderfield_obj:
@@ -11755,7 +11756,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
         start_index = search_params.get('start', 0)
         stop_index = start_index + search_params.get('length', 0)
 
-        sku_masters = SKUMaster.objects.filter(user=user.id, **search_parameters)
+        sku_masters = SKUMaster.objects.using(reports_database).filter(user=user.id, **search_parameters)
         if search_params.get('order_term'):
             order_data = lis[search_params['order_index']]
             if search_params['order_term'] == 'desc':
@@ -11769,7 +11770,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
         attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
         for sku in sku_masters:
             manufacturer, searchable, bundle = '', '', ''
-            attributes_obj = SKUAttributes.objects.filter(sku_id=sku.id, attribute_name__in=attributes_list)
+            attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku.id, attribute_name__in=attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
                     if attribute.attribute_name == 'Manufacturer':
@@ -11779,18 +11780,18 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                     if attribute.attribute_name == 'Bundle':
                         bundle = attribute.attribute_value
             wms_code = sku.wms_code
-            stock_quantity = StockDetail.objects.filter(sku__wms_code=wms_code, sku__user=user.id).exclude(
+            stock_quantity = StockDetail.objects.using(reports_database).filter(sku__wms_code=wms_code, sku__user=user.id).exclude(
                 location__zone__zone='DAMAGED_ZONE').aggregate(Sum('quantity'))['quantity__sum']
-            purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway', 'location-assigned']). \
+            purchase_order = PurchaseOrder.objects.using(reports_database).exclude(status__in=['confirmed-putaway', 'location-assigned']). \
                 filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
                 values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
                                                    total_received=Sum('received_quantity'))
 
-            qc_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user,
+            qc_pending = POLocation.objects.using(reports_database).filter(purchase_order__open_po__sku__user=sku.user,
                                                    purchase_order__open_po__sku_id=sku.id,
                                                    qualitycheck__status='qc_pending', status=2). \
                 only('quantity').aggregate(Sum('quantity'))['quantity__sum']
-            putaway_pending = POLocation.objects.filter(purchase_order__open_po__sku__user=sku.user,
+            putaway_pending = POLocation.objects.using(reports_database).filter(purchase_order__open_po__sku__user=sku.user,
                                                         purchase_order__open_po__sku_id=sku.id,
                                                         status=1).only('quantity').aggregate(Sum('quantity'))[
                 'quantity__sum']
@@ -11811,12 +11812,12 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
             total_stock_available = stock_quantity + qc_pending + putaway_pending
 
             total_with_po = total_stock_available + po_quantity
-            picked_quantity_thirty_days = SKUDetailStats.objects.filter(sku_id=sku.id, transact_type='picklist',
+            picked_quantity_thirty_days = SKUDetailStats.objects.using(reports_database).filter(sku_id=sku.id, transact_type='picklist',
                                                                         creation_date__lte=datetime.datetime.today(),
                                                                         creation_date__gt=datetime.datetime.today() - datetime.timedelta(
                                                                             days=30)).aggregate(Sum('quantity'))[
                 'quantity__sum']
-            picked_quantity_seven_days = SKUDetailStats.objects.filter(sku_id=sku.id, transact_type='picklist',
+            picked_quantity_seven_days = SKUDetailStats.objects.using(reports_database).filter(sku_id=sku.id, transact_type='picklist',
                                                                        creation_date__lte=datetime.datetime.today(),
                                                                        creation_date__gt=datetime.datetime.today() - datetime.timedelta(
                                                                            days=7)).aggregate(Sum('quantity'))[
@@ -11918,7 +11919,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     if user.id == sub_user.id and user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
             warehouses = get_warehouses_data(user)
             warehouse_users = warehouses
         else:
@@ -11932,7 +11933,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
             user_ids = list(users.filter(username=sister_warehouse_name).values_list('id', flat=True))
         search_parameters['seller_po_summary__purchase_order__open_po__sku__user__in'] = user_ids
     print user_ids
-    model_data = model_name.objects.filter(**search_parameters)
+    model_data = model_name.objects.using(reports_database).filter(**search_parameters)
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     if order_term:
@@ -11957,7 +11958,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         sku_pcf = uom_dict.get('sku_conversion', 1)
         if seller_po_summary.batch_detail:
             line_sku_pcf = seller_po_summary.batch_detail.pcf
-        pr_plant = User.objects.get(id=open_po.sku.user).username
+        pr_plant = User.objects.using(reports_database).get(id=open_po.sku.user).username
         po_date = get_local_date(user, purchase_order.creation_date)
         receipt_no = seller_po_summary.receipt_number
         city = purchase_order.open_po.supplier.city
@@ -12023,7 +12024,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         po_qty = open_po.order_quantity
         rec_qty = rtv.seller_po_summary.purchase_order.received_quantity
         product_category, warehouse, warehouse_type, dc_number, category, pr_number, pr_date, pr_raised_user, vendor_code, vendor_name, vendor_dispatch_date = '', '', '', '', '', '', '', '', '', '', ''
-        pr_data = PendingLineItems.objects.filter(pending_po__full_po_number=po_number).values('pending_po__product_category',
+        pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number=po_number).values('pending_po__product_category',
                                                 'pending_po__pending_prs__creation_date','pending_po__sku_category',
                                                 'pending_po__requested_user','pending_po__pending_prs__full_pr_number',
                                                 'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__requested_user__id')
@@ -12036,7 +12037,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
             if pr_data[0]['pending_po__requested_user']:
                 req_user = pr_data[0]['pending_po__requested_user']
                 pr_user = get_warehouse_user_from_sub_user(req_user)
-                warehouse = User.objects.filter(id=req_user).values('first_name')
+                warehouse = User.objects.using(reports_database).filter(id=req_user).values('first_name')
                 plant = warehouse[0]['first_name']
                 warehouse_type = pr_user.userprofile.warehouse_type
         # if data['seller_po_summary__purchase_order__open_po__vendor__creation_date']:
@@ -12045,7 +12046,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         pr_department, pr_request_user = '', ''
         if pr_data:
             pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
-            user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+            user_profile = UserProfile.objects.using(reports_database).get(user_id=pr_dept.id)
             if (user_profile.warehouse_type == "DEPT"):
                 if (user_profile.stockone_code):
                     pr_department = user_profile.stockone_code
@@ -12113,7 +12114,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     users = [user.id]
     users = check_and_get_plants_wo_request(sub_user, user, users)
     user_ids = list(users.values_list('id', flat=True))
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'order_id',
            'order_id', 'open_po__sku__user']
     unsorted_dict = {}
@@ -12149,7 +12150,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0
     search_parameters['sellerposummary__status'] = 0
-    query_data = model_name.objects.prefetch_related('open_po__sku', 'open_po__supplier').select_related('open_po',
+    query_data = model_name.objects.using(reports_database).prefetch_related('open_po__sku', 'open_po__supplier').select_related('open_po',
                                                                                                          'open_po__sku',
                                                                                                          'open_po__supplier').exclude(
         **excl_status).filter(**search_parameters)
@@ -12170,11 +12171,11 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user__in=user_ids)
     for data in model_data:
         po_result = purchase_orders.filter(po_number=data['po_number'], open_po__sku__user__in=user_ids)
         result = po_result[0]
-        warehouse = User.objects.get(id=result.open_po.sku.user)
+        warehouse = User.objects.using(reports_database).get(id=result.open_po.sku.user)
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
         if not total_ordered:
             total_ordered = 0
@@ -12187,12 +12188,12 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         if data['grn_rec']:
             received_qty = data['grn_rec']
         productType = ''
-        productQs = PendingPO.objects.filter(po_number=result.order_id, prefix=result.prefix,
+        productQs = PendingPO.objects.using(reports_database).filter(po_number=result.order_id, prefix=result.prefix,
                                              wh_user=result.open_po.sku.user).values_list('product_category', flat=True)
         if productQs.exists():
             productType = productQs[0]
         grn_calender_month = '<span class="label bg-red">' + productType + '</span>'
-        spos = SellerPOSummary.objects.filter(purchase_order_id=result.id)
+        spos = SellerPOSummary.objects.using(reports_database).filter(purchase_order_id=result.id)
         if spos.exists():
             if spos[0].creation_date.strftime("%Y%m") == datetime.datetime.now().strftime("%Y%m"):
                 grn_calender_month = '<span class="label label-success">' + productType + '</span>'
@@ -12242,16 +12243,16 @@ def print_sku_wise_data(search_params, user, sub_user):
     if stop_index:
         sku_master = sku_master[start_index:stop_index]
 
-    stock_dict = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id). \
+    stock_dict = dict(StockDetail.objects.using(reports_database).exclude(receipt_number=0).filter(sku__user=user.id). \
                       values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sku_master:
         total_quantity = stock_dict.get(data.id, 0)
-        # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
+        # stock_data = StockDetail.objects.using(reports_database).exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
         # for stock in stock_data:
         #     total_quantity += int(stock.quantity)
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -12288,7 +12289,7 @@ def get_ageing_data(search_params, user, sub_user):
     else:
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     if "sku_code" in search_params:
@@ -12306,7 +12307,7 @@ def get_ageing_data(search_params, user, sub_user):
     if "sku_brand" in search_params:
         search_parameters['sku__%s__%s' % ("sku_brand", 'icontains')] = search_params["sku_brand"]
     #if 'plant_code' in search_params:
-    #    plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+    #    plant_obj=UserProfile.objects.using(reports_database).filter(stockone_code=search_params["plant_code"])
     #    if plant_obj:
     #        search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
     if 'plant_code' in search_params:
@@ -12316,7 +12317,7 @@ def get_ageing_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
 
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
@@ -12325,8 +12326,8 @@ def get_ageing_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
-        # plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+            users = User.objects.using(reports_database).none()
+        # plant_obj=UserProfile.objects.using(reports_database).filter(stockone_code=search_params["plant_code"])
         # if plant_obj:
         #     search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
     if 'zone_code' in search_params:
@@ -12342,7 +12343,7 @@ def get_ageing_data(search_params, user, sub_user):
            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
            'quantity']
     search_term = {}
-    stock_detail_objs = StockDetail.objects.prefetch_related('sku', 'batch_detail').\
+    stock_detail_objs = StockDetail.objects.using(reports_database).prefetch_related('sku', 'batch_detail').\
         exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, **search_parameters)
     if search_term:
         master_data = stock_detail_objs.filter(Q(sku__wms_code__icontains=search_term) |
@@ -12369,12 +12370,12 @@ def get_ageing_data(search_params, user, sub_user):
             grn_numbers.append(model_dat.grn_number)
         sku_codes.append(model_dat.sku.sku_code)
     grn_model_data={}
-    po_sps = list(SellerPOSummary.objects.filter(purchase_order__open_po__sku__sku_code__in=sku_codes, grn_number__in=grn_numbers).values_list('id', flat=True))
-    st_sps = dict(SellerPOSummary.objects.select_related('purchase_order__stpurchaseorder__stocktransfer').\
+    po_sps = list(SellerPOSummary.objects.using(reports_database).filter(purchase_order__open_po__sku__sku_code__in=sku_codes, grn_number__in=grn_numbers).values_list('id', flat=True))
+    st_sps = dict(SellerPOSummary.objects.using(reports_database).select_related('purchase_order__stpurchaseorder__stocktransfer').\
                                             filter(purchase_order__stpurchaseorder__stocktransfer__isnull=False,grn_number__in=grn_numbers).\
                     values_list('id', 'purchase_order__stpurchaseorder__stocktransfer__st_type'))
     po_sps.extend(st_sps.keys())
-    seller_summary_objs= SellerPOSummary.objects.filter(id__in=po_sps).\
+    seller_summary_objs= SellerPOSummary.objects.using(reports_database).filter(id__in=po_sps).\
                         values("grn_number", "creation_date", "purchase_order__open_po__sku__sku_code", "purchase_order__stpurchaseorder__open_st__sku__sku_code", "id")
     for grn_dat in seller_summary_objs:
         sku_code = grn_dat['purchase_order__open_po__sku__sku_code']
@@ -12433,7 +12434,7 @@ def get_ageing_data(search_params, user, sub_user):
         zone = data.location.zone.zone
         quantity = data.quantity/pcf
         quantity_for_val = data.quantity/pcf
-        sku_user = User.objects.get(id=data.sku.user)
+        sku_user = User.objects.using(reports_database).get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
         plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
@@ -12538,7 +12539,7 @@ def get_expired_stock_data(search_params, user, sub_user):
         users = [user.id]
         users = check_and_get_plants_wo_request(sub_user, user, users)
     
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     if "sku_code" in search_params:
@@ -12562,7 +12563,7 @@ def get_expired_stock_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
 
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
@@ -12571,8 +12572,8 @@ def get_expired_stock_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
-        # plant_obj=UserProfile.objects.filter(stockone_code=search_params["plant_code"])
+            users = User.objects.using(reports_database).none()
+        # plant_obj=UserProfile.objects.using(reports_database).filter(stockone_code=search_params["plant_code"])
         # if plant_obj:
         #     search_parameters['sku__%s' % ("user")] = plant_obj[0].user.id
     if 'zone_code' in search_params:
@@ -12587,7 +12588,7 @@ def get_expired_stock_data(search_params, user, sub_user):
            'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
            'quantity']
     search_term = {}
-    stock_detail_objs = StockDetail.objects.select_related('sku', 'batch_detail').prefetch_related('sku').\
+    stock_detail_objs = StockDetail.objects.using(reports_database).select_related('sku', 'batch_detail').prefetch_related('sku').\
         exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0, 
         batch_detail__expiry_date__isnull=False,  batch_detail__expiry_date__lte=datetime.now(), **search_parameters)
     if search_term:
@@ -12650,7 +12651,7 @@ def get_expired_stock_data(search_params, user, sub_user):
             pallet_code = data.pallet_detail.pallet_cod
         quantity = data.quantity/pcf
         quantity_for_val = data.quantity/pcf_for_val
-        sku_user = User.objects.get(id=data.sku.user)
+        sku_user = User.objects.using(reports_database).get(id=data.sku.user)
         plant_code = sku_user.userprofile.stockone_code
         plant_zone = sku_user.userprofile.zone
         plant_name = sku_user.first_name
@@ -12766,7 +12767,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     #search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
     search_parameters['st_type'] = 'MR'
-    stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
+    stock_transfer_data = StockTransfer.objects.using(reports_database).filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -12775,7 +12776,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     for data in (stock_transfer_data[start_index:stop_index]):
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
-        destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        destination = User.objects.using(reports_database).get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]
         destination = "%s %s" % (destination.first_name, destination.last_name)
         cgst = data.st_po.open_st.cgst_tax
@@ -12797,7 +12798,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
             for invoice_no in data.stocktransfersummary_set.filter():
                 qty_conversion = 1
                 invoice_number = invoice_no.full_invoice_number
-                # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
+                # invoice_data = StockTransferSummary.objects.using(reports_database).filter(full_invoice_number=invoice_number,
                 #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
                 #     'quantity')
                 # if invoice_data.exists():
@@ -12809,13 +12810,13 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 expiry_date = ''
                 manufactured_date = ''
                 batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
-                batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                batch_data = PickSequenceMapping.objects.using(reports_database).filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
                     'pick_loc__stock__batch_detail__batch_no',
                     'pick_loc__stock__batch_detail__manufactured_date',
                     'pick_loc__stock__batch_detail__expiry_date',
                     'pick_loc__stock__batch_detail__pcf'
                 )
-                # batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                # batch_data = STOrder.objects.using(reports_database).filter(stock_transfer__sku__user=user.id,
                 #                                     stock_transfer=data.id).values(
                 #     'picklist__picklistlocation__stock__batch_detail__batch_no',
                 #     'picklist__picklistlocation__stock__batch_detail__manufactured_date',
@@ -12834,7 +12835,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 temp_stat = get_mr_status(user, data.id, quantity, data.stocktransfersummary_set.filter(), conversion=qty_conversion)
                 if temp_stat:
                     status = temp_stat
-                datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+                datum = PurchaseOrder.objects.using(reports_database).filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
                 dest_received_qty = 0
                 if datum.exists():
                     dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
@@ -12859,7 +12860,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
             expiry_date = ''
             manufactured_date = ''
             pick_seq = ''
-            batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+            batch_data = STOrder.objects.using(reports_database).filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
                 'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
@@ -12867,7 +12868,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                 expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 manufactured_date = batch_data[0]['picklist__stock__batch_detail__manufactured_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__manufactured_date'] else ''
-            datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            datum = PurchaseOrder.objects.using(reports_database).filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
             dest_received_qty = 0
             if datum.exists():
                 dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
@@ -12935,7 +12936,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     search_parameters['sku__user__in'] = user_ids
     if request.POST.get('special_key', ''):
         search_parameters['st_type'] = request.POST.get('special_key')
-    stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
+    stock_transfer_data = StockTransfer.objects.using(reports_database).filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -12947,7 +12948,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         print counter
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
-        destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        destination = User.objects.using(reports_database).get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]
         # destination = "%s %s" % (destination.first_name, destination.last_name)
         # destination = destination.username
@@ -12968,7 +12969,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
                 invoice_number = invoice_no.full_invoice_number
-                # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
+                # invoice_data = StockTransferSummary.objects.using(reports_database).filter(full_invoice_number=invoice_number,
                 #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
                 #     'quantity')
                 # if invoice_data.exists():
@@ -12977,7 +12978,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
                 manufactured_date = ''
                 dest_receive_po_status = 'Pending'
                 batch_po_loc_list = list(invoice_no.picklist.picklistlocation_set.filter().values_list('id', flat=True))
-                batch_data = PickSequenceMapping.objects.filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
+                batch_data = PickSequenceMapping.objects.using(reports_database).filter(pick_loc_id__in= batch_po_loc_list, pick_number=invoice_no.pick_number).values(
                     'pick_loc__stock__batch_detail__batch_no',
                     'pick_loc__stock__batch_detail__manufactured_date',
                     'pick_loc__stock__batch_detail__expiry_date',
@@ -13024,7 +13025,7 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
             manufactured_date = ''
             pick_seq = ''
             dest_receive_po_status = 'Pending'
-            batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+            batch_data = STOrder.objects.using(reports_database).filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
                 'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
@@ -13091,7 +13092,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -13099,7 +13100,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -13136,7 +13137,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     search_parameters['sku__user__in'] = user_ids
     # if request.POST.get('special_key', ''):
     #     search_parameters['st_type'] = request.POST.get('special_key')
-    stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
+    stock_transfer_data = StockTransfer.objects.using(reports_database).filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku').distinct()
     temp_data['recordsTotal'] = stock_transfer_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -13152,7 +13153,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         send_accepted_user_dest = ''
         user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
-        destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        destination = User.objects.using(reports_database).get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]
         cgst = data.st_po.open_st.cgst_tax
         sgst = data.st_po.open_st.sgst_tax
@@ -13188,14 +13189,14 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             if temp_stat:
                 status = temp_stat
             invoice_quantity = 0
-            invoice_quantity = STOrder.objects.filter(stock_transfer__id=data.id).aggregate(Sum('picklist__picked_quantity'))['picklist__picked_quantity__sum']
+            invoice_quantity = STOrder.objects.using(reports_database).filter(stock_transfer__id=data.id).aggregate(Sum('picklist__picked_quantity'))['picklist__picked_quantity__sum']
             invoice_quantity = invoice_quantity if invoice_quantity else 0
             if invoice_quantity == 0:
               continue
             temp_inv_qty = (float(invoice_quantity) / float(qty_conversion))
             invoice_wo_tax_amount = (float(invoice_quantity) / float(qty_conversion)) * price
             dest_receive_po_status = 'Pending'
-            datums = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id, **seller_po_summary_dates)
+            datums = SellerPOSummary.objects.using(reports_database).filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id, **seller_po_summary_dates)
             datum = datums.values('quantity')
             dest_received_qty = 0
             if datum.exists():
@@ -13216,7 +13217,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 if version_obj.exists():
                     send_accepted_user_dest = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if request.POST.get('special_key', '') == 'MR' or search_params.get('special_key', '') == 'MR':
-                accepted_user_dest = MastersDOA.objects.filter(doa_status='approved', model_name='mr_doa', reference_id=data.order_id, requested_user__username=user.username, wh_user__username=destination.username).values('validated_by')
+                accepted_user_dest = MastersDOA.objects.using(reports_database).filter(doa_status='approved', model_name='mr_doa', reference_id=data.order_id, requested_user__username=user.username, wh_user__username=destination.username).values('validated_by')
                 if accepted_user_dest.exists():
                     send_accepted_user_dest = accepted_user_dest[0]['validated_by']
             ord_dict = OrderedDict(
@@ -13239,7 +13240,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
             manufactured_date = ''
             pick_seq = ''
             dest_receive_po_status = ''
-            batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+            batch_data = STOrder.objects.using(reports_database).filter(stock_transfer__sku__user=user.id,
                                                 stock_transfer=data.id).values(
                 'picklist__stock__batch_detail__batch_no',
                 'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
@@ -13247,8 +13248,8 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
                 batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                 expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if  batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                 manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
-            #datum = PurchaseOrder.objects.filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
-            datum = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id, **seller_po_summary_dates).values('quantity')
+            #datum = PurchaseOrder.objects.using(reports_database).filter(po_number=data.order_id, stpurchaseorder__open_st__sku__sku_code=data.sku.sku_code).values('received_quantity', 'stpurchaseorder__open_st__order_quantity')
+            datum = SellerPOSummary.objects.using(reports_database).filter(purchase_order__stpurchaseorder__open_st__id=data.st_po.open_st.id, **seller_po_summary_dates).values('quantity')
             dest_received_qty = 0
             if datum.exists():
                 #dest_received_qty = datum.aggregate(Sum('received_quantity'))['received_quantity__sum']
@@ -13308,7 +13309,7 @@ def get_orderflow_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     # for one one_assist
     if 'order_id' in search_params:
-        orderfield_obj = OrderFields.objects.filter(order_type='intermediate_order', name='original_order_id',
+        orderfield_obj = OrderFields.objects.using(reports_database).filter(order_type='intermediate_order', name='original_order_id',
                                                     user=user.id,
                                                     value=search_params['order_id'])
         if orderfield_obj.exists():
@@ -13324,7 +13325,7 @@ def get_orderflow_data(search_params, user, sub_user):
         search_parameters['interm_order_id'] = interm_order_id
 
     search_parameters['user'] = user.id
-    order_flow_data = IntermediateOrders.objects.filter(**search_parameters). \
+    order_flow_data = IntermediateOrders.objects.using(reports_database).filter(**search_parameters). \
         order_by(order_data).select_related('order', 'sku', 'alt_sku').values('interm_order_id',
                                                                               'order_assigned_wh__username',
                                                                               'customer_name', 'status', 'remarks',
@@ -13350,30 +13351,30 @@ def get_orderflow_data(search_params, user, sub_user):
         if data['order__shipment_date']:
             expected_date = get_local_date(user, data['order__shipment_date'])
         order_fields_dict = dict(
-            OrderFields.objects.filter(original_order_id=data['interm_order_id'], user=user.id).values_list('name',
+            OrderFields.objects.using(reports_database).filter(original_order_id=data['interm_order_id'], user=user.id).values_list('name',
                                                                                                             'value'))
         if data['order__id']:
             if isprava_permission == 'false':
-                singned_invoice = MasterDocs.objects.filter(master_id=data['order__id'],
+                singned_invoice = MasterDocs.objects.using(reports_database).filter(master_id=data['order__id'],
                                                             master_type='OneAssistSignedCopies')
                 if singned_invoice.exists():
                     acknowledgement_status = 'Yes'
 
-                outbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id=data['order__id'],
+                outbound_dispatch_imei = DispatchIMEIChecklist.objects.using(reports_database).filter(order_id=data['order__id'],
                                                                               qc_type='sales_order')
                 if outbound_dispatch_imei.exists():
                     serial_number = outbound_dispatch_imei[0].po_imei_num.imei_number
                     outbound_qc = ','.join(filter(None, outbound_dispatch_imei.values_list('remarks', flat=True)))
-                shipment = ShipmentInfo.objects.filter(order_id=data['order__id'])
+                shipment = ShipmentInfo.objects.using(reports_database).filter(order_id=data['order__id'])
                 if shipment.exists():
                     shipment_status = 'Dispatched'
 
-                po_obj = OrderMapping.objects.filter(order_id=data['order__id'], mapping_type='PO')
+                po_obj = OrderMapping.objects.using(reports_database).filter(order_id=data['order__id'], mapping_type='PO')
                 if po_obj.exists():
-                    inbound_dispatch_imei = DispatchIMEIChecklist.objects.filter(order_id=po_obj[0].mapping_id,
+                    inbound_dispatch_imei = DispatchIMEIChecklist.objects.using(reports_database).filter(order_id=po_obj[0].mapping_id,
                                                                                  qc_type='purchase_order').exclude(
                         remarks='')
-                    purchase_order_obj = PurchaseOrder.objects.filter(id=po_obj[0].mapping_id)
+                    purchase_order_obj = PurchaseOrder.objects.using(reports_database).filter(id=po_obj[0].mapping_id)
                     if purchase_order_obj.exists():
                         po_status = purchase_order_obj[0].status
                         po_cancel_reason = purchase_order_obj[0].reason
@@ -13486,7 +13487,7 @@ def get_current_stock_report_data(search_params, user, sub_user):
             search_parameters['stock__sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
-    master_data = SellerStock.objects.filter(stock__sku__user=user.id, **search_parameters). \
+    master_data = SellerStock.objects.using(reports_database).filter(stock__sku__user=user.id, **search_parameters). \
         exclude(stock__receipt_number=0). \
         values('seller__seller_id', 'seller__name', 'stock__sku__wms_code',
                'stock__location__location', 'stock__batch_detail__weight',
@@ -13501,14 +13502,14 @@ def get_current_stock_report_data(search_params, user, sub_user):
     if 'stock__quantity__gt' in search_parameters.keys():
         del search_parameters['stock__quantity__gt']
 
-    all_pick_res = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0,
+    all_pick_res = PicklistLocation.objects.using(reports_database).filter(status=1, stock__sku__user=user.id, reserved__gt=0,
                                                    **search_parameters)
-    all_raw_res = RMLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
+    all_raw_res = RMLocation.objects.using(reports_database).filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
     time = get_local_date(user, datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         sku_code = sku_data.get('stock__sku__wms_code', '')
         if sku_code:
-            sku_details_obj = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0]
+            sku_details_obj = SKUMaster.objects.using(reports_database).filter(sku_code=sku_code, user=user.id)[0]
             brand = sku_details_obj.sku_brand
             sub_category = sku_details_obj.sub_category
             attributes_data = dict(
@@ -13626,7 +13627,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
 
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
-    master_data = SellerStock.objects.filter(stock__sku__user=user.id, **search_parameters). \
+    master_data = SellerStock.objects.using(reports_database).filter(stock__sku__user=user.id, **search_parameters). \
         exclude(stock__receipt_number=0). \
         values('seller__seller_id', 'seller__name', 'stock__sku__wms_code', 'stock__sku__id',
                'stock__batch_detail__weight', 'stock__batch_detail__batch_no',
@@ -13651,7 +13652,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         quantity_wod, average_cost_price, average_cost_price_wod, total_stock_value, total_stock_value_wod = 0, 0, 0, 0, 0
         sku_data1 = copy.deepcopy(sku_data)
         del sku_data1['total']
-        seller_stocks = SellerStock.objects.filter(**sku_data1)
+        seller_stocks = SellerStock.objects.using(reports_database).filter(**sku_data1)
         for seller_stock in seller_stocks:
             price = seller_stock.stock.unit_price
             tax = 0
@@ -13676,7 +13677,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         ean_number = ''
         if sku_data['stock__sku__id']:
             manufacturer, searchable, bundle = '', '', ''
-            attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data['stock__sku__id'],
+            attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_data['stock__sku__id'],
                                                           attribute_name__in=attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
@@ -13787,7 +13788,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
     search_parameters['seller__isnull'] = False
     search_parameters['source_sku_code__user'] = user.id
     search_parameters['summary_type'] = 'substitute'
-    master_data = SubstitutionSummary.objects.filter(**search_parameters). \
+    master_data = SubstitutionSummary.objects.using(reports_database).filter(**search_parameters). \
         values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code', 'source_sku_code_id',
                'source_sku_code__sku_desc', 'source_sku_code__sku_category',
                'source_sku_code__sub_category', 'source_sku_code__sku_brand',
@@ -13808,7 +13809,7 @@ def get_bulk_to_retail_report_data(search_params, user, sub_user):
         source_weight, dest_weight = '', ''
         source_mrp, dest_mrp = 0, 0
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data['source_sku_code_id'],
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_data['source_sku_code_id'],
                                                       attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
@@ -13903,7 +13904,7 @@ def get_margin_report_data(search_params, user, sub_user):
 
     search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
     search_parameters['order__user'] = user.id
-    order_data = Picklist.objects.filter(**search_parameters).exclude(order__sellerorder__seller__name=None).values(
+    order_data = Picklist.objects.using(reports_database).filter(**search_parameters).exclude(order__sellerorder__seller__name=None).values(
         'order__sku__sku_code', 'order__sku__sku_desc', 'stock__batch_detail__mrp', \
         'stock__batch_detail__weight', 'order__sellerorder__seller__name', 'order__customer_name', 'order__sku__id',
         'order__sku__sku_brand', 'order__sku__sku_category', 'order__sku__sub_category', 'order__marketplace').annotate(
@@ -13948,7 +13949,7 @@ def get_margin_report_data(search_params, user, sub_user):
         consolidated_margin = 0
         quantity = data['quantity']
         sku_attribute_dict = {}
-        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=data['sku_id'],
+        sku_attribute_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__id=data['sku_id'],
                                                                attribute_name__in=['Manufacturer', 'Sub Category Type',
                                                                                    'Sheet', 'Vendor', 'Searchable',
                                                                                    'Bundle']).values_list(
@@ -14011,7 +14012,7 @@ def get_basa_report_data(search_params, user, sub_user):
     bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
     zones = list(chain(zones, bulk_zones))
     locations = list(
-        LocationMaster.objects.filter(zone__zone__in=zones, zone__user=user.id).values_list('location', flat=True))
+        LocationMaster.objects.using(reports_database).filter(zone__zone__in=zones, zone__user=user.id).values_list('location', flat=True))
     if order_term == 'desc':
         sort_data = '-%s' % sort_data
     if 'sku_code' in search_params:
@@ -14044,7 +14045,7 @@ def get_basa_report_data(search_params, user, sub_user):
     #    search_parameters['creation_date__gt'] = search_params['from_date']
     # if 'to_date' in search_params:
     #    search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1), datetime.time())
-    stock_data = StockDetail.objects.filter(**search_parameters).values('sku__sku_code', 'sku__sku_desc',
+    stock_data = StockDetail.objects.using(reports_database).filter(**search_parameters).values('sku__sku_code', 'sku__sku_desc',
                                                                         'batch_detail__mrp', \
                                                                         'batch_detail__weight', 'sku__id',
                                                                         'sku__sku_brand', 'sku__sku_category',
@@ -14060,13 +14061,13 @@ def get_basa_report_data(search_params, user, sub_user):
     stock_data1 = stock_data[start_index:stop_index]
     if not stop_index:
         stock_sku_ids = list(stock_data1.values_list('sku_id', flat=True))
-        grn_data = SellerPOSummary.objects.prefetch_related('purchase_order__open_po__sku').filter(
+        grn_data = SellerPOSummary.objects.using(reports_database).prefetch_related('purchase_order__open_po__sku').filter(
             batch_detail__isnull=False, purchase_order__open_po__sku_id__in=stock_sku_ids)
         sku_grn_price = OrderedDict(
             grn_data.values_list('purchase_order__open_po__sku__sku_code', 'batch_detail__buy_price').order_by('id'))
         sku_grn_quantity = OrderedDict(
             grn_data.values_list('purchase_order__open_po__sku__sku_code', 'quantity').order_by('id'))
-    skumaster_data = SKUMaster.objects.filter(user=user.id, **search_parameters_sku).exclude(
+    skumaster_data = SKUMaster.objects.using(reports_database).filter(user=user.id, **search_parameters_sku).exclude(
         id__in=list(stock_data.values_list('sku_id', flat=True))).values('sku_code', 'sku_desc', 'sku_category',
                                                                          'sku_brand', 'mrp', 'id', 'sub_category')
     chaining = list(chain(stock_data, skumaster_data))
@@ -14100,7 +14101,7 @@ def get_basa_report_data(search_params, user, sub_user):
             grn_quantity = sku_grn_quantity.get(sku_code, 0)
         else:
             try:
-                seller_po = SellerPOSummary.objects.filter(location__zone__user=user.id,
+                seller_po = SellerPOSummary.objects.using(reports_database).filter(location__zone__user=user.id,
                                                            purchase_order__open_po__sku__sku_code=sku_code).latest('id')
                 grn_quantity = seller_po.quantity
                 if seller_po.batch_detail:
@@ -14111,7 +14112,7 @@ def get_basa_report_data(search_params, user, sub_user):
             average_cost_price = data['average_cp'] / quantity
         else:
             average_cost_price = 0
-        sku_attribute_dict = dict(SKUAttributes.objects.filter(sku__id=sku_id,
+        sku_attribute_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__id=sku_id,
                                                                attribute_name__in=['Manufacturer', 'Sub Category Type',
                                                                                    'Sheet', 'Vendor', 'Weight',
                                                                                    'Searchable', 'Bundle']).values_list(
@@ -14211,28 +14212,28 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         if 'bundle' in search_params:
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-    stock_rec_objs = StockReconciliation.objects.filter(**search_parameters).order_by(order_data)
+    stock_rec_objs = StockReconciliation.objects.using(reports_database).filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = stock_rec_objs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         stock_rec_objs = stock_rec_objs[start_index:stop_index]
     counter = 0
     if not stop_index:
-        manufacturer_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+        manufacturer_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                               attribute_name='Manufacturer').values_list(
             'sku_id', 'attribute_value'))
-        searchable_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+        searchable_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                             attribute_name='Searchable').values_list(
             'sku_id', 'attribute_value'))
-        bundle_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+        bundle_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                         attribute_name='Bundle').values_list('sku_id',
                                                                                              'attribute_value'))
-        sheet_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+        sheet_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                        attribute_name='Sheet').values_list('sku_id', 'attribute_value'))
-        vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+        vendor_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                         attribute_name='Vendor').values_list('sku_id',
                                                                                              'attribute_value'))
-        sub_cat_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+        sub_cat_dict = dict(SKUAttributes.objects.using(reports_database).filter(sku__user=user.id,
                                                          attribute_name='Sub Category Type').values_list('sku_id',
                                                                                                          'attribute_value'))
     for stock_rec_obj in stock_rec_objs.iterator():
@@ -14342,7 +14343,7 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
     return temp_data
 
     # create_data_dict = {}
-    # stock_reconciliation = StockReconciliation.objects.filter(**search_parameters)
+    # stock_reconciliation = StockReconciliation.objects.using(reports_database).filter(**search_parameters)
     # temp_data['recordsTotal'] = len(stock_reconciliation)
     # temp_data['recordsFiltered'] = temp_data['recordsTotal']
     # empty_sub_dict = {}
@@ -14445,7 +14446,7 @@ def get_po_supplier_mail_report_data(search_params, user, sub_user):
         search_parameters['full_po_number'] = search_params['po_number']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['open_po__sku__user__in'] = user_ids
-    model_data = PendingPO.objects.filter(**search_parameters).values(*result_values)
+    model_data = PendingPO.objects.using(reports_database).filter(**search_parameters).values(*result_values)
     col_num = search_params.get('order_index', 4)
     order_term = search_params.get('order_term', 'desc')
     if order_term:
@@ -14521,7 +14522,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
     search_parameters['sku__id__in'] = sku_master_ids
-    master_data = MoveInventory.objects.filter(**search_parameters).order_by(order_data)
+    master_data = MoveInventory.objects.using(reports_database).filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
@@ -14529,7 +14530,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
         weight = ''
         mrp = 0
         manufacturer, searchable, bundle = '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=sku_data.sku.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku_data.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -14600,7 +14601,7 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
         search_parameters['destination_location'] = search_params['destination_location']
     search_parameters['summary_type'] = 'bulk_stock_update'
     search_parameters['source_sku_code__user'] = user.id
-    master_data = SubstitutionSummary.objects.filter(**search_parameters).order_by(order_data)
+    master_data = SubstitutionSummary.objects.using(reports_database).filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
@@ -14623,7 +14624,7 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
 def get_credit_note_form_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     all_cols = ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency',
                 '*Invoice Amount', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site',
                 'Payment Currency', 'Invoice Type', 'Description', 'Legal Entity Name', 'Payment Terms', 'Terms Date',
@@ -14806,10 +14807,10 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id).values_list('user_id', flat=True)
         warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         search_parameters['purchase_order__open_po__sku__user__in'] = warehouses.values_list('user_id', flat=True)
     else:
@@ -14817,7 +14818,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         warehouse_users[user.id] = user.username
     # search_parameters['purchase_order__order_id'] = 20
     # search_parameters[field_mapping['user']] = 5612
-    query_data = SellerPOSummary.objects.exclude(**excl_status).filter(**search_parameters). \
+    query_data = SellerPOSummary.objects.using(reports_database).exclude(**excl_status).filter(**search_parameters). \
         values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + \
                            F('purchase_order__open_po__cgst_tax') + \
                            F('purchase_order__open_po__sgst_tax'))). \
@@ -14845,7 +14846,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     for index, eachData in enumerate([model_data, rtv_data]):
         for data in eachData:
             user = data['purchase_order__open_po__sku__user']
-            UpQs = UserProfile.objects.filter(user_id=user)
+            UpQs = UserProfile.objects.using(reports_database).filter(user_id=user)
             if UpQs.exists():
                 ola_gst_num = UpQs[0].gst_number
                 wh_name = UpQs[0].user.first_name
@@ -15071,7 +15072,7 @@ def get_cancel_invoice_report_data(search_params, user, sub_user):
     data = ['order__original_order_id', 'full_invoice_number', 'order__sku__wms_code']
     if marketplace:
         data = ['seller_order__order__original_order_id', 'full_invoice_number', 'seller_order__order__sku__wms_code']
-    seller_order_summary = SellerOrderSummary.objects.filter(**search_parameters)
+    seller_order_summary = SellerOrderSummary.objects.using(reports_database).filter(**search_parameters)
     model_data = seller_order_summary.values(*data).distinct().annotate(tsum=Sum('quantity'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -15144,7 +15145,7 @@ def get_credit_note_report_data(search_params, user, sub_user, serial_view=False
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    return_orders = OrderReturns.objects.exclude(credit_note_number='').filter(order__user=user.id,
+    return_orders = OrderReturns.objects.using(reports_database).exclude(credit_note_number='').filter(order__user=user.id,
                                                                                **search_parameters).values(
         'credit_note_number',
         'order__customer_id', 'order__customer_name', 'order__original_order_id',
@@ -15158,7 +15159,7 @@ def get_credit_note_report_data(search_params, user, sub_user, serial_view=False
     updated_user = user.username
     for order in return_orders:
         r_date = \
-        OrderReturns.objects.filter(credit_note_number=order.get('credit_note_number', '')).values('return_date')[0]
+        OrderReturns.objects.using(reports_database).filter(credit_note_number=order.get('credit_note_number', '')).values('return_date')[0]
         return_date = get_local_date(user, r_date['return_date'])
         ord_dict = OrderedDict((('Credit Note Number', order.get('credit_note_number', '')),
                                 ('Customer ID', order.get('order__customer_id', '')),
@@ -15203,14 +15204,14 @@ def get_po_approval_report_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
             warehouse_users[user.id] = user.username
-        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        # sku_master = SKUMaster.objects.using(reports_database).filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
         search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
 
@@ -15225,7 +15226,7 @@ def get_po_approval_report_data(search_params, user, sub_user):
                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
-    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
     resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
     temp_data['recordsTotal'] = pending_data.count()
@@ -15250,7 +15251,7 @@ def get_po_approval_report_data(search_params, user, sub_user):
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
                                                           result['total_amt'], purchase_type='PO')
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
+        prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'], pr_user=user,
                                                     level=result['pending_po__pending_level'])
 
         last_updated_by = ''
@@ -15261,7 +15262,7 @@ def get_po_approval_report_data(search_params, user, sub_user):
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_po__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                             pr_user=user, level=result['pending_po__pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -15269,13 +15270,13 @@ def get_po_approval_report_data(search_params, user, sub_user):
             else:
                 if result['pending_po__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                                 pr_user=user, level=prev_level)
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                                 pr_user=user,
                                                                 level=result['pending_po__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -15340,7 +15341,7 @@ def get_discrepancy_report_data(search_params, user, sub_user):
         search_parameters['purchase_order__open_po__sku__wms_code'] = search_params['sku_code']
 
     search_parameters['user'] = user.id
-    master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None) \
+    master_data = Discrepancy.objects.using(reports_database).filter(**search_parameters).exclude(purchase_order=None) \
         .values('po_number', 'discrepancy_number', 'purchase_order__open_po__supplier__supplier_id',
                 'purchase_order__open_po__supplier__name').order_by(order_data).distinct()
     temp_data['recordsTotal'] = master_data.count()
@@ -15389,14 +15390,14 @@ def get_approval_summary_report_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
             warehouse_users[user.id] = user.username
-        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        # sku_master = SKUMaster.objects.using(reports_database).filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
         search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
 
@@ -15411,7 +15412,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
-    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
     resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
     temp_data['recordsTotal'] = pending_data.count()
@@ -15435,13 +15436,13 @@ def get_approval_summary_report_data(search_params, user, sub_user):
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
                                                           result['total_amt'], purchase_type='PO')
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
+        prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'], pr_user=user,
                                                     level=result['pending_po__pending_level'])
         approver1, approver2, approver3, approver4, approver5 = '', '', '', '', ''
         approver1_date, approver2_date, approver3_date, approver4_date, approver5_date = '', '', '', '', ''
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
 
-        tax_data = PendingLineItems.objects.filter(pending_po__po_number=result['pending_po__po_number'])
+        tax_data = PendingLineItems.objects.using(reports_database).filter(pending_po__po_number=result['pending_po__po_number'])
         cgst_tax = 0
         sgst_tax = 0
         igst_tax = 0
@@ -15454,7 +15455,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             igst_tax = tax_data.igst_tax
             total_tax = cgst_tax + sgst_tax + igst_tax
             tax_amount = result['total_amt'] * (total_tax / 100)
-        release_data = PurchaseOrder.objects.filter(order_id=result['pending_po__po_number'],
+        release_data = PurchaseOrder.objects.using(reports_database).filter(order_id=result['pending_po__po_number'],
                                                     prefix=result['pending_po__prefix'])
         release_date = ''
         if release_data.exists():
@@ -15462,7 +15463,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_po__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                             pr_user=user, level=result['pending_po__pending_level'])
                 approver1 = prApprQs[0].validated_by
                 approver1_date = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -15471,11 +15472,11 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             else:
                 if result['pending_po__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                                 pr_user=user, level=prev_level)
 
                 else:
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                                 pr_user=user,
                                                                 level=result['pending_po__pending_level'])
                     approver1 = prApprQs[0].validated_by
@@ -15551,14 +15552,14 @@ def get_approval_detail_report_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
             warehouse_users[user.id] = user.username
-        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        # sku_master = SKUMaster.objects.using(reports_database).filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
         search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
 
@@ -15574,7 +15575,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
                    'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
-    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
     resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
     temp_data['recordsTotal'] = pending_data.count()
@@ -15598,9 +15599,9 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
                                                           result['total_amt'], purchase_type='PO')
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
+        prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'], pr_user=user,
                                                     level=result['pending_po__pending_level'])
-        tax_data = PendingLineItems.objects.filter(pending_po__po_number=result['pending_po__po_number'])
+        tax_data = PendingLineItems.objects.using(reports_database).filter(pending_po__po_number=result['pending_po__po_number'])
         cgst_tax = 0
         sgst_tax = 0
         igst_tax = 0
@@ -15613,7 +15614,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             igst_tax = tax_data.igst_tax
             total_tax = cgst_tax + sgst_tax + igst_tax
             tax_amount = result['total_amt'] * (total_tax / 100)
-        release_data = PurchaseOrder.objects.filter(order_id=result['pending_po__po_number'],
+        release_data = PurchaseOrder.objects.using(reports_database).filter(order_id=result['pending_po__po_number'],
                                                     prefix=result['pending_po__prefix'])
         release_date = ''
         if release_data.exists():
@@ -15627,7 +15628,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_po__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                             pr_user=user, level=result['pending_po__pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -15635,13 +15636,13 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             else:
                 if result['pending_po__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                                 pr_user=user, level=prev_level)
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.using(reports_database).filter(purchase_number=result['pending_po__po_number'],
                                                                 pr_user=user,
                                                                 level=result['pending_po__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -15715,7 +15716,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -15723,7 +15724,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -15749,7 +15750,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         search_parameters['pending_pr__full_pr_number'] = pr_number
     if 'po_number' in search_params:
         po_number = search_params['po_number']
-        search_parameters['pending_pr_id__in'] = PendingPO.objects.filter(full_po_number=po_number).values_list('pending_prs__id', flat=True)
+        search_parameters['pending_pr_id__in'] = PendingPO.objects.using(reports_database).filter(full_po_number=po_number).values_list('pending_prs__id', flat=True)
     if 'product_category' in search_params:
         search_parameters['pending_pr__product_category'] = search_params['product_category']
         if search_parameters['pending_pr__product_category'] == 'KitsConsumables':
@@ -15765,7 +15766,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
                     'pending_pr__wh_user__userprofile__zone', 'pending_pr__sku_category', 'pending_pr__creation_date', 'pending_pr__product_category',
                     'pending_pr__priority_type', 'pending_pr_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
     search_parameters['pending_pr__sub_pr_number'] = 0
-    pending_data = PurchaseApprovals.objects.filter(**search_parameters).values(*values_list).distinct()
+    pending_data = PurchaseApprovals.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct()
     if order_term:
         pending_data = pending_data.order_by(order_data)
     else:
@@ -15789,7 +15790,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
                 pr_last_current_approval_date.setdefault(dpr, get_local_date(user, prp[0]['updation_date']))
         except Exception as e:
             pass
-        temp_pos = PendingPO.objects.filter(pending_prs__full_pr_number=dpr)
+        temp_pos = PendingPO.objects.using(reports_database).filter(pending_prs__full_pr_number=dpr)
         dpos = list(temp_pos.values_list('full_po_number', flat=True).distinct())
         if len(dpos) > 0:
             pr_po_dict.setdefault(dpr, {'pos': dpos, 'date': temp_pos.order_by('-creation_date')[0].creation_date})
@@ -15864,7 +15865,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -15872,7 +15873,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -15913,7 +15914,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
                     'pending_po__final_status', 'pending_po__pending_level', 'pending_po__wh_user__username',
                     'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category',
                     'pending_po__pending_prs__priority_type', 'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
-    pending_data = PurchaseApprovals.objects.filter(**search_parameters).values(*values_list).distinct()
+    pending_data = PurchaseApprovals.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct()
     if order_term:
         pending_data = pending_data.order_by(order_data)
     else:
@@ -15930,7 +15931,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
     po_last_current_approval_date = {}
     for dpo in dpos:
         try:
-            pop = PurchaseOrder.objects.filter(po_number=dpo)
+            pop = PurchaseOrder.objects.using(reports_database).filter(po_number=dpo)
             if pop.exists():
                 po_last_current_approval_date.setdefault(dpo, get_local_date(user, pop[0].po_date))
         except Exception as e:
@@ -16009,7 +16010,7 @@ def get_pr_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -16017,7 +16018,7 @@ def get_pr_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -16043,7 +16044,7 @@ def get_pr_report_data(search_params, user, sub_user):
         search_parameters['pending_pr__full_pr_number'] = pr_number
     if 'po_number' in search_params:
         po_number = search_params['po_number']
-        search_parameters['pending_pr_id__in'] = PendingPO.objects.filter(full_po_number=po_number).values_list('pending_prs__id', flat=True)
+        search_parameters['pending_pr_id__in'] = PendingPO.objects.using(reports_database).filter(full_po_number=po_number).values_list('pending_prs__id', flat=True)
     if 'product_category' in search_params:
         search_parameters['pending_pr__product_category'] = search_params['product_category']
         if search_parameters['pending_pr__product_category'] == 'KitsConsumables':
@@ -16072,8 +16073,8 @@ def get_pr_report_data(search_params, user, sub_user):
         if 'sister_warehouse' in search_params:
             search_parameters['pending_pr__wh_user__first_name'] = search_params['sister_warehouse']
         elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
-            sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+            sister_wh = UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            user_ids = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                         'user__id', flat=True))
             search_parameters['pending_pr__wh_user__in'] = user_ids
         else:
@@ -16088,8 +16089,8 @@ def get_pr_report_data(search_params, user, sub_user):
                    'pending_pr__sku_category', 'pending_pr__full_pr_number', 'pending_pr__creation_date',
                    'pending_pr__product_category', 'pending_pr__priority_type',
                    'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr_id']
-    pl_main = PendingLineItems.objects.filter(**search_parameters)
-    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+    pl_main = PendingLineItems.objects.using(reports_database).filter(**search_parameters)
+    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -16107,7 +16108,7 @@ def get_pr_report_data(search_params, user, sub_user):
         results = pending_data
     count = 0
     for result in results:
-        pr_obj = PendingPR.objects.get(id=result['pending_pr_id'])
+        pr_obj = PendingPR.objects.using(reports_database).get(id=result['pending_pr_id'])
         po_numbers = ','.join(pr_obj.pendingpo_set.filter().values_list('full_po_number', flat=True))
         approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details, approver_6_details = '', '', '', '', '', ''
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
@@ -16136,9 +16137,9 @@ def get_pr_report_data(search_params, user, sub_user):
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
         pr_sub_date = get_local_date(user, result['pending_pr__creation_date'])
         plant, department = '', ''
-        req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
+        req_user = User.objects.using(reports_database).filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
-        pending_approval = PurchaseApprovals.objects.filter(
+        pending_approval = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
             status='', pending_pr__final_status='pending')
         next_approver_mail, pending_level, approval_type = [''] * 3
@@ -16152,7 +16153,7 @@ def get_pr_report_data(search_params, user, sub_user):
         approver1_approved_date, approver2_approved_date, approver3_approved_date, approver4_approved_date, approver5_approved_date, approver6_approved_date = '', '', '', '', '', ''
         approver1_time, approver2_time, approver3_time, approver4_time,  approver5_time, approver6_time = "", "", "", "", "",""
 
-        approver_1_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],level="level0", approval_type="default").exclude(status='').values('level',
+        approver_1_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],level="level0", approval_type="default").exclude(status='').values('level',
                                 'validated_by', 'creation_date', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         if approver_1_detail_data.exists():
             approver_1_detail_data = approver_1_detail_data.latest('level')
@@ -16177,7 +16178,7 @@ def get_pr_report_data(search_params, user, sub_user):
                 final_updated_time = approver_1_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-        approver_2_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",approval_type="default").exclude(status='').values('level',
+        approver_2_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",approval_type="default").exclude(status='').values('level',
                                                                'validated_by', 'creation_date','status', 'approval_type',
                                                                'updation_date', 'remarks',
                                                                'pending_pr__final_status')
@@ -16213,7 +16214,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver_1_details = approver_2_detail_data.get('validated_by')
                     approver2_status, approver_2_details = '', ''
 
-        approver_3_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2",approval_type="default").exclude(status='').values('level',
+        approver_3_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2",approval_type="default").exclude(status='').values('level',
                                                                'validated_by', 'creation_date', 'status', 'approval_type',
                                                                'updation_date', 'remarks',
                                                                'pending_pr__final_status')
@@ -16262,7 +16263,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver3_status, approver_3_details = '', ''
 
 
-        approver_4_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",approval_type__in=["ranges", "approved"]).exclude(
+        approver_4_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",approval_type__in=["ranges", "approved"]).exclude(
                 Q(approval_type="default") | Q(status='')) \
                 .values('level', 'validated_by', 'status', 'updation_date', 'creation_date', 'approval_type', 'remarks',
                         'pending_pr__final_status')
@@ -16316,7 +16317,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver_3_details = approver_4_detail_data.get('validated_by')
                     approver4_status, approver_4_details = '', ''
 
-        approver_5_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1", approval_type__in=["ranges", "approved"])\
+        approver_5_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1", approval_type__in=["ranges", "approved"])\
             .exclude(Q(approval_type="default") | Q(status='')) \
                 .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'creation_date', 'remarks','pending_pr__final_status')
 
@@ -16384,7 +16385,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver_4_details = approver_4_detail_data.get('validated_by')
                     approver5_status, approver_5_details = '', ''
 
-        approver_6_detail_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2", approval_type__in=["ranges", "approved"])\
+        approver_6_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2", approval_type__in=["ranges", "approved"])\
             .exclude(Q(approval_type="default") | Q(status='')) \
                 .values('level', 'validated_by', 'status', 'updation_date', 'creation_date', 'approval_type', 'remarks','pending_pr__final_status')
 
@@ -16551,7 +16552,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -16559,7 +16560,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -16585,7 +16586,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         search_parameters['pending_pr__full_pr_number'] = pr_number
     if 'po_number' in search_params:
         po_number = search_params['po_number']
-        search_parameters['pending_pr_id__in'] = PendingPO.objects.filter(full_po_number=po_number).values_list('pending_prs__id', flat=True)
+        search_parameters['pending_pr_id__in'] = PendingPO.objects.using(reports_database).filter(full_po_number=po_number).values_list('pending_prs__id', flat=True)
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
     if 'sku_category' in search_params:
@@ -16611,8 +16612,8 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         if 'sister_warehouse' in search_params:
             search_parameters['pending_pr__wh_user__first_name'] = search_params['sister_warehouse']
         else:
-            sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+            sister_wh = UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            user_ids = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                 'user__id', flat=True))
             search_parameters['pending_pr__wh_user__in'] = user_ids'''
     user_ids = list(users.values_list('id', flat=True))
@@ -16633,8 +16634,8 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             search_parameters1[spk.replace('pending_pr__', '')] = spv
     if 'purchase_type' in search_parameters1:
         del search_parameters1['purchase_type']
-    pl_main = PendingPR.objects.filter(**search_parameters1)
-    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+    pl_main = PendingPR.objects.using(reports_database).filter(**search_parameters1)
+    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -16651,7 +16652,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         results = pending_data
     count = 0
     for result in results:
-        pr_obj = PendingPR.objects.get(id=result['pending_pr_id'])
+        pr_obj = PendingPR.objects.using(reports_database).get(id=result['pending_pr_id'])
         po_numbers = ','.join(pr_obj.pendingpo_set.filter().values_list('full_po_number', flat=True))
         pr_supplier_id, pr_supplier_name, pr_supplier_gst = '', '', ''
         approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details, approver_6_details = '', '', '', '', '', ''
@@ -16682,10 +16683,10 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
         pr_sub_date = get_local_date(user, result['pending_pr__creation_date'])
         plant, department = '', ''
-        req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
+        req_user = User.objects.using(reports_database).filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         all_approver_details = {}
-        pending_approval = PurchaseApprovals.objects.filter(
+        pending_approval = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
             status='', pending_pr__final_status='pending')
         next_approver_mail, pending_level, approval_type = [''] * 3
@@ -16696,7 +16697,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             approval_type = pending_approval.approval_type
         final_status = result['pending_pr__final_status']
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status, approver6_status = '', '', '', '', '', ''
-        approver_1_detail_data = PurchaseApprovals.objects.filter(
+        approver_1_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",
             approval_type="default").exclude(status='').values('level',
                                                                'validated_by', 'status', 'approval_type',
@@ -16719,7 +16720,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 final_updated_time = approver_1_detail_data.get('updation_date')
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-        approver_2_detail_data = PurchaseApprovals.objects.filter(
+        approver_2_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
             approval_type="default").exclude(status='').values('level',
                                                                'validated_by', 'status', 'approval_type',
@@ -16753,7 +16754,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     approver2_status, approver_2_details = '', ''
 
 
-        approver_3_detail_data = PurchaseApprovals.objects.filter(
+        approver_3_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2",
             approval_type="default").exclude(status='').values('level',
                                                                'validated_by', 'status', 'approval_type',
@@ -16798,7 +16799,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     approver_2_details = approver_3_detail_data.get('validated_by')
                     approver3_status, approver_3_details = '', ''
 
-        approver_4_detail_data = PurchaseApprovals.objects.filter(
+        approver_4_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",
             approval_type__in=["ranges", "approved"]).exclude(
             Q(approval_type="default") | Q(status='')) \
@@ -16850,7 +16851,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     approver_3_details = approver_4_detail_data.get('validated_by')
                     approver4_status, approver_4_details = '', ''
 
-        approver_5_detail_data = PurchaseApprovals.objects.filter(
+        approver_5_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
             approval_type__in=["ranges", "approved"]) \
             .exclude(Q(approval_type="default") | Q(status='')) \
@@ -16916,7 +16917,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     approver_4_details = approver_4_detail_data.get('validated_by')
                     approver5_status, approver_5_details = '', ''
 
-        approver_6_detail_data = PurchaseApprovals.objects.filter(
+        approver_6_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
             approval_type__in=["ranges", "approved"]) \
             .exclude(Q(approval_type="default") | Q(status='')) \
@@ -16995,18 +16996,18 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             approver1_status, approver2_status, approver3_status, approver4_status, approver5_status, approver6_status = '', '', '', '', '', ''
         total_quantity, total_amount, total_tax_amount =0,0, 0
         total_quantity, total_amount, total_tax_amount = get_sku_wise_pr_amount_and_quantity(full_pr_number, result['sku__sku_code'])
-        lineItemId = PendingLineItems.objects.filter(pending_pr__full_pr_number = result['pending_pr__full_pr_number'], sku__sku_code= result['sku__sku_code'])[0]
-        pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', model_id= lineItemId.id)
+        lineItemId = PendingLineItems.objects.using(reports_database).filter(pending_pr__full_pr_number = result['pending_pr__full_pr_number'], sku__sku_code= result['sku__sku_code'])[0]
+        pr_supplier_data = TempJson.objects.using(reports_database).filter(model_name='PENDING_PR_PURCHASE_APPROVER', model_id= lineItemId.id)
         if pr_supplier_data.exists():
             json_data = eval(pr_supplier_data[0].model_json)
             pr_supplier_id = json_data['supplier_id']
             storeObj = get_admin(lineItemId.pending_pr.wh_user)
-            supplierQs = SupplierMaster.objects.filter(user=storeObj.id, supplier_id=pr_supplier_id)
+            supplierQs = SupplierMaster.objects.using(reports_database).filter(user=storeObj.id, supplier_id=pr_supplier_id)
             if supplierQs.exists():
                 pr_supplier_name = supplierQs[0].name
                 pr_supplier_gst = supplierQs[0].tin_number
         else:
-            pr_supplier_data = PendingPO.objects.filter(pending_prs__full_pr_number = result['pending_pr__full_pr_number'], pending_prs__sub_pr_number=result['pending_pr__sub_pr_number'])
+            pr_supplier_data = PendingPO.objects.using(reports_database).filter(pending_prs__full_pr_number = result['pending_pr__full_pr_number'], pending_prs__sub_pr_number=result['pending_pr__sub_pr_number'])
             if pr_supplier_data.exists():
                 try:
                     pr_supplier_id = pr_supplier_data[0].supplier.supplier_id
@@ -17119,7 +17120,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -17127,7 +17128,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -17144,7 +17145,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     '''if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user_data = User.objects.filter(first_name=sister_warehouse_name)
+            user_data = User.objects.using(reports_database).filter(first_name=sister_warehouse_name)
             temp_dict, warehouses_dict = {}, {}
             if user_data.exists():
                 for user_1 in user_data:
@@ -17162,8 +17163,8 @@ def get_metro_po_report_data(search_params, user, sub_user):
         if 'sister_warehouse' in search_params:
             search_parameters['pending_po__pending_prs__wh_user__first_name'] = search_params['sister_warehouse']
         else:
-            sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+            sister_wh = UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            user_ids = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                 'user__id', flat=True))
             search_parameters['pending_po__pending_prs__wh_user__in'] = user_ids'''
     start_index = search_params.get('start', 0)
@@ -17177,7 +17178,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
                    'pending_po__wh_user__userprofile__zone',
                    'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id']
-    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -17195,10 +17196,10 @@ def get_metro_po_report_data(search_params, user, sub_user):
             pr_date = get_local_date(user, pr_creation_date)
         pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
         plant, department = '', ''
-        req_user = User.objects.filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
+        req_user = User.objects.using(reports_database).filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
         pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
-        prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_po__pending_prs__full_pr_number'])
+        prApprQs = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_po__pending_prs__full_pr_number'])
         all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
         last_approvals_date = ''
         if (all_approvals_data):
@@ -17220,14 +17221,14 @@ def get_metro_po_report_data(search_params, user, sub_user):
         # po_quantity = result['total_qty']
         # po_amount = result['total_amt']
         # po_tax_amount = po_amount*((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax'])/100)
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=result['pending_po__full_po_number'])
+        grn_data = SellerPOSummary.objects.using(reports_database).filter(purchase_order__po_number=result['pending_po__full_po_number'])
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
             grn_numbers = list(set(grn_numbers))
         updated_user_name = result['pending_po__requested_user']
-        last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
+        last_updated_by = PurchaseApprovals.objects.using(reports_database).filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
         if result['pending_po__delivery_date']:
@@ -17337,7 +17338,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -17345,7 +17346,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -17360,7 +17361,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     '''if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user_data = User.objects.filter(first_name=sister_warehouse_name)
+            user_data = User.objects.using(reports_database).filter(first_name=sister_warehouse_name)
             temp_dict, warehouses_dict = {}, {}
             if user_data.exists():
                 for user_1 in user_data:
@@ -17378,8 +17379,8 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         if 'sister_warehouse' in search_params:
             search_parameters['pending_po__pending_prs__wh_user__first_name'] = search_params['sister_warehouse']
         else:
-            sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+            sister_wh = UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            user_ids = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                 'user__id', flat=True))
             search_parameters['pending_po__pending_prs__wh_user__in'] = user_ids'''
     user_ids = list(users.values_list('id', flat=True))
@@ -17397,7 +17398,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
                    'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id', 'pending_po__wh_user__userprofile__zone']
 
-    pending_data = PendingLineItems.objects.exclude(pending_po__final_status="approved").filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = PendingLineItems.objects.using(reports_database).exclude(pending_po__final_status="approved").filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -17416,11 +17417,11 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             pr_date = get_local_date(user, pr_creation_date)
         pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
         pr_plant, pr_department = '', ''
-        req_user = User.objects.filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
+        req_user = User.objects.using(reports_database).filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
         pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
         last_approvals_date = ''
-        prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=result['pending_po__pending_prs__id'])
+        prApprQs = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__id=result['pending_po__pending_prs__id'])
         all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
         if (all_approvals_data):
             for approvals in all_approvals_data:
@@ -17439,14 +17440,14 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         pr_number = result['pending_po__pending_prs__full_pr_number']
         po_number = result['pending_po__full_po_number']
         total_pr_quantity, total_pr_amount, total_pr_tax_amount, po_total_qty, po_tax_amount, po_total_amount = get_sku_wise_po_amount_and_quantity(po_number, pr_number, result['sku__sku_code'])
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=result['pending_po__full_po_number'])
+        grn_data = SellerPOSummary.objects.using(reports_database).filter(purchase_order__po_number=result['pending_po__full_po_number'])
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
             grn_numbers = list(set(grn_numbers))
         # updated_user_name = result['pending_po__requested_user__email']
-        last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
+        last_updated_by = PurchaseApprovals.objects.using(reports_database).filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
         if result['pending_po__delivery_date']:
@@ -17503,7 +17504,7 @@ def get_po_price_and_tax_amount(po_number, pr_number):
     po_amount_details, pr_amount_details = {}, {}
     po_number = po_number
     pr_number = pr_number
-    po_data = PendingLineItems.objects.filter(pending_po__full_po_number = po_number)
+    po_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number = po_number)
     po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
     po_tax_amount,  po_total_amount= 0, 0
     po_sku_ids = []
@@ -17521,7 +17522,7 @@ def get_po_price_and_tax_amount(po_number, pr_number):
     po_amount_details['po_total_amount'] = po_total_amount
 
 
-    pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number)
+    pr_data = PendingLineItems.objects.using(reports_database).filter(pending_pr__full_pr_number=pr_number)
 
     pr_total_qty, pr_tmp_price, pr_tmp_tax, = 0, 0, 0
     pr_tax_amount, pr_total_amount = 0, 0
@@ -17605,7 +17606,7 @@ def get_cancel_grn_report_data(search_params, user, sub_user):
                    'purchase_order__open_po__id', 'quantity', 'challan_number', 'challan_date', 'remarks',
                    'purchase_order__open_po__price', 'purchase_order__open_po__cgst_tax',
                    'purchase_order__open_po__igst_tax', 'purchase_order__open_po__sgst_tax']
-    model_data = SellerPOSummary.objects.filter(**search_parameters).exclude(status=0).values(*values_list)
+    model_data = SellerPOSummary.objects.using(reports_database).filter(**search_parameters).exclude(status=0).values(*values_list)
 
     if order_term:
         results = model_data.order_by(order_data)
@@ -17666,14 +17667,14 @@ def get_cancel_grn_report_data(search_params, user, sub_user):
         pr_plant, pr_department, pr_number, pr_date, final_pr_date, pr_raised_user, product_category, category = '', '', '', '', '', '', '', ''
         full_po_number = ''
         full_po_number = result['purchase_order__po_number']
-        pr_data = PendingLineItems.objects.filter(pending_po__open_po__id=open_po_id).values(*pr_value_list).distinct()
+        pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__open_po__id=open_po_id).values(*pr_value_list).distinct()
         if pr_data.exists():
             pr_data = pr_data[0]
             product_category = pr_data['pending_po__product_category']
             pr_number = pr_data['pending_po__pending_prs__full_pr_number']
             pr_raised_user = pr_data['pending_po__pending_prs__requested_user__first_name']
             requested_user = pr_data['pending_po__pending_prs__requested_user']
-            req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
+            req_user = User.objects.using(reports_database).filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
             #pr_department, pr_plant = get_plant_and_department(req_user)
             pr_plant = get_admin(req_user).userprofile.stockone_code
             pr_department = dept_mapping.get(req_user.userprofile.stockone_code, '')
@@ -17779,7 +17780,7 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
                    'purchase_order__open_po__id', 'quantity', 'challan_number', 'challan_date', 'remarks',
                    'purchase_order__open_po__price', 'purchase_order__open_po__cgst_tax',
                    'purchase_order__open_po__igst_tax', 'purchase_order__open_po__sgst_tax']
-    model_data = SellerPOSummary.objects.filter(**search_parameters).exclude(status=0).values(*values_list)
+    model_data = SellerPOSummary.objects.using(reports_database).filter(**search_parameters).exclude(status=0).values(*values_list)
 
     if order_term:
         results = model_data.order_by(order_data)
@@ -17848,7 +17849,7 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
         pr_plant, pr_department, pr_number, pr_date, final_pr_date, pr_raised_user, product_category, category = '', '', '', '', '', '', '', ''
         full_po_number = ''
         full_po_number = result['purchase_order__po_number']
-        pr_data = PendingLineItems.objects.filter(pending_po__open_po__id=open_po_id).values(*pr_value_list).distinct()
+        pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__open_po__id=open_po_id).values(*pr_value_list).distinct()
         if pr_data.exists():
             pr_data = pr_data[0]
             product_category = pr_data['pending_po__product_category']
@@ -17856,7 +17857,7 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
             pr_raised_user = pr_data['pending_po__pending_prs__requested_user__first_name']
             requested_user = pr_data['pending_po__pending_prs__requested_user']
             pr_plant, pr_department = '', ''
-            req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
+            req_user = User.objects.using(reports_database).filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
             #pr_department, pr_plant = get_plant_and_department(req_user)
             pr_plant = get_admin(req_user).userprofile.stockone_code
             pr_department = dept_mapping.get(req_user.userprofile.stockone_code, '')
@@ -17954,7 +17955,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -17962,7 +17963,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -17983,8 +17984,8 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['po_number', 'creation_date','expected_date']
-    model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct()
-    #model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
+    model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct()
+    #model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
                                         #annotate(total_qty=Sum('open_po__order_quantity'),
                                     #total_temp_amt=Sum(F('open_po__order_quantity') * F('open_po__price')),
                                     #annotate(total_tax_amount=Sum((F('open_po__order_quantity') * F('open_po__price')/100)*(F('open_po__cgst_tax')+F('open_po__sgst_tax')+F('open_po__igst_tax'))),
@@ -17999,7 +18000,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     po_numbers = []
     for model_dat in results:
         po_numbers.append(model_dat['po_number'])
-    po_integration_object = IntegrationMaster.objects.filter(module_type="PurchaseOrder",
+    po_integration_object = IntegrationMaster.objects.using(reports_database).filter(module_type="PurchaseOrder",
                                                              stockone_reference__in=po_numbers)
     po_int_status, po_int_err, po_int_date = {}, {}, {}
     for po_int in po_integration_object:
@@ -18007,7 +18008,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         po_int_err.setdefault(po_int.stockone_reference, po_int.integration_error)
         po_int_date.setdefault(po_int.stockone_reference, po_int.updation_date)
 
-    open_po_data = PurchaseOrder.objects.filter(po_number__in=po_numbers,open_po__isnull=False).exclude(status='deleted').\
+    open_po_data = PurchaseOrder.objects.using(reports_database).filter(po_number__in=po_numbers,open_po__isnull=False).exclude(status='deleted').\
                                             values('po_number','open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax', 'received_quantity',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
                                             'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date', 'reason',
@@ -18063,7 +18064,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         product_category, category, final_status, plant_zone = '', '', '', ''
         pr_quantity = ''
         user_id= ''
-        # open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).exclude(status='deleted').\
+        # open_po_data = PurchaseOrder.objects.using(reports_database).filter(po_number=result['po_number'],open_po__isnull=False).exclude(status='deleted').\
         #                                     values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
         #                                     'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
         #                                     'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
@@ -18125,7 +18126,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','pending_po__delivery_date',
         'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__id','pending_po__final_status',
          'pending_po__full_po_number', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__wh_user__userprofile__zone']
-        check_pr_data = PendingLineItems.objects.filter(pending_po__full_po_number=po_number)\
+        check_pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number=po_number)\
                         .values(*pr_values_list).distinct()
         if check_pr_data.exists():
             for pr_data in check_pr_data:
@@ -18143,7 +18144,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
                 final_status = pr_data['pending_po__final_status']
                 product_category = pr_data['pending_po__product_category']
                 category = pr_data['pending_po__sku_category']
-                req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])
+                req_user = User.objects.using(reports_database).filter(id=pr_data['pending_po__pending_prs__wh_user__id'])
                 if req_user:
                     req_user=req_user[0]
                     if req_user.userprofile.warehouse_type.lower() == 'dept':
@@ -18159,7 +18160,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
                     # 
                     # pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
-        prApprQs = PurchaseApprovals.objects.filter(
+        prApprQs = PurchaseApprovals.objects.using(reports_database).filter(
             pending_pr__full_pr_number=pr_number)
         all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
         last_approvals_date = ''
@@ -18174,20 +18175,20 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get(
             'pr_tax_amount', 0), pr_amount_details.get('pr_total_amount', 0)
 
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, )
+        grn_data = SellerPOSummary.objects.using(reports_database).filter(purchase_order__po_number=po_number, )
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
             grn_numbers = list(set(grn_numbers))
-        last_updated_by = PurchaseApprovals.objects.filter(
+        last_updated_by = PurchaseApprovals.objects.using(reports_database).filter(
             pending_po__full_po_number=po_number)
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
         if result['expected_date']:
             delivery_date = result['expected_date'].strftime("%d-%b-%y")
         if not pr_plant and user_id:
-            req_user = User.objects.filter(id=user_id)
+            req_user = User.objects.using(reports_database).filter(id=user_id)
             if req_user:
                 req_user=req_user[0]
                 pr_department, pr_plant = get_plant_and_department(req_user)
@@ -18280,7 +18281,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         users = check_and_get_plants_wo_request(sub_user, user, users)
     #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['po_number', 'po_number', 'po_number', 'order_id','creation_date', 'creation_date', 'po_number', 'po_number',
            'order_id', 'po_number',
            'open_po__sku__sku_category', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number',
@@ -18325,7 +18326,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -18333,7 +18334,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -18360,7 +18361,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                    'open_po__sku__sub_category', 'updation_date', 'creation_date', 'open_po__order_quantity', 'status', 'reason',
                    'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price', 'received_quantity', 'id']
 
-    model_data = PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
+    model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
     if order_term:
         model_data = model_data.order_by(order_data)
     temp_data['recordsTotal'] = model_data.count()
@@ -18451,7 +18452,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                        'requested_user__first_name', 'open_po__vendor__vendor_id', 'open_po__vendor__name',
                        'updation_date', 'pending_prs__requested_user__id','pending_prs__wh_user__id',
                        'pending_prs__id', 'product_category', 'sku_category', 'id', 'pending_prs__wh_user__userprofile__zone']
-        pr_data = PendingPO.objects.filter(full_po_number = result['po_number']).values(*pr_values_list)
+        pr_data = PendingPO.objects.using(reports_database).filter(full_po_number = result['po_number']).values(*pr_values_list)
         pr_plant_code = ""
         if pr_data:
             pr_data = pr_data[0]
@@ -18461,7 +18462,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
             pr_number = pr_data['pending_prs__full_pr_number']
             po_created_by = pr_data['requested_user__first_name']
             plant_zone = pr_data['pending_prs__wh_user__userprofile__zone']
-            req_user = User.objects.filter(id=pr_data['pending_prs__wh_user__id'])
+            req_user = User.objects.using(reports_database).filter(id=pr_data['pending_prs__wh_user__id'])
             if req_user:
                 req_user = req_user[0]
                 if req_user.userprofile.warehouse_type.lower() == 'dept':
@@ -18476,7 +18477,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                     plant_zone = req_user.userprofile.zone
                 # pr_department, pr_plant = get_plant_and_department(req_user)
             last_approvals_date = ''
-            prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=pr_data['pending_prs__id'])
+            prApprQs = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__id=pr_data['pending_prs__id'])
             all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
             if (all_approvals_data):
                 for approvals in all_approvals_data:
@@ -18498,7 +18499,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                 delivery_date = pr_data['delivery_date'].strftime("%d-%b-%y")
         po_received_qty, po_receivable_qty, po_received_amt, po_receivable_amt= [0]*4
         po_number = result['po_number']
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, purchase_order_id=result['id'], status=0, purchase_order__open_po__sku__sku_code=result['open_po__sku__sku_code']).values('grn_number', 'price', 'quantity', 'cess_tax')
+        grn_data = SellerPOSummary.objects.using(reports_database).filter(purchase_order__po_number=po_number, purchase_order_id=result['id'], status=0, purchase_order__open_po__sku__sku_code=result['open_po__sku__sku_code']).values('grn_number', 'price', 'quantity', 'cess_tax')
         grn_numbers, updated_user_name= [], ''
         if grn_data.exists():
             for g_data in grn_data:
@@ -18508,7 +18509,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         if not po_quantity:
             po_received_amt = 0
         # updated_user_name = result['pending_po__requested_user__email']
-        last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = po_number)
+        last_updated_by = PurchaseApprovals.objects.using(reports_database).filter(pending_po__full_po_number = po_number)
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
         if not result['open_po__order_quantity']:
@@ -18581,7 +18582,7 @@ def get_pr_amount_and_quantity(pr_number, sub_pr_number):
     pr_number = pr_number
     total_amount, total_quantity, total_tax_amount = 0, 0, 0
     if pr_number:
-        pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, pending_pr__sub_pr_number=sub_pr_number)
+        pr_data = PendingLineItems.objects.using(reports_database).filter(pending_pr__full_pr_number=pr_number, pending_pr__sub_pr_number=sub_pr_number)
         if pr_data.exists():
             for row in pr_data:
                 tem_price = 0
@@ -18597,7 +18598,7 @@ def get_sku_wise_pr_amount_and_quantity(pr_number, sku_code):
     sku_code = sku_code
     total_amount, total_quantity, total_tax_amount = 0, 0, 0
     if pr_number:
-        pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, sku__sku_code=sku_code)
+        pr_data = PendingLineItems.objects.using(reports_database).filter(pending_pr__full_pr_number=pr_number, sku__sku_code=sku_code)
         if pr_data.exists():
             for row in pr_data:
                 tem_price = 0
@@ -18616,7 +18617,7 @@ def get_sku_wise_po_amount_and_quantity(po_number, pr_number, sku_code):
     total_pr_quantity, total_pr_amount, total_pr_tax_amount = 0,0,0
     po_total_qty,po_tax_amount, po_total_amount =0,0,0
     if pr_number:
-        pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, sku__sku_code=sku_code)
+        pr_data = PendingLineItems.objects.using(reports_database).filter(pending_pr__full_pr_number=pr_number, sku__sku_code=sku_code)
         if pr_data.exists():
             for pr_row in pr_data:
                 tem_price = 0
@@ -18626,7 +18627,7 @@ def get_sku_wise_po_amount_and_quantity(po_number, pr_number, sku_code):
                         (pr_row.sgst_tax + pr_row.cgst_tax + pr_row.igst_tax + pr_row.utgst_tax + pr_row.cess_tax) / 100)
                 total_pr_amount += tem_price + total_pr_tax_amount
     if po_number:
-        po_data = PendingLineItems.objects.filter(pending_po__full_po_number = po_number, sku__sku_code=sku_code)
+        po_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number = po_number, sku__sku_code=sku_code)
         if po_data.exists():
             for row in po_data:
                 po_tmp_price = 0
@@ -18641,13 +18642,13 @@ def get_sku_wise_po_amount_and_quantity(po_number, pr_number, sku_code):
 
 def get_pr_plant_and_department(po_number):
     pr_plant, pr_department, category, product_category = '','','',''
-    purchase_order = PurchaseOrder.objects.filter(po_number=po_number)
+    purchase_order = PurchaseOrder.objects.using(reports_database).filter(po_number=po_number)
     if purchase_order.exists():
         for order in purchase_order:
             check_user = order.open_po.sku.user
             if check_user:
                 category = order.open_po.sku.sku_category
-                check_warehouse_details = User.objects.filter(id=check_user)
+                check_warehouse_details = User.objects.using(reports_database).filter(id=check_user)
                 if check_warehouse_details.exists():
                     if check_warehouse_details[0].userprofile.warehouse_type == "DEPT":
                         pr_department = check_warehouse_details[0].userprofile.stockone_code
@@ -18657,7 +18658,7 @@ def get_pr_plant_and_department(po_number):
                         pr_department=''
                     else:
                         pr_plant, pr_department = '', ''
-                category_data = UserPrefixes.objects.filter(id=check_user)
+                category_data = UserPrefixes.objects.using(reports_database).filter(id=check_user)
                 if category_data.exists():
                     product_category = category_data[0].product_category
     return pr_plant, pr_department, category, product_category
@@ -18706,7 +18707,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -18714,7 +18715,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -18740,8 +18741,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp','stock_mapping__stock__batch_detail__puom',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date','stock_mapping__stock__batch_detail__pcf',
                     'quantity', 'stock_mapping__quantity', 'price', 'stock_mapping__id', 'sku_pcf', 'remarks', 'consumption_type', 'consumption_number']
-    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
-                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
+    model_data = ConsumptionData.objects.using(reports_database).filter(stock_mapping__isnull=False, is_valid=0, **search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.using(reports_database).all()).exclude(sku_id__in=ServiceMaster.objects.using(reports_database).all()).exclude(sku_id__in=OtherItemsMaster.objects.using(reports_database).all()).order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -18759,7 +18760,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     count = 0
     for result in results.iterator():
         test_code, mfg_date, exp_date, workload, workload_from, workload_to  = [''] * 6
-        user_obj = User.objects.get(id=result['sku__user'])
+        user_obj = User.objects.using(reports_database).get(id=result['sku__user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
@@ -18774,7 +18775,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         if result['consumption_type'] == 3:
             consumption_type = 'Adjustment'
             try:
-                temp_datum = AdjustementConsumptionData.objects.get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku__user=result['sku__user'])
+                temp_datum = AdjustementConsumptionData.objects.using(reports_database).get(consumption__consumption_number=result['consumption_number'], consumption__sku__sku_code=result['sku__sku_code'], consumption__sku__user=result['sku__user'])
                 consumption_type = consumption_type + '-' + temp_datum.adjustment_type
                 workload, workload_from, workload_to = temp_datum.workload, temp_datum.workload_from.strftime("%d %b %Y") if temp_datum.workload_from else '', temp_datum.workload_to.strftime("%d %b %Y") if temp_datum.workload_to else ''
             except:
@@ -18886,7 +18887,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -18894,7 +18895,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -18916,8 +18917,8 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['sku__user', 'sku__sku_code', 'id', 'consumption_number']
     search_parameters['creation_date__gt'] = datetime.datetime.now().replace(day=1).date()
-    model_data = ConsumptionData.objects.filter(stock_mapping__isnull=False, is_valid=0, quantity__gt=0, **search_parameters).values(*values_list).distinct().\
-                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.all()).exclude(sku_id__in=ServiceMaster.objects.all()).exclude(sku_id__in=OtherItemsMaster.objects.all()).order_by(order_data)
+    model_data = ConsumptionData.objects.using(reports_database).filter(stock_mapping__isnull=False, is_valid=0, quantity__gt=0, **search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.using(reports_database).all()).exclude(sku_id__in=ServiceMaster.objects.using(reports_database).all()).exclude(sku_id__in=OtherItemsMaster.objects.using(reports_database).all()).order_by(order_data)
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = model_data.count()
     start_index = search_params.get('start', 0)
@@ -18928,8 +18929,8 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
         results = model_data
     count = 0
     for result in results:
-        consumption = ConsumptionData.objects.get(id=result['id'])
-        user_obj = User.objects.get(id=result['sku__user'])
+        consumption = ConsumptionData.objects.using(reports_database).get(id=result['id'])
+        user_obj = User.objects.using(reports_database).get(id=result['sku__user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
@@ -18943,7 +18944,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
         if int(consumption.consumption_type) == 3:
             consumption_type = 'Adjustment'
             try:
-                temp_datum = AdjustementConsumptionData.objects.get(consumption_id=consumption.id)
+                temp_datum = AdjustementConsumptionData.objects.using(reports_database).get(consumption_id=consumption.id)
                 consumption_type = consumption_type + '-' + temp_datum.adjustment_type
             except:
                 pass
@@ -19029,7 +19030,7 @@ def get_consumption_data_old(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
 	user_filter_check =True
         plant_name = search_params['plant_name']
@@ -19038,7 +19039,7 @@ def get_consumption_data_old(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         user_filter_check =True
@@ -19058,7 +19059,7 @@ def get_consumption_data_old(search_params, user, sub_user):
     'calculated_total_tests', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc','user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 
     'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id']
-    model_data = Consumption.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+    model_data = Consumption.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -19077,14 +19078,14 @@ def get_consumption_data_old(search_params, user, sub_user):
     for result in results:
         order_id = ''
         consumed_qty = 0
-        consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        consumption_data = ConsumptionData.objects.using(reports_database).filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
         if consumption_data:
             order_id = consumption_data[0].consumption_number
             consumed_qty = consumption_data[0].quantity
         #if result['consumptiondata__consumption_number']:
             #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
-        user_obj = User.objects.get(id=result['user'])
+        user_obj = User.objects.using(reports_database).get(id=result['user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
@@ -19111,11 +19112,11 @@ def get_consumption_data_old(search_params, user, sub_user):
             reason = 'Stock Not Found'
         if result['status'] == 3:
             reason = 'Bom Mapping Not Found'
-        bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        bom_obj = BOMMaster.objects.using(reports_database).filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
         if bom_obj:
             uom = bom_obj[0].unit_of_measurement
         month = result['creation_date'].strftime('%b-%Y')
-        stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+        stocks = StockDetail.objects.using(reports_database).exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
@@ -19188,7 +19189,7 @@ def get_consumption_data_(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
 	user_filter_check =True
         plant_name = search_params['plant_name']
@@ -19197,7 +19198,7 @@ def get_consumption_data_(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         user_filter_check =True
@@ -19219,7 +19220,7 @@ def get_consumption_data_(search_params, user, sub_user):
      'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumption_quantity', 'consumptionmaterial__sku__sku_desc', 'consumptionmaterial__sku__average_price', 'user', 
     'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'n_time_process', 'rerun', 'quality_check', 'remarks',
     'total_patients', 'total', 'no_patient', 'qnp', 'status', 'run_date','id', 'org_id', 'instrument_id', 'consumptionmaterial__stock_quantity', 'consumptionmaterial__sku_pcf']
-    model_data = Consumption.objects.filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
+    model_data = Consumption.objects.using(reports_database).filter(**search_parameters).exclude(status=9).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -19250,7 +19251,7 @@ def get_consumption_data_(search_params, user, sub_user):
         if row["user"]:
             user_ids.append(row["user"])
     consumption_data_dict= {}
-    consumption_data_obj = ConsumptionData.objects.filter(quantity__gt=0, stock_mapping__isnull=False, is_valid=0, consumption_id__in=test_consumption_ids_list, sku__sku_code__in=sku_codes_list).values("sku__sku_code", "consumption_id", "consumption_number", "stock_mapping__quantity", "sku_pcf", "price")
+    consumption_data_obj = ConsumptionData.objects.using(reports_database).filter(quantity__gt=0, stock_mapping__isnull=False, is_valid=0, consumption_id__in=test_consumption_ids_list, sku__sku_code__in=sku_codes_list).values("sku__sku_code", "consumption_id", "consumption_number", "stock_mapping__quantity", "sku_pcf", "price")
     for each_row in consumption_data_obj:
         group = (each_row["consumption_id"], str(each_row["sku__sku_code"]))
 	if group in consumption_data_dict:
@@ -19265,13 +19266,13 @@ def get_consumption_data_(search_params, user, sub_user):
 					"total_price":(each_row["stock_mapping__quantity"]/each_row["sku_pcf"])*each_row["price"],
                                         }
     bom_data_dict= {}
-    bom_obj = BOMMaster.objects.filter((Q(wh_user__in=user_ids) | Q(plant_user__in=user_ids)),(Q(instrument_id__in= machine_code_list) | Q(test_type="Manual")), material_sku__sku_code__in= sku_codes_list, 
+    bom_obj = BOMMaster.objects.using(reports_database).filter((Q(wh_user__in=user_ids) | Q(plant_user__in=user_ids)),(Q(instrument_id__in= machine_code_list) | Q(test_type="Manual")), material_sku__sku_code__in= sku_codes_list, 
                                        product_sku__sku_code__in= test_code_list, 
                                       )
     for each_bom in bom_obj:
         group_by_bom= (each_bom.material_sku.sku_code, each_bom.product_sku.sku_code, str(each_bom.instrument_id))
         bom_data_dict[group_by_bom] = { "uom" : each_bom.unit_of_measurement}
-    #stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
+    #stocks = StockDetail.objects.using(reports_database).exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user__in=user_ids,
     #                                                sku__sku_code__in=sku_codes_list,
     #                                                quantity__gt=0).values('sku__user', "sku__sku_code").distinct().annotate(quantity_sum=Sum('quantity')).\
     #                order_by('batch_detail__expiry_date', 'receipt_date')
@@ -19280,14 +19281,14 @@ def get_consumption_data_(search_params, user, sub_user):
     for result in results:
         order_id = ''
         consumed_qty = 0
-        # consumption_data = ConsumptionData.objects.filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
+        # consumption_data = ConsumptionData.objects.using(reports_database).filter(consumption_id=result['id'], sku__sku_code=result['consumptionmaterial__sku__sku_code'])
         group = (result['id'], str(result['consumptionmaterial__sku__sku_code']))
         order_id = consumption_data_dict.get(group, {}).get("consumption_number", "")
 	consumed_qty = consumption_data_dict.get(group, {}).get("quantity", 0)
         #if result['consumptiondata__consumption_number']:
             #order_id = result['consumptiondata__consumption_number']
         test_code, machine_code, machine_name, test_name = [''] * 4
-        user_obj = User.objects.get(id=result['user'])
+        user_obj = User.objects.using(reports_database).get(id=result['user'])
         department = ''
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
@@ -19326,7 +19327,7 @@ def get_consumption_data_(search_params, user, sub_user):
                 reason = 'Stock Not Found'
             if result['status'] == 3:
                 reason = 'Bom Mapping Not Found'
-        #bom_obj = BOMMaster.objects.filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
+        #bom_obj = BOMMaster.objects.using(reports_database).filter(material_sku__sku_code=result['consumptionmaterial__sku__sku_code'], product_sku__sku_code=test_code, machine_master__machine_code=machine_code)
         #if bom_obj:round(po_total_qty,2)
         bom_group_by = (result['consumptionmaterial__sku__sku_code'], test_code, str(result["instrument_id"]))
         uom = bom_data_dict.get(bom_group_by, {}).get("uom", "")
@@ -19342,7 +19343,7 @@ def get_consumption_data_(search_params, user, sub_user):
 	if consumed_qty:
 	    consumed_value = round(consumption_data_dict.get(group, {}).get("total_price", 0), 3)
         month = result['creation_date'].strftime('%b-%Y')
-        '''stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
+        '''stocks = StockDetail.objects.using(reports_database).exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user_obj.id,
                                                     sku__sku_code=result['consumptionmaterial__sku__sku_code'],
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')
@@ -19424,7 +19425,7 @@ def get_asn_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['asn_number', 'user', 'purchase_order__po_number']
-    model_data = ASNMapping.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
+    model_data = ASNMapping.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
 
     #if order_term:
     #    results = model_data.order_by(order_data)
@@ -19441,8 +19442,8 @@ def get_asn_data(search_params, user, sub_user):
         results = model_data
     count = 0
     for result in results:
-        wh_user = User.objects.get(id=result['user'])
-        purchase_order = PurchaseOrder.objects.filter(po_number=result['purchase_order__po_number'], open_po__sku__user=result['user'])
+        wh_user = User.objects.using(reports_database).get(id=result['user'])
+        purchase_order = PurchaseOrder.objects.using(reports_database).filter(po_number=result['purchase_order__po_number'], open_po__sku__user=result['user'])
         po_status = list(purchase_order.values_list('status', flat=True))
         status = 'Open'
         if 'grn-generated' in po_status:
@@ -19459,7 +19460,7 @@ def po_upload_amount_and_quantity(po_number):
     from miebach_admin.models import *
     po_amount_details = {}
     po_number = po_number
-    po_data = PurchaseOrder.objects.filter(po_number=po_number)
+    po_data = PurchaseOrder.objects.using(reports_database).filter(po_number=po_number)
     po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
     po_tax_amount, po_total_amount = 0, 0
     if po_data.exists():
@@ -19481,7 +19482,7 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
     from miebach_admin.models import *
     po_amount_details = {}
     po_number = po_number
-    po_data = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__sku_code=sku_code)
+    po_data = PurchaseOrder.objects.using(reports_database).filter(po_number=po_number, open_po__sku__sku_code=sku_code)
     po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
     po_tax_amount, po_total_amount = 0, 0
     if po_data.exists():
@@ -19541,7 +19542,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -19549,7 +19550,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -19568,7 +19569,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
 
     values_list = ['creation_date', 'stock__sku__user', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'quantity', 'sku_avg_price',
                     'stock__batch_detail__batch_no', 'sku_pcf']
-    model_data = ClosingStock.objects.filter(**search_parameters).values(*values_list)
+    model_data = ClosingStock.objects.using(reports_database).filter(**search_parameters).values(*values_list)
 
     if order_term:
         model_data = model_data.order_by(order_data)
@@ -19589,7 +19590,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
     for result in results.iterator():
         counter += 1
         print counter
-        user_obj = User.objects.get(id=result['stock__sku__user'])
+        user_obj = User.objects.using(reports_database).get(id=result['stock__sku__user'])
         plant_code = user_obj.userprofile.stockone_code
         plant = user_obj.first_name
         dept = ''
@@ -19666,7 +19667,7 @@ def get_praod_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -19674,7 +19675,7 @@ def get_praod_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -19690,10 +19691,10 @@ def get_praod_report_data(search_params, user, sub_user):
     search_parameters['wh_user_id__in'] = user_ids
     search_parameters['final_status'] = 'saved'
     values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status', 'requested_user__username']
-    model_data1 = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+    model_data1 = PendingPR.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     search_parameters['final_status'] = 'pending'
     search_parameters['pending_prApprovals__status'] = ''
-    model_data2 = PendingPR.objects.filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+    model_data2 = PendingPR.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     model_data = model_data1 | model_data2
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -19717,16 +19718,16 @@ def get_praod_report_data(search_params, user, sub_user):
         results = model_data
     pr_ids = map(lambda x: x['id'], results)
     pas_dict = {}
-    pas_objs = PurchaseApprovals.objects.filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by', 'creation_date', 'level')
+    pas_objs = PurchaseApprovals.objects.using(reports_database).filter(pending_pr_id__in=pr_ids, status='').order_by('creation_date').only('pending_pr_id', 'validated_by', 'creation_date', 'level')
     for pas in pas_objs:
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     staff_dict = {}
-    staff_objects = StaffMaster.objects.filter(user__in=user_ids).values('email_id','position')
+    staff_objects = StaffMaster.objects.using(reports_database).filter(user__in=user_ids).values('email_id','position')
     for staff_object in staff_objects:
         staff_dict[staff_object.get('email_id')] =  staff_object.get('position','')
     for result in results:
-        user_obj = User.objects.get(id=result['wh_user'])
+        user_obj = User.objects.using(reports_database).get(id=result['wh_user'])
         plant_code = user_obj.userprofile.stockone_code
         plant = user_obj.first_name
         dept = ''
@@ -19835,10 +19836,10 @@ def po_report_download(user_list, search_params, user):
     if 'to_date' in search_params:
     	search_parameters['creation_date__lt'] = search_params['to_date']
     search_parameters['open_po__sku__user__in'] = user_list
-    po_number_list = list(PurchaseOrder.objects.filter(**search_parameters).exclude(status='deleted').values_list('po_number', flat=True).distinct())
+    po_number_list = list(PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values_list('po_number', flat=True).distinct())
     pr_data = {}
     for po in po_number_list:
-    	pr_data[po] = list(PendingPO.objects.filter(full_po_number = po).values_list('pending_prs__full_pr_number', flat =True))
+    	pr_data[po] = list(PendingPO.objects.using(reports_database).filter(full_po_number = po).values_list('pending_prs__full_pr_number', flat =True))
     for data in purchase_orders:
         aaData = OrderedDict((('Plant', data[26]),('Username', data[27]),('Plant Name', data[30]),('Supplier Name', data[0]),('Supplier ID', data[1]) ,
             ('GST Number', data[2]), ('PO No', data[3]),
@@ -19894,7 +19895,7 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -19902,7 +19903,7 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -19919,7 +19920,7 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = MRP.objects.filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
+    model_data = MRP.objects.using(reports_database).filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
 
     if order_term:
         model_data = model_data.order_by(order_data)
@@ -19936,7 +19937,7 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
     for data in model_data:
         plant = get_admin(data.user)
         staff_name = ''
-        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
         if staff:
             staff_name = staff[0].email_id
         pr_value = ((data.amount)/data.suggested_qty) * data.mrp_pr_raised_qty
@@ -19998,7 +19999,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -20006,7 +20007,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -20024,7 +20025,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    mrp_objs = MRP.objects.filter(**search_parameters)
+    mrp_objs = MRP.objects.using(reports_database).filter(**search_parameters)
     model_data = mrp_objs.values('user', 'transact_number').distinct().annotate(Sum('suggested_qty'), Count('id'), Sum('amount'))
 
     if order_term:
@@ -20055,10 +20056,10 @@ def get_mrp_department_report_data(search_params, user, sub_user):
     pr_raised = dict(mrp_objs.filter(mrp_pr_raised_qty__gt=0).annotate(grp_key=Concat('user_id', Value('#'), 'transact_number', output_field=CharField())).values_list('grp_key').distinct().\
                         annotate(calc_val=Concat(Sum('suggested_qty'), Value('#'), Count('id'), Value('#'), Sum('amount'), output_field=CharField())))
     for data in model_data:
-        dept = User.objects.get(id=data['user'])
+        dept = User.objects.using(reports_database).get(id=data['user'])
         plant = get_admin(dept)
         staff_name = ''
-        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=dept.userprofile.stockone_code)
+        staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=dept.userprofile.stockone_code)
         if staff:
             staff_name = staff[0].email_id
         grp_key = '%s#%s' % (str(data['user']), data['transact_number'])

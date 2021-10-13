@@ -771,7 +771,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True, db_index=True)
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     purchase_type = models.CharField(max_length=32, default='PO', db_index=True)
-    configName = models.CharField(max_length=64, default='')
+    configName = models.CharField(max_length=256, default='')
     approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser', db_index=True)
@@ -883,7 +883,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
+        index_together = (('po_number',), ('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',), ('status', 'open_po',))
         permissions = [
             ('update_purchaseorder', 'Update Purchase Order'),
         ]
@@ -1931,6 +1931,7 @@ class OpenST(models.Model):
 
     class Meta:
         db_table = 'OPEN_ST'
+        index_together = (('sku',))
 
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.warehouse_id))
@@ -1945,8 +1946,7 @@ class STPurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'ST_PURCHASE_ORDER'
-        index_together = ('open_st', 'po')
-
+        index_together = (('open_st',),('open_st', 'po'))
     def __unicode__(self):
         return str(self.po_id)
 

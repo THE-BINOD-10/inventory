@@ -2141,6 +2141,7 @@ def generated_actual_pr_data(request, user=''):
         lineItems = record[0].pending_prlineItems.filter(quantity__gt=0).values_list(*lineItemVals)
         if record[0].pending_prlineItems.filter(suggested_qty__gt=0):
             display_suggested_qty = True
+    is_purchase_approver = find_purchase_approver_permission(request.user)
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
@@ -2178,14 +2179,16 @@ def generated_actual_pr_data(request, user=''):
         else:
             temp_cess_tax = ''
 
+        consumption_dict = {}
         temp_store = get_admin(record[0].wh_user)
-        consumption_dict = get_average_consumption_qty(temp_store, sku_code)
+        # consumption_dict = get_average_consumption_qty(temp_store, sku_code, sku_conversion)
         search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
-        stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        '''stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,
-                                                    search_params, includeStoreStock=False)
+                                                    search_params, includeStoreStock=False)'''
+        st_avail_qty, intransitQty, openpr_qty, avail_qty = 0, 0, 0, 0
         is_doa_sent_flag = False
-        is_purchase_approver = find_purchase_approver_permission(request.user)
+        #is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
         preferred_supplier = None
         resubmitting_user = False
@@ -3310,7 +3313,10 @@ def search_supplier(request, user=''):
     arg_type = request.GET.get('type', '')
     warehouse_id = request.GET.get('warehouse_id', '')
     if warehouse_id:
-        user = User.objects.get(id=warehouse_id)
+        try:
+            user = User.objects.get(id=warehouse_id)
+        except:
+            user = User.objects.get(username=warehouse_id)
     if arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
@@ -11243,7 +11249,8 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
             extra_data = 'ASPL'
         email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('number',''),
                                                                  extra_data,user.username,data_dict_po.get('supplier_name',''))
-
+    elif report_type == 'Purchase Order':
+        email_subject = '%s %s(%s)-%s-%s' % (company_name, report_type, f_name, data_dict_po['supplier_name'], user.first_name)
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
         milkbasket_mail_credentials = {'username':'Procurement@milkbasket.com', 'password':'codwtmtnjmvarvip'}
         t = loader.get_template('templates/toggle/auto_po_mail_format.html')

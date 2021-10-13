@@ -12623,6 +12623,20 @@ def get_sku_mrp(request ,user =''):
     return HttpResponse(json.dumps({'mrp':mrp}))
 
 
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_extra_row_data(request ,user =''):
+    sku_code = request.POST.get('wms_code','')
+    store_id = request.POST.get('store_id','')
+    temp_store = User.objects.filter(id = store_id)[0]
+    consumption_dict = get_average_consumption_qty(temp_store, sku_code)
+    search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
+    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,\
+            search_params, includeStoreStock=False)
+    return HttpResponse(json.dumps({'openpr_qty': openpr_qty if openpr_qty else 0, 'capacity': st_avail_qty + avail_qty, 'intransit_quantity': intransitQty, 'consumption_dict': consumption_dict}))
+
 def get_firebase_order_data(order_id):
     from firebase import firebase
     firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
@@ -14838,7 +14852,7 @@ def get_last_three_months_consumption(filters):
     last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
     return last_three_months
 
-def get_average_consumption_qty(user, sku_code):
+def get_average_consumption_qty(user, sku_code, sku_pcf=''):
     ret_data = {'avg_qty': 0, 'base_qty': 0}
     plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username], send_parent=True)
     plant_dept_ids = list(plant_depts.values_list('id', flat=True))
@@ -14847,8 +14861,9 @@ def get_average_consumption_qty(user, sku_code):
     last_three_months = last_three_months.aggregate(total=Sum('quantity'), month_count=Count(ExtractMonth('creation_date'), distinct=True))
     base_qty = last_three_months['total'] if last_three_months['total'] else 0
     if last_three_months['month_count']:
-        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
-        sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
+        if not sku_pcf:
+            uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+            sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
         avg_qty = base_qty/3 #last_three_months['month_count']
         ret_data['avg_qty'] = round(avg_qty/sku_pcf, 6)
         ret_data['base_qty'] = base_qty
@@ -15210,8 +15225,12 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
     if send_supp_info == 'true':
         current_date = datetime.datetime.now()
         last_year_date = datetime.datetime.now() - relativedelta(years=1)
-        last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
+        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
+        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
                                         creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        last_po = least_po.filter(open_po__sku__user=User.objects.get(username=plant).id)
+        #last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
+        #                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
         if last_po.exists():
             last_po_obj = last_po.latest('creation_date')
             pr_extra_data['last_supplier'] = last_po_obj.open_po.supplier.name
@@ -15225,9 +15244,9 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
             taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
             total_val = open_po.price + ((open_po.price/100) * taxes)
             pr_extra_data['least_supplier_price'] = round(total_val, 1)
-        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
-        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
-                                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        #all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
+        #least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
+        #                                        creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
         if least_po.exists():
             least_po_obj = least_po.order_by('open_po__price').first()
             open_po = least_po_obj.open_po

@@ -291,3 +291,9 @@ LOCKOUT_MAX_ATTEMPTS = 5
 LOCKOUT_TIME = 86400
 LOCKOUT_ENFORCEMENT_WINDOW = 86400
 LOCKOUT_USE_USER_AGENT = True
+
+reports_to_slave= False
+if reports_to_slave:
+    reports_database= "reports"
+else:
+    reports_database= "default"

@@ -1,3 +1,4 @@
+from miebach.settings.base import reports_database
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
@@ -25,13 +26,13 @@ def get_report_data(request, user=''):
         data = REPORT_DATA_NAMES.get(report_name, {})
     filter_keys = map(lambda d: d.get('name', ''), data.get('filters', ''))
     filter_params = {'user': user.id}
-    sku_master = SKUMaster.objects.filter(**filter_params)
+    sku_master = SKUMaster.objects.using(reports_database).filter(**filter_params)
     if report_name == 'open_jo_report':
         if 'marketplace' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(
-                OrderDetail.objects.exclude(marketplace='').filter(quantity__gt=0))
+                OrderDetail.objects.using(reports_database).exclude(marketplace='').filter(quantity__gt=0))
         if 'brand' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'brand' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(
@@ -42,7 +43,7 @@ def get_report_data(request, user=''):
                                                          .values_list('sku_category', flat=True).distinct())
         if 'stage' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'stage' in person['name'], data['filters'])[0])
-            data['filters'][data_index]['values'] = list(ProductionStages.objects.filter(user=user.id).order_by('order')
+            data['filters'][data_index]['values'] = list(ProductionStages.objects.using(reports_database).filter(user=user.id).order_by('order')
                                                          .values_list('stage_name', flat=True))
             data['filters'][data_index]['values'].extend(
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
@@ -67,12 +68,12 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(
-                OrderDetail.objects.exclude(marketplace='').filter(user=user.id).values_list('marketplace',
+                OrderDetail.objects.using(reports_database).exclude(marketplace='').filter(user=user.id).values_list('marketplace',
                                                                                              flat=True).distinct())
         if 'sku_category' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(
-                OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
+                OrderDetail.objects.using(reports_database).exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
         if 'sister_warehouse' in filter_keys:
             sister_wh = get_sister_warehouse(user)
@@ -80,7 +81,7 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             sister_warehouses = [user.username]
             sister_warehouses1 = list(
-                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+                UserGroups.objects.using(reports_database).filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
             data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
@@ -104,15 +105,15 @@ def get_report_data(request, user=''):
                 user_data = get_all_department_data(user)
                 sister_wh = user_data.keys()
             else:
-                sister_wh =UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+                sister_wh =UserGroups.objects.using(reports_database).filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
 
             data_index = data['filters'].index(
                  filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             sister_warehouses = []
-            # sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_warehouses, warehouse_type="DEPT").\
+            # sister_warehouses1 = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_warehouses, warehouse_type="DEPT").\
             #                           values_list('user__username',flat=True).distinct())
 
-            sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").\
+            sister_warehouses1 = list(UserProfile.objects.using(reports_database).filter(user_id__in=sister_wh, warehouse_type="DEPT").\
                 values_list('user__first_name', flat=True))
 
             data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))'''
@@ -690,7 +691,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
         plant_name = search_params['plant_name']
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
@@ -698,7 +699,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
-            users = User.objects.none()
+            users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
         dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
@@ -715,10 +716,10 @@ def get_supplier_details_data(search_params, user, sub_user):
         if ':' in supplier_name:
             supplier_name = supplier_name.split(':')[0]
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
-        suppliers = PurchaseOrder.objects.select_related('open_po').filter(
+        suppliers = PurchaseOrder.objects.using(reports_database).select_related('open_po').filter(
             open_po__sku__user__in=user_ids, **search_parameters).exclude(status='deleted')
     else:
-        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='deleted').filter(open_po__sku__user__in=user_ids, **search_parameters)
+        suppliers = PurchaseOrder.objects.using(reports_database).select_related('open_po').exclude(status='deleted').filter(open_po__sku__user__in=user_ids, **search_parameters)
     purchase_orders = suppliers.values('order_id', 'status', 'prefix', 'po_number', 'open_po__sku__user').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
         total_received=Sum('received_quantity'),
@@ -749,7 +750,7 @@ def get_supplier_details_data(search_params, user, sub_user):
             total_ordered += quantity
         total_amt = truncate_float(total_amt, 2)
         po_obj = po_data[0]
-        design_codes = SKUSupplier.objects.filter(supplier=po_obj.open_po.supplier, sku=po_obj.open_po.sku,
+        design_codes = SKUSupplier.objects.using(reports_database).filter(supplier=po_obj.open_po.supplier, sku=po_obj.open_po.sku,
                                                   sku__user=user.id)
         supplier_code = ''
         if design_codes:
@@ -771,7 +772,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         plant_code = user_obj.userprofile.stockone_code
         plant_name = user_obj.first_name
         zone = user_obj.userprofile.zone
-        pend_po = PendingPO.objects.filter(full_po_number=po_obj.po_number)
+        pend_po = PendingPO.objects.using(reports_database).filter(full_po_number=po_obj.po_number)
         requested_user = user_obj.username
         pend_po_id = ''
         if pend_po:
@@ -815,7 +816,7 @@ def print_supplier_pos(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     supplier_pos = get_supplier_details_data(search_params, user, request.user)
     supplier_pos = supplier_pos['aaData']
-    user_profile = UserProfile.objects.filter(user_id=request.user.id)
+    user_profile = UserProfile.objects.using(reports_database).filter(user_id=request.user.id)
 
     if supplier_pos:
         html_data = create_po_reports_table(supplier_pos[0].keys(), supplier_pos, user_profile[0], '')
@@ -861,9 +862,9 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
-    sales_return = OrderReturns.objects.filter(**search_parameters).exclude(quantity=0, damaged_quantity=0)
+    sales_return = OrderReturns.objects.using(reports_database).filter(**search_parameters).exclude(quantity=0, damaged_quantity=0)
     if marketplace:
-        sales_return = OrderReturns.objects.filter(Q(order__marketplace=marketplace) | Q(marketplace=marketplace),
+        sales_return = OrderReturns.objects.using(reports_database).filter(Q(order__marketplace=marketplace) | Q(marketplace=marketplace),
                                                    **search_parameters).exclude(quantity=0, damaged_quantity=0)
     temp_data['recordsTotal'] = len(sales_return)
     temp_data['recordsFiltered'] = len(sales_return)
@@ -877,7 +878,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         credit_wo_tax_amount, credit_tax_amount, tax_percent = 0, 0, 0
         state, city, customer_gst_no, unit_price, gst_number, hsn_code = '', '', '', '', '', ''
         manufacturer, searchable, bundle, marketplace = '', '', '', ''
-        attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in=attributes_list)
+        attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
                 if attribute.attribute_name == 'Manufacturer':
@@ -895,14 +896,14 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
             credit_note_number = data.credit_note_number
             unit_price = data.sku.price
             hsn_code = data.sku.hsn_code
-            customer_data = CustomerMaster.objects.filter(user=user.id,customer_id=data.order.customer_id)
+            customer_data = CustomerMaster.objects.using(reports_database).filter(user=user.id,customer_id=data.order.customer_id)
             if customer_data:
                 state = customer_data[0].state
                 customer_gst_no = customer_data[0].tin_number
                 city = customer_data[0].city
             cod = data.order.customerordersummary_set.filter()
             invoice_number = data.invoice_number
-            invoice_data = SellerOrderSummary.objects.filter(full_invoice_number=data.invoice_number)
+            invoice_data = SellerOrderSummary.objects.using(reports_database).filter(full_invoice_number=data.invoice_number)
             invoice_date = get_local_date(user, invoice_data[0].creation_date)
             if cod:
                 cgst_tax = cod[0].cgst_tax
@@ -910,7 +911,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 igst_tax = cod[0].igst_tax
                 credit_tax_amount = (credit_wo_tax_amount) * (cgst_tax + sgst_tax + igst_tax)/100
                 tax_percent = cgst_tax + sgst_tax + igst_tax
-            user_data = UserProfile.objects.filter(user=user.id)
+            user_data = UserProfile.objects.using(reports_database).filter(user=user.id)
             if user_data:
                 gst_number = user_data[0].gst_number
             if not marketplace:
@@ -918,7 +919,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         else:
             marketplace = data.marketplace
 
-        reasons = OrderReturnReasons.objects.filter(order_return=data.id)
+        reasons = OrderReturnReasons.objects.using(reports_database).filter(order_return=data.id)
         reasons_data = []
         return_date = get_local_date(user, data.creation_date)
         if is_excel:
@@ -991,9 +992,9 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                          ('city', city),('state',state),('reason', reasons_data[0]['reason']),('tax_percent', tax_percent)))
             if user.userprofile.industry_type == 'FMCG':
                 temp['manufactured_date'], temp['expiry_date'], temp['batch_no'], temp['mrp'] = '', '', '', ''
-                batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id).values_list('id', flat=True))
+                batch_detail_list = list(ReturnsLocation.objects.using(reports_database).filter(returns_id=data.id).values_list('id', flat=True))
                 if batch_detail_list:
-                    batch_data = BatchDetail.objects.filter(transact_id__in=batch_detail_list, transact_type='return_loc')
+                    batch_data = BatchDetail.objects.using(reports_database).filter(transact_id__in=batch_detail_list, transact_type='return_loc')
                     if batch_data.exists():
                         batch_data = batch_data[0]
                         temp['manufactured_date'] = batch_data.manufactured_date
@@ -1082,7 +1083,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
     search_parameters['cycle__sku__user__in'] = user_ids
     #search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
-        adjustments = InventoryAdjustment.objects.filter(**search_parameters).order_by('-id')
+        adjustments = InventoryAdjustment.objects.using(reports_database).filter(**search_parameters).order_by('-id')
     grouping_data = OrderedDict()
     industry_type = user.userprofile.industry_type
     user_type = user.userprofile.user_type
@@ -1150,7 +1151,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             if amount and qty:
                 avg_cost = '%.2f' % (float(amount) / qty)
             manufacturer, searchable, bundle = '', '', ''
-            attributes_obj = SKUAttributes.objects.filter(sku_id=sku.id, attribute_name__in=attributes_list)
+            attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=sku.id, attribute_name__in=attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
                     if attribute.attribute_name == 'Manufacturer':
@@ -1205,7 +1206,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             #if data.stock.batch_detail:
             #    pcf = data.stock.batch_detail.pcf
             quantity = base_quantity/pcf
-            user_obj = User.objects.get(id=data.cycle.sku.user)
+            user_obj = User.objects.using(reports_database).get(id=data.cycle.sku.user)
             store = user_obj
             if user_obj.userprofile.warehouse_type == 'DEPT':
                 dept = user_obj
@@ -1215,7 +1216,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             else:
                 price = data.cycle.sku.average_price
             order_id = "%s - %s %s" % (data.cycle.cycle, store.userprofile.stockone_code, dept.userprofile.stockone_code if dept else '')
-            datum = AdjustementConsumptionData.objects.filter(inv_adjustment_id=data.id)
+            datum = AdjustementConsumptionData.objects.using(reports_database).filter(inv_adjustment_id=data.id)
             if datum.exists():
                 remarks = datum[0].remarks
             temp_data['aaData'].append(OrderedDict((('OrderId', order_id),
@@ -1280,18 +1281,18 @@ def get_aging_filter_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
+            user = User.objects.using(reports_database).get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.using(reports_database).filter(user_id=user.id)
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouses = UserGroups.objects.using(reports_database).filter(admin_user_id=user.id)
         warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master = SKUMaster.objects.using(reports_database).filter(user__in=warehouse_users.keys())
         sku_master_ids = sku_master.values_list('id', flat=True)
     else:
         search_parameters['sku__user'] = user.id
     search_parameters['quantity__gt'] = 0
     search_parameters['sku_id__in'] = sku_master_ids
-    filtered = StockDetail.objects.filter(**search_parameters). \
+    filtered = StockDetail.objects.using(reports_database).filter(**search_parameters). \
         values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location', 'sku__user',
                'sku__sub_category', 'sku__sku_brand', 'sku_id',
                'receipt_type', 'receipt_number').annotate(total=Sum('quantity'))
@@ -1315,7 +1316,7 @@ def get_aging_filter_data(search_params, user, sub_user):
     for data in all_data:
         if data[9]:
             manufacturer, searchable, bundle = '', '', ''
-            attributes_obj = SKUAttributes.objects.filter(sku_id=data[9], attribute_name__in=attributes_list)
+            attributes_obj = SKUAttributes.objects.using(reports_database).filter(sku_id=data[9], attribute_name__in=attributes_list)
             if attributes_obj.exists():
                 for attribute in attributes_obj:
                     if attribute.attribute_name == 'Manufacturer':
@@ -1348,10 +1349,10 @@ def get_inventory_aging_filter(request, user=''):
 @login_required
 @get_admin_user
 def sku_category_list(request, user=''):
-    categories = list(SKUMaster.objects.exclude(sku_category='').filter(user=user.id).values_list('sku_category',
+    categories = list(SKUMaster.objects.using(reports_database).exclude(sku_category='').filter(user=user.id).values_list('sku_category',
                                                                                                   flat=True).distinct())
     sister_warehouses1 = list(
-        UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',
+        UserGroups.objects.using(reports_database).filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',
                                                                                  flat=True).distinct())
     return HttpResponse(json.dumps({'categories': categories, 'sister_warehouses': sister_warehouses1}))
 
@@ -1360,10 +1361,10 @@ def sku_category_list(request, user=''):
 @login_required
 @get_admin_user
 def department_warehouse(request, user=''):
-    # categories = list(SKUMaster.objects.exclude(sku_category='').filter(user=user.id).values_list('sku_category',
+    # categories = list(SKUMaster.objects.using(reports_database).exclude(sku_category='').filter(user=user.id).values_list('sku_category',
     #                                                                                               flat=True).distinct())
     sister_warehouses1 = list(
-        UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',
+        UserGroups.objects.using(reports_database).filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',
                                                                                  flat=True).distinct())
     return HttpResponse(json.dumps({'sister_warehouses': sister_warehouses1}))
 
@@ -1374,7 +1375,7 @@ def department_warehouse(request, user=''):
 def print_po_reports(request, user=''):
     receipt_type = ''
     po_id = request.GET.get('po_id', '')
-    user = User.objects.get(id=request.GET['warehouse_id'])
+    user = User.objects.using(reports_database).get(id=request.GET['warehouse_id'])
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
@@ -1398,11 +1399,11 @@ def print_po_reports(request, user=''):
     else:
         filter_params['open_po__sku__user'] = user.id
     if po_id:
-        results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre, **filter_params)
+        results = PurchaseOrder.objects.using(reports_database).filter(order_id=po_id, prefix=po_pre, **filter_params)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no, sellerposummary__grn_number=grn_num)
     elif po_summary_id:
-        results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
+        results = SellerPOSummary.objects.using(reports_database).filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0
     total_qty = 0
     total_tax = 0
@@ -1413,7 +1414,7 @@ def print_po_reports(request, user=''):
     for data in results:
         receipt_type = ''
         lr_number = ''
-        lr_number_obj = LRDetail.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user.id, purchase_order__prefix=data.prefix)
+        lr_number_obj = LRDetail.objects.using(reports_database).filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user.id, purchase_order__prefix=data.prefix)
         if lr_number_obj.exists():
             lr_number = lr_number_obj[0].lr_number
         if po_id:
@@ -1551,7 +1552,7 @@ def print_po_reports(request, user=''):
         if not po_id:
             purchase_order = results[0].purchase_order
         if st_grn:
-            user_profile = UserProfile.objects.filter(user_id=purchase_order.stpurchaseorder_set.filter()[0].stocktransfer_set.filter()[0].sku.user)
+            user_profile = UserProfile.objects.using(reports_database).filter(user_id=purchase_order.stpurchaseorder_set.filter()[0].stocktransfer_set.filter()[0].sku.user)
             address = user_profile[0].address
             telephone = user_profile[0].phone_number
             name = user_profile[0].user.username
@@ -1575,7 +1576,7 @@ def print_po_reports(request, user=''):
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
         grn_po_number = purchase_order.po_number
-        warehouse_store = User.objects.get(id=purchase_order.open_po.sku.user).first_name
+        warehouse_store = User.objects.using(reports_database).get(id=purchase_order.open_po.sku.user).first_name
         if receipt_no:
             po_reference = '%s/%s' % (po_reference, receipt_no)
         if purchase_order.sellerposummary_set.filter().exists():
@@ -1586,7 +1587,7 @@ def print_po_reports(request, user=''):
             order_date = get_local_date(request.user, purchase_order.creation_date)
         order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
-        user_profile = UserProfile.objects.get(user_id=user.id)
+        user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)  # user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name), ('GST NO', tin_number))
@@ -1606,7 +1607,7 @@ def print_po_reports(request, user=''):
         tax_value = float("%.2f" % total_tax_value)
     try:
         url_request, invoice_file_name = "", ""
-        invoice_data = MasterDocs.objects.filter(master_id=grn_po_number,
+        invoice_data = MasterDocs.objects.using(reports_database).filter(master_id=grn_po_number,
                                                      user=invoice_file_user,
                                                      extra_flag=grn_receipt_number)
 
@@ -1700,13 +1701,13 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'excel_name=goods_receipt' in excel_name:
         search_params['excel_name'] = excel_name
-        headers = [ 'Zone', 'WareHouse', 'Supplier Name', 'Supplier ID', 'PO No', 'SKU Code', 'SKU Category',
+        '''headers = [ 'Zone', 'WareHouse', 'Supplier Name', 'Supplier ID', 'PO No', 'SKU Code', 'SKU Category',
                     'SKU Description', 'HSN Code', 'SKU Brand', 'PO Date', 'PO Qty', 'PO Basic Price', 'CGST',
-                    'IGST', 'SGST', 'UTGST', 'PO Total Amount', 'UOM', 'Expected delivery date', 'CESS', 
-                    'GRN Qty', 'Recievable Quantity', 'GRN Price', 'Pre Tax Value', 'Post Tax Value', 'GRN Number', 
-                    'Type of GRN', 'GRN date', 'Invoice Number', 'Invoice Date', 'Invoice Value', 'Tcs Value', 
-                    'Challan Number', 'Challan Date', 'GRN Status', 'Credit Note Applicable', 'Credit Note Number', 
-                    'Remarks', 'Supplier GSTIN Number', 'Plant']
+                    'IGST', 'SGST', 'UTGST', 'PO Total Amount', 'UOM', 'Expected delivery date', 'CESS',
+                    'GRN Qty', 'Recievable Quantity', 'GRN Price', 'Pre Tax Value', 'Post Tax Value', 'GRN Number',
+                    'Type of GRN', 'GRN date', 'Invoice Number', 'Invoice Date', 'Invoice Value', 'Tcs Value',
+                    'Challan Number', 'Challan Date', 'GRN Status', 'Credit Note Applicable', 'Credit Note Number',
+                    'Remarks', 'Supplier GSTIN Number', 'Plant']'''
         params = [request, search_params, user, request.user]
     if excel_name in ['excel_name=get_metropolis_po_detail_report', 'excel_name=get_metropolis_po_report']:
         search_params['excel_name'] = excel_name
@@ -1748,7 +1749,7 @@ def excel_reports(request, user=''):
                         'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Discount Amount','Sales Ledger',
                         'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount','Invoice Amount',
                         'Part Number','Unit','Group','MRP','Selling price(inc Tax)','Cost price (Inc Tax)','HSN Code','GST']
-        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+        extra_fields_obj = MiscDetail.objects.using(reports_database).filter(user=user.id, misc_type__icontains="pos_extra_fields")
         for field in extra_fields_obj:
             tmp = field.misc_value.split(',')
             for i in tmp:
@@ -1827,9 +1828,9 @@ def print_aging_report(request, user=''):
 @login_required
 @get_admin_user
 def get_marketplaces_list_reports(request, user=''):
-    sales_marketplace = list(OrderReturns.objects.exclude(marketplace='').filter(status=1, sku__user=user.id). \
+    sales_marketplace = list(OrderReturns.objects.using(reports_database).exclude(marketplace='').filter(status=1, sku__user=user.id). \
                              values_list('marketplace', flat=True).distinct())
-    order_marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user=user.id, quantity__gt=0). \
+    order_marketplace = list(OrderDetail.objects.using(reports_database).exclude(marketplace='').filter(status=1, user=user.id, quantity__gt=0). \
                              values_list('marketplace', flat=True).distinct())
 
     marketplace = list(set(sales_marketplace) | set(order_marketplace))
@@ -2360,15 +2361,15 @@ def print_purchase_order_form(request, user=''):
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
     full_pr_number = ''
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num).exclude(status='deleted')
+    purchase_orders = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix, po_number=po_num).exclude(status='deleted')
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
         po_user_id= purchase_orders[0].open_po.sku.user
         if po_user_id:
-            user=User.objects.get(id=po_user_id)
-        if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
-            pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
+            user=User.objects.using(reports_database).get(id=po_user_id)
+        if PendingPO.objects.using(reports_database).filter(full_po_number=pm_order.po_number).exists():
+            pending_po_data = PendingPO.objects.using(reports_database).filter(full_po_number=pm_order.po_number)[0]
             remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
@@ -2379,7 +2380,7 @@ def print_purchase_order_form(request, user=''):
         supplier_currency = pm_order.currency
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
-    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+    ean_data = SKUMaster.objects.using(reports_database).filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                         id__in=po_sku_ids, user=user.id)
     if ean_data:
         ean_flag = True
@@ -2496,7 +2497,7 @@ def print_purchase_order_form(request, user=''):
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         if not ship_to_address:
-            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+            wh_ship_to = UserAddresses.objects.using(reports_database).filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
             if wh_ship_to.exists():
                 wh_ship_to = wh_ship_to[0]
                 ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
@@ -2544,7 +2545,7 @@ def print_purchase_order_form(request, user=''):
         company_details['pan_number'] = profile.company.pan_number
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
     user_company_id = get_company_id(user)
-    tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
+    tc_master = UserTextFields.objects.using(reports_database).filter(company_id=user_company_id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
     if open_po.supplier.lead_time:
@@ -2652,17 +2653,17 @@ def print_descrepancy_note(request, user=''):
     disp_number = request.GET.get('discrepancy_number', '')
     po_new_data = OrderedDict()
     updated_discrepancy = False
-    profile = UserProfile.objects.get(user=user.id)
+    profile = UserProfile.objects.using(reports_database).get(user=user.id)
     report_data_dict ={}
     if disp_number:
-        discrepancy_objects = Discrepancy.objects.filter(user=user.id, discrepancy_number=disp_number)
+        discrepancy_objects = Discrepancy.objects.using(reports_database).filter(user=user.id, discrepancy_number=disp_number)
         for obj in discrepancy_objects:
             if obj.purchase_order:
                 open_po = obj.purchase_order.open_po
                 filter_params = {'purchase_order__order_id': obj.purchase_order.order_id, 'purchase_order__open_po__sku__user': user.id}
                 if obj.receipt_number:
                     filter_params['receipt_number'] = obj.receipt_number
-                seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
+                seller_po_summary = SellerPOSummary.objects.using(reports_database).filter(**filter_params)
                 price = obj.purchase_order.open_po.price
                 mrp = 0
                 if seller_po_summary.exists():
@@ -2931,7 +2932,7 @@ def reprint_credit_note_report(request, user=''):
 def print_credit_note_report(request, user=''):
     from inbound import get_sales_return_print_json
     credit_note_number = request.GET.get('credit_note_number')
-    return_ids = list(OrderReturns.objects.filter(order__user=user.id, credit_note_number=credit_note_number)\
+    return_ids = list(OrderReturns.objects.using(reports_database).filter(order__user=user.id, credit_note_number=credit_note_number)\
         .values_list('return_id', flat=True))
     final_data = get_sales_return_print_json(return_ids, user)
     return_sales_print = []
@@ -3070,7 +3071,7 @@ def get_praod_report(request, user=''):
 def download_invoice_file(request, user=''):
     receipt_type, http_data = '', ''
     po_id = request.GET.get('po_id', '')
-    user = User.objects.get(id=request.GET['warehouse_id'])
+    user = User.objects.using(reports_database).get(id=request.GET['warehouse_id'])
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
@@ -3079,7 +3080,7 @@ def download_invoice_file(request, user=''):
     grn_num = request.GET.get('grn_number', '')
     warehouse_id = request.GET.get('warehouse_id', '')
     if po_id:
-        results = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__user=user.id)
+        results = PurchaseOrder.objects.using(reports_database).filter(po_number=po_number, open_po__sku__user=user.id)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no, sellerposummary__grn_number=grn_num)
             if results:
@@ -3092,11 +3093,11 @@ def download_invoice_file(request, user=''):
                 grn_po_number = purchase_order.po_number
                 try:
                     url_request, invoice_file_name = "", ""
-                    invoice_data = MasterDocs.objects.filter(master_id=po_number,
+                    invoice_data = MasterDocs.objects.using(reports_database).filter(master_id=po_number,
                                                              master_type='GRN_PO_NUMBER',
                                                              extra_flag=grn_receipt_number).order_by('-creation_date')
                     if not invoice_data:
-                        invoice_data = MasterDocs.objects.filter(master_id=po_id,
+                        invoice_data = MasterDocs.objects.using(reports_database).filter(master_id=po_id,
                                                                  user=invoice_file_user,
                                                                  extra_flag=grn_receipt_number).order_by('-creation_date')
 

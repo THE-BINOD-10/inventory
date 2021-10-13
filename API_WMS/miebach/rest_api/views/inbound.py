@@ -2049,7 +2049,7 @@ def generated_actual_pr_data(request, user=''):
     current_approval = request.POST.get('current_approval', '')
     requestedUserId = User.objects.get(username=requested_user).id
     type= request.POST.get('type', '')
-    record = PendingPR.objects.filter(requested_user__username=requested_user, id=pr_number)
+    record = PendingPR.objects.filter(id=pr_number, requested_user__username=requested_user)
     if current_approval:
         if record[0].final_status in ['pr_converted_to_po', 'approved']:
             return HttpResponse("PR Already Approved !")
@@ -2071,17 +2071,12 @@ def generated_actual_pr_data(request, user=''):
     tax_display, msg, cu_code, currency_words = get_currency_tax_display(storeObj)
     if msg:
         return HttpResponse(msg)
-    total_data = []
-    ser_data = []
-    levelWiseRemarks = []
-    pr_delivery_date = ''
-    pr_created_date = ''
-    approval_remarks = ''
+    total_data, ser_data, levelWiseRemarks, uploaded_file_dict, enquiryRemarks = [], [], [], [], []
+    pr_delivery_date, pr_created_date, approval_remarks, log_full_pr_number = '', '', '', ''
     validateFlag = 0
-    uploaded_file_dict = []
-    log_full_pr_number = ''
-    enquiryRemarks = []
-    if len(record):
+    convertPoFlag = False
+    pa_uploaded_file_dict = {}
+    if record.exists():
         if record[0].full_pr_number:
             log_full_pr_number = record[0].full_pr_number
         if record[0].delivery_date:
@@ -2090,24 +2085,27 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S") , 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
         if record[0].final_status == 'saved':
             approval_remarks = record[0].remarks
-    convertPoFlag = False
     if record[0].final_status == 'approved':
         db_wh_level = int(record[0].wh_user.userprofile.warehouse_level)
         current_wh_level = int(user.userprofile.warehouse_level)
         if (db_wh_level - 1) == current_wh_level:
             convertPoFlag = True
-
-    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type__in=['pending_pr', 'PENDING_PR_PURCHASE_APPROVER_FILE'])
+    for master_doc in master_docs:
+        if master_doc.master_type == 'pending_pr':
+            uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
+                              'file_url': '/' + master_doc.uploaded_file.name})
+        else:
+            pa_uploaded_file_dict = {'file_name': 'PA File', 'id': master_docs[0].id, 'file_url': '/' + master_docs[0].uploaded_file.name}
+    '''master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
     for master_doc in master_docs:
         uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
                               'file_url': '/' + master_doc.uploaded_file.name})
-
     pa_uploaded_file_dict = {}
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
     if master_docs.exists():
         pa_uploaded_file_dict = {'file_name': 'PA File', 'id': master_docs[0].id,
-                              'file_url': '/' + master_docs[0].uploaded_file.name}
-
+                              'file_url': '/' + master_docs[0].uploaded_file.name}'''
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks', 'creation_date', 'updation_date')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -2134,14 +2132,17 @@ def generated_actual_pr_data(request, user=''):
         validated_users.insert(0, record[0].requested_user.email)
     validated_users = list(set(validated_users))
     display_suggested_qty = False
-    if type=="pr_converted_to_po":
+    is_purchase_approver = find_purchase_approver_permission(request.user)
+    '''if type=="pr_converted_to_po":
         pending_po_obj = record[0].pendingpo_set.filter()
         lineItems = pending_po_obj[0].pending_polineItems.filter(quantity__gt=0).values_list(*lineItemVals)
-    else:
-        lineItems = record[0].pending_prlineItems.filter(quantity__gt=0).values_list(*lineItemVals)
-        if record[0].pending_prlineItems.filter(suggested_qty__gt=0):
-            display_suggested_qty = True
-    is_purchase_approver = find_purchase_approver_permission(request.user)
+    else:'''
+    pr_line_data = record[0].pending_prlineItems.filter()
+    lineItems = pr_line_data.filter(quantity__gt=0).values_list(*lineItemVals)
+    if pr_line_data.filter(suggested_qty__gt=0):
+        display_suggested_qty = True
+    pr_line_ids = list(pr_line_data.filter(quantity__gt=0).values_list('id', flat=True))
+    all_temp_json_data = TempJson.objects.filter(model_id__in = pr_line_ids)
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
@@ -2154,11 +2155,16 @@ def generated_actual_pr_data(request, user=''):
         search_params = {'sku__user': user.id, 'sku_code': sku_code}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
-        updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
-            model_id=lineItemId)
+        updatedLineItem = all_temp_json_data.filter(model_name='PendingLineItemMiscDetails', model_id=lineItemId)
         if updatedLineItem.exists():
             updatedJson = eval(updatedLineItem[0].model_json)
-        if updatedJson.has_key('description_edited'):
+        sku_desc_edited = updatedJson.get('description_edited', '')
+        service_stdate = updatedJson.get('service_start_date', '')
+        service_edate = updatedJson.get('service_end_date', '')
+        temp_price = updatedJson.get('temp_price', '')
+        temp_tax = updatedJson.get('temp_tax', '')
+        temp_cess_tax = updatedJson.get('temp_cess_tax', '')
+        '''if updatedJson.has_key('description_edited'):
             sku_desc_edited = updatedJson['description_edited']
         else:
             sku_desc_edited = ''
@@ -2178,11 +2184,11 @@ def generated_actual_pr_data(request, user=''):
             temp_cess_tax = updatedJson['temp_cess_tax']
         else:
             temp_cess_tax = ''
-
+        '''
         consumption_dict = {}
-        temp_store = get_admin(record[0].wh_user)
+        # temp_store = get_admin(record[0].wh_user)
         # consumption_dict = get_average_consumption_qty(temp_store, sku_code, sku_conversion)
-        search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
+        # search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
         '''stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,
                                                     search_params, includeStoreStock=False)'''
@@ -2192,18 +2198,18 @@ def generated_actual_pr_data(request, user=''):
         supplierDetailsMap = OrderedDict()
         preferred_supplier = None
         resubmitting_user = False
-        pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', model_id=lineItemId)
+        pr_supplier_data = all_temp_json_data.filter(model_name='PENDING_PR_PURCHASE_APPROVER', model_id=lineItemId)
         pr_extra_data = get_pr_extra_supplier_data(user, storeObj.username, sku_code, 'true')
         if not pr_supplier_data.exists():
             supplierQs = ''
             if sku_supplier:
                 supplierQs = SupplierMaster.objects.get(id=sku_supplier)
                 preferred_supplier = '%s:%s' %(supplierQs.supplier_id, supplierQs.name)
-                supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=temp_store.id).order_by('price')
+                supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=storeObj.id).order_by('price')
                 if supplierMappings.exists():
                     system_preferred_supplier = '%s:%s' %(supplierMappings[0].supplier.supplier_id, supplierMappings[0].supplier.name)
             if record[0].final_status == 'saved':
-                sku_suppliers_datam = get_sku_supplier_data_suggestions(sku_code, temp_store)
+                sku_suppliers_datam = get_sku_supplier_data_suggestions(sku_code, storeObj)
                 supplierDetailsMap = sku_suppliers_datam['supplierDetails']
                 preferred_supplier = sku_suppliers_datam['preferred_supplier']
                 system_preferred_supplier = ''
@@ -2227,7 +2233,7 @@ def generated_actual_pr_data(request, user=''):
                                                             'gstin': supplierQs.tin_number
                                                             }
         if pr_supplier_data.exists() and not is_purchase_approver:
-            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=temp_store.id).order_by('price')
+            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=storeObj.id).order_by('price')
             if supplierMappings.exists():
                 system_preferred_supplier = '%s:%s' %(supplierMappings[0].supplier.supplier_id, supplierMappings[0].supplier.name)
             json_data = eval(pr_supplier_data[0].model_json)
@@ -2274,7 +2280,6 @@ def generated_actual_pr_data(request, user=''):
                                                     'gstin': supplier_gst_num
                                                     }
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=storeObj.id).order_by('price')
-            # updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',model_id=lineItemId)
             if updatedLineItem.exists():
                 requester_json_data = eval(updatedLineItem[0].model_json)
                 temp_price = requester_json_data.get('temp_price', '')

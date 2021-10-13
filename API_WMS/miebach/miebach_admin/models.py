@@ -701,8 +701,7 @@ class PendingPR(models.Model):
 
     class Meta:
         db_table = 'PENDING_PR'
-	index_together = (('full_pr_number',), ('final_status', ),  ('wh_user', ), ('requested_user', ),('creation_date', ) )
-        #index_together = (('full_pr_number',))
+	index_together = (('full_pr_number',), ('final_status', ),  ('wh_user', ), ('requested_user', ),('creation_date', ), ('id', 'requested_user'))
 
 @reversion.register()
 class PendingPO(models.Model):

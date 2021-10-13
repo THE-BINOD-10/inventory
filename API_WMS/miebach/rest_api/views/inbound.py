@@ -2235,11 +2235,12 @@ def generated_actual_pr_data(request, user=''):
             temp_cess_tax = ''
 
         temp_store = get_admin(record[0].wh_user)
-        consumption_dict = get_average_consumption_qty(temp_store, sku_code)
+        consumption_dict = get_average_consumption_qty(temp_store, sku_code, sku_conversion)
         search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
-        stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        '''stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,
-                                                    search_params, includeStoreStock=False)
+                                                    search_params, includeStoreStock=False)'''
+        st_avail_qty, intransitQty, openpr_qty, avail_qty = 0, 0, 0, 0
         is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()

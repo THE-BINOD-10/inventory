@@ -10976,7 +10976,8 @@ def confirm_add_po(request, sales_data='', user=''):
             supplier_notify = myDict.get('supplier_notify', '')[0]
         try:
             if poQs.po_mail_members:
-                supplier_email_id = list(set(poQs.po_mail_members.split(',')).union(set(supplier_email_id)))
+                #supplier_email_id = list(set(poQs.po_mail_members.split(',')).union(set(supplier_email_id)))
+                supplier_email_id = supplier_email_id + list(set(poQs.po_mail_members.split(',')))
         except Exception as e:
             pass
         if get_misc_value('raise_po', user.id) == 'true' and supplier_notify == 'true':

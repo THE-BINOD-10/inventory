@@ -19718,6 +19718,10 @@ def get_praod_report_data(search_params, user, sub_user):
     search_parameter = {}
     if 'status' in search_params:
         search_parameter['final_status'] = search_params['status']
+        if search_params['status'] == 'approved':
+            del search_parameters['pending_prApprovals__status']
+            search_parameters['final_status'] = search_params['status']
+            model_data = PendingPR.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     model_data = model_data.filter(**search_parameter).values(*values_list).distinct()
 
     if order_term:
@@ -19756,15 +19760,16 @@ def get_praod_report_data(search_params, user, sub_user):
             zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
-        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days if 'status' in search_params and search_params['status'] != 'approved' else ''
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
         pa_data_since_from = ""
-        if pas_dict.get(result['id'], {}).get("creation_date", ""):
-            pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-        level = pas_dict.get(result['id'], {}).get("level", "")
+        if 'status' in search_params and search_params['status'] != 'approved':
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
+        level = pas_dict.get(result['id'], {}).get("level", "") if 'status' in search_params and search_params['status'] != 'approved' else ''
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
@@ -19861,6 +19866,10 @@ def get_poaod_report_data(search_params, user, sub_user):
     search_parameter = {}
     if 'status' in search_params:
         search_parameter['final_status'] = search_params['status']
+        if search_params['status'] == 'approved':
+            del search_parameters['pending_poApprovals__status']
+            search_parameters['final_status'] = 'approved'
+            model_data = PendingPO.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     model_data = model_data.filter(**search_parameter).values(*values_list).distinct()
 
     if order_term:
@@ -19899,15 +19908,16 @@ def get_poaod_report_data(search_params, user, sub_user):
             zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
-        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days if 'status' in search_params and search_params['status'] != 'approved' else ''
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
         pa_data_since_from = ""
-        if pas_dict.get(result['id'], {}).get("creation_date", ""):
-            pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-        level = pas_dict.get(result['id'], {}).get("level", "")
+        if 'status' in search_params and search_params['status']:
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
+        level = pas_dict.get(result['id'], {}).get("level", "") if 'status' in search_params and search_params['status'] != 'approved' else ''
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),

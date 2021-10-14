@@ -2401,7 +2401,7 @@ def generated_actual_pr_data(request, user=''):
                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
                     'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict,
                     'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category,
-                    'resubmitting_user': resubmitting_user,
+                    'resubmitting_user': resubmitting_user, 'dept_user_id': dept_user.id,
                     'approval_remarks': approval_remarks,
                     'pa_uploaded_file_dict': pa_uploaded_file_dict,
                     'is_purchase_approver': is_purchase_approver,

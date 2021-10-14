@@ -6881,7 +6881,7 @@ def folder_check(path):
     return True
 
 
-def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False):
+def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False, dept_user=''):
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
@@ -6902,7 +6902,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
             st_zones_data, st_available_quantity = get_sku_stock_summary(store_stock_data, '', storeUser)
             st_avail_qty = sum(map(lambda d: st_available_quantity[d] if st_available_quantity[d] > 0 else 0, st_available_quantity))
 
-    po_search_params = {'open_po__sku__user': user.id,
+    po_search_params = {'open_po__sku__user': dept_user if dept_user else user.id,
                         'open_po__sku__sku_code': sku_code,
                         }
     poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
@@ -12632,12 +12632,14 @@ def get_sku_mrp(request ,user =''):
 def get_extra_row_data(request ,user =''):
     sku_code = request.POST.get('wms_code','')
     store_id = request.POST.get('store_id','')
+    dept_user_id = request.POST.get('dept_user_id')
     temp_store = User.objects.filter(id = store_id)[0]
     consumption_dict = get_average_consumption_qty(temp_store, sku_code)
-    search_params = {'sku__user': temp_store.id, 'sku__sku_code': sku_code}
+    users = list(UserGroups.objects.filter(admin_user=temp_store.id).values_list('user_id', flat= True))
+    search_params = {'sku__user__in': users + [temp_store.id], 'sku__sku_code': sku_code}
     stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
         skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,\
-            search_params, includeStoreStock=False)
+            search_params, includeStoreStock=False, dept_user = dept_user_id)
     return HttpResponse(json.dumps({'openpr_qty': openpr_qty if openpr_qty else 0, 'capacity': st_avail_qty + avail_qty, 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'consumption_dict': consumption_dict}))
 
 def get_firebase_order_data(order_id):

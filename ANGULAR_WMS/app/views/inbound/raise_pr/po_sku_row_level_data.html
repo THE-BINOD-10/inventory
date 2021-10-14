@@ -1,0 +1,37 @@
+<form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
+  <div class="modal-header">
+    <h4 class="modal-title">{{showCase.title}}</h4>
+  </div>
+  <div class="modal-body">
+    <div class="row">
+      <div class="col-md-3 col-sm-3 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> OpenPR Qty </label>
+          <input type="text" class="form-control" ng-model="showCase.line_data.sku.openpr_qty" readonly>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-3 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Available Stock </label>
+          <input type="text" class="form-control" ng-model="showCase.line_data.sku.capacity" readonly>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-3 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> OpenPO Qty </label>
+          <input type="text" class="form-control" ng-model="showCase.line_data.sku.intransit_quantity" readonly>
+        </div>
+      </div>
+	  <div class="col-md-3 col-sm-3 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Pack Qty </label>
+          <input type="text" class="form-control" ng-model="showCase.line_data.sku.skuPack_quantity" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn pop pop-normal pull-right" ng-click="showCase.close('')" style="background: #cc1919;color: white;">Close</button>  
+  </div>
+</form>
+

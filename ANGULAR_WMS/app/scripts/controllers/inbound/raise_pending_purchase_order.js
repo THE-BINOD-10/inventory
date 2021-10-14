@@ -204,6 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "department": data.data.department,
             "sku_category": data.data.sku_category,
             "supplier_name": data.data.supplier_name,
+			"store_id":data.data.store_id,
             "warehouse": data.data.warehouse,
             "data": data.data.data,
             "send_sku_dict": data.data.central_po_data,
@@ -1564,7 +1565,35 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
   }
-
+ vm.extra_row_info = function (datum) {
+      var data = {'line_data': datum};
+      if (typeof(datum['fields']['sku']) == 'undefined') {
+        vm.service.showNoty('Invalid Sku');
+      } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        data['line_data']['store_id'] = vm.model_data.store_id
+		var modalInstance = $modal.open({
+          templateUrl: 'views/inbound/raise_pr/po_sku_row_level_data.html',
+          controller: 'POskuRowCtrl',
+          controllerAs: 'showCase',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          if (selectedItem) {
+            console.log('');
+          }
+        });
+      } else {
+        vm.service.showNoty('Invalid Sku');
+      }
+    }
+ 
   vm.update_po_values = function() {
     vm.bt_disable = true;
     var that = vm;
@@ -1587,6 +1616,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
 
 }
+
+angular.module('urbanApp').controller('POskuRowCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id' : items['line_data']['store_id']}).then(function(data){
+    if(data.message) {
+      items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
+      items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];
+      items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
+      items['line_data']['fields']['sku']['avg_consumption_qty'] = data.data['avg_consumption_qty'];
+      items['line_data']['fields']['sku']['skuPack_quantity'] = data.data['skuPack_quantity'];
+    }
+  })
+  vm.line_data = items['line_data']['fields']
+  vm.title = vm.line_data['sku']['wms_code'];
+  vm.model_data = {}
+  vm.requestData = items;
+  vm.warehouse_list = [];
+  vm.close = function () {
+    $modalInstance.close(vm.line_data);
+  };
+});
 
 angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstance, $modal, items, Service, Session) {
   var vm = this;
@@ -1677,5 +1729,4 @@ angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstanc
     }
     $modalInstance.close(temp_dict);
   };
-
 });

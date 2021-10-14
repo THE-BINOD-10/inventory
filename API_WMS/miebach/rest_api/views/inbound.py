@@ -1976,9 +1976,10 @@ def generated_pr_data(request, user=''):
         search_params = {'sku__user': record[0].wh_user.id, 'sku__sku_code': sku_code}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
-        stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        '''stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(record[0].wh_user, sku_code,
-                                                    search_params, includeStoreStock=False)
+                                                    search_params, includeStoreStock=False)'''
+        st_avail_qty, intransitQty, openpr_qty, avail_qty = 0, 0, 0, 0
         tax_data = get_supplier_sku_price_values(record[0].supplier.supplier_id, sku_code, record[0].wh_user)
         sku_obj = SKUMaster.objects.get(id=sku_id)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
@@ -2033,7 +2034,7 @@ def generated_pr_data(request, user=''):
             po_all_mails = record[0].po_mail_members
     return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
                                     'ship_to': ship_to, 'pr_delivery_date': pr_delivery_date, 'supplier_currency': supplier_currency,
-                                    'pr_created_date': pr_created_date, 'warehouse': storeObj.first_name,
+                                    'pr_created_date': pr_created_date, 'store_id': storeObj.id, 'warehouse': storeObj.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,
                                     'enquiryRemarks': enquiryRemarks, 'central_po_data': central_po_data,

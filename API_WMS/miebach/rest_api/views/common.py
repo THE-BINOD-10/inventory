@@ -12638,7 +12638,7 @@ def get_extra_row_data(request ,user =''):
     stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
         skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,\
             search_params, includeStoreStock=False)
-    return HttpResponse(json.dumps({'openpr_qty': openpr_qty if openpr_qty else 0, 'capacity': st_avail_qty + avail_qty, 'intransit_quantity': intransitQty, 'consumption_dict': consumption_dict}))
+    return HttpResponse(json.dumps({'openpr_qty': openpr_qty if openpr_qty else 0, 'capacity': st_avail_qty + avail_qty, 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'consumption_dict': consumption_dict}))
 
 def get_firebase_order_data(order_id):
     from firebase import firebase

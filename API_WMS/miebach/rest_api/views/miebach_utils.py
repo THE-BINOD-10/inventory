@@ -2096,6 +2096,21 @@ PRAOD_REPORT_DICT = {
     'print_url': 'get_praod_report',
 }
 
+POAOD_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+    ],
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Zone Code', 'PO Number', 'PO Status', 'Product Category', 'SKU Category',
+        'Pending with Email Id', 'Staff position', 'Pending since days', 'Pending Level', 'Pending Since from PO Raised(Days)'],
+    'dt_url': 'get_poaod_report', 'excel_name': 'get_poaod_report',
+    'print_url': 'get_poaod_report',
+}
+
+
 MRP_EXCEPTION_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -2206,6 +2221,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'supplier_wise_po_report': SUPPLIER_WISE_PO_REPORT,
                      'get_consumption_data': CONSUMPTION_DATA_DICT,
                      'PRAOD_report': PRAOD_REPORT_DICT,
+		     'POAOD_report': POAOD_REPORT_DICT,
                      'get_asn_detail': ASN_DATA_DICT,
                      'get_mrp_exception_report': MRP_EXCEPTION_DICT,
                      'get_mrp_department_report': MRP_DEPARTMENT_DICT,
@@ -2926,7 +2942,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise_po_report': 'get_supplier_details_data',
                         'get_consumption_data': 'get_consumption_data_',
                         'PRAOD_report': 'get_praod_report_data',
-                        'get_mrp_exception_report': 'get_mrp_exception_report',
+                        'POAOD_report': 'get_poaod_report_data',
+			'get_mrp_exception_report': 'get_mrp_exception_report',
                         'get_asn_detail': 'get_asn_data',
                         'get_pr_performance_report_dat': 'get_pr_report_data_performance',
                         'get_po_performance_report_dat': 'get_po_report_data_performance',
@@ -19723,7 +19740,7 @@ def get_praod_report_data(search_params, user, sub_user):
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     staff_dict = {}
-    staff_objects = StaffMaster.objects.using(reports_database).filter(user__in=user_ids).values('email_id','position')
+    staff_objects = StaffMaster.objects.using(reports_database).filter().values('email_id','position')
     for staff_object in staff_objects:
         staff_dict[staff_object.get('email_id')] =  staff_object.get('position','')
     for result in results:
@@ -19769,7 +19786,148 @@ def get_praod_report_data(search_params, user, sub_user):
 
     return temp_data
 
+def get_poaod_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
+                                    get_admin, get_utc_start_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    #user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {}
+    lis = ['creation_date', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'full_po_number', 'product_category',
+            'sku_category', 'creation_date', 'creation_date', 'creation_date', 'creation_date']
 
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'po_number' in search_params:
+        search_parameters['full_po_number'] = search_params['po_number']
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone' in search_params:
+        zone_code = search_params['zone']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['wh_user_id__in'] = user_ids
+    search_parameters['final_status'] = 'saved'
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_po_number', 'final_status', 'requested_user__username']
+    model_data1 = PendingPO.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+    search_parameters['final_status'] = 'pending'
+    search_parameters['pending_poApprovals__status'] = ''
+    model_data2 = PendingPO.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+    model_data = model_data1 | model_data2
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    search_parameter = {}
+    if 'status' in search_params:
+        search_parameter['final_status'] = search_params['status']
+    model_data = model_data.filter(**search_parameter).values(*values_list).distinct()
+
+    if order_term:
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    po_ids = map(lambda x: x['id'], results)
+    pas_dict = {}
+    pas_objs = PurchaseApprovals.objects.using(reports_database).filter(pending_po_id__in=po_ids, status='').order_by('creation_date').only('pending_po_id', 'validated_by', 'creation_date', 'level')
+    for pas in pas_objs:
+        pas_dict[pas.pending_po_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    staff_dict = {}
+    staff_objects = StaffMaster.objects.using(reports_database).filter().values('email_id','position')
+    for staff_object in staff_objects:
+        staff_dict[staff_object.get('email_id')] =  staff_object.get('position','')
+    for result in results:
+        user_obj = User.objects.get(id=result['wh_user'])
+        plant_code = user_obj.userprofile.stockone_code
+        plant = user_obj.first_name
+        dept = ''
+        zone_code = user_obj.userprofile.zone
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            admin_user = get_admin(user_obj)
+            plant_code = admin_user.userprofile.stockone_code
+            plant = admin_user.first_name
+            zone_code = admin_user.userprofile.zone
+            dept = user_obj.userprofile.stockone_code
+        raised_date = get_local_date(user, result['creation_date'])
+        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+        pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
+        if pa_emails == '':
+            pa_emails = result['requested_user__username']
+        staff_position = staff_dict.get(pa_emails,'')
+        pa_data_since_from = ""
+        if pas_dict.get(result['id'], {}).get("creation_date", ""):
+            pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
+        level = pas_dict.get(result['id'], {}).get("level", "")
+        ord_dict = OrderedDict((
+            ('Raised Date', raised_date),
+            ('Plant', plant),
+            ('Plant Code', plant_code),
+            ('Department', dept_mapping.get(dept, dept)),
+            ('Plant Code', plant_code),
+            ('Zone Code', zone_code),
+            ('PO Number', result['full_po_number']),
+            ('PO Status', result['final_status'].title()),
+            ('Product Category', result['product_category']),
+            ('SKU Category', result['sku_category']),
+            ('Pending with Email Id', pa_emails),
+            ('Staff position', staff_position),
+            ('Pending since days', pa_data_since_from),
+            ('Pending Level', level),
+            ('Pending Since from PO Raised(Days)', pending_since),
+        ))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
 
 
 def po_report_download(user_list, search_params, user):

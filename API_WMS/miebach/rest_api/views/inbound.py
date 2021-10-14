@@ -75,19 +75,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if pa_mails.exists():
             filtersMap.setdefault('pending_pr_id__in', [])
             filtersMap['pending_pr_id__in'] = list(pa_mails.values_list('pr_approval__pending_pr_id', flat=True).distinct())
-            '''for pa_mail in pa_mails:
-                currentUserLevel = pa_mail.level
-                configName = pa_mail.pr_approval.configName
-                pr_filter_check = {'configName': configName, 'level': currentUserLevel, 'status__in': status_in}
-                if status:
-                    pr_filter_check['pending_pr__final_status'] = status
-                pr_numbers = [pa_mail.pr_approval.pending_pr_id]
-                filtersMap.setdefault('pending_pr_id__in', [])
-                filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))'''
-        # if status != 'approved': # Creator Sub Users
-        #     filtersMap.setdefault('pending_pr_id__in', [])
-        #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
-        #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     elif request.user.is_staff:
         user_excl_list = ['approved', 'rejected']
         user_filt_check = {}
@@ -113,7 +100,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         else:
             prQs = prQs.exclude(pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
-
         filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     lis = ['pending_pr__id', 'pending_pr__product_category', 'pending_pr__priority_type',
@@ -136,7 +122,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id',
         'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number',
         'pending_pr__sku_category', 'pending_pr__wh_user__username']
-
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']). \
                 values(*values_list).distinct().\
@@ -155,12 +140,9 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                 Q(pending_pr__wh_user__first_name__icontains=search_term), **search_params)
     if order_term:
         results = results.filter(**search_params).order_by(order_data)
-
     resultsWithDate = dict(results.values_list('pending_pr__full_pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
-
-    count = 0
     for result in results[start_index: stop_index]:
         pr_created_date = resultsWithDate.get(result['pending_pr__full_pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
@@ -172,7 +154,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         sku_category_val = sku_category
         if sku_category == 'All':
             sku_category_val = ''
-        #pr_user = get_warehouse_user_from_sub_user(requested_user)
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
         store = storeObj.first_name
@@ -180,23 +161,28 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         department = department_mapping.get(department_code, '')
         mailsList = []
-        prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date').exclude(status="resubmitted")
-        approval_type = ''
-        if prApprQs:
-            approval_type = prApprQs[0].approval_type
-        reqConfigName, lastLevel = findLastLevelToApprove(pr_user, result['pending_pr__pr_number'],
-                                    result['total_amt'], purchase_type='PR', product_category=product_category,
-                                                          approval_type=approval_type, sku_category=sku_category_val)
-
-        last_updated_by = ''
-        last_updated_time = ''
-        last_updated_remarks = ''
-        validated_by = ''
+        last_updated_by, last_updated_time, last_updated_remarks, validated_by = '', '', '', ''
         last_updated_remarks = result['pending_pr__remarks']
+        prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
+                        pr_user=pr_user).order_by('-creation_date').exclude(status="resubmitted")
+        approval_type = ''
+        # if prApprQs.exists():
+        #     approval_type = prApprQs[0].approval_type
+        # reqConfigName, lastLevel = findLastLevelToApprove(pr_user, result['pending_pr__pr_number'],
+        #                             result['total_amt'], purchase_type='PR', product_category=product_category,
+        #                                                   approval_type=approval_type, sku_category=sku_category_val)
         if prApprQs.exists():
-            validated_by = prApprQs[0].validated_by
-            if result['pending_pr__final_status'] not in ['pending', 'saved']:
+            lastLevel = PurchaseApprovalConfig.objects.filter(name=prApprQs[0].configName).order_by('-level').values('level')[0]['level']
+            if result['pending_pr__final_status'] == 'approved':
+                validated_by = ''
+            else:
+                validated_by = prApprQs.filter(status='').order_by('-creation_date')[0].validated_by
+            if result['pending_pr__pending_level'] != 'level0':
+                prev_dat = prApprQs.exclude(status='').order_by('-creation_date')[0]
+                last_updated_by = prev_dat.validated_by
+                last_updated_time = datetime.datetime.strftime(prev_dat.updation_date, '%d-%m-%Y')
+                last_updated_remarks = prev_dat.remarks
+            '''if result['pending_pr__final_status'] not in ['pending', 'saved']:
                 prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                 pr_user=pr_user).exclude(status='on_approved').order_by('-creation_date')
                 last_updated_by = prApprQs[0].validated_by
@@ -212,21 +198,17 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                         last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                         last_updated_remarks = prApprQs[0].remarks
                 else:
-                    # level=result['pending_pr__pending_level']
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                     pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
                     if prApprQs.exists():
                         last_updated_by = prApprQs[0].validated_by
                         last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                        last_updated_remarks = prApprQs[0].remarks
+                        last_updated_remarks = prApprQs[0].remarks'''
         if result['pending_pr__sub_pr_number']:
             full_pr_number = "%s/%s" % (result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         else:
             full_pr_number = result['pending_pr__full_pr_number']
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-        # full_pr_number = result['pending_pr__full_pr_number'] #'%s%s_%s' % (result['pending_pr__prefix'], dateInPR, pr_number)
-        if result['pending_pr__final_status'] == 'approved':
-            validated_by = ''
         enq_status = ''
         gen_enqs = list(GenericEnquiry.objects.filter(sender_id=request.user.id, master_type='pendingPR', master_id=result['pending_pr_id']).values_list('status', flat=True))
         if len(gen_enqs) > 0:
@@ -236,7 +218,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 enq_status = '<span class="label label-success">Responded</span>'
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_pr_id']),
-                                                # ('PR Number', pr_number),
                                                 ('PR Number', full_pr_number),
                                                 ('Product Category', product_category),
                                                 ('Category', sku_category),
@@ -246,7 +227,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                                 ('PR Created Date', pr_date),
                                                 ('PR Delivery Date', pr_delivery_date),
                                                 ('Store', store),
-                                                # ('Department', warehouse),
                                                 ('Department', department),
                                                 ('PR Raise By', result['pending_pr__requested_user__first_name']),
                                                 ('Requested User', result['pending_pr__requested_user__username']),
@@ -259,7 +239,6 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                                 ('Remarks', last_updated_remarks),
                                                 ('Enquiry Status', enq_status),
                                                 ('DT_RowClass', 'results'))))
-        count += 1
 
 
 @csrf_exempt

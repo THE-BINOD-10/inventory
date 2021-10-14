@@ -927,7 +927,7 @@ PR_PERFORMANCE_REPORT_DICT = {
         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
     ],
     'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR Final Approval Date', 'PR Confirmed Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
-                'Priority Type', 'PR Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Time', 'Approver Level'],
+                'Priority Type', 'PR Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Days', 'Approver Time', 'Approver Level'],
 
     'dt_url': 'get_pr_performance_report', 'excel_name': 'get_pr_performance_report',
     'print_url': 'get_pr_performance_report',
@@ -947,7 +947,7 @@ PO_PERFORMANCE_REPORT_DICT = {
         {'label': 'PO Status', 'name': 'final_status', 'type': 'select'},
     ],
     'dt_headers': ['PO Number', 'PO Submitted Date', 'PO Final Approval Date', 'PO Confirmed Date', 'PO raised By', 'PO raised To', 'Zone', 'Product Category', 'Category',
-                'Priority Type', 'PO Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Time', 'Approver Level'],
+                'Priority Type', 'PO Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Days', 'Approver Time', 'Approver Level'],
 
     'dt_url': 'get_po_performance_report', 'excel_name': 'get_po_performance_report',
     'print_url': 'get_po_performance_report',
@@ -15820,7 +15820,8 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             pr_final_approval_dates = pr_last_current_approval_date[result['pending_pr__full_pr_number']]
         days_hours, minutes, confirmed_date,  = ['']*3
         date_diff_seconds = 0
-        days_hours = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
+        days, hours = dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
+        days_hours = "%d days, %d hours" % (days, hours)
         date_diff_seconds = date_diff_in_seconds(result['updation_date'], result['creation_date'])
         minutes = round(float(date_diff_seconds)/60, 2)
         if date_diff_seconds > 3:
@@ -15842,6 +15843,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
             ('Approver Received Date', get_local_date(user, result['creation_date'])),
             ('Approver Confirmed Date', confirmed_date),
+            ('Approver Days', days),
             ('Approver Time', "%s / %s %s" % (days_hours, str(minutes), 'minutes')),
             ('Approver Level', result['level']),
             ('DT_RowClass', 'results')))
@@ -15959,7 +15961,8 @@ def get_po_report_data_performance(search_params, user, sub_user):
             po_final_confirmation_date = po_last_current_approval_date[result['pending_po__full_po_number']]
         days_hours, minutes, confirmed_date,  = ['']*3
         date_diff_seconds = 0
-        days_hours = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
+        days, hours = dhms_from_seconds(date_diff_in_seconds(result['updation_date'], result['creation_date']))
+        days_hours = "%d days, %d hours" % (days, hours)
         date_diff_seconds = date_diff_in_seconds(result['updation_date'], result['creation_date'])
         minutes = round(float(date_diff_seconds)/60, 2)
         if date_diff_seconds > 3:
@@ -15981,6 +15984,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
             ('Approver Received Date', get_local_date(user, result['creation_date'])),
             ('Approver Confirmed Date', confirmed_date),
+            ('Approver Days', days),
             ('Approver Time', "%s / %s %s" % (days_hours, str(minutes), 'minutes')),
             ('Approver Level', result['level']),
             ('DT_RowClass', 'results')))

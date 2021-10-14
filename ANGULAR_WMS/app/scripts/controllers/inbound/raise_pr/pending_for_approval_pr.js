@@ -191,6 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "is_purchase_approver": data.data.is_purchase_approver,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
+                  "dept_user_id": data.data.dept_user_id,
                   "department": data.data.department,
                   "data": data.data.data,
                   "is_auto_pr": data.data.is_auto_pr,
@@ -871,6 +872,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.service.showNoty('Invalid Sku');
       } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
         data['line_data']['store_id'] = vm.model_data.store_id
+        data['line_data']['dept_user_id'] = vm.model_data.dept_user_id
         var modalInstance = $modal.open({
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
@@ -1754,7 +1756,7 @@ angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $st
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
-  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id']}).then(function(data){
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id'}}).then(function(data){
     if(data.message) {
       items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
       items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];

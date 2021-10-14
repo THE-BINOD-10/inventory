@@ -656,6 +656,7 @@ urlpatterns = [
     url(r'^get_closing_stock_report/$', get_closing_stock_report),
     url(r'^download_invoice_file/$', download_invoice_file),
     url(r'^get_praod_report/$', get_praod_report),
+    url(r'^get_poaod_report/$', get_poaod_report),
     url(r'^get_asn_detail/$', get_asn_detail),
     url(r'^download_pr_attachments/$', download_pr_attachments),
     url(r'^get_pr_performance_report/$', get_pr_performance_report),

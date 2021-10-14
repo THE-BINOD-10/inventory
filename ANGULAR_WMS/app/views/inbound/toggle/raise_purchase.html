@@ -459,20 +459,45 @@
           </table>
 		  </div>
 		  </div>
-		  <div class="col-md-12 col-sm-12 col-xs-12" ng-hide="showCase.permissions.add_tandcmaster">
+		<!--<div class="col-md-12 col-sm-12 col-xs-12" ng-hide="showCase.permissions.add_tandcmaster">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Terms and Conditions :</strong>
         </div>
         <div class="col-md-9 col-sm-9 col-xs-9">
           <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="terms_condition" ng-model="showCase.model_data.terms_condition" placeholder="Enter Terms and Condition"></textarea>
         </div>
-      </div>
+      </div>-->
       <div class="col-md-12 col-sm-12 col-xs-12" style="padding-top: 10px">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Remarks :</strong>
         </div>
         <div class="col-md-9 col-sm-9 col-xs-9">
           <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="po_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+        </div>
+      </div>
+	  <div class="row">
+        <div class="col-lg-2 col-md-2">
+          <div class="form-group">
+            <label class="control-label">EnquiryTo</label>
+            <select class="form-control" name="enquiry_to" ng-model="showCase.model_data.enquiry_to">
+              <option ng-repeat="user in showCase.model_data.validated_users" 
+                      value="{{user}}">{{user}}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-2">
+          <div class="form-group">
+            <label class="control-label"> Select Staff User </label>
+            <input type="text" autocomplete="off" name="staff_user" class="form-control detectTab" placeholder="Search Staff Email : Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_staff_members?')" ng-model="showCase.model_data.enquiry_to">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="control-label">Enquiry Remarks</label>
+          <textarea rows="2" class="form-control" cols="15" name="enquiry_remarks" ng-model="showCase.model_data.enquriy_remarks" placeholder="Enter Enquiry"></textarea>
+        </div>
+        <div class="col-md-2 pull-left" style="margin-top: 17px;">
+          <button ng-if="showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>  
         </div>
       </div>
       <div class="col-md-12 col-sm-12 col-xs-12" ng-init="showCase.supplier_mail_flag == 'true'" style="padding-top: 12px;" ng-show="!showCase.from_supplier_pos">

@@ -1756,7 +1756,7 @@ angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $st
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
-  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id'}}).then(function(data){
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id']}).then(function(data){
     if(data.message) {
       items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
       items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];

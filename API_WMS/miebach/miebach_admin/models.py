@@ -718,7 +718,7 @@ class PendingPO(models.Model):
     full_po_number = models.CharField(max_length=32, default='', db_index=True)
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=512, default='')
-    ship_to_name = models.CharField(max_length=32, default='')
+    ship_to_name = models.CharField(max_length=128, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')

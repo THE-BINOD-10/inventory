@@ -118,10 +118,67 @@
                  <input name="vendor_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.vendor_id" ng-readonly="showCase.update">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="!(user.user_profile.user_type == 'marketplace_user')">
               <div class="form-group">
                 <label class="control-label"> PO Reference </label>
                 <input type="text" ng-model="showCase.model_data.po_name" name="po_name" class="form-control"> </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
+              <div class="form-group">
+                <label class="control-label"> PO Number </label>
+                <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> 
+                <input type="text" ng-model="showCase.model_data.purchase_id" name="purchase_id" class="form-control" ng-readonly="true" ng-hide="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
+            <div class="form-group">
+              <label class="control-label"> PR Number </label>
+                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Store </label>
+                <input type="text" ng-model="showCase.model_data.store" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-1 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Department </label>
+                <input type="text" ng-model="showCase.model_data.department" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-1 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Product Category </label>
+                <input type="text" ng-model="showCase.model_data.product_category" class="form-control" ng-readonly="true"> 
+              </div>
+            </div>
+            <div class="col-md-1 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
+              <div class="form-group">
+                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
+                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
+                <input name="pr_delivery_date" ui-jq="datepicker"
+                       ng-disabled="showCase.model_data.is_approval"
+                       ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date"
+                       data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+              </div>
+            </div>
+            <div class="col-md-1 col-sm-2 col-xs-3" ng-if="!showCase.is_purchase_request">
+              <div class="form-group">
+                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
+                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
+                <input name="po_delivery_date" ui-jq="datepicker"
+                       ng-disabled="showCase.model_data.is_approval"
+                       ng-model="showCase.model_data.po_delivery_date" class="form-control" type="text" id="po_delivery_date"
+                       data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+              </div>
+            </div>
+            <div class="col-md-1 col-sm-2 col-xs-3" ng-if="showCase.model_data.is_approval">
+              <div class="form-group">
+                <label class="control-label">PO Date</label>
+                <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
+              </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">
               <div class="form-group">
@@ -142,7 +199,7 @@
                        ng-readonly="showCase.update" ng-if="showCase.update">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po" ng-show="!showCase.from_supplier_pos">
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po" ng-show="!showCase.from_supplier_pos">
               <div class="form-group">
                 <label class="control-label">Ship to Address *</label>
                 <select ui-select2 class="form-control" name="plant" ng-model="showCase.model_data.shipment_address_select" ng-change = "showCase.ship_addr_change(showCase.model_data.shipment_address_select)" required>
@@ -159,39 +216,6 @@
                 <input type="text"
                        ng-readonly="showCase.model_data.is_approval"
                        ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" required> </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
-            <div class="form-group">
-              <label class="control-label"> PO Number </label>
-                <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> 
-                <input type="text" ng-model="showCase.model_data.purchase_id" name="purchase_id" class="form-control" ng-readonly="true" ng-hide="true">
-              </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
-              <div class="form-group">
-                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
-                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
-                <input name="pr_delivery_date" ui-jq="datepicker"
-                       ng-disabled="showCase.model_data.is_approval"
-                       ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date"
-                       data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="!showCase.is_purchase_request">
-              <div class="form-group">
-                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
-                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
-                <input name="po_delivery_date" ui-jq="datepicker"
-                       ng-disabled="showCase.model_data.is_approval"
-                       ng-model="showCase.model_data.po_delivery_date" class="form-control" type="text" id="po_delivery_date"
-                       data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.model_data.is_approval">
-              <div class="form-group">
-                <label class="control-label">PO Date</label>
-                <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
-              </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-6" ng-if="!showCase.from_supplier_pos && showCase.model_data.supplier_payment_term != ''">
               <div class="form-group">
@@ -211,13 +235,6 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
-            <div class="form-group">
-              <label class="control-label"> PR Number </label>
-                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
-              </div>
-            </div>
-
             <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
               <div class="form-group">
                 <label class="control-label">Supplier Currency *</label>
@@ -411,10 +428,10 @@
           <div class="col-md-6 col-sm-6">
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+            <p>Total Without Tax: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
+            <p>Total With Tax: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
           </div>
 		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
 		  <div class="col-md-12 col-sm-12 col-xs-12">
@@ -459,14 +476,14 @@
           </table>
 		  </div>
 		  </div>
-		<!--<div class="col-md-12 col-sm-12 col-xs-12" ng-hide="showCase.permissions.add_tandcmaster">
+		<div class="col-md-12 col-sm-12 col-xs-12 hide" ng-hide="showCase.permissions.add_tandcmaster">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Terms and Conditions :</strong>
         </div>
         <div class="col-md-9 col-sm-9 col-xs-9">
           <textarea rows="5" class="form-control ng-pristine ng-valid" cols="27" name="terms_condition" ng-model="showCase.model_data.terms_condition" placeholder="Enter Terms and Condition"></textarea>
         </div>
-      </div>-->
+      </div>
       <div class="col-md-12 col-sm-12 col-xs-12" style="padding-top: 10px">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Remarks :</strong>
@@ -568,9 +585,9 @@
           <button ng-if="!showCase.print_enable && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
           <button ng-if="showCase.print_enable" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_grn()">Print</button>
           <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-yellow" data-dismiss="modal" ng-click="showCase.confirm(form, true)" ng-disabled="showCase.confirm_disabled">Preview PO</button>
-          <button ng-if="showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.final_po_confirmation()">Confirm PO</button>
-          <button ng-if="!showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.confirm(form, false)">Confirm PO</button>
-          <!-- <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button> -->
+          <button ng-if="!showCase.from_supplier_pos && showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.final_po_confirmation()">Confirm PO</button>
+          <button ng-if="!showCase.from_supplier_pos && !showCase.print_enable && showCase.confirm_btn_disable" type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disabled" ng-click="showCase.confirm(form, false)">Confirm PO</button>
+          <button ng-if="showCase.from_supplier_pos" type="button" class="btn pop pop-green" ng-click="showCase.update_po_values()">Update</button>
         </div>
         <!-- <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>

@@ -6330,45 +6330,44 @@ def get_sellers_list(request, user=''):
             user = User.objects.get(username=warehouse)
         else:
             return HttpResponse(json.dumps({'error': 'Invalid Warehouse Name'}))
-    sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
-    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
-    if terms_condition.exists():
-        raise_po_terms_conditions = terms_condition[0].text_field
-        raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
-    else:
-        raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    # sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
+    # terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    # if terms_condition.exists():
+    #     raise_po_terms_conditions = terms_condition[0].text_field
+    #     raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
+    # else:
+    #     raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     get_ship_add_users = [user]
     get_ship_add_users = check_and_get_plants(request, get_ship_add_users)
     ship_address_details = []
     ship_address_names = []
     user_ship_address = UserAddresses.objects.filter(user_id__in=get_ship_add_users)
     if user_ship_address:
-        # shipment_names = list(user_ship_address.values_list('address_name', flat=True))
-    # ship_address_names.extend(shipment_names)
         for data in user_ship_address:
             ship_address_names.append(data.address_name)
             ship_address_details.append({'title':data.address_name,'addr_name':data.user_name,'mobile_number':data.mobile_number,'pincode':data.pincode,'address':data.address})
     seller_list = []
+    sellers = []
     seller_supplier = {}
     for seller in sellers:
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
-    user_list = get_all_warehouses(user)
-    sku_master, sku_master_ids = get_sku_master(user, user)
+    # user_list = get_all_warehouses(user)
+    '''sku_master, sku_master_ids = get_sku_master(user, user)
     kc_catgs = list(sku_master.exclude(sku_category='').values_list('sku_category', flat=True).distinct())
     ser_catgs = list(ServiceMaster.objects.filter(user=user.id).exclude(sku_category='').
                     values_list('sku_category', flat=True).distinct())
     asset_catgs = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category='').
                     values_list('sku_category', flat=True).distinct())
     ot_catgs = list(OtherItemsMaster.objects.filter(user=user.id).exclude(sku_category='').
-                    values_list('sku_category', flat=True).distinct())
+                    values_list('sku_category', flat=True).distinct())'''
     prod_catg_map = OrderedDict((
-                ('Kits&Consumables', kc_catgs), ('Services', ser_catgs),
-                ('Assets', asset_catgs), ('OtherItems', ot_catgs)
+                ('Kits&Consumables', []), ('Services', []),
+                ('Assets', []), ('OtherItems', [])
             ))
-    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
-                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': '', 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : [],
                                     'raise_po_terms_conditions' : '',
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
@@ -6928,8 +6927,6 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False,
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     total_sum = sum(map(lambda x:x['total_amount'],zones_data.values()))
     avg_price = SKUMaster.objects.get(user=user.id, sku_code=sku_code).average_price
-    # if avail_qty:
-    #     avg_price = total_sum/avail_qty
     return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data,\
            avg_price
 

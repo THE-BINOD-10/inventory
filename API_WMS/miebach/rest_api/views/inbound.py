@@ -661,7 +661,11 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         department = ''
         department_code = result['pending_po__full_po_number'].split('-')[-1]
         reg_check = re.compile("([a-zA-Z]+)([0-9]+)")
-        department_code = reg_check.match(department_code).groups()
+        try:
+            department_code = reg_check.match(department_code).groups()
+        except:
+            department_code = ''
+            pass
         if department_code:
             department_code = department_code[0]
         department = department_mapping.get(department_code, '')

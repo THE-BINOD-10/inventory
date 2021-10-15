@@ -41,9 +41,16 @@
         <div class="modal-body raise_po" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row">
             <div class="col-md-2 col-sm-2 col-xs-3">
-            <div class="form-group">
-              <label class="control-label"> PO Number </label>
-              <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> </div>
+              <div class="form-group">
+                <label class="control-label"> PO Number </label>
+                <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.model_data.full_pr_number">
+              <div class="form-group">
+                <label class="control-label"> PR Number </label>
+                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
+              </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group">
@@ -55,6 +62,30 @@
               <div class="form-group">
                 <label class="control-label">PO Date</label>
                 <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Warehouse </label>
+                <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Department </label>
+                <input type="text" ng-model="showCase.model_data.department" name="department" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Product Category </label>
+                <input type="text" ng-model="showCase.model_data.product_category" name="product_category" class="form-control" ng-readonly="true"> 
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Category </label>
+                <input type="text" ng-model="showCase.model_data.sku_category" name="sku_category" class="form-control" ng-readonly="true">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse' && !showCase.wh_purchase_order">
@@ -75,21 +106,10 @@
               <label class="control-label"> Ship To </label>
               <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
             </div> -->
-            <div class="col-md-2 col-sm-2 col-xs-3">
-            <div class="form-group">
-              <label class="control-label"> Warehouse </label>
-              <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true"> </div>
-            </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
               <div class="form-group">
                 <label class="control-label">Supplier Payment Terms</label>
                 <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
-              </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.model_data.full_pr_number">
-              <div class="form-group">
-                <label class="control-label"> PR Number </label>
-                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
               </div>
             </div>
             <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
@@ -102,21 +122,21 @@
             <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
               <div class="form-group">
                 <label class="control-label">Supplier Currency *</label>
-                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required disabled>
                     <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
                 </select>
               </div>
             </div>
-            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6">
-              <div class="form-group bootstrap-tagsinput">
-                <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
-                <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
-              </div>
-            </div>
-			<div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Supplier Mobile Number *</label>
                 <input type="text" ng-model="showCase.model_data.supplier_phone_number" name="supplier_phone_number" class="form-control" ng-readonly="true"/>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-3 col-sm-2 col-xs-6">
+              <div class="form-group bootstrap-tagsinput">
+                <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
+                <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
               </div>
             </div>
             <div class="col-md-12"><hr></div>
@@ -261,8 +281,8 @@
         <div class="col-md-1 col-sm-3 col-xs-3" style="padding-top: 15px;margin-left: -9px;">
           <strong>Remarks :</strong>
         </div>
-        <div class="col-md-8 col-sm-9 col-xs-9 pull-left">
-          <textarea rows="2" class="form-control" cols="8" name="remarks" ng-model="showCase.model_data.remarks" placeholder="Enter Remarks"></textarea>
+        <div class="col-md-11 col-sm-9 col-xs-9 pull-left">
+          <textarea rows="3" class="form-control" cols="30" name="remarks" ng-model="showCase.model_data.remarks" placeholder="Enter Remarks"></textarea>
         </div>
       </div>
       <div class="row">

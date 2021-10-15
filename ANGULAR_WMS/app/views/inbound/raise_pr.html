@@ -1,7 +1,7 @@
 <div class="page-layout" ng-controller="RaisePurchaseRequestCtrl as showCase">
-  <div class='layout-header'>
+  <!-- <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
-  </div>
+  </div> -->
   <div class="layout-body" ng-init="RaisePurchaseRequestCtrl = true; PendingForApprovalPurchaseRequestCtrl = true; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false"> 
     <tabset class="box-tab">
       <tab heading="Raised Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs" ng-click="RaisePurchaseRequestCtrl = true; PendingForApprovalPurchaseRequestCtrl = false; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false">

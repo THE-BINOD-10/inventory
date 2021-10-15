@@ -1,7 +1,7 @@
 <div class="page-layout" ng-controller="RaisePurchaseOrderCtrl as showCase">
-  <div class='layout-header'>
+  <!-- <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
-  </div>
+  </div> -->
   <div class="layout-body" ng-init="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= true; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false"> 
     <tabset class="box-tab">
       <tab heading="Raise Purchase Order" ng-if="!showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = true; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">

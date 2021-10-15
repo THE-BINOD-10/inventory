@@ -369,6 +369,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
+    
     vm.sku_record_updation = function(data, records) {
       data.order_quantity = 0;
       angular.forEach(records, function(rows, index){

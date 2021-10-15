@@ -1,5 +1,9 @@
 <div class="panel" ng-keydown="getkeys($event)"  ng-keypress="getkeys($event)" ng-controller="RaisePurchaseRequestCtrl as showCase">
   <div class="panel-header">
+    <button type="button" class="btn btn-success btn-lg pull-left ml10" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+      <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+    <span>REFRESH</span>
+    </button>
     <button type="button" class="btn btn-success pull-right ml10" ng-if="showCase.permissions.add_pendingpr" ng-click="showCase.add()">New Purchase Request</button>
     <div ng-include="'views/common/excel.html'"></div>
   </div>

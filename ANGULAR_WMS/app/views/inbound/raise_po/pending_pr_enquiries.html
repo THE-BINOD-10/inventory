@@ -1,6 +1,12 @@
 <div class="panel">
   <div class="panel-header">
-    <div ng-include="'views/common/excel.html'"></div>
+    <button type="button" class="btn btn-success btn-lg" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+      <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+    <span>REFRESH</span>
+    </button>
+    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+    {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+    </button>
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="panel-footer">

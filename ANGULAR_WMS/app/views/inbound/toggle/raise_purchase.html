@@ -310,7 +310,7 @@
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
                     <th class="w10_">Delivery Schedule</th>
-                    <!-- <th class="plus"></th> -->
+                    <th class="plus"></th>
                   </tr>
                 </thead>
                 <tbody ng-repeat="product in showCase.model_data.data">
@@ -400,6 +400,9 @@
                     </td>
                     <td align="center">
                       <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View</button>
+                    </td>
+                    <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
+                      <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>
                     </td>
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

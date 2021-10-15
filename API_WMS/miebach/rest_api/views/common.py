@@ -6330,44 +6330,45 @@ def get_sellers_list(request, user=''):
             user = User.objects.get(username=warehouse)
         else:
             return HttpResponse(json.dumps({'error': 'Invalid Warehouse Name'}))
-    # sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
-    # terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
-    # if terms_condition.exists():
-    #     raise_po_terms_conditions = terms_condition[0].text_field
-    #     raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
-    # else:
-    #     raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
+    sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
+    terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
+    if terms_condition.exists():
+        raise_po_terms_conditions = terms_condition[0].text_field
+        raise_po_terms_conditions = raise_po_terms_conditions.replace('<<>>', '\n')
+    else:
+        raise_po_terms_conditions = get_misc_value('raisepo_terms_conditions', user.id)
     get_ship_add_users = [user]
     get_ship_add_users = check_and_get_plants(request, get_ship_add_users)
     ship_address_details = []
     ship_address_names = []
     user_ship_address = UserAddresses.objects.filter(user_id__in=get_ship_add_users)
     if user_ship_address:
+        # shipment_names = list(user_ship_address.values_list('address_name', flat=True))
+    # ship_address_names.extend(shipment_names)
         for data in user_ship_address:
             ship_address_names.append(data.address_name)
             ship_address_details.append({'title':data.address_name,'addr_name':data.user_name,'mobile_number':data.mobile_number,'pincode':data.pincode,'address':data.address})
     seller_list = []
-    sellers = []
     seller_supplier = {}
     for seller in sellers:
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
-    # user_list = get_all_warehouses(user)
-    '''sku_master, sku_master_ids = get_sku_master(user, user)
+    user_list = get_all_warehouses(user)
+    sku_master, sku_master_ids = get_sku_master(user, user)
     kc_catgs = list(sku_master.exclude(sku_category='').values_list('sku_category', flat=True).distinct())
     ser_catgs = list(ServiceMaster.objects.filter(user=user.id).exclude(sku_category='').
                     values_list('sku_category', flat=True).distinct())
     asset_catgs = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category='').
                     values_list('sku_category', flat=True).distinct())
     ot_catgs = list(OtherItemsMaster.objects.filter(user=user.id).exclude(sku_category='').
-                    values_list('sku_category', flat=True).distinct())'''
+                    values_list('sku_category', flat=True).distinct())
     prod_catg_map = OrderedDict((
-                ('Kits&Consumables', []), ('Services', []),
-                ('Assets', []), ('OtherItems', [])
+                ('Kits&Consumables', kc_catgs), ('Services', ser_catgs),
+                ('Assets', asset_catgs), ('OtherItems', ot_catgs)
             ))
-    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': '', 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
-                                    'seller_supplier_map': seller_supplier, 'warehouse' : [],
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
                                     'raise_po_terms_conditions' : '',
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
@@ -6927,6 +6928,8 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False,
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     total_sum = sum(map(lambda x:x['total_amount'],zones_data.values()))
     avg_price = SKUMaster.objects.get(user=user.id, sku_code=sku_code).average_price
+    # if avail_qty:
+    #     avg_price = total_sum/avail_qty
     return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data,\
            avg_price
 
@@ -7012,13 +7015,17 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         consumption_dict = get_average_consumption_qty(storeObj, sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
+    dept_type = request.GET.get('department_type', '')
+    if dept_type and not cur_dept:
+        cur_dept = str(plant)+ '_' +dept_type
     dept_avail_qty, avlb_qty = [0]*2
     if cur_dept:
-        cur_de = User.objects.get(username=cur_dept)
+        cur_de = User.objects.filter(username=cur_dept)[0]
         search_params1 = {'sku__user': cur_de.id}
         search_params1['sku__sku_code'] = sku_code
-        stock_data_dept, st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept, \
-        skuPack_quantity_dept, sku_pack_config_dept, zones_data_dept, avg_price_dept = get_pr_related_stock(cur_de, sku_code, search_params1, includeStoreStock)
+        st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept = 0,0,0,0
+        '''stock_data_dept, st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept, \
+        skuPack_quantity_dept, sku_pack_config_dept, zones_data_dept, avg_price_dept = get_pr_related_stock(cur_de, sku_code, search_params1, includeStoreStock)'''
         dept_avail_qty = st_avail_qty_dept + avail_qty_dept
     search_params = {'sku__user': user.id}
     if request.GET.get('sku_code', ''):
@@ -7047,8 +7054,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
-                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'store_id': storeObj.id,
+                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty, 'dept_user_id': cur_de.id if cur_dept else storeObj.id,
                 'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict, 'tax_display': tax_display,
                 'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found', 'pr_extra_data': pr_extra_data }))
@@ -7058,8 +7065,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         sku_pcf = uom_dict.get('sku_conversion', 1)
         avlb_qty = avlb_qty * sku_pcf
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
-                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'store_id': storeObj.id,
+                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier, 'dept_user_id': cur_de.id if cur_dept else storeObj.id,
                                     'avg_price': avg_price, 'consumption_dict': consumption_dict, 'tax_display':tax_display,
                                     'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency
                                     }))

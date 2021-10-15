@@ -8,9 +8,6 @@
     <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
     {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
     </button>
+    <button type="button" class="pull-right btn btn-danger" style="margin-right: 10px;" ng-show="showCase.permissions.add_pendingpo" ng-click="showCase.cancel_pr()">Cancel PO</button>
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
-  <div class="panel-footer">
-    <button type="button" class="pull-right btn btn-danger" ng-show="showCase.permissions.add_pendingpo" ng-click="showCase.cancel_pr()">Cancel PO</button>
-  </div>
-</div>

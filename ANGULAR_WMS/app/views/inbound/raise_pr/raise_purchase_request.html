@@ -5,11 +5,11 @@
     <span>REFRESH</span>
     </button>
     <button type="button" class="btn btn-success pull-right ml10" ng-if="showCase.permissions.add_pendingpr" ng-click="showCase.add()">New Purchase Request</button>
+    <button type="button" class="pull-right btn btn-danger" style="margin-left: 10px;"ng-show="showCase.permissions.add_pendingpr" ng-click="showCase.cancel_pr()">Cancel PR</button>
     <div ng-include="'views/common/excel.html'"></div>
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="panel-footer">
-    <button type="button" class="pull-right btn btn-danger" ng-show="showCase.permissions.add_pendingpr" ng-click="showCase.cancel_pr()">Cancel PR</button>
     <!-- <button ng-if="(!(showCase.print_enable) && showCase.warehouse_type=='STORE' || showCase.warehouse_type=='SUB_STORE')" type="button" class="pull-right btn btn-success" ng-click="showCase.pr_to_po_preview()">Consolidated Preview</button> -->
   </div>
 </div>

@@ -1051,8 +1051,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           elem.push({name: 'validation_type', value: 'rejected'})
         }
         var form_data = new FormData();
-        if (vm.model_data.product_category != "Kits&Consumables" && $(".approve_form").find('[name="files"]').length > 0){
-          var files = $(".approve_form").find('[name="files"]')[0].files;
+        if ($(".approve_form").find('[name="files"]').length > 0){
+          var files = $(".approve_form").find('[name="files"]')[2].files;
           $.each(files, function(i, file) {
             form_data.append('files-' + i, file);
           });

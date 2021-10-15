@@ -15337,6 +15337,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     response_data = []
     display_name = ''
+    final_current = True
     if not pr_number:
         return HttpResponse('Invalid PR Number')
     pr_obj = PendingPR.objects.filter(full_pr_number=pr_number)
@@ -15346,7 +15347,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
         response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': pr_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': pr_obj.requested_user.username})
         if pr_obj.final_status == 'saved':
             return HttpResponse('Saved PR, Configuration Not Yet Decided')
-    last_config_datas = pr_obj.pending_prApprovals.filter().order_by('-creation_date')
+    last_config_datas = pr_obj.pending_prApprovals.filter().exclude(status='on_approved').order_by('-creation_date')
     if last_config_datas.exists():
         last_config_data = last_config_datas[0]
         current_level = last_config_data.level
@@ -15364,6 +15365,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
                         if histo['status'] == '':
                             histo['status'] = 'Pending'
                             histo['is_current'] = True
+                            final_current = False
                         else:
                             histo['status'] = histo['status'].title()
                             histo['is_current'] = False
@@ -15381,15 +15383,19 @@ def next_approvals_with_staff_master_mails(request, user=''):
                     if histo['status'] == '':
                         histo['status'] = 'On Approved'
                         histo['is_current'] = True
+                        final_current = False
                     temp = {'is_current': histo.get('is_current', ''), 'status': histo.get('status', ''), 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
                     response_data.append(temp)
                 else:
+                    is_final_current = False
                     datum = get_next_approval(pr_obj, 'Purchase Approver')
+                    if final_current:
+                        is_final_current = True
                     if len(datum) > 0:
-                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
+                        temp = {'is_current': is_final_current, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
                         response_data.append(temp)
                     else:
-                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
+                        temp = {'is_current': is_final_current, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
                         response_data.append(temp)
     return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

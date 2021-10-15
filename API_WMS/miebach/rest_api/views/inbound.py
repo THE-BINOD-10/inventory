@@ -177,8 +177,8 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 validated_by = ''
             else:
                 validated_by = prApprQs.filter(status='').order_by('-creation_date')[0].validated_by
-            if result['pending_pr__pending_level'] != 'level0':
-                prev_dat = prApprQs.exclude(status='').order_by('-creation_date')[0]
+            if result['pending_pr__pending_level'] != 'level0' or result['pending_pr__final_status'] == 'approved':
+                prev_dat = prApprQs.exclude(status__in = ['', 'on_approved']).order_by('-creation_date')[0]
                 last_updated_by = prev_dat.validated_by
                 last_updated_time = datetime.datetime.strftime(prev_dat.updation_date, '%d-%m-%Y')
                 last_updated_remarks = prev_dat.remarks
@@ -18199,6 +18199,17 @@ def finalize_pr(request, user=''):
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
         if is_purchase_approver:
+            file_obj = request.FILES.get('files-0', '')
+            if file_obj:
+                master_docs_obj = MasterDocs.objects.filter(master_id=pendingPRObj.id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE', user_id=user.id)
+                if not master_docs_obj:
+                    upload_master_file(request, user, pendingPRObj.id, 'PENDING_PR_PURCHASE_APPROVER_FILE', master_file=file_obj)
+                else:
+                    master_docs_obj = master_docs_obj[0]
+                    if os.path.exists(master_docs_obj.uploaded_file.path):
+                        os.remove(master_docs_obj.uploaded_file.path)
+                    master_docs_obj.uploaded_file = file_obj
+                    master_docs_obj.save()
             lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
             lineItems = pendingPRObj.pending_prlineItems
             for i in range(0, len(myDict['wms_code'])):

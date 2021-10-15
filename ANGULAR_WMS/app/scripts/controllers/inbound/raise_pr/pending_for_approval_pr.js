@@ -375,7 +375,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
-
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
     vm.add = function () {
       vm.extra_width = { 'width': '1450px' };
       vm.model_data.seller_types = [];

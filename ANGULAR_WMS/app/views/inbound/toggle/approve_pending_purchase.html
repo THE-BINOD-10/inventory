@@ -160,7 +160,7 @@
                     <th ng-if="showCase.model_data.tax_display" class="w10_">IGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CESS(%)</th>
                     <th class="w10_">Delivery Schedule</th>
-                    <!-- <th class="plus"></th> -->
+                    <th class="plus"></th>
                   </tr>
                 </thead>
                 <tbody ng-repeat="product in showCase.model_data.data">
@@ -217,6 +217,9 @@
                     </td>
                     <td align="center">
                       <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View</button>
+                    </td>
+                    <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
+                      <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>
                     </td>
                   </tr>
                   <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">

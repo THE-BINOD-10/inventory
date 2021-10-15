@@ -208,6 +208,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
+                  "dept_user_id": data.data.dept_user_id,
                   "plant": data.data.plant,
                   "department": data.data.department,
                   "tax_display": data.data.tax_display,
@@ -408,7 +409,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
-
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
+    
     vm.add = function () {
       vm.extra_width = { 'width': '1290px' };
       vm.model_data.seller_types = [];
@@ -798,7 +802,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.get_info_delta_value = function(sup_data) {
       if (typeof(sup_data['system_preferred_supplier']) != 'undefined' && sup_data['system_preferred_supplier'] != '') {
         (sup_data['preferred_supplier'] != sup_data['system_preferred_supplier']) ? sup_data['icon_color'] = { 'color': 'red' } : sup_data['icon_color'] = { 'color': 'seagreen' };
-      } else if ((sup_data['preferred_supplier'] && sup_data['preferred_supplier'] != sup_data['supplier_id_name']) || (sup_data.suggested_qty && sup_data.suggested_qty != sup_data.order_quantity)) {
+      } else if (sup_data['preferred_supplier'] && sup_data['preferred_supplier'] != sup_data['supplier_id_name']) {
         sup_data['sku_sku_comment'] = true;
         sup_data['icon_color'] = { 'color': 'red' };
       } else {
@@ -838,6 +842,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (typeof(datum['fields']['sku']) == 'undefined') {
         vm.service.showNoty('Invalid Sku');
       } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        data['line_data']['store_id'] = vm.model_data.store_id
+        data['line_data']['dept_user_id'] = vm.model_data.dept_user_id
         var modalInstance = $modal.open({
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
@@ -853,7 +859,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
         modalInstance.result.then(function (selectedItem) {
           if (selectedItem) {
-            console.log(selectedItem);
+            console.log('');
           }
         });
       } else {
@@ -1225,7 +1231,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
    vm.update_available_stock = function(product, sku_data, line_level='') {
       product['icon_color'] = {'color' : 'darkgrey'}
       product['sku_sku_comment'] = false;
-      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant, "send_supp_info": "true"}
+      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant, department_type: vm.model_data.department_type, "send_supp_info": "true"}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
@@ -1245,6 +1251,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           sku_data["last_supplier"] = data.data.pr_extra_data.last_supplier + "-" + data.data.pr_extra_data.last_supplier_price;
           sku_data["least_supplier"] = data.data.pr_extra_data.least_supplier + "-" + data.data.pr_extra_data.least_supplier_price;
           sku_data["least_supplier_pi"] = data.data.pr_extra_data.least_supplier_pi + "-" + data.data.pr_extra_data.least_supplier_price_pi;
+          vm.model_data["store_id"] = data.data.store_id;
+          vm.model_data["dept_user_id"] = data.data.dept_user_id;
           if (data.data.is_contracted_supplier) {
             vm.is_contracted_supplier = true;
           } else if ((!data.data.is_contracted_supplier) && vm.is_contracted_supplier){
@@ -1833,6 +1841,14 @@ angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $st
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id']}).then(function(data){
+    if(data.message) {
+      items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
+      items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];
+      items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
+      items['line_data']['fields']['sku']['consumption_dict'] = data.data['consumption_dict']
+    }
+  }) 
   vm.line_data = items['line_data']['fields']
   vm.title = vm.line_data['sku']['wms_code'];
   vm.model_data = {}

@@ -439,16 +439,25 @@ blockquote p {
 }
 .preloader::before {
   content: '';
-  background-color: #2ecc71;
+  /* background-color: #2ecc71; */
+  background: linear-gradient(90deg, #ffd33d, #ea4aaa 17%, #b34bff 34%, #01feff 51%, #ffd33d 68%, #ea4aaa 85%, #b34bff);
   display: block;
   width: 100%;
   height: 100%;
-  -webkit-animation: loading-bar 1.5s infinite;
-  animation: loading-bar 1.5s infinite;
+  -webkit-animation: progress-animation 1.5s infinite;
+  animation: progress-animation 1.5s infinite;
   -webkit-transition-delay: 400ms;
   -moz-transition-delay: 400ms;
   -o-transition-delay: 400ms;
   transition-delay: 400ms;
+}
+@keyframes progress-animation{
+  0%{
+    background-position: 100%;
+  }
+  100%{
+     background-position: 0;
+  }
 }
 /* $quick-launch
   ------------------------------------------*/

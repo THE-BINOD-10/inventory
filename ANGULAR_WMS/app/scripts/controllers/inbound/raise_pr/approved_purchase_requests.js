@@ -570,48 +570,58 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var deptTypes = [];
       var prodCatgs = [];
       var catgs = [];
-
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          var deptType = temp['_aData']['Department'];
-          var prodCatg = temp['_aData']['Product Category'];
-          var catg = temp['_aData']['Category'];
-          prIds.push(temp['_aData']["Purchase Id"]);
-          if (!deptTypes.includes(deptType)){
-            deptTypes.push(deptType);
-          }
-          if (!prodCatgs.includes(prodCatg)){
-            prodCatgs.push(prodCatg);
-          }
-          if (!catgs.includes(catg)){
-            catgs.push(catg);
-          }
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-        if(Object.keys(vm.selected).length-1 == parseInt(key)){
-          if (deptTypes.length > 1 || prodCatgs.length > 1 || catgs.length > 1) {
-            prIds = [];
-            vm.service.showNoty("Same Department/ProductCategory/Category PRs can be consolidated");
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            var deptType = temp['_aData']['Department'];
+            var prodCatg = temp['_aData']['Product Category'];
+            var catg = temp['_aData']['Category'];
+            prIds.push(temp['_aData']["Purchase Id"]);
+            if (!deptTypes.includes(deptType)){
+              deptTypes.push(deptType);
+            }
+            if (!prodCatgs.includes(prodCatg)){
+              prodCatgs.push(prodCatg);
+            }
+            if (!catgs.includes(catg)){
+              catgs.push(catg);
+            }
           }
-          var data_dict = {
-            'prIds': JSON.stringify(prIds)
-          };
-          if(prIds.length > 0){
-            vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
-              if(data.message){
-                if (typeof(data.data) == 'string') {
-                  vm.service.showNoty(data.data);
-                } else {
-                  vm.preview_data = data.data;
-                  $state.go("app.inbound.RaisePr.PRemptyPreview");
+          if(Object.keys(vm.selected).length-1 == parseInt(key)){
+            if (deptTypes.length > 1 || prodCatgs.length > 1 || catgs.length > 1) {
+              prIds = [];
+              vm.service.showNoty("Same Department/ProductCategory/Category PRs can be consolidated");
+            }
+            var data_dict = {
+              'prIds': JSON.stringify(prIds)
+            };
+            if(prIds.length > 0){
+              vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
+                if(data.message){
+                  if (typeof(data.data) == 'string') {
+                    vm.service.showNoty(data.data);
+                  } else {
+                    vm.preview_data = data.data;
+                    $state.go("app.inbound.RaisePr.PRemptyPreview");
+                  }
                 }
-              }
-            });
-          } else {
-            vm.bt_disable = false;
+              });
+            } else {
+              vm.bt_disable = false;
+            }
           }
-        }
-      });
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PR Only !!");
+      }
     }
 
     vm.getFirstSupplier = function(data, line_level=''){

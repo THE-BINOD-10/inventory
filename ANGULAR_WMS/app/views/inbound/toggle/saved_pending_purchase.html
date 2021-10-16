@@ -198,6 +198,7 @@
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Base UOM Qty</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
@@ -249,6 +250,9 @@
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+                    </td>
+                    <td>
+                      <input ng-model="product.fields.base_uom_qty" type="text" class="form-control detectTab" readonly>
                     </td>
                     <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>

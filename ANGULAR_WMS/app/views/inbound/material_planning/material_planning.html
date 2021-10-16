@@ -63,11 +63,13 @@
 
             </div>
             <div class="col-md-12">
-              <div class="filter-controls" style="width: 300px;">
+              <div class="filter-controls" style="width: 490px;">
                 <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
                 <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Search </button>
                 <button type="button" class="btn btn-danger" id="add-shippment-btn" style="margin-left: 10px;" data-toggle="modal" ng-click="showCase.generate_mrp_data();" ng-if="showCase.permissions.add_mrp"> Generate MRP </button>
+                <button type="button" class="btn btn-primary" id="add-shippment-btn" style="margin-left: 10px;" data-toggle="modal" ng-click="showCase.send_mrp_output();" ng-if="showCase.permissions.add_mrp"> Send MRP Output Mail</button>
+
               </div>
             </div>
           </div>

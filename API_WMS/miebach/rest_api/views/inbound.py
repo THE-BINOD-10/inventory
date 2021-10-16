@@ -2067,7 +2067,7 @@ def generated_actual_pr_data(request, user=''):
             uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
                               'file_url': '/' + master_doc.uploaded_file.name})
         else:
-            pa_uploaded_file_dict = {'file_name': 'PA File', 'id': master_docs[0].id, 'file_url': '/' + master_docs[0].uploaded_file.name}
+            pa_uploaded_file_dict = {'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id, 'file_url': '/' + master_doc.uploaded_file.name}
     '''master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
     for master_doc in master_docs:
         uploaded_file_dict.append({'file_name': ''.join(master_doc.uploaded_file.name.split('/')[3:]), 'id': master_doc.id,
@@ -18199,17 +18199,6 @@ def finalize_pr(request, user=''):
                         if not supp_obj.exists():
                             return HttpResponse("Invalid Supplier found %s" % supplier_id)
         if is_purchase_approver:
-            file_obj = request.FILES.get('files-0', '')
-            if file_obj:
-                master_docs_obj = MasterDocs.objects.filter(master_id=pendingPRObj.id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE', user_id=user.id)
-                if not master_docs_obj:
-                    upload_master_file(request, user, pendingPRObj.id, 'PENDING_PR_PURCHASE_APPROVER_FILE', master_file=file_obj)
-                else:
-                    master_docs_obj = master_docs_obj[0]
-                    if os.path.exists(master_docs_obj.uploaded_file.path):
-                        os.remove(master_docs_obj.uploaded_file.path)
-                    master_docs_obj.uploaded_file = file_obj
-                    master_docs_obj.save()
             lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
             lineItems = pendingPRObj.pending_prlineItems
             for i in range(0, len(myDict['wms_code'])):
@@ -18296,6 +18285,17 @@ def finalize_pr(request, user=''):
                         TempJson.objects.create(model_id=lineItemQs[0].id,model_name='PENDING_PR_PURCHASE_APPROVER',model_json=pr_approver_data)
                     else:
                         TempJson.objects.create(model_id=lineItemQs[0].id,model_name='PENDING_PR_PURCHASE_APPROVER',model_json=pr_approver_data)
+            file_obj = request.FILES.get('files-0', '')
+            if file_obj:
+                master_docs_obj = MasterDocs.objects.filter(master_id=pendingPRObj.id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE', user_id=store_user.id)
+                if not master_docs_obj:
+                    upload_master_file(request, store_user, pendingPRObj.id, 'PENDING_PR_PURCHASE_APPROVER_FILE', master_file=file_obj)
+                else:
+                    master_docs_obj = master_docs_obj[0]
+                    if os.path.exists(master_docs_obj.uploaded_file.path):
+                        os.remove(master_docs_obj.uploaded_file.path)
+                    master_docs_obj.uploaded_file = file_obj
+                    master_docs_obj.save()        
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

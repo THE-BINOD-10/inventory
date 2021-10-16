@@ -16,28 +16,28 @@
         <form name="form" role="form" class="filters">
           <div class="clearfix">
             <div class="row col-md-12">
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="field in showCase.report_data.filters">
                 <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Manufacturer </label>
                   <input name="manufacturer" class="form-control" type="text" ng-model="showCase.model_data.manufacturer">
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Searchable </label>
                   <input name="searchable" class="form-control" type="text" ng-model="showCase.model_data.searchable">
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Bundle </label>
                   <input name="bundle" class="form-control" type="text" ng-model="showCase.model_data.bundle">
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="col-md-3 col-sm-3 col-xs-4">
                 <div class="form-group">
                   <label class="control-label">Status</label>
                   <select name="status" class="form-control" ng-model="showCase.model_data.status">
@@ -45,7 +45,7 @@
                   </select>
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="col-md-3 col-sm-3 col-xs-4">
                 <div class="form-group">
                   <label class="control-label">Zone</label>
                   <select name="zone" class="form-control" ng-model="showCase.model_data.zone">
@@ -152,7 +152,12 @@
     </div>
 
         <div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
-        <div ng-if="showCase.report_data.row_click" ng-include="'views/common/datatable.html'"></div>
+        <div ng-if="showCase.report_data.row_click">
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+            <div ui-view></div>
+          </div>
+        </div>
       </div>
       <div ui-view></div>
     </div>

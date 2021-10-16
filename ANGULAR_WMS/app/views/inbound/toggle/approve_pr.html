@@ -253,7 +253,7 @@
                </span>
             </div>
           </div>
-          <div class = "row" ng-repeat="uploaded_file_data in showCase.model_data.uploaded_file_dict" style="margin-top: 1%;">
+          <!-- <div class = "row" ng-repeat="uploaded_file_data in showCase.model_data.uploaded_file_dict" style="margin-top: 1%;">
               <a class="btn btn btn-success" href="{{uploaded_file_data.file_url}}" target="_blank" style="position: relative; font-weight: 600;min-width: 250px;font-size: 15px;">
                 {{uploaded_file_data.file_name}}<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
@@ -263,6 +263,27 @@
               <a class="btn btn btn-success" href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 PA Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
+            </div>
+          </div> -->
+          <div class = "row" style="padding: 10px;background: #f2f2f275;">
+            <div class="col-lg-12 col-md-12 mb15" align="center">
+              <span class="label label-success" style="font-size: 10px">PR User & Buyer File Uploads</span>
+            </div>
+            <div class="col-md-12">
+              <tabset class="box-tab left">
+                <tab heading="PR user">
+                  <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                  <div class="col-md-12" ng-repeat = "uploaded_file_data in showCase.model_data.uploaded_file_dict" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{uploaded_file_data.file_url}}" target="_blank">{{uploaded_file_data.file_name}}</a> </span>
+                  </div>
+                </tab>
+                <tab heading="Purchase Approval" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url">
+                  <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                  <div class="col-md-12" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.pa_uploaded_file_dict.file_name}}</a> </span>
+                  </div>
+                </tab>
+              </tabset>
             </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>

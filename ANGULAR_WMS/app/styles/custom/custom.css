@@ -1503,7 +1503,7 @@ pre {
 }*/
 .spinner {
   width: 100%;
-  height: 4px;
+  height: 5px;
   background: #e1e4e8;
   border-radius: 0px;
   overflow: hidden;
@@ -1511,7 +1511,7 @@ pre {
 .spinner div:first-child {
     display: block;
     height: 100%;
-  width: 100%;
+    width: 100%;
     background: linear-gradient(90deg, #ffd33d, #ea4aaa 17%, #b34bff 34%, #01feff 51%, #ffd33d 68%, #ea4aaa 85%, #b34bff);
     background-size: 300% 100%;
     animation: progress-animation 2s linear infinite;
@@ -1679,4 +1679,48 @@ pre {
 #goTop img{
   width: 15px;
   transform: rotate(270deg);
+}
+.picklist-table .dataTables_filter{
+  display: none !important;
+}
+.column_select_drp .bootstrap-select .dropdown-toggle:focus{
+  outline: none !important;
+}
+.view-orders-fixed-datatable, .fixed-picklist-table{
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.view-orders-fixed-datatable .dataTables_wrapper{
+  height: 66vh;
+  overflow-y: auto;
+  position: relative;
+}
+.view-orders-fixed-datatable .dataTables_wrapper .dataTables_length, .fixed-picklist-table .dataTables_wrapper .dataTables_length{
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 999;
+}
+.view-orders-fixed-datatable .dataTables_wrapper .dataTables_filter{
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 999;
+}
+.view-orders-fixed-datatable .custom-table, .fixed-picklist-table .custom-table{
+  position: relative;
+}
+.view-orders-fixed-datatable .custom-table thead, .fixed-picklist-table .custom-table thead{
+  position: sticky;
+  top: 0;
+  left: 0;
+  background-color: #fff;
+}
+.fixed-picklist-table .dataTables_wrapper{
+  height: 71vh;
+  overflow-y: auto;
+  position: relative;
+  top: 14px;
+  padding-bottom: 5px;
+  margin-top: 20px;
 }

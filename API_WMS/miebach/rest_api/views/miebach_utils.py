@@ -1926,7 +1926,7 @@ PO_SUPPLIER_MAIL_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
     ],
-    'dt_headers': ['PO No', 'PO Mail Members', 'Mail Status', 'Mail Failed Reason', 'Date'],
+    'dt_headers': ['PO No', 'PO Mail Members', 'Mail Status', 'Mail Failed Reason', 'PO Date'],
     'dt_url': 'get_po_supplier_mail_report', 'excel_name': 'get_po_supplier_mail_report',
     'print_url': 'print_po_supplier_mail_report',
 }
@@ -14486,7 +14486,7 @@ def get_po_supplier_mail_report_data(search_params, user, sub_user):
                                                 ('PO Mail Members', data['po_mail_members'] if data['po_mail_members'] else data['supplier__email_id']),
                                                 ('Mail Status', 'Success' if data['mail_status'] else 'Failed'),
                                                 ('Mail Failed Reason', data['mail_failed_reason']),
-                                                ('Date', get_local_date(user, data['updation_date']))
+                                                ('PO Date', get_local_date(user, data['updation_date']))
                                                 )))
     return temp_data
 

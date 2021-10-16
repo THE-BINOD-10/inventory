@@ -1717,10 +1717,10 @@ pre {
   background-color: #fff;
 }
 .fixed-picklist-table .dataTables_wrapper{
-  height: 71vh;
+  height: 80vh;
   overflow-y: auto;
   position: relative;
-  top: 14px;
+  /*top: 14px;*/
   padding-bottom: 5px;
   margin-top: 20px;
 }

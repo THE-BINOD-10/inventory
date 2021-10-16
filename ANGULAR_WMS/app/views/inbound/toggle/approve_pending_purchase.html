@@ -152,6 +152,7 @@
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+                    <th>Base UOM Qty</th>
                     <th>Unit Price</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">End Date</th>
@@ -188,6 +189,9 @@
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+                    </td>
+                    <td>
+                      <input ng-model="product.fields.base_uom_qty" type="text" class="form-control detectTab" readonly>
                     </td>
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number

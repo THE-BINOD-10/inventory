@@ -5235,7 +5235,11 @@ def get_pr_preview_data(request, user=''):
             #supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
             #                        supplier__supplier_id=supplierId)
             #supplierName = supplierMappings[0].supplier.name
-            supplierQs = SupplierMaster.objects.filter(user=pr_user.id, supplier_id=supplierId)
+            if pr_user.userprofile.warehouse_type == 'DEPT':
+                store_user = get_admin(pr_user)
+            else:
+                store_user = pr_user
+            supplierQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=supplierId)
             if supplierQs.exists():
                 supplierName = supplierQs[0].name
             else:

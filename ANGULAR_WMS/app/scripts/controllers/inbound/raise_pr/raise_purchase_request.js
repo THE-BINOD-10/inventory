@@ -208,6 +208,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
+                  "dept_user_id": data.data.dept_user_id,
                   "plant": data.data.plant,
                   "department": data.data.department,
                   "tax_display": data.data.tax_display,
@@ -408,7 +409,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
-
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
+    
     vm.add = function () {
       vm.extra_width = { 'width': '1290px' };
       vm.model_data.seller_types = [];
@@ -838,6 +842,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (typeof(datum['fields']['sku']) == 'undefined') {
         vm.service.showNoty('Invalid Sku');
       } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        data['line_data']['store_id'] = vm.model_data.store_id
+        data['line_data']['dept_user_id'] = vm.model_data.dept_user_id
         var modalInstance = $modal.open({
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
@@ -853,7 +859,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
         modalInstance.result.then(function (selectedItem) {
           if (selectedItem) {
-            console.log(selectedItem);
+            console.log('');
           }
         });
       } else {
@@ -1159,25 +1165,36 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.bt_disable = true;
       var that = vm;
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
-          data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
-          data.push({name: 'is_actual_pr', value:true});
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-      });
-      vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
-        if(data.message) {
-          if (data.data == 'Deleted Successfully') {
-            vm.bt_disable = true;
-            vm.selectAll = false;
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
+            data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+            data.push({name: 'is_actual_pr', value:true});
           }
-        }
-      });
+        });
+        vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
+          if(data.message) {
+            if (data.data == 'Deleted Successfully') {
+              vm.bt_disable = true;
+              vm.selectAll = false;
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.showNoty(data.data);
+            }
+          }
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PR Only !!");
+      }
    }
 
    vm.get_supplier_sku_prices = function(sku) {
@@ -1225,7 +1242,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
    vm.update_available_stock = function(product, sku_data, line_level='') {
       product['icon_color'] = {'color' : 'darkgrey'}
       product['sku_sku_comment'] = false;
-      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant, "send_supp_info": "true"}
+      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true", plant: vm.model_data.plant, department_type: vm.model_data.department_type, "send_supp_info": "true"}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
@@ -1245,6 +1262,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           sku_data["last_supplier"] = data.data.pr_extra_data.last_supplier + "-" + data.data.pr_extra_data.last_supplier_price;
           sku_data["least_supplier"] = data.data.pr_extra_data.least_supplier + "-" + data.data.pr_extra_data.least_supplier_price;
           sku_data["least_supplier_pi"] = data.data.pr_extra_data.least_supplier_pi + "-" + data.data.pr_extra_data.least_supplier_price_pi;
+          vm.model_data["store_id"] = data.data.store_id;
+          vm.model_data["dept_user_id"] = data.data.dept_user_id;
           if (data.data.is_contracted_supplier) {
             vm.is_contracted_supplier = true;
           } else if ((!data.data.is_contracted_supplier) && vm.is_contracted_supplier){
@@ -1833,6 +1852,14 @@ angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $st
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id']}).then(function(data){
+    if(data.message) {
+      items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
+      items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];
+      items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
+      items['line_data']['fields']['sku']['consumption_dict'] = data.data['consumption_dict']
+    }
+  }) 
   vm.line_data = items['line_data']['fields']
   vm.title = vm.line_data['sku']['wms_code'];
   vm.model_data = {}

@@ -191,6 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "is_purchase_approver": data.data.is_purchase_approver,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
+                  "dept_user_id": data.data.dept_user_id,
                   "department": data.data.department,
                   "data": data.data.data,
                   "is_auto_pr": data.data.is_auto_pr,
@@ -374,7 +375,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
-
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
     vm.add = function () {
       vm.extra_width = { 'width': '1450px' };
       vm.model_data.seller_types = [];
@@ -870,6 +873,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (typeof(datum['fields']['sku']) == 'undefined') {
         vm.service.showNoty('Invalid Sku');
       } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        data['line_data']['store_id'] = vm.model_data.store_id
+        data['line_data']['dept_user_id'] = vm.model_data.dept_user_id
         var modalInstance = $modal.open({
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
@@ -1593,7 +1598,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
 vm.excel = function(data) {
-    vm.headers = ['Supplier', 'WMS Code', 'SKU Desc - HSN code', 'Qty', 'Unit rate', 'Dis', 'Final Unit Price', 'Amount', 'Tax %', 'Cess Tax %', 'Total', 'Last Supplier-Price', 'Least Supplier-Price', 'Least Supplier-Price(Pan India)', 'Reason', 'Delta With Tax', 'Suggested PR qty', 'SKU Brand', 'GL Code', 'UOM', 'Cess Tax', 'No.Of Base Units', 'Base UOM', 'OpenPR Qty', 'Available Stock', 'OpenPO Qty', 'Last 3M Avg Consumption']
+    vm.headers = ['Supplier', 'WMS Code', 'SKU Desc - HSN code', 'Qty', 'Unit rate', 'Dis', 'Final Unit Price', 'Amount', 'Tax %', 'Cess Tax %', 'Total', 'Last Supplier-Price', 'Least Supplier-Price', 'Least Supplier-Price(Pan India)', 'Reason', 'Delta With Tax', 'Suggested PR qty', 'SKU Brand', 'GL Code', 'UOM', 'Cess Tax', 'No.Of Base Units', 'Base UOM', 'OpenPR Qty', 'Available Stock', 'OpenPO Qty']
     var data = [] 
     data.push(vm.headers)
     for(var i=0; i<vm.model_data.data.length; i++)  {
@@ -1603,8 +1608,7 @@ vm.excel = function(data) {
                     String(vm.model_data.data[i].fields.pr_extra_data.least_supplier + ' -' + vm.model_data.data[i].fields.pr_extra_data.least_supplier_price), String(vm.model_data.data[i].fields.pr_extra_data.least_supplier_pi + ' -' + vm.model_data.data[i].fields.pr_extra_data.least_supplier_price_pi), 
                     String(vm.model_data.data[i].fields.sku_comment), String(vm.model_data.data[i].fields.delta), String(vm.model_data.data[i].fields.sku.suggested_pr_qty),
                     String(vm.model_data.data[i].fields.sku_brand), String(vm.model_data.data[i].fields.gl_code), String(vm.model_data.data[i].fields.measurement_unit), String(vm.model_data.data[i].fields.temp_cess_tax), String(vm.model_data.data[i].fields.conversion),
-                    String(vm.model_data.data[i].fields.base_uom), String(vm.model_data.data[i].fields.sku.openpr_qty), String(vm.model_data.data[i].fields.sku.capacity), String(vm.model_data.data[i].fields.sku.intransit_quantity),
-                    String(vm.model_data.data[i].fields.sku.avg_consumption_qty)]
+                    String(vm.model_data.data[i].fields.base_uom), String(vm.model_data.data[i].fields.sku.openpr_qty), String(vm.model_data.data[i].fields.sku.capacity), String(vm.model_data.data[i].fields.sku.intransit_quantity)]
         data.push(temp_data)
 }
     let file_name = 'Pending_for_Approval_Pr_' +  vm.model_data.pr_number
@@ -1754,6 +1758,14 @@ angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $st
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id']}).then(function(data){
+    if(data.message) {
+      items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
+      items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];
+      items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
+      items['line_data']['fields']['sku']['consumption_dict'] = data.data['consumption_dict']
+    }
+  }) 
   vm.line_data = items['line_data']['fields']
   vm.title = vm.line_data['sku']['wms_code'];
   vm.model_data = {}

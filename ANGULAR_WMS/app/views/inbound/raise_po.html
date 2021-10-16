@@ -1,7 +1,7 @@
 <div class="page-layout" ng-controller="RaisePurchaseOrderCtrl as showCase">
-  <div class='layout-header'>
+  <!-- <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
-  </div>
+  </div> -->
   <div class="layout-body" ng-init="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= true; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false"> 
     <tabset class="box-tab">
       <tab heading="Raise Purchase Order" ng-if="!showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = true; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">
@@ -37,7 +37,13 @@
       <tab heading="Cancelled & Rejected PO's" ng-if="showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = true">
         <div class="panel" ng-controller="poCancelRejectedCtrl as showCase" ng-if="poCancelRejectedCtrl">
           <div class="panel-header">
-            <div ng-include="'views/common/excel.html'"></div>
+            <button type="button" class="btn btn-success btn-lg" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+              <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+            <span>REFRESH</span>
+            </button>
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+            {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+            </button>
           </div>
           <div ng-include="'views/common/datatable.html'"></div>
         </div>

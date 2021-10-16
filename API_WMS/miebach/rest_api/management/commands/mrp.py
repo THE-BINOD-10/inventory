@@ -48,13 +48,18 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
             users = check_and_get_plants(request, req_users)
             users = users.filter(userprofile__warehouse_type__in=['DEPT'])
         plant_users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        plant_user_names = list(plant_users.values_list('username', flat=True))
         plant_user_ids = list(plant_users.values_list('id', flat=True))
     else:
         users = User.objects.filter(id__in=run_user_ids, userprofile__warehouse_type__in=['DEPT'])
         plant_user_ids = []
+        plant_user_names = []
         for user in users:
             if user.userprofile.warehouse_type == 'DEPT':
-                plant_user_ids.append(get_admin(user).id)
+                temp_plant = get_admin(user)
+                plant_user_ids.append(temp_plant.id)
+                plant_user_names.append(temp_plant.username)
+    plant_dept_user_ids = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_user_names).values_list('id', flat=True))
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids}
     main_user = get_company_admin_user(user)
@@ -114,7 +119,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
     print "Preparing plant stock dict completed"
     consumption_qtys = {}
     plant_consumption_qtys = {}
-    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes})
+    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': plant_dept_user_ids, 'sku__sku_code__in': sku_codes})
     for cons in consumption_lt3:
         print cons.id
         if cons.sku.user in user_id_mapping:
@@ -260,6 +265,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None):
                         'sku': data,
                         'user': user,
                         'avg_sku_consumption_day': cons_qty,
+                        'avg_plant_sku_consumption_day': plant_cons_qty,
                         'lead_time_qty': lead_time,
                         'min_days_qty': min_days,
                         'max_days_qty': max_days,

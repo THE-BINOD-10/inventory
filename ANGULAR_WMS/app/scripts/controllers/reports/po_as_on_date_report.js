@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('PRAODCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('POAODCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.reports = {}
   var send = {};
-  var name = 'PRAOD_report';
+  var name = 'POAOD_report';
   vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
   	if(data.message) {
   	  if ($.isEmptyObject(data.data.data)) {
@@ -42,7 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.dtInstance = {};
           vm.report_data['excel2'] = true;
   	      vm.report_data['row_click'] = true;
-          vm.report_data['excel_name'] = 'PRAOD_report'
+          vm.report_data['excel_name'] = 'POAOD_report'
         })
   	  }
   	}
@@ -69,3 +69,4 @@ vm.service.apiCall('zones_list/').then(function(data){
   }
 })
 }
+

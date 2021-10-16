@@ -1,7 +1,7 @@
 <div class="page-layout" ng-controller="RaisePurchaseRequestCtrl as showCase">
-  <div class='layout-header'>
+  <!-- <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
-  </div>
+  </div> -->
   <div class="layout-body" ng-init="RaisePurchaseRequestCtrl = true; PendingForApprovalPurchaseRequestCtrl = true; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false"> 
     <tabset class="box-tab">
       <tab heading="Raised Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs" ng-click="RaisePurchaseRequestCtrl = true; PendingForApprovalPurchaseRequestCtrl = false; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false">
@@ -12,7 +12,13 @@
       <tab heading="Pending For Approval Purchase Requests" ng-click="RaisePurchaseRequestCtrl = false; PendingForApprovalPurchaseRequestCtrl = true; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false">
         <div class="panel" ng-controller="PendingForApprovalPurchaseRequestCtrl as showCase" ng-if="PendingForApprovalPurchaseRequestCtrl">
           <div class="panel-header">
-            <div ng-include="'views/common/excel.html'"></div>
+            <button type="button" class="btn btn-success btn-lg" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+              <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+            <span>REFRESH</span>
+            </button>
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+            {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+            </button>
           </div>
           <div ng-include="'views/common/datatable.html'"></div>
         </div>
@@ -20,7 +26,7 @@
       <tab heading="Approved Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs && showCase.permissions.change_pendinglineitems" ng-controller="ApprovedPurchaseRequestCtrl as showCase" ng-click="showCase.loadjs()" ng-click="RaisePurchaseRequestCtrl = false; PendingForApprovalPurchaseRequestCtrl = false; ApprovedPurchaseRequestCtrl=true; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false">
         <div ng-if="showCase.ApprovedPurchaseRequestCtrl" ng-include="'views/inbound/raise_pr/approved_purchase_requests.html'"></div>
       </tab>
-       <tab heading="PR Converted to PO" ng-if="showCase.permissions.enable_pending_approval_prs" ng-click="RaisePurchaseRequestCtrl = false; PendingForApprovalPurchaseRequestCtrl = false; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = true; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false">
+      <!-- <tab heading="PR Converted to PO" ng-if="showCase.permissions.enable_pending_approval_prs" ng-click="RaisePurchaseRequestCtrl = false; PendingForApprovalPurchaseRequestCtrl = false; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = true; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = false">-->
         <div class="panel" ng-controller="PRConvertedtoPO as showCase" ng-if="PRConvertedtoPO">
           <div  ng-include="'views/inbound/raise_pr/pr_converted_to_po.html'"></div>
         </div>
@@ -31,7 +37,13 @@
       <tab heading="Cancelled & Rejected PR's" ng-if="showCase.permissions.enable_pending_approval_prs" ng-controller="rejectedCancelledCtrl as showCase" ng-click="showCase.loadjs()" ng-click="RaisePurchaseRequestCtrl = false; PendingForApprovalPurchaseRequestCtrl = false; ApprovedPurchaseRequestCtrl=false; PRConvertedtoPO = false; PendingPREnquiriesCtrl= false; rejectedCancelledCtrl = true">
         <div class="panel" ng-if="showCase.rejectedCancelledCtrl">
           <div class="panel-header">
-            <div ng-include="'views/common/excel.html'"></div>
+            <button type="button" class="btn btn-success btn-lg" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+              <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+            <span>REFRESH</span>
+            </button>
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+            {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+            </button>
           </div>
           <div ng-include="'views/common/datatable.html'"></div>
         </div>

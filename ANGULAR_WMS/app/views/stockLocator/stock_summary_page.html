@@ -2,17 +2,18 @@
   <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
   </div>
-  <div class="layout-body">
+  <div class="layout-body" ng-init="StockSummaryCtrl= true; StockSummaryPlantSKUCtrl= false; StockSummaryPlantCtrl= false">
     <tabset class="box-tab">
-      <tab heading="Stock Summary">
-        <div ng-include="'views/stockLocator/stock_summary/stock_summary.html'"></div>
+      <tab heading="Stock Summary" ng-controller="StockSummaryCtrl as showCase" ng-click="StockSummaryCtrl= true; StockSummaryPlantSKUCtrl= false; StockSummaryPlantCtrl= false">
+        <div ng-if="StockSummaryCtrl" ng-include="'views/stockLocator/stock_summary/stock_summary.html'"></div>
       </tab>
-      <tab heading="Plant SKU Summary">
-        <div ng-include="'views/stockLocator/stock_summary/stock_summary_plant_sku.html'"></div>
+      <tab heading="Plant SKU Summary" ng-controller="StockSummaryPlantSKUCtrl as showCase" ng-click="StockSummaryCtrl= false; StockSummaryPlantSKUCtrl= true; StockSummaryPlantCtrl= false">
+        <div ng-if="StockSummaryPlantSKUCtrl" ng-include="'views/stockLocator/stock_summary/stock_summary_plant_sku.html'"></div>
       </tab>
-      <tab heading="Plant Summary">
-        <div ng-include="'views/stockLocator/stock_summary/stock_summary_plant.html'"></div>
+      <tab heading="Plant Summary" ng-controller="StockSummaryPlantCtrl as showCase" ng-click="StockSummaryCtrl= false; StockSummaryPlantSKUCtrl= false; StockSummaryPlantCtrl= true">
+        <div ng-if="StockSummaryPlantCtrl" ng-include="'views/stockLocator/stock_summary/stock_summary_plant.html'"></div>
       </tab>
     </tabset>
   </div>
 </div>
+

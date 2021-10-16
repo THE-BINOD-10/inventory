@@ -88,6 +88,13 @@
     <div class="panel-footer">
         <button type="button" class="btn btn-primary pull-right"
         ng-disabled="showCase.bt_disable" ng-click="showCase.create_pr()">Raise PR</button>
+        <div style="padding-top: 10px">
+          <h3><u>Formula:</u></h3>
+          <span>total_stock = current department sock + allocated plant stock + pending (no. of days mentioned in configuration) days PR qty + open  (no. of days mentioned in configuration)   days PO qty</span><br/>
+          if (total_stock - lead_time stock) > min_days stock, then don't buy & hence suggested_qty = 0<br/>
+          else:<br/>
+            suggested_buy_qty = (max_days stock + lead_time stock - total_stock)
+        </div>
     </div>
   </div>
 </div>

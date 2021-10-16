@@ -55,7 +55,6 @@
                 <input name="full_pr_number" ng-model="showCase.model_data.full_pr_number" class="form-control" type="text" id="full_pr_number" ng-readonly="true">
               </div>
             </div>
-
             <div class="col-md-2 col-sm-3 col-xs-4">
               <div class="form-group">
                 <label class="control-label"> Store </label>
@@ -199,6 +198,7 @@
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+                    <th>Base UOM Qty</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
@@ -208,15 +208,15 @@
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">IGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CESS(%)</th>
-                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">AvailableQty</th>
+                    <!--<th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">AvailableQty</th>
                     <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">IntransitQty</th>
-                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
+                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>-->
                     <th class="w10_">Delivery schedule</th>
                     <!-- <th class="w10_">CESS(%)</th>
                     <th class="w10_">APMC(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th> -->
-                    <!-- <th class="plus"></th> -->
+                    <th class="plus"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -251,6 +251,9 @@
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
                     </td>
+                    <td>
+                      <input ng-model="product.fields.base_uom_qty" type="text" class="form-control detectTab" readonly>
+                    </td>
                     <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
@@ -281,15 +284,18 @@
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="6">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="6">
                     </td>
-                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity | number:0}}</span> </td>
+                    <!--<td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity | number:0}}</span> </td>
                     <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity | number:0}}</span> </td>
-                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity | number:0}}</span> </td>
+                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity | number:0}}</span> </td>-->
                     <!-- <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td> -->
                     <td>
                       <button class="btn btn-success" ng-click="showCase.sku_delivery_date(product)">Add (+)</button>
                     </td>
+					<td ng-click="showCase.extra_row_info(product)">
+                        <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>
+                    </td> 
                   </tr>
                 </tbody>
               </table>
@@ -311,7 +317,7 @@
       		  </div>
             <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
           </div>
-          <div class="row">
+          <div class="row" style="margin-bottom: 8px;">
             <div class="col-md-2 col-sm-2 col-xs-2" style="margin-top: 5px;">
               <strong>Remarks :</strong>
             </div>
@@ -319,10 +325,12 @@
               <textarea rows="5" class="form-control" cols="15" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
             </div>
           </div>
-          <div class="row">
+          <!-- <div class="row">
             <div class="col-md-12"><hr></div>
-          </div>
-          <div class = "row">
+          </div> -->
+
+
+          <!-- <div class = "row">
             <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
               <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 PO File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
@@ -338,7 +346,41 @@
                 Purchase File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
             </div>
-          </div>          
+          </div> -->
+
+
+          <div class = "row" style="padding: 10px;background: #f2f2f275;">
+            <div class="col-lg-12 col-md-12 mb15" align="center">
+              <span class="label bg-purple" style="font-size: 10px">PR User & Buyer File Uploads</span>
+            </div>
+            <div class="col-md-8">
+              <tabset class="box-tab left">
+                <tab heading="PR user">
+                  <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                  <div class="col-md-12" ng-repeat = "uploaded_file_data in showCase.model_data.pr_uploaded_file_dict" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{uploaded_file_data.file_url}}" target="_blank">{{uploaded_file_data.file_name}}</a> </span>
+                  </div>
+                </tab>
+                <tab heading="Purchase Approval" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url">
+                  <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                  <div class="col-md-12" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.pa_uploaded_file_dict.file_name}}</a> </span>
+                  </div>
+                </tab>
+                <tab heading="PO Approval Files" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+                  <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                  <div class="col-md-12" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.uploaded_file_dict.file_name}}</a> </span>
+                  </div>
+                </tab>
+              </tabset>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group col-md-3" style="padding-top: 30px;">
+               <span><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" /></span>
+              </div>
+            </div>
+          </div>
           <!-- <div class = "row">
             <div class="col-md-3" ng-if="showCase.model_data.pr_uploaded_file_dict.file_url">
               <a class="btn btn btn-success" href="{{showCase.model_data.pr_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
@@ -346,13 +388,13 @@
               </a>
             </div>
           </div> -->
-          <div class="row" ng-if="showCase.model_data.product_category!='Kits&Consumables'">
+          <!-- <div class="row" ng-if="showCase.model_data.product_category!='Kits&Consumables'">
             <div class="form-group col-md-3" style="padding-top: 30px;">
                <span>
                  <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
                </span>
             </div>
-          </div>
+          </div> -->
 		    </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.save_raise_pr(form, 'save')">Save</button>

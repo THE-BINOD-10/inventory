@@ -3067,6 +3067,15 @@ def get_praod_report(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_poaod_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_poaod_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 def download_invoice_file(request, user=''):
     receipt_type, http_data = '', ''

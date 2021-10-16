@@ -26,7 +26,7 @@ class DBBackup:
         else:
             bfile =  self.db_name+'_'+bdate+'_daily.sql'
         dumpfile = open(os.path.join(self.backup_path, bfile), 'w')
-        cmd = ['mysqldump', '--host='+self.host, '--user='+self.user, '--password='+self.password, self.db_name]
+        cmd = ['mysqldump', '--host='+self.host, '--user='+self.user, '--password='+self.password, '--single-transaction=TRUE', '--quick', self.db_name]
         p = subprocess.Popen(cmd, stdout=dumpfile)
         retcode = p.wait()
         dumpfile.close()
@@ -48,7 +48,7 @@ class DBBackup:
         if self.running_type == 'hourly':
             status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1, 3)
         else:
-            status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1, 30)
+            status = file_upload(tar_file_path, '/METROPOLIS/', 'u239654.your-storagebox.de', 'u239654', 'jb6k87AIEzRBvI9u', 1, 28)
         if not status:
             self.sending_mail('Error')
         else:
@@ -56,14 +56,14 @@ class DBBackup:
 
     def sending_mail(self, res):
         if res == "success":
-            subject = "DB Backup Successfull"
+            subject = "Metropolis DB Backup Successfull"
             body = "Hi Team, Backup is created successfully"
 
         else:
-            subject = "Alert : DB backup Failed"
+            subject = "Alert : Metropolis DB backup Failed"
             body = "Hi Team, Backup creation is failed please check asap."
 
-        send_to = ["wms-dev@mieone.com", "sai@mieone.com", "sreekanth@mieone.com"]
+        send_to = ["avinash@mieone.com", "sreekanth@mieone.com", "avadhani@mieone.com", "kaladhar@mieone.com"]
         #send_to = ["sreekanth@mieone.com"]
         send_mail(send_to, subject, body)
 

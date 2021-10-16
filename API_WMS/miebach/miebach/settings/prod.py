@@ -4,12 +4,26 @@ from .base import *
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WMS_PROD1',
-        'HOST': '94.130.36.188',
+        'NAME': 'METROPOLIS_PROD',
         'USER': 'root',
-        'PASSWORD': 'Stockone@2017',
-        'TEST_MIRROR': 'default',
-    }
+        'PASSWORD': 'stockonedev@2020',
+        'TEST_MIRROR': 'default'
+    },
+    'reversion': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'METROPOLIS_PROD_REVERSION',
+        'USER': 'root',
+        'PASSWORD': 'stockonedev@2020',
+        'TEST_MIRROR': 'default'
+    },
+    'reports': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'METROPOLIS_PROD',
+        'USER': 'metropolis_reports',
+        'PASSWORD': 'Stockone^2021',
+        'HOST': '65.21.93.111',
+        'TEST_MIRROR': 'reports',
+    } 
 }
 
 INTEGRATIONS_CFG_FILE = 'rest_api/views/configuration_prod.cfg'

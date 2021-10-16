@@ -363,6 +363,12 @@
                     <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.pa_uploaded_file_dict.file_name}}</a> </span>
                   </div>
                 </tab>
+                <tab heading="PO Approval Files" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+                  <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                  <div class="col-md-12" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.uploaded_file_dict.file_name}}</a> </span>
+                  </div>
+                </tab>
               </tabset>
             </div>
             <div class="col-md-4">

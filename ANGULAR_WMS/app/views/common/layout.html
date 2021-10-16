@@ -14,7 +14,9 @@
   </p>
 </div>
 <!-- preloader -->
-<preloader class="preloader ng-hide"></preloader>
+<preloader class="preloader ng-hide">
+  <div></div>
+</preloader>
 <!-- /preloader -->
 
 <!-- sidebar panel -->
@@ -23,7 +25,9 @@
 
 <!-- content panel -->
 <div class="main-panel">
-
+ <a id="goTop">
+    <img src="images/top-up.png">
+  </a> 
   <!-- top header -->
   <div class="header navbar" ng-if="$state.current.name == 'app.dashboard'" data-ng-include="'views/common/header.html'"></div>
   <!-- /top header -->
@@ -33,7 +37,14 @@
   <!-- /main area -->
 
 </div>
-
+<script>
+  $(document).ready(function() {
+    $('#goTop').click(function(){
+        $('.page-layout, .view-orders-fixed-datatable .dataTables_wrapper, .fixed-picklist-table .dataTables_wrapper').animate({scrollTop:0}, 'slow');
+        return false;
+    });
+  }); 
+</script>
 <!-- chat -->
 <!--
 <div class="chat-panel" data-ng-class="{'conversation-open': app.layout.isConversationOpen}" data-ng-include="'views/common/chat-panel.html'"></div>-->

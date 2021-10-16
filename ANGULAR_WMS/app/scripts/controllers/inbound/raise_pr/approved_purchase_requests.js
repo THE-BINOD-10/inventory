@@ -189,6 +189,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "is_purchase_approver": data.data.is_purchase_approver,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
+                  "dept_user_id":data.data.dept_user_id,
                   "department": data.data.department,
                   "data": data.data.data,
                   "is_auto_pr": data.data.is_auto_pr,
@@ -366,7 +367,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
-
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
+    
     vm.add = function () {
       vm.extra_width = { 'width': '1450px' };
       vm.model_data.seller_types = [];
@@ -570,48 +574,58 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var deptTypes = [];
       var prodCatgs = [];
       var catgs = [];
-
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          var deptType = temp['_aData']['Department'];
-          var prodCatg = temp['_aData']['Product Category'];
-          var catg = temp['_aData']['Category'];
-          prIds.push(temp['_aData']["Purchase Id"]);
-          if (!deptTypes.includes(deptType)){
-            deptTypes.push(deptType);
-          }
-          if (!prodCatgs.includes(prodCatg)){
-            prodCatgs.push(prodCatg);
-          }
-          if (!catgs.includes(catg)){
-            catgs.push(catg);
-          }
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-        if(Object.keys(vm.selected).length-1 == parseInt(key)){
-          if (deptTypes.length > 1 || prodCatgs.length > 1 || catgs.length > 1) {
-            prIds = [];
-            vm.service.showNoty("Same Department/ProductCategory/Category PRs can be consolidated");
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            var deptType = temp['_aData']['Department'];
+            var prodCatg = temp['_aData']['Product Category'];
+            var catg = temp['_aData']['Category'];
+            prIds.push(temp['_aData']["Purchase Id"]);
+            if (!deptTypes.includes(deptType)){
+              deptTypes.push(deptType);
+            }
+            if (!prodCatgs.includes(prodCatg)){
+              prodCatgs.push(prodCatg);
+            }
+            if (!catgs.includes(catg)){
+              catgs.push(catg);
+            }
           }
-          var data_dict = {
-            'prIds': JSON.stringify(prIds)
-          };
-          if(prIds.length > 0){
-            vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
-              if(data.message){
-                if (typeof(data.data) == 'string') {
-                  vm.service.showNoty(data.data);
-                } else {
-                  vm.preview_data = data.data;
-                  $state.go("app.inbound.RaisePr.PRemptyPreview");
+          if(Object.keys(vm.selected).length-1 == parseInt(key)){
+            if (deptTypes.length > 1 || prodCatgs.length > 1 || catgs.length > 1) {
+              prIds = [];
+              vm.service.showNoty("Same Department/ProductCategory/Category PRs can be consolidated");
+            }
+            var data_dict = {
+              'prIds': JSON.stringify(prIds)
+            };
+            if(prIds.length > 0){
+              vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
+                if(data.message){
+                  if (typeof(data.data) == 'string') {
+                    vm.service.showNoty(data.data);
+                  } else {
+                    vm.preview_data = data.data;
+                    $state.go("app.inbound.RaisePr.PRemptyPreview");
+                  }
                 }
-              }
-            });
-          } else {
-            vm.bt_disable = false;
+              });
+            } else {
+              vm.bt_disable = false;
+            }
           }
-        }
-      });
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PR Only !!");
+      }
     }
 
     vm.getFirstSupplier = function(data, line_level=''){
@@ -784,6 +798,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (typeof(datum['fields']['sku']) == 'undefined') {
         vm.service.showNoty('Invalid Sku');
       } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        data['line_data']['store_id'] = vm.model_data.store_id
+        data['line_data']['dept_user_id'] = vm.model_data.dept_user_id
         var modalInstance = $modal.open({
           templateUrl: 'views/inbound/raise_pr/sku_row_level_data.html',
           controller: 'skuRowCtrl',
@@ -1035,8 +1051,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           elem.push({name: 'validation_type', value: 'rejected'})
         }
         var form_data = new FormData();
-        if (vm.model_data.product_category != "Kits&Consumables" && $(".approve_form").find('[name="files"]').length > 0){
-          var files = $(".approve_form").find('[name="files"]')[0].files;
+        if ($(".approve_form").find('[name="files"]').length > 0){
+          var files = $(".approve_form").find('[name="files"]')[2].files;
           $.each(files, function(i, file) {
             form_data.append('files-' + i, file);
           });
@@ -1162,25 +1178,36 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.bt_disable = true;
       var that = vm;
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
-          data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
-          data.push({name: 'is_actual_pr', value:true});
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-      });
-      vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
-        if(data.message) {
-          if (data.data == 'Deleted Successfully') {
-            vm.bt_disable = true;
-            vm.selectAll = false;
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
+            data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+            data.push({name: 'is_actual_pr', value:true});
           }
-        }
-      });
+        });
+        vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
+          if(data.message) {
+            if (data.data == 'Deleted Successfully') {
+              vm.bt_disable = true;
+              vm.selectAll = false;
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.showNoty(data.data);
+            }
+          }
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PR Only !!");
+      }
    }
 
    vm.get_supplier_sku_prices = function(sku) {
@@ -1674,6 +1701,14 @@ angular.module('urbanApp').controller('skuRowCtrl', function ($scope, $http, $st
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id': items['line_data']['store_id'], 'dept_user_id': items['line_data']['dept_user_id']}).then(function(data){
+    if(data.message) {
+      items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
+      items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];
+      items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
+      items['line_data']['fields']['sku']['consumption_dict'] = data.data['consumption_dict']
+    }
+  }) 
   vm.line_data = items['line_data']['fields']
   vm.title = vm.line_data['sku']['wms_code'];
   vm.model_data = {}

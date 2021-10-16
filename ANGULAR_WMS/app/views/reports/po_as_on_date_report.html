@@ -1,11 +1,14 @@
-  <div class="page-layout reports">
+<div ng-controller="POAODCtrl as showCase">
+    <div class="page-layout reports">
     <div class='layout-header'>
       <div class="row">
         <div class="col-md-6 col-sm-6 col-xs-12">
           <div class="pull-left" ng-include="'views/common/title.html'"></div>
         </div>
         <div class="col-md-6 col-sm-6 col-xs-12">
-          <div ng-include="'views/common/controls/report_downloads.html'"></div>
+         <button ng-if="showCase.report_data.excel_name" type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, showCase.report_data.excel_name, true)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+		<button ng-if="showCase.report_data.excel2" type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'grn_inventory_addition', true)" ng-disabled="showCase.service.print_enable">Download Inventory Addition</button>
+		<button ng-if="showCase.report_data.print_url" type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, showCase.report_data.print_url+'/?')">Print Report</button> 
         </div>
       </div>
     </div>
@@ -16,22 +19,38 @@
               <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="field in showCase.report_data.filters">
                 <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Manufacturer </label>
                   <input name="manufacturer" class="form-control" type="text" ng-model="showCase.model_data.manufacturer">
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Searchable </label>
                   <input name="searchable" class="form-control" type="text" ng-model="showCase.model_data.searchable">
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Bundle </label>
                   <input name="bundle" class="form-control" type="text" ng-model="showCase.model_data.bundle">
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-3 col-xs-4">
+                <div class="form-group">
+                  <label class="control-label">Status</label>
+                  <select name="status" class="form-control" ng-model="showCase.model_data.status">
+                    <option ng-repeat="status in showCase.statuses" value="{{status}}">{{status}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-3 col-xs-4">
+                <div class="form-group">
+                  <label class="control-label">Zone</label>
+                  <select name="zone" class="form-control" ng-model="showCase.model_data.zone">
+                    <option ng-repeat="zone in showCase.zones" value="{{zone}}">{{zone}}</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -133,14 +152,18 @@
     </div>
 
         <div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
-          <div ng-if="showCase.report_data.row_click">
-            <div class="panel-body">
-              <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
-              <div ui-view></div>
-            </div>
+        <div ng-if="showCase.report_data.row_click">
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+            <div ui-view></div>
           </div>
+        </div>
       </div>
       <div ui-view></div>
     </div>
 	</div>
   </div>
+
+</div>
+
+

@@ -3,12 +3,16 @@
     <button type="button" class="btn btn-success pull-right ml10" ng-if="showCase.permissions.add_pendingpr" ng-click="showCase.add()">New Purchase Request</button>
     <div ng-include="'views/common/excel.html'"></div>
   </div> -->
-  <div ng-include="'views/common/datatable.html'"></div>
   <div class="panel-footer">
+    <button type="button" class="btn btn-success btn-lg" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+      <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+    <span>REFRESH</span>
+    </button>
     <button type="button" class="pull-right btn btn-danger" ng-show="showCase.permissions.add_pendingpr" ng-click="showCase.cancel_pr()">Cancel PR</button>
     <button ng-if="(!(showCase.print_enable))" type="button" class="pull-right btn btn-success" ng-click="showCase.pr_to_po_preview()" style="margin-right:1%;margin-left:1%;">Consolidated Preview</button>
     <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
     {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
     </button>
   </div>
+  <div ng-include="'views/common/datatable.html'"></div>
 </div>

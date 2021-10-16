@@ -79,6 +79,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       })
     }
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
     vm.close = function() {
       $state.go('app.inbound.RaisePo');
     }

@@ -1946,7 +1946,7 @@ def generated_pr_data(request, user=''):
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                     'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                     'measurement_unit': measurement_unit,
-                                    'sku_conversion': sku_conversion,
+                                    'sku_conversion': sku_conversion, 'base_uom_qty': sku_conversion * qty,
                                     'sku_detail': sku_desc_edited, 'service_stdate': service_stdate, 'service_edate': service_edate,
                                     'temp_price': temp_price, 'temp_tax': temp_tax,
                                     'temp_cess_tax': temp_cess_tax,

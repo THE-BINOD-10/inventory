@@ -27,6 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.supplier_mail_flag = true;
     vm.from_supplier_pos = false;
     vm.confirm_btn_disable = true;
+    vm.row_click_opt = false;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -166,8 +167,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (aData['PR No'] != "None") {
         vm.is_direct_po = false;
       }
-
+      if (vm.row_click_opt) {
+        vm.service.showNoty('Already one PO in Progress, please wait (or) Click on Refresh !!');
+        return;
+      }
+      vm.row_click_opt = true;
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
+        vm.row_click_opt = false;
         if (data.message) {
           if (typeof(data.data) == 'string') {
             vm.service.showNoty(data.data);
@@ -348,6 +354,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if($rootScope.$current_po['from_supplier_wise_pos']){
         vm.from_supplier_pos = $rootScope.$current_po['from_supplier_wise_pos'];
       }
+      vm.row_click_opt = false;
       vm.dynamic_route($rootScope.$current_po);
     }
     vm.base = function() {
@@ -357,6 +364,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.update = false;
       vm.print_enable = false;
       vm.vendor_receipt = false;
+      vm.row_click_opt = false;
       vm.final_po_data = {};
       angular.copy(empty_data, vm.model_data);
       vm.model_data.seller_types = Data.seller_types;
@@ -371,7 +379,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     vm.base();
     vm.refresh = function() {
-        vm.service.refresh(vm.dtInstance)
+      vm.row_click_opt = false;
+      vm.service.refresh(vm.dtInstance)
     };
     vm.sku_record_updation = function(data, records) {
       data.order_quantity = 0;
@@ -1061,24 +1070,35 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.bt_disable = true;
       var that = vm;
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
-          data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-      });
-      vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
-        if(data.message) {
-          if (data.data == 'Deleted Successfully') {
-            vm.bt_disable = true;
-            vm.selectAll = false;
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
+            data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
           }
-        }
-      });
+        });
+        vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
+          if(data.message) {
+            if (data.data == 'Deleted Successfully') {
+              vm.bt_disable = true;
+              vm.selectAll = false;
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.showNoty(data.data);
+            }
+          }
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PO Only !!");
+      }
    }
 
    vm.get_supplier_sku_prices = function(sku) {

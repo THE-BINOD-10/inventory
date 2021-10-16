@@ -1178,25 +1178,36 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.bt_disable = true;
       var that = vm;
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
-          data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
-          data.push({name: 'is_actual_pr', value:true});
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-      });
-      vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
-        if(data.message) {
-          if (data.data == 'Deleted Successfully') {
-            vm.bt_disable = true;
-            vm.selectAll = false;
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
+            data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+            data.push({name: 'is_actual_pr', value:true});
           }
-        }
-      });
+        });
+        vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
+          if(data.message) {
+            if (data.data == 'Deleted Successfully') {
+              vm.bt_disable = true;
+              vm.selectAll = false;
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.showNoty(data.data);
+            }
+          }
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PR Only !!");
+      }
    }
 
    vm.get_supplier_sku_prices = function(sku) {

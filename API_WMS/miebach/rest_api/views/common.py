@@ -13549,8 +13549,10 @@ def sync_supplier_async(id, user_id):
     user = User.objects.get(id=user_id)
     filter_dict = {'supplier_id': supplier.supplier_id }
     data_dict = removeUnnecessaryData(supplier.__dict__)
-    data_dict.pop('id')
-    data_dict.pop('user')
+    if "id" in data_dict:
+        data_dict.pop('id')
+    if "user" in data_dict:
+        data_dict.pop('user')
     payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
     net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
     currency_objs = supplier.currency.filter()

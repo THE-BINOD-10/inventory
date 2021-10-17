@@ -19763,16 +19763,24 @@ def get_praod_report_data(search_params, user, sub_user):
             zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
-        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days if 'status' in search_params and search_params['status'] != 'approved' else ''
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
-        pa_data_since_from = ""
-        if 'status' in search_params and search_params['status'] != 'approved':
+        pa_data_since_from, level = '', ''
+        pending_since = ''
+        if not 'status' in search_params:
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if result['final_status'] not in ['saved', 'approved']:
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
             if pas_dict.get(result['id'], {}).get("creation_date", ""):
                 pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-        level = pas_dict.get(result['id'], {}).get("level", "") if 'status' in search_params and search_params['status'] != 'approved' else ''
+        elif search_params['status'] != 'approved':
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if search_params['status'] != 'saved':
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
@@ -19911,16 +19919,24 @@ def get_poaod_report_data(search_params, user, sub_user):
             zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
-        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days if 'status' in search_params and search_params['status'] != 'approved' else ''
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
-        pa_data_since_from = ""
-        if 'status' in search_params and search_params['status']:
+        pa_data_since_from, level = '', ''
+        pending_since = ''
+        if not 'status' in search_params:
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if result['final_status'] not in ['saved', 'approved']:
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
             if pas_dict.get(result['id'], {}).get("creation_date", ""):
                 pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-        level = pas_dict.get(result['id'], {}).get("level", "") if 'status' in search_params and search_params['status'] != 'approved' else ''
+        elif search_params['status'] != 'approved':
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if search_params['status'] != 'saved':
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),

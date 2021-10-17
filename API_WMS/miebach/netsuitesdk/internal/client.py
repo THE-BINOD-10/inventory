@@ -248,7 +248,7 @@ class NetSuiteClient:
                                   nonce=nonce, timestamp=timestamp, signature=signature)
 
 
-    def connect_tba(self, consumer_key, consumer_secret, token_key, token_secret, signature_algorithm='HMAC-SHA1'):
+    def connect_tba(self, consumer_key, consumer_secret, token_key, token_secret, signature_algorithm='HMAC-SHA256'):
         """
         Create a TokenPassport object holding credentials for Token based
         authentication which will be passed to NetSuiteClient.login

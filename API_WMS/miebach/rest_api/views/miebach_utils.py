@@ -15915,9 +15915,6 @@ def get_po_report_data_performance(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'priority_type' in search_params:
         search_parameters['pending_po__pending_prs__priority_type'] = search_params['priority_type']
-    if 'pr_number' in search_params:
-        pr_number = search_params['pr_number']
-        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
@@ -15933,8 +15930,8 @@ def get_po_report_data_performance(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user__username', 'pending_po__full_po_number',
                     'pending_po__final_status', 'pending_po__pending_level', 'pending_po__wh_user__username',
-                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category',
-                    'pending_po__pending_prs__priority_type', 'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
+                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category', 
+                    'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
     pending_data = PurchaseApprovals.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct()
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -15980,7 +15977,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
             ('Zone', result['pending_po__wh_user__userprofile__zone']),
             ('Product Category', result['pending_po__product_category']),
             ('Category', result['pending_po__sku_category']),
-            ('Priority Type', result['pending_po__pending_prs__priority_type']),
+            ('Priority Type', 'Normal'),
             ('PO Status', result['pending_po__final_status'].title()),
             ('Approval Name', result['validated_by']),
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),

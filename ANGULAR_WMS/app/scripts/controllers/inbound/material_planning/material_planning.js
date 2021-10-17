@@ -361,6 +361,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
 
   }
 
+  vm.send_mrp_output = function() {
+    vm.service.alert_msg("Send MRP Output Mail").then(function(msg) {
+      if(msg == "true"){
+        var filters_data = vm.model_data.filters;
+        vm.service.apiCall('send_material_planning_mail/', 'POST', filters_data).then(function(data){
+          vm.service.showNoty(data.data);
+        });
+      }
+    });
+
+  }
+
+
+
 }
 
 stockone.directive('dtPoData', function() {

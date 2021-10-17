@@ -1,16 +1,20 @@
 <div>
   <div class="page-layout">
-    <div class='layout-header'>
+    <!-- <div class='layout-header'>
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
       <div ng-include="'views/common/excel.html'"></div>
-    </div>
-    <div class="layout-body">
+    </div> -->
+    <div class="layout-body" ng-init="MaterialPlanningCtrl = true; MaterialPlanningSummaryCtrl = false">
       <tabset class="box-tab">
-        <tab heading="Material Planning">
-          <div ng-include="'views/inbound/material_planning/material_planning.html'"></div>
+        <tab heading="Material Planning" ng-click="MaterialPlanningCtrl = true; MaterialPlanningSummaryCtrl = false">
+          <div ng-controller="MaterialPlanningCtrl as showCase" ng-if="MaterialPlanningCtrl">
+            <div ng-include="'views/inbound/material_planning/material_planning.html'"></div>
+          </div>
         </tab>
-        <tab heading="Material Planning Summary">
-          <div ng-include="'views/inbound/material_planning/material_planning_summary.html'"></div>
+        <tab heading="Material Planning Summary" ng-click="MaterialPlanningCtrl = false; MaterialPlanningSummaryCtrl = true">
+          <div ng-controller="MaterialPlanningSummaryCtrl as showCase" ng-if="MaterialPlanningSummaryCtrl">
+            <div ng-include="'views/inbound/material_planning/material_planning_summary.html'"></div>
+          </div>
         </tab>
       </tabset>
     </div>

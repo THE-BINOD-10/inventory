@@ -5,8 +5,9 @@
   <div class="modal-body">
     <div style="padding-top: 10px">
       <span><b>Total Stock</b> = current department sock + allocated plant stock + pending (no. of days mentioned in configuration) days PR qty + open  (no. of days mentioned in configuration)   days PO qty</span><br/><br/>
-      <b>Suggested_buy_qty</b> = (max_days stock + lead_time stock - total_stock)<br/>
       <b>Suggested_buy_qty</b> = 0 when (total_stock - lead_time stock) > min_days stock<br/>
+      Otherwise,<br/>
+      <b><p>Suggested_buy_qty</b> = (max_days stock + lead_time stock - total_stock)</p><br/>
     </div>
   </div>
   <div class="modal-footer">

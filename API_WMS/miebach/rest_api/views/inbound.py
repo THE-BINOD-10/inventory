@@ -4409,7 +4409,7 @@ def approve_pr(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Approve Pr Failed for" + str(e))
         return HttpResponse('Approve PR Failed! please Try Again')
-    status = 'Approved Successfullyy'
+    status = 'Approved Successfully'
     return HttpResponse(status)
 
 

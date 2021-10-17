@@ -5549,7 +5549,7 @@ def add_pr(request, user=''):
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
                     totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                                                                 prefix, full_pr_number)
+                                                                 prefix, full_pr_number, is_auto_pr=is_auto_pr)
                     pr_user = pendingPRObj.wh_user
                     approval_type = 'ranges'
                     reqConfigName = findReqConfigName(pr_user, totalAmt, purchase_type='PR',
@@ -18308,3 +18308,58 @@ def finalize_pr(request, user=''):
     status = 'Approved Successfully'
     return HttpResponse(status)
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def send_material_planning_mail(request, user):
+    from rest_api.management.commands.mrp import generate_mrp_main
+    run_sku_codes = None
+    filters = copy.deepcopy(request.POST.dict())
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+    else:
+        req_users = [user.id]
+        users = check_and_get_plants_depts(request, req_users)
+        users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE', 'DEPT'])
+    if 'plant_code' in filters and filters['plant_code']:
+        plant_code = filters['plant_code']
+        plant_users = users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in filters and filters['plant_name']:
+        plant_name = filters['plant_name']
+        plant_users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if request.POST.get('dept_type'):
+        dept_type = request.POST['dept_type']
+        users = users.filter(userprofile__stockone_code=dept_type)
+
+    if 'zone_code' in filters and filters['zone_code']:
+        zone_code = filters['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    if filters.get('sku_category'):
+        run_sku_codes = list(SKUMaster.objects.filter(user__in=user_ids, sku_category=filters['sku_category']).values_list('sku_code', flat=True))
+    if filters.get('sku_code'):
+        run_sku_codes = [filters['sku_code']]
+    mrp_objs = MRP.objects.filter(user__in=user_ids, status=1).values('user').annotate(Count('id'))
+    host = request.META['HTTP_REFERER']
+    for mrp_obj in mrp_objs:
+        user_obj = User.objects.get(id=mrp_obj['user'])
+        plant = get_admin(user_obj)
+        plant_code = plant.userprofile.stockone_code
+        email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
+        url = '%s#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
+        email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
+        emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True)
+        #emails = ['sreekanth@mieone.com']
+        if len(emails) > 0:
+            send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
+    return HttpResponse("Success")

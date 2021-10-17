@@ -33,12 +33,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('name').withTitle('Staff Name'),
         DTColumnBuilder.newColumn('company').withTitle('Subsidary'),
         DTColumnBuilder.newColumn('warehouse_names').withTitle('Plant'),
-        DTColumnBuilder.newColumn('department').withTitle('Department'),
+        // DTColumnBuilder.newColumn('department').withTitle('Department'),
         DTColumnBuilder.newColumn('department_type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('position').withTitle('Position'),
         DTColumnBuilder.newColumn('email_id').withTitle('Email'),
         DTColumnBuilder.newColumn('reportingto_email_id').withTitle('Reporting To'),
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
+        DTColumnBuilder.newColumn('mrp_user').withTitle('MRP User'),
         DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
                         return vm.service.status(full.status);
                         }).withOption('width', '80px'),
@@ -63,8 +64,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.message ="";
                 vm.model_data.warehouse = vm.model_data.warehouse.split(',');
                 $state.go('app.masters.StaffMaster.Staff');
-
-
                 $timeout(function(){
                   $('.selectpicker-groups').val(vm.model_data.groups);
                   $('.selectpicker-groups').selectpicker();
@@ -77,6 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
+  vm.mrp_data = ["YES", "NO"];
   var empty_data = {name: "", email_id: "", phone_number: "", status: "", margin: 0, company_id: '',
                     plant: [], department_id: '', department_type: [], postion: '', warehouse: []};
   vm.model_data = {};

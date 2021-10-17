@@ -4409,7 +4409,7 @@ def approve_pr(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Approve Pr Failed for" + str(e))
         return HttpResponse('Approve PR Failed! please Try Again')
-    status = 'Approved Successfully'
+    status = 'Approved Successfullyy'
     return HttpResponse(status)
 
 
@@ -5549,7 +5549,7 @@ def add_pr(request, user=''):
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
                     totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                                                                 prefix, full_pr_number)
+                                                                 prefix, full_pr_number, is_auto_pr=is_auto_pr)
                     pr_user = pendingPRObj.wh_user
                     approval_type = 'ranges'
                     reqConfigName = findReqConfigName(pr_user, totalAmt, purchase_type='PR',

@@ -1,12 +1,12 @@
 <div ng-controller="MaterialPlanningCtrl as showCase">
-  <div class="page-layout">
-   <div class='layout-header'>
+  <!-- <div class="page-layout"> -->
+   <!--<div class='layout-header'>
       <div class="row">
         <div class="col-md-6 col-sm-6 col-xs-12">
           <div class="pull-left" ng-include="'views/common/title.html'"></div>
         </div>
       </div>
-    </div>
+    </div>-->
     <div class="layout-sub-header">
         <form name="form" role="form" class="filters">
           <div class="clearfix">
@@ -62,12 +62,21 @@
               </div>
 
             </div>
-            <div class="col-md-12">
-              <div class="filter-controls" style="width: 300px;">
+            <div class="row">
+              <div class="col-lg-6 col-md-6" align="left">
+                <button type="button" class="btn btn-primary" style="margin-left: 10px" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+                {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+                </button>
                 <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
-                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
+                <button type="button" class="btn btn-info" id="add-shippment-btn" ng-click="showCase.show_formula()"> Formulae </button>
+                <button type="button" class="btn btn-default" id="add-shippment-btn" ng-click="showCase.reset_filters()"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Search </button>
-                <button type="button" class="btn btn-danger" id="add-shippment-btn" style="margin-left: 10px;" data-toggle="modal" ng-click="showCase.generate_mrp_data();" ng-if="showCase.permissions.add_mrp"> Generate MRP </button>
+              </div>
+              <div class="col-lg-6 col-md-6" align="right">
+                <button type="button" class="btn btn-primary btn-outline"
+                ng-disabled="showCase.bt_disable" ng-click="showCase.create_pr()" style="padding-left:25px;">Raise PR</button>
+                <button type="button" class="btn btn-danger btn-outline" id="add-shippment-btn" data-toggle="modal" ng-click="showCase.generate_mrp_data();" ng-if="showCase.permissions.add_mrp"> Generate MRP </button>
+                <button type="button" class="btn btn-primary btn-outline" id="add-shippment-btn" data-toggle="modal" ng-click="showCase.send_mrp_output();" ng-if="showCase.permissions.add_mrp"> Send MRP Output Mail</button>
               </div>
             </div>
           </div>
@@ -75,9 +84,9 @@
     </div>
     <div class="layout-body">
       <div class="panel">
-        <div class="panel-header">
+        <!-- <div class="panel-header">
           <div ng-include="'views/common/excel.html'"></div>
-        </div>
+        </div> -->
         <div ng-include="'views/common/datatable.html'"></div>
         <!-- <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
           <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
@@ -85,10 +94,17 @@
         </div> -->
       </div>
     </div>
-    <div class="panel-footer">
+    <!-- <div class="panel-footer">
         <button type="button" class="btn btn-primary pull-right"
         ng-disabled="showCase.bt_disable" ng-click="showCase.create_pr()">Raise PR</button>
-    </div>
-  </div>
+        <div style="padding-top: 10px">
+          <h3><u>Formula:</u></h3>
+          <span>total_stock = current department sock + allocated plant stock + pending (no. of days mentioned in configuration) days PR qty + open  (no. of days mentioned in configuration)   days PO qty</span><br/>
+          if (total_stock - lead_time stock) > min_days stock, then don't buy & hence suggested_qty = 0<br/>
+          else:<br/>
+            suggested_buy_qty = (max_days stock + lead_time stock - total_stock)
+        </div>
+    </div> -->
+  <!-- </div> -->
 </div>
 

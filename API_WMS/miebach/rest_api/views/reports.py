@@ -3127,7 +3127,7 @@ def download_invoice_file(request, user=''):
 @get_admin_user
 def get_mrp_exception_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_mrp_exception_report_data(search_params, user, request.user)
+    temp_data = get_mrp_exception_report_data(search_params, user, request.user, request=request)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

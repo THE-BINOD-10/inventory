@@ -2120,6 +2120,8 @@ MRP_EXCEPTION_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Exception Filter', 'name': 'exception_filter', 'type': 'select', 'values': ["PR Raised with Different Qty", "PR Not Raised"]}
     ],
     'dt_headers': ['MRP Run Id', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'SKU Code', 'MRP Qty', 'PR Qty', 'MRP Value', 'PR Value', 'Diff in MRP vs PR Qty', 'Diff in MRP vs PR Value'],
     'dt_url': 'get_mrp_exception_report', 'excel_name': 'get_mrp_exception_report',
@@ -15913,9 +15915,6 @@ def get_po_report_data_performance(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'priority_type' in search_params:
         search_parameters['pending_po__pending_prs__priority_type'] = search_params['priority_type']
-    if 'pr_number' in search_params:
-        pr_number = search_params['pr_number']
-        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
@@ -15931,8 +15930,8 @@ def get_po_report_data_performance(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user__username', 'pending_po__full_po_number',
                     'pending_po__final_status', 'pending_po__pending_level', 'pending_po__wh_user__username',
-                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category',
-                    'pending_po__pending_prs__priority_type', 'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
+                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category', 
+                    'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
     pending_data = PurchaseApprovals.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct()
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -15978,7 +15977,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
             ('Zone', result['pending_po__wh_user__userprofile__zone']),
             ('Product Category', result['pending_po__product_category']),
             ('Category', result['pending_po__sku_category']),
-            ('Priority Type', result['pending_po__pending_prs__priority_type']),
+            ('Priority Type', 'Normal'),
             ('PO Status', result['pending_po__final_status'].title()),
             ('Approval Name', result['validated_by']),
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
@@ -19764,16 +19763,24 @@ def get_praod_report_data(search_params, user, sub_user):
             zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
-        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days if 'status' in search_params and search_params['status'] != 'approved' else ''
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
-        pa_data_since_from = ""
-        if 'status' in search_params and search_params['status'] != 'approved':
+        pa_data_since_from, level = '', ''
+        pending_since = ''
+        if not 'status' in search_params:
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if result['final_status'] not in ['saved', 'approved']:
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
             if pas_dict.get(result['id'], {}).get("creation_date", ""):
                 pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-        level = pas_dict.get(result['id'], {}).get("level", "") if 'status' in search_params and search_params['status'] != 'approved' else ''
+        elif search_params['status'] != 'approved':
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if search_params['status'] != 'saved':
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
@@ -19912,16 +19919,24 @@ def get_poaod_report_data(search_params, user, sub_user):
             zone_code = admin_user.userprofile.zone
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
-        pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days if 'status' in search_params and search_params['status'] != 'approved' else ''
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
-        pa_data_since_from = ""
-        if 'status' in search_params and search_params['status']:
+        pa_data_since_from, level = '', ''
+        pending_since = ''
+        if not 'status' in search_params:
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if result['final_status'] not in ['saved', 'approved']:
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
             if pas_dict.get(result['id'], {}).get("creation_date", ""):
                 pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
-        level = pas_dict.get(result['id'], {}).get("level", "") if 'status' in search_params and search_params['status'] != 'approved' else ''
+        elif search_params['status'] != 'approved':
+            level = pas_dict.get(result['id'], {}).get("level", "")
+            if search_params['status'] != 'saved':
+                pending_since = (datetime.datetime.now().date() - result['creation_date'].date()).days
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pa_data_since_from =  (datetime.datetime.now().date() - pas_dict.get(result['id'], {}).get("creation_date", "").date()).days
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
@@ -20026,7 +20041,7 @@ def po_report_download(user_list, search_params, user):
     return temp_data
 
 
-def get_mrp_exception_report_data(search_params, user, sub_user):
+def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
@@ -20087,12 +20102,15 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
     if 'zone_code' in search_params:
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
+    if 'sku_code' in search_params:                                                                                                                                                                                                                  search_parameters['sku__sku_code__iexact'] = search_params['sku_code']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['user_id__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
-    model_data = MRP.objects.using(reports_database).filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
+    if request and request.POST.get('exception_filter') == 'PR Not Raised':
+        model_data = MRP.objects.filter(**search_parameters).exclude(Q(status=1) | Q(pending_line_items__isnull=False))
+    else:
+        model_data = MRP.objects.filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
 
     if order_term:
         model_data = model_data.order_by(order_data)

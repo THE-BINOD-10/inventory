@@ -1,12 +1,12 @@
 <div ng-controller="MaterialPlanningSummaryCtrl as showCase">
-  <div class="page-layout">
-   <div class='layout-header'>
+  <!-- <div class="page-layout"> -->
+   <!--<div class='layout-header'>
       <div class="row">
         <div class="col-md-6 col-sm-6 col-xs-12">
           <div class="pull-left" ng-include="'views/common/title.html'"></div>
         </div>
       </div>
-    </div>
+    </div>-->
     <div class="layout-sub-header">
         <form name="form" role="form" class="filters">
           <div class="clearfix">
@@ -48,10 +48,13 @@
 
             </div>
             <div class="col-md-12">
-              <div class="filter-controls" style="width: 300px;">
+              <div class="filter-controls" style="width: 290px;">
                 <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
                 <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Search </button>
+                <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+                {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+                </button>
               </div>
             </div>
           </div>
@@ -60,7 +63,7 @@
     <div class="layout-body">
       <div class="panel">
         <div class="panel-header">
-          <div ng-include="'views/common/excel.html'"></div>
+          <!-- <div ng-include="'views/common/excel.html'"></div> -->
         </div>
         <div ng-include="'views/common/datatable.html'"></div>
         <!-- <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
@@ -71,6 +74,6 @@
     </div>
     <div class="panel-footer">
     </div>
-  </div>
+  <!-- </div> -->
 </div>
 

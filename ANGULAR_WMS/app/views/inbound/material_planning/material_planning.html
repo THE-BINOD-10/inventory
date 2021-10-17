@@ -63,11 +63,13 @@
 
             </div>
             <div class="col-md-12">
-              <div class="filter-controls" style="width: 300px;">
+              <div class="filter-controls" style="width: 490px;">
                 <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
                 <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)"> Search </button>
                 <button type="button" class="btn btn-danger" id="add-shippment-btn" style="margin-left: 10px;" data-toggle="modal" ng-click="showCase.generate_mrp_data();" ng-if="showCase.permissions.add_mrp"> Generate MRP </button>
+                <button type="button" class="btn btn-primary" id="add-shippment-btn" style="margin-left: 10px;" data-toggle="modal" ng-click="showCase.send_mrp_output();" ng-if="showCase.permissions.add_mrp"> Send MRP Output Mail</button>
+
               </div>
             </div>
           </div>
@@ -88,6 +90,13 @@
     <div class="panel-footer">
         <button type="button" class="btn btn-primary pull-right"
         ng-disabled="showCase.bt_disable" ng-click="showCase.create_pr()">Raise PR</button>
+        <div style="padding-top: 10px">
+          <h3><u>Formula:</u></h3>
+          <span>total_stock = current department sock + allocated plant stock + pending (no. of days mentioned in configuration) days PR qty + open  (no. of days mentioned in configuration)   days PO qty</span><br/>
+          if (total_stock - lead_time stock) > min_days stock, then don't buy & hence suggested_qty = 0<br/>
+          else:<br/>
+            suggested_buy_qty = (max_days stock + lead_time stock - total_stock)
+        </div>
     </div>
   </div>
 </div>

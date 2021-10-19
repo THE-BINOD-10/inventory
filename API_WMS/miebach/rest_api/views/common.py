@@ -7002,6 +7002,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     if request.GET.get('source', ''):
         cur_user = request.GET.get('source', '')
         user = User.objects.get(username=cur_user)
+    storeObj = ''
     sku_code = request.GET.get('sku_code')
     plant = request.GET.get('plant', '')
     comment = request.GET.get('comment', '')
@@ -7065,7 +7066,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         sku_pcf = uom_dict.get('sku_conversion', 1)
         avlb_qty = avlb_qty * sku_pcf
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
-                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'store_id': storeObj.id,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'store_id': storeObj.id if storeObj else user.id,
                                     'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier, 'dept_user_id': cur_de.id if cur_dept else storeObj.id,
                                     'avg_price': avg_price, 'consumption_dict': consumption_dict, 'tax_display':tax_display,
                                     'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency

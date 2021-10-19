@@ -179,10 +179,12 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             else:
                 validated_by = prApprQs.filter(status='').order_by('-creation_date')[0].validated_by
             if result['pending_pr__pending_level'] != 'level0' or result['pending_pr__final_status'] == 'approved':
-                prev_dat = prApprQs.exclude(status__in = ['', 'on_approved']).order_by('-creation_date')[0]
-                last_updated_by = prev_dat.validated_by
-                last_updated_time = datetime.datetime.strftime(prev_dat.updation_date, '%d-%m-%Y')
-                last_updated_remarks = prev_dat.remarks
+                prev_datas = prApprQs.exclude(status__in = ['', 'on_approved']).order_by('-creation_date')
+                if prev_datas.exists():
+                    prev_dat = prev_datas[0]
+                    last_updated_by = prev_dat.validated_by
+                    last_updated_time = datetime.datetime.strftime(prev_dat.updation_date, '%d-%m-%Y')
+                    last_updated_remarks = prev_dat.remarks
             '''if result['pending_pr__final_status'] not in ['pending', 'saved']:
                 prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                 pr_user=pr_user).exclude(status='on_approved').order_by('-creation_date')

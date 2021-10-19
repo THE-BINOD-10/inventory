@@ -19608,7 +19608,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
 
     values_list = ['creation_date', 'stock__sku__user', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'quantity', 'sku_avg_price',
                     'stock__batch_detail__batch_no', 'sku_pcf']
-    model_data = ClosingStock.objects.using(reports_database).filter(**search_parameters).values(*values_list)
+    model_data = ClosingStock.objects.using(reports_database).filter(**search_parameters).values(*values_list).exclude(stock__sku_id__in=AssetMaster.objects.using(reports_database).all()).exclude(stock__sku_id__in=ServiceMaster.objects.using(reports_database).all()).exclude(stock__sku_id__in=OtherItemsMaster.objects.using(reports_database).all())
 
     if order_term:
         model_data = model_data.order_by(order_data)

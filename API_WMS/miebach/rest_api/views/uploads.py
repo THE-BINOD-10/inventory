@@ -13319,24 +13319,26 @@ def inventory_norm_upload(request, user=''):
         with transaction.atomic('default'):
             loop_counter = 1
             for final_data in data_list:
-                sku = final_data['sku']
-                user = final_data['user']
-                replenushment_obj = ReplenushmentMaster.objects.filter(sku__sku_code=sku.sku_code, user = user.id)
-                if replenushment_obj.exists():
-                    replenushment_obj = replenushment_obj[0]
-                    replenushment_obj.lead_time = final_data['lead_time']
-                    replenushment_obj.min_days = final_data['sa_min_days']
-                    replenushment_obj.max_days = final_data['sa_max_days']
-                    replenushment_obj.save()
-                else:
-                    replenushment = {}
-                    replenushment['sku_id'] = sku.id
-                    replenushment['min_days'] = final_data['sa_min_days']
-                    replenushment['max_days'] = final_data['sa_max_days']
-                    replenushment['lead_time'] = final_data['lead_time']
-                    replenushment['user'] = user
-
-                    ReplenushmentMaster.objects.create(**replenushment)
+                try:
+                    sku = final_data['sku']
+                    user = final_data['user']
+                    replenushment_obj = ReplenushmentMaster.objects.filter(sku__sku_code=sku.sku_code, user = user.id)
+                    if replenushment_obj.exists():
+                        replenushment_obj = replenushment_obj[0]
+                        replenushment_obj.lead_time = final_data['lead_time']
+                        replenushment_obj.min_days = final_data['sa_min_days']
+                        replenushment_obj.max_days = final_data['sa_max_days']
+                        replenushment_obj.save()
+                    else:
+                        replenushment = {}
+                        replenushment['sku_id'] = sku.id
+                        replenushment['min_days'] = final_data['sa_min_days']
+                        replenushment['max_days'] = final_data['sa_max_days']
+                        replenushment['lead_time'] = final_data['lead_time']
+                        replenushment['user'] = user
+                        ReplenushmentMaster.objects.create(**replenushment)
+                except:
+                    pass
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

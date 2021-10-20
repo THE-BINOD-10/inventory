@@ -17713,7 +17713,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['id', 'transact_number', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
+    lis = ['id', 'transact_number', 'user', 'user', 'user', 'state', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
             'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'supplier_id', 'amount']
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
@@ -17734,6 +17734,13 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         plant_users = users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if request.POST.get('state'):
+        plant_users = users.filter(userprofile__state=request.POST['state'], userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
+            users = users.filter(id__in=state_users)
         else:
             users = User.objects.none()
     if request.POST.get('dept_type'):
@@ -17769,7 +17776,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         if data.user.userprofile.warehouse_type == 'DEPT':
             plant = get_admin(data.user)
         data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
-                                    ('Department', data.user.first_name),
+                                    ('Department', data.user.first_name), ('State', plant.userprofile.state),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
                                   ('Average Plant Daily Consumption Qty', round(data.avg_plant_sku_consumption_day, 2)),
@@ -18099,6 +18106,14 @@ def generate_material_planning(request, user):
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
             users = User.objects.none()
+    if request.POST.get('state'):
+        plant_users = users.filter(userprofile__state=request.POST['state'], userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
+            users = users.filter(id__in=state_users)
+        else:
+            users = User.objects.none()
+
     if request.POST.get('dept_type'):
         dept_type = request.POST['dept_type']
         users = users.filter(userprofile__stockone_code=dept_type)

@@ -53,6 +53,17 @@
 
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
+                  <label class="control-label">State</label>
+                  <select name="zone_code" class="form-control" ng-model="showCase.model_data.filters.state">
+                    <option value=''>Select</option>
+                    <option ng-repeat="state in showCase.states_list">{{ state }}</option>
+                  </select>
+                </div>
+              </div>
+
+
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
                   <label class="control-label">SKU Category</label>
                   <select name="zone_code" class="form-control" ng-model="showCase.model_data.filters.sku_category">
                     <option value=''>Select</option>

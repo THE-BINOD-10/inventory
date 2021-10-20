@@ -902,10 +902,7 @@ PR_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR raised By ( User Name)', 'PR raised By ( User Plant name)',
                    'PR raised By ( User department name)', 'Zone', 'Product Category', 'Category', 'Quantity',
-                   'Priority Type', 'Total Amount','PR Status', 'Approver 1', 'Approver 1 Approved Date', 'Approver 1 time', 'Approver 1 Status', 'Approver 2', 'Approver 2 Approved Date', 'Approver 2 time',
-                   'Approver 2 Status','Approver 3', 'Approver 3 Approved Date', 'Approver 3 time', 'Approver 3 Status', 'Approver 4', 'Approver 4 Approved Date', 'Approver 4 time', 'Approver 4 Status',
-                   'Approver 5', 'Approver 5 Approved Date', 'Approver 5 time', 'Approver 5 Status', 'Approver 6',  'Approver 6 Approved Date', 'Approver 6 time', 'Approver 6 Status', 'Last Updated By', 'Last Updated Date',
-                   'Remarks', 'Next Approver Email', 'Pending Approval Type', 'Pending Level'
+                   'Priority Type', 'Total Amount','PR Status', 'Next Approver Email', 'Pending Approval Type', 'Pending Level'
                    ],
 
     'dt_url': 'get_pr_report', 'excel_name': 'get_pr_report',
@@ -976,9 +973,7 @@ PR_DETAIL_REPORT_DICT = {
                    'PR raised By ( User department name)', 'Zone', 'Product Category', 'Category', 'Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category','SKU Sub-Category','SKU Group', 'SKU Class','HSN Code',
                    'Quantity', 'UOM','Supplier ID','Supplier Name', 'Supplier GST', 'Priority Type', 'Total Amount',
-                   'PR Status','Approver 1', 'Approver 1 Status','Approver 2','Approver 2 Status', 'Approver 3',
-                   'Approver 3 Status', 'Approver 4','Approver 4 Status','Approver 5', 'Approver 5 Status', 'Approver 6', 'Approver 6 Status',
-                   'Last Updated By','Last Updated Date','Remarks'],
+                   'PR Status'],
 
     'dt_url': 'get_pr_detail_report', 'excel_name': 'get_pr_detail_report',
     'print_url': 'get_pr_detail_report',
@@ -2120,8 +2115,6 @@ MRP_EXCEPTION_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
-        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-        {'label': 'Exception Filter', 'name': 'exception_filter', 'type': 'select', 'values': ["PR Raised with Different Qty", "PR Not Raised"]}
     ],
     'dt_headers': ['MRP Run Id', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'SKU Code', 'MRP Qty', 'PR Qty', 'MRP Value', 'PR Value', 'Diff in MRP vs PR Qty', 'Diff in MRP vs PR Value'],
     'dt_url': 'get_mrp_exception_report', 'excel_name': 'get_mrp_exception_report',
@@ -15915,6 +15908,9 @@ def get_po_report_data_performance(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'priority_type' in search_params:
         search_parameters['pending_po__pending_prs__priority_type'] = search_params['priority_type']
+    if 'pr_number' in search_params:
+        pr_number = search_params['pr_number']
+        search_parameters['pending_po__pending_prs__full_pr_number'] = pr_number
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
@@ -15930,8 +15926,8 @@ def get_po_report_data_performance(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user__username', 'pending_po__full_po_number',
                     'pending_po__final_status', 'pending_po__pending_level', 'pending_po__wh_user__username',
-                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category', 
-                    'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
+                    'pending_po__wh_user__userprofile__zone', 'pending_po__sku_category', 'pending_po__creation_date', 'pending_po__product_category',
+                    'pending_po__pending_prs__priority_type', 'pending_po_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
     pending_data = PurchaseApprovals.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct()
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -15977,7 +15973,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
             ('Zone', result['pending_po__wh_user__userprofile__zone']),
             ('Product Category', result['pending_po__product_category']),
             ('Category', result['pending_po__sku_category']),
-            ('Priority Type', 'Normal'),
+            ('Priority Type', result['pending_po__pending_prs__priority_type']),
             ('PO Status', result['pending_po__final_status'].title()),
             ('Approval Name', result['validated_by']),
             ('Approver Status', result['status'].title() if result['status'].title() else 'Pending'),
@@ -16110,7 +16106,7 @@ def get_pr_report_data(search_params, user, sub_user):
                    'pending_pr__product_category', 'pending_pr__priority_type',
                    'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr_id']
     pl_main = PendingLineItems.objects.using(reports_database).filter(**search_parameters)
-    pending_data = PendingLineItems.objects.using(reports_database).filter(**search_parameters).values(*values_list).distinct(). \
+    pending_data = pl_main.values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
     if order_term:
         pending_data = pending_data.order_by(order_data)
@@ -16127,7 +16123,7 @@ def get_pr_report_data(search_params, user, sub_user):
     else:
         results = pending_data
     count = 0
-    for result in results:
+    for result in results[start_index:stop_index]:
         pr_obj = PendingPR.objects.using(reports_database).get(id=result['pending_pr_id'])
         po_numbers = ','.join(pr_obj.pendingpo_set.filter().values_list('full_po_number', flat=True))
         approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details, approver_6_details = '', '', '', '', '', ''
@@ -16169,321 +16165,6 @@ def get_pr_report_data(search_params, user, sub_user):
             pending_level = pending_approval.level
             approval_type = pending_approval.approval_type
         final_status = result['pending_pr__final_status']
-        approver1_status, approver2_status, approver3_status, approver4_status, approver5_status, approver6_status = '', '', '', '', '', ''
-        approver1_approved_date, approver2_approved_date, approver3_approved_date, approver4_approved_date, approver5_approved_date, approver6_approved_date = '', '', '', '', '', ''
-        approver1_time, approver2_time, approver3_time, approver4_time,  approver5_time, approver6_time = "", "", "", "", "",""
-
-        approver_1_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],level="level0", approval_type="default").exclude(status='').values('level',
-                                'validated_by', 'creation_date', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
-        if approver_1_detail_data.exists():
-            approver_1_detail_data = approver_1_detail_data.latest('level')
-            approver1_creation_date_obj = approver_1_detail_data.get('creation_date', '')
-            if approver_1_detail_data.get('status') == 'approved':
-                approver1_status = 'Yes'
-                last_updated_by = approver_1_detail_data.get('validated_by')
-                approver_1_details = approver_1_detail_data.get('validated_by')
-                last_remarks = approver_1_detail_data.get('remarks', '')
-                approver1_approved_date_obj = approver_1_detail_data.get('updation_date', '')
-                approver1_approved_date = get_local_date(user, approver1_approved_date_obj)
-                approver1_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver1_approved_date_obj, approver1_creation_date_obj))
-                final_updated_time = approver_1_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-
-            else:
-                approver1_status = 'No'
-                last_updated_by = approver_1_detail_data.get('validated_by')
-                approver_1_details = approver_1_detail_data.get('validated_by')
-                last_remarks = approver_1_detail_data.get('remarks', '')
-                final_updated_time = approver_1_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-        approver_2_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'creation_date','status', 'approval_type',
-                                                               'updation_date', 'remarks',
-                                                               'pending_pr__final_status')
-        if approver_2_detail_data.exists():
-            approver_2_detail_data = approver_2_detail_data.latest('level')
-            approver2_creation_date_obj = approver_2_detail_data.get('creation_date', '')
-            if approver_2_detail_data.get('status') in ['approved', 'pr_converted_to_po']:
-                approver2_status = 'Yes'
-                last_updated_by = approver_2_detail_data.get('validated_by')
-                approver_2_details = approver_2_detail_data.get('validated_by')
-                last_remarks = approver_2_detail_data.get('remarks', '')
-                approver2_approved_date_obj = approver_2_detail_data.get('updation_date', '')
-                approver2_approved_date = get_local_date(user, approver2_approved_date_obj)
-                approver2_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver2_approved_date_obj, approver2_creation_date_obj))
-                final_updated_time = approver_2_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_2_detail_data.get('validated_by')
-                    approver2_status,approver_2_details = '', ''
-
-            else:
-                approver1_status = 'No'
-                last_updated_by = approver_2_detail_data.get('validated_by')
-                approver_1_details = approver_2_detail_data.get('validated_by')
-                last_remarks = approver_2_detail_data.get('remarks', '')
-                final_updated_time = approver_2_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'No'
-                    approver_1_details = approver_2_detail_data.get('validated_by')
-                    approver2_status, approver_2_details = '', ''
-
-        approver_3_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2",approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'creation_date', 'status', 'approval_type',
-                                                               'updation_date', 'remarks',
-                                                               'pending_pr__final_status')
-
-
-        if approver_3_detail_data.exists():
-            approver_3_detail_data = approver_3_detail_data.latest('level')
-            approver3_creation_date_obj = approver_3_detail_data.get('creation_date', '')
-            if approver_3_detail_data.get('status') == 'approved':
-                approver3_status = 'Yes'
-                approver_3_details = approver_3_detail_data.get('validated_by')
-                last_updated_by = approver_3_detail_data.get('validated_by')
-                last_remarks = approver_3_detail_data.get('remarks', '')
-                approver3_approved_date_obj = approver_3_detail_data.get('updation_date', '')
-                approver3_approved_date = get_local_date(user, approver3_approved_date_obj)
-                approver3_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver3_approved_date_obj, approver3_creation_date_obj))
-                final_updated_time = approver_3_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_3_detail_data.get('validated_by')
-                    approver2_status, approver_2_details,approver3_status,approver_3_details = '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_3_detail_data.get('validated_by')
-                    approver3_status,approver_3_details = '', ''
-            else:
-                approver3_status = 'No'
-                last_updated_by = approver_3_detail_data.get('validated_by')
-                approver_3_details = approver_3_detail_data.get('validated_by')
-                last_remarks = approver_3_detail_data.get('remarks', '')
-                final_updated_time = approver_3_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver3_status == "No":
-                    approver_4_details, approver_5_details = '', ''
-                    approver4_status, approver5_status = '', ''
-                if approver_1_details == '':
-                    approver1_status = 'No'
-                    approver_1_details = approver_3_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details = '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'No'
-                    approver_2_details = approver_3_detail_data.get('validated_by')
-                    approver3_status, approver_3_details = '', ''
-
-
-        approver_4_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",approval_type__in=["ranges", "approved"]).exclude(
-                Q(approval_type="default") | Q(status='')) \
-                .values('level', 'validated_by', 'status', 'updation_date', 'creation_date', 'approval_type', 'remarks',
-                        'pending_pr__final_status')
-        if approver_4_detail_data.exists():
-            approver_4_detail_data = approver_4_detail_data.latest('level')
-            approver4_creation_date_obj = approver_4_detail_data.get('creation_date', '')
-            if approver_4_detail_data.get('status') == 'approved':
-                approver4_status = 'Yes'
-                approver_4_details = approver_4_detail_data.get('validated_by')
-                last_updated_by = approver_4_detail_data.get('validated_by')
-                last_remarks = approver_4_detail_data.get('remarks', '')
-                approver4_approved_date_obj = approver_4_detail_data.get('updation_date', '')
-                approver4_approved_date = get_local_date(user, approver4_approved_date_obj)
-                approver4_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver4_approved_date_obj, approver4_creation_date_obj))
-                final_updated_time = approver_4_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', '','',''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details = '', ''
-            else:
-                approver4_status = 'No'
-                last_updated_by = approver_4_detail_data.get('validated_by')
-                approver_4_details = approver_4_detail_data.get('validated_by')
-                last_remarks = approver_4_detail_data.get('remarks', '')
-                final_updated_time = approver_4_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver4_status == "No":
-                    approver_5_details = ''
-                    approver5_status = ''
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details = '', ''
-
-        approver_5_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1", approval_type__in=["ranges", "approved"])\
-            .exclude(Q(approval_type="default") | Q(status='')) \
-                .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'creation_date', 'remarks','pending_pr__final_status')
-
-        if approver_5_detail_data.exists():
-            approver_5_detail_data = approver_5_detail_data.latest('level')
-            approver_5 = approver_5_detail_data.get('level_approver5')
-            approver_5_details = ''
-            approver5_creation_date_obj = approver_5_detail_data.get('creation_date', '')
-            if approver_5_detail_data.get('status') == 'approved':
-                approver5_status = 'Yes'
-                approver_5_details = approver_5_detail_data.get('validated_by')
-                last_updated_by = approver_5_detail_data.get('validated_by')
-                last_remarks = approver_5_detail_data.get('remarks', '')
-                approver5_approved_date_obj = approver_5_detail_data.get('updation_date', '')
-                approver5_approved_date = get_local_date(user, approver5_approved_date_obj)
-                approver5_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver5_approved_date_obj, approver5_creation_date_obj))
-                final_updated_time = approver_5_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details,approver5_status, approver_5_details = '', '', '', '', '', '', '',''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-
-            else:
-                approver5_status = 'No'
-                approver_5_details = approver_5_detail_data.get('validated_by')
-                last_updated_by = approver_5_detail_data.get('validated_by')
-                last_remarks = approver_5_detail_data.get('remarks', '')
-                final_updated_time = approver_5_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details =  '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details =  '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-
-        approver_6_detail_data = PurchaseApprovals.objects.using(reports_database).filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2", approval_type__in=["ranges", "approved"])\
-            .exclude(Q(approval_type="default") | Q(status='')) \
-                .values('level', 'validated_by', 'status', 'updation_date', 'creation_date', 'approval_type', 'remarks','pending_pr__final_status')
-
-        if approver_6_detail_data.exists():
-            approver_6_detail_data = approver_6_detail_data.latest('level')
-            approver_6 = approver_6_detail_data.get('level_approver5')
-            approver_6_details = ''
-            approver6_creation_date_obj = approver_6_detail_data.get('creation_date', '')
-            if approver_6_detail_data.get('status') == 'approved':
-                approver6_status = 'Yes'
-                approver_6_details = approver_6_detail_data.get('validated_by')
-                last_updated_by = approver_6_detail_data.get('validated_by')
-                last_remarks = approver_6_detail_data.get('remarks', '')
-                approver6_approved_date_obj = approver_6_detail_data.get('updation_date', '')
-                approver6_approved_date = get_local_date(user, approver6_approved_date_obj)
-                approver6_time = "%d days, %d hours" % dhms_from_seconds(date_diff_in_seconds(approver6_approved_date_obj, approver6_creation_date_obj))
-                final_updated_time = approver_6_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_3_details in approver_6_details) or (approver_3_details == approver_6_details):
-                    approver_6_details, approver6_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details,approver5_status, approver_5_details = '', '', '', '', '', '', '',''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-                elif approver_5_details == '':
-                    approver5_status = 'Yes'
-                    approver_5_details = approver_5_detail_data.get('validated_by')
-                    approver6_status, approver_6_details = '', ''
-
-            else:
-                approver6_status = 'No'
-                approver_6_details = approver_6_detail_data.get('validated_by')
-                last_updated_by = approver_6_detail_data.get('validated_by')
-                last_remarks = approver_6_detail_data.get('remarks', '')
-                final_updated_time = approver_6_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details =  '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details =  '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-                elif approver_5_details == '':
-                    approver5_status = 'Yes'
-                    approver_5_details = approver_5_detail_data.get('validated_by')
-                    approver6_status, approver_6_details = '', ''
-
-        if approver1_status == "No":
-            approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
-            approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         total_quantity, total_amount, total_tax_amount = 0, 0, 0
         total_quantity, total_amount, total_tax_amount = get_pr_amount_and_quantity(result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         ord_dict = OrderedDict((
@@ -16500,30 +16181,6 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Total Amount',round(total_amount,4)),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', final_status.title()),
-            ('Approver 1', approver_1_details),
-            ('Approver 2', approver_2_details),
-            ('Approver 3', approver_3_details),
-            ('Approver 4', approver_4_details),
-            ('Approver 5', approver_5_details),
-            ('Approver 6', approver_6_details),
-            ('Approver 1 Status', approver1_status),
-            ('Approver 2 Status', approver2_status),
-            ('Approver 3 Status', approver3_status),
-            ('Approver 4 Status', approver4_status),
-            ('Approver 5 Status', approver5_status),
-            ('Approver 6 Status', approver6_status),
-
-            ("Approver 1 time", approver1_time), ("Approver 2 time", approver2_time),
-            ("Approver 3 time", approver3_time), ("Approver 4 time", approver4_time),
-            ("Approver 5 time", approver5_time), ("Approver 6 time", approver6_time),
-
-            ("Approver 1 Approved Date", approver1_approved_date),("Approver 2 Approved Date", approver2_approved_date),
-            ("Approver 3 Approved Date", approver3_approved_date),("Approver 4 Approved Date", approver4_approved_date),
-            ("Approver 5 Approved Date", approver5_approved_date),("Approver 6 Approved Date", approver6_approved_date),
-
-            ('Last Updated By', last_updated_by),
-            ('Last Updated Date', last_updated_time),
-            ('Remarks', last_remarks),
             ('Next Approver Email', next_approver_mail),
             ('Pending Approval Type', approval_type),
             ('Pending Level', pending_level),
@@ -16675,7 +16332,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         pr_obj = PendingPR.objects.using(reports_database).get(id=result['pending_pr_id'])
         po_numbers = ','.join(pr_obj.pendingpo_set.filter().values_list('full_po_number', flat=True))
         pr_supplier_id, pr_supplier_name, pr_supplier_gst = '', '', ''
-        approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details, approver_6_details = '', '', '', '', '', ''
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         final_status =  result['pending_pr__final_status']
@@ -16705,315 +16361,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         plant, department = '', ''
         req_user = User.objects.using(reports_database).filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
-        all_approver_details = {}
-        pending_approval = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-            status='', pending_pr__final_status='pending')
-        next_approver_mail, pending_level, approval_type = [''] * 3
-        if pending_approval.exists():
-            pending_approval = pending_approval[0]
-            next_approver_mail = pending_approval.validated_by
-            pending_level = pending_approval.level
-            approval_type = pending_approval.approval_type
-        final_status = result['pending_pr__final_status']
-        approver1_status, approver2_status, approver3_status, approver4_status, approver5_status, approver6_status = '', '', '', '', '', ''
-        approver_1_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",
-            approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'status', 'approval_type',
-                                                               'updation_date', 'remarks', 'pending_pr__final_status')
-        if approver_1_detail_data.exists():
-            approver_1_detail_data = approver_1_detail_data.latest('level')
-            if approver_1_detail_data.get('status') == 'approved':
-                approver1_status = 'Yes'
-                last_updated_by = approver_1_detail_data.get('validated_by')
-                approver_1_details = approver_1_detail_data.get('validated_by')
-                last_remarks = approver_1_detail_data.get('remarks', '')
-                final_updated_time = approver_1_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-            else:
-                approver1_status = 'No'
-                last_updated_by = approver_1_detail_data.get('validated_by')
-                approver_1_details = approver_1_detail_data.get('validated_by')
-                last_remarks = approver_1_detail_data.get('remarks', '')
-                final_updated_time = approver_1_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-        approver_2_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
-            approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'status', 'approval_type',
-                                                               'updation_date', 'remarks',
-                                                               'pending_pr__final_status')
-        if approver_2_detail_data.exists():
-            approver_2_detail_data = approver_2_detail_data.latest('level')
-            if approver_2_detail_data.get('status') in ['approved', 'pr_converted_to_po']:
-                approver2_status = 'Yes'
-                last_updated_by = approver_2_detail_data.get('validated_by')
-                approver_2_details = approver_2_detail_data.get('validated_by')
-                last_remarks = approver_2_detail_data.get('remarks', '')
-                final_updated_time = approver_2_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_2_detail_data.get('validated_by')
-                    approver2_status, approver_2_details = '', ''
-            else:
-                approver1_status = 'No'
-                last_updated_by = approver_2_detail_data.get('validated_by')
-                approver_1_details = approver_2_detail_data.get('validated_by')
-                last_remarks = approver_2_detail_data.get('remarks', '')
-                final_updated_time = approver_2_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'No'
-                    approver_1_details = approver_2_detail_data.get('validated_by')
-                    approver2_status, approver_2_details = '', ''
-
-
-        approver_3_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level2",
-            approval_type="default").exclude(status='').values('level',
-                                                               'validated_by', 'status', 'approval_type',
-                                                               'updation_date', 'remarks',
-                                                               'pending_pr__final_status')
-
-        if approver_3_detail_data.exists():
-            approver_3_detail_data = approver_3_detail_data.latest('level')
-            if approver_3_detail_data.get('status') == 'approved':
-                approver3_status = 'Yes'
-                approver_3_details = approver_3_detail_data.get('validated_by')
-                last_updated_by = approver_3_detail_data.get('validated_by')
-                last_remarks = approver_3_detail_data.get('remarks', '')
-                final_updated_time = approver_3_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_3_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details = '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_3_detail_data.get('validated_by')
-                    approver3_status, approver_3_details = '', ''
-            else:
-                approver3_status = 'No'
-                last_updated_by = approver_3_detail_data.get('validated_by')
-                approver_3_details = approver_3_detail_data.get('validated_by')
-                last_remarks = approver_3_detail_data.get('remarks', '')
-                final_updated_time = approver_3_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver3_status == "No":
-                    approver_4_details, approver_5_details = '', ''
-                    approver4_status, approver5_status = '', ''
-                if approver_1_details == '':
-                    approver1_status = 'No'
-                    approver_1_details = approver_3_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details = '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'No'
-                    approver_2_details = approver_3_detail_data.get('validated_by')
-                    approver3_status, approver_3_details = '', ''
-
-        approver_4_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level0",
-            approval_type__in=["ranges", "approved"]).exclude(
-            Q(approval_type="default") | Q(status='')) \
-            .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'remarks',
-                    'pending_pr__final_status')
-        if approver_4_detail_data.exists():
-            approver_4_detail_data = approver_4_detail_data.latest('level')
-            if approver_4_detail_data.get('status') == 'approved':
-                approver4_status = 'Yes'
-                approver_4_details = approver_4_detail_data.get('validated_by')
-                last_updated_by = approver_4_detail_data.get('validated_by')
-                last_remarks = approver_4_detail_data.get('remarks', '')
-                final_updated_time = approver_4_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details = '', ''
-            else:
-                approver4_status = 'No'
-                last_updated_by = approver_4_detail_data.get('validated_by')
-                approver_4_details = approver_4_detail_data.get('validated_by')
-                last_remarks = approver_4_detail_data.get('remarks', '')
-                final_updated_time = approver_4_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if approver4_status == "No":
-                    approver_5_details = ''
-                    approver5_status = ''
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details = '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details = '', ''
-
-        approver_5_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
-            approval_type__in=["ranges", "approved"]) \
-            .exclude(Q(approval_type="default") | Q(status='')) \
-            .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'remarks',
-                    'pending_pr__final_status')
-
-        if approver_5_detail_data.exists():
-            approver_5_detail_data = approver_5_detail_data.latest('level')
-            approver_5 = approver_5_detail_data.get('level_approver5')
-            approver_5_details = ''
-            if approver_5_detail_data.get('status') == 'approved':
-                approver5_status = 'Yes'
-                approver_5_details = approver_5_detail_data.get('validated_by')
-                last_updated_by = approver_5_detail_data.get('validated_by')
-                last_remarks = approver_5_detail_data.get('remarks', '')
-                final_updated_time = approver_5_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-            else:
-                approver5_status = 'No'
-                approver_5_details = approver_5_detail_data.get('validated_by')
-                last_updated_by = approver_5_detail_data.get('validated_by')
-                last_remarks = approver_5_detail_data.get('remarks', '')
-                final_updated_time = approver_5_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-
-        approver_6_detail_data = PurchaseApprovals.objects.using(reports_database).filter(
-            pending_pr__full_pr_number=result['pending_pr__full_pr_number'], level="level1",
-            approval_type__in=["ranges", "approved"]) \
-            .exclude(Q(approval_type="default") | Q(status='')) \
-            .values('level', 'validated_by', 'status', 'updation_date', 'approval_type', 'remarks',
-                    'pending_pr__final_status')
-
-        if approver_6_detail_data.exists():
-            approver_6_detail_data = approver_6_detail_data.latest('level')
-            approver_6 = approver_6_detail_data.get('level_approver5')
-            approver_6_details = ''
-            if approver_6_detail_data.get('status') == 'approved':
-                approver6_status = 'Yes'
-                approver_6_details = approver_6_detail_data.get('validated_by')
-                last_updated_by = approver_6_detail_data.get('validated_by')
-                last_remarks = approver_6_detail_data.get('remarks', '')
-                final_updated_time = approver_6_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-                elif approver_5_details == '':
-                    approver5_status = 'Yes'
-                    approver_5_details = approver_5_detail_data.get('validated_by')
-                    approver6_status, approver_6_details = '', ''
-            else:
-                approver6_status = 'No'
-                approver_6_details = approver_6_detail_data.get('validated_by')
-                last_updated_by = approver_6_detail_data.get('validated_by')
-                last_remarks = approver_6_detail_data.get('remarks', '')
-                final_updated_time = approver_6_detail_data.get('updation_date')
-                if final_updated_time:
-                    last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
-                    approver_5_details, approver5_status = '', ''
-                    last_updated_by = approver_4_details
-                if approver_1_details == '':
-                    approver1_status = 'Yes'
-                    approver_1_details = approver_4_detail_data.get('validated_by')
-                    approver2_status, approver_2_details, approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', '', '', ''
-                elif approver_2_details == '':
-                    approver2_status = 'Yes'
-                    approver_2_details = approver_4_detail_data.get('validated_by')
-                    approver3_status, approver_3_details, approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', '', '', ''
-                elif approver_3_details == '':
-                    approver3_status = 'Yes'
-                    approver_3_details = approver_4_detail_data.get('validated_by')
-                    approver4_status, approver_4_details, approver5_status, approver_5_details = '', '', '', ''
-                elif approver_4_details == '':
-                    approver4_status = 'Yes'
-                    approver_4_details = approver_4_detail_data.get('validated_by')
-                    approver5_status, approver_5_details = '', ''
-                elif approver_5_details == '':
-                    approver5_status = 'Yes'
-                    approver_5_details = approver_5_detail_data.get('validated_by')
-                    approver6_status, approver_6_details = '', ''
-
-        if approver1_status == "No":
-            approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details, approver_6_details = '', '', '', '', '', ''
-            approver1_status, approver2_status, approver3_status, approver4_status, approver5_status, approver6_status = '', '', '', '', '', ''
         total_quantity, total_amount, total_tax_amount =0,0, 0
         total_quantity, total_amount, total_tax_amount = get_sku_wise_pr_amount_and_quantity(full_pr_number, result['sku__sku_code'])
         lineItemId = PendingLineItems.objects.using(reports_database).filter(pending_pr__full_pr_number = result['pending_pr__full_pr_number'], sku__sku_code= result['sku__sku_code'])[0]
@@ -17059,21 +16406,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             ('Total Amount', round(result['total_amt'], 3)),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', final_status.title()),
-            ('Approver 1', approver_1_details),
-            ('Approver 2', approver_2_details),
-            ('Approver 3', approver_3_details),
-            ('Approver 4', approver_4_details),
-            ('Approver 5', approver_5_details),
-            ('Approver 6', approver_6_details),
-            ('Approver 1 Status', approver1_status),
-            ('Approver 2 Status', approver2_status),
-            ('Approver 3 Status', approver3_status),
-            ('Approver 4 Status', approver4_status),
-            ('Approver 5 Status', approver5_status),
-            ('Approver 6 Status', approver6_status),
-            ('Last Updated By', last_updated_by),
-            ('Last Updated Date', last_updated_time),
-            ('Remarks', last_remarks),
             ('Supplier ID', pr_supplier_id),
             ('Supplier Name', pr_supplier_name),
             ('Supplier GST', pr_supplier_gst),
@@ -19720,11 +19052,12 @@ def get_praod_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     search_parameter = {}
     if 'status' in search_params:
-        search_parameter['final_status'] = search_params['status']
-        if search_params['status'] == 'approved':
-            del search_parameters['pending_prApprovals__status']
-            search_parameters['final_status'] = search_params['status']
-            model_data = PendingPR.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+        if search_params['status'] !='pending under enquiry':
+            search_parameter['final_status'] = search_params['status']
+            if search_params['status'] == 'approved':
+                del search_parameters['pending_prApprovals__status']
+                search_parameters['final_status'] = search_params['status']
+                model_data = PendingPR.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     model_data = model_data.filter(**search_parameter).values(*values_list).distinct()
 
     if order_term:
@@ -19737,7 +19070,10 @@ def get_praod_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     if stop_index:
-        results = model_data[start_index:stop_index]
+	if not ('status' in search_params and search_params['status']=='pending under enquiry'):
+            results = model_data[start_index:stop_index]
+	else:
+	    results = model_data
     else:
         results = model_data
     pr_ids = map(lambda x: x['id'], results)
@@ -19746,6 +19082,18 @@ def get_praod_report_data(search_params, user, sub_user):
     for pas in pas_objs:
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    gen_enquiries = GenericEnquiry.objects.filter(master_id__in = pr_ids, master_type='pendingPR').values('master_id', 'receiver_id')
+    enquiry_dict = {}
+    for gen_enquiry in gen_enquiries:
+        enquiry_dict[gen_enquiry.get('master_id')] = gen_enquiry.get('receiver_id', '')
+    if 'status' in search_params and search_params['status']=='pending under enquiry':
+        model_data = model_data.filter(id__in= enquiry_dict.keys()).values(*values_list).distinct()
+        temp_data['recordsTotal'] = model_data.count()
+        temp_data['recordsFiltered'] = model_data.count()
+        if stop_index:
+            results = model_data[start_index:stop_index]
+        else:
+            results = model_data 
     staff_dict = {}
     staff_objects = StaffMaster.objects.using(reports_database).filter().values('email_id','position')
     for staff_object in staff_objects:
@@ -19764,6 +19112,11 @@ def get_praod_report_data(search_params, user, sub_user):
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
+        enquiry_under = None
+        if enquiry_dict.get(str(result['id']), ''):
+            enquiry_under = User.objects.get(id=enquiry_dict.get(str(result['id'])))
+            pa_emails = enquiry_under.username
+            result['final_status']  = 'Pending Under Enquiry'
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
@@ -19876,11 +19229,12 @@ def get_poaod_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     search_parameter = {}
     if 'status' in search_params:
-        search_parameter['final_status'] = search_params['status']
-        if search_params['status'] == 'approved':
-            del search_parameters['pending_poApprovals__status']
-            search_parameters['final_status'] = 'approved'
-            model_data = PendingPO.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
+        if search_params['status'] !='pending under enquiry':
+            search_parameter['final_status'] = search_params['status']
+            if search_params['status'] == 'approved':
+                del search_parameters['pending_poApprovals__status']
+                search_parameters['final_status'] = 'approved'
+                model_data = PendingPO.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     model_data = model_data.filter(**search_parameter).values(*values_list).distinct()
 
     if order_term:
@@ -19893,7 +19247,10 @@ def get_poaod_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     if stop_index:
-        results = model_data[start_index:stop_index]
+        if not ('status' in search_params and search_params['status']=='pending under enquiry'):
+            results = model_data[start_index:stop_index]
+        else:
+            results = model_data
     else:
         results = model_data
     po_ids = map(lambda x: x['id'], results)
@@ -19902,6 +19259,18 @@ def get_poaod_report_data(search_params, user, sub_user):
     for pas in pas_objs:
         pas_dict[pas.pending_po_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    gen_enquiries = GenericEnquiry.objects.filter(master_id__in = po_ids,master_type='pendingPO').values('master_id', 'receiver_id')
+    enquiry_dict = {}
+    for gen_enquiry in gen_enquiries:
+        enquiry_dict[gen_enquiry.get('master_id')] = gen_enquiry.get('receiver_id', '')
+    if 'status' in search_params and search_params['status']=='pending under enquiry':
+        model_data = model_data.filter(id__in= enquiry_dict.keys()).values(*values_list).distinct()
+        temp_data['recordsTotal'] = model_data.count()
+        temp_data['recordsFiltered'] = model_data.count()
+        if stop_index:
+            results = model_data[start_index:stop_index]
+        else:
+            results = model_data
     staff_dict = {}
     staff_objects = StaffMaster.objects.using(reports_database).filter().values('email_id','position')
     for staff_object in staff_objects:
@@ -19920,6 +19289,11 @@ def get_poaod_report_data(search_params, user, sub_user):
             dept = user_obj.userprofile.stockone_code
         raised_date = get_local_date(user, result['creation_date'])
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
+        enquiry_under = None
+        if enquiry_dict.get(str(result['id']), ''):
+            enquiry_under = User.objects.get(id=enquiry_dict.get(str(result['id'])))
+            pa_emails = enquiry_under.username
+            result['final_status'] = 'Pending Under Enquiry'
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
@@ -20041,7 +19415,7 @@ def po_report_download(user_list, search_params, user):
     return temp_data
 
 
-def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
+def get_mrp_exception_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
@@ -20102,15 +19476,12 @@ def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     if 'zone_code' in search_params:
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
-    if 'sku_code' in search_params:                                                                                                                                                                                                                  search_parameters['sku__sku_code__iexact'] = search_params['sku_code']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['user_id__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    if request and request.POST.get('exception_filter') == 'PR Not Raised':
-        model_data = MRP.objects.filter(**search_parameters).exclude(Q(status=1) | Q(pending_line_items__isnull=False))
-    else:
-        model_data = MRP.objects.filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
+
+    model_data = MRP.objects.using(reports_database).filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
 
     if order_term:
         model_data = model_data.order_by(order_data)

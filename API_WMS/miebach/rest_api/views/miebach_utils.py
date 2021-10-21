@@ -679,7 +679,7 @@ INTEGRATION_REPORT_DICT = {'filters': [{'label': 'Integrtion From Date', 'name':
                     ],
 
             'dt_headers': [ "Zone", "Plant Code", "Plant" ,
-              "Stockone Id",   "Module type", "Action Type", ""
+              "Stockone Id", "Supplier Id", "Supplier Name", "Gst Number",  "Module type", "Action Type", ""
               "Integration Date", "Integration Status", "Integration Error"
              ],
             'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
@@ -2085,7 +2085,7 @@ PRAOD_REPORT_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Department', 'Zone Code', 'PR Number', 'PR Status', 'Product Category', 'SKU Category',
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'PR Raised By', 'Department', 'Zone Code', 'PR Number', 'PR Status', 'Product Category', 'SKU Category',
         'Pending with Email Id', 'Staff position', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
     'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
     'print_url': 'get_praod_report',
@@ -2099,7 +2099,7 @@ POAOD_REPORT_DICT = {
         {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
     ],
-    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'Zone Code', 'PO Number', 'PO Status', 'Product Category', 'SKU Category',
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'PO Raised By', 'Zone Code', 'PO Number', 'PO Status', 'Product Category', 'SKU Category',
         'Pending with Email Id', 'Staff position', 'Pending since days', 'Pending Level', 'Pending Since from PO Raised(Days)'],
     'dt_url': 'get_poaod_report', 'excel_name': 'get_poaod_report',
     'print_url': 'get_poaod_report',
@@ -4222,6 +4222,11 @@ def get_integration_report_data(request, search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
+    stockone_ids = list(model_data.values_list('stockone_reference', flat =True))
+    purchase_orders = PurchaseOrder.objects.filter(po_number__in=stockone_ids).values('po_number','open_po__supplier__name','open_po__supplier__supplier_id', 'open_po__supplier__tin_number')
+    po_dict ={}
+    for po in purchase_orders:
+        po_dict[po.get('po_number','')] = {'supplier_name': po.get('open_po__supplier__name',''), 'supplier_id': po.get('open_po__supplier__supplier_id',''), 'gst_number': po.get('open_po__supplier__tin_number','')}
     for data in model_data:
         # json_data = json.loads(data.integration_data)
         # date_format = "%Y-%m-%dT%H:%M:%SZ"
@@ -4240,7 +4245,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
                 plant = user.first_name
                 plant_zone = user.userprofile.zone
     
-        integration_error , integration_status= '', ''
+        integration_error , integration_status, supplier_id, supplier_name, gst_number = '', '', '', '', ''
         if data.status == 1:
             integration_status = 'Success'
         elif data.status == 0:
@@ -4251,12 +4256,21 @@ def get_integration_report_data(request, search_params, user, sub_user):
             #     integration_status = 'GRN -NA- queue'
         if integration_status == 'Failed':
             integration_error = data.integration_error
+        supplier_id = po_dict.get(data.stockone_reference,{}).get('supplier_id','')
+        supplier_name = po_dict.get(data.stockone_reference,{}).get('supplier_name','')
+        if po_dict.get(data.stockone_reference,{}):
+            gst_number = po_dict.get(data.stockone_reference,{}).get('gst_number','')
+            if not gst_number:
+                gst_number = 'Gst not Registered'
         integration_date = data.creation_date.strftime("%d %b, %Y")
         temp_data['aaData'].append(OrderedDict((
                                                 ("Zone", plant_zone),
                                                 ("Plant Code", plant_code),
                                                 ("Plant", plant),
                                                 ('Stockone Id', data.stockone_reference),
+                                                ('Supplier Id', supplier_id),
+                                                ('Supplier Name', supplier_name),
+                                                ('Gst Number', gst_number),
                                                 ('Module type', data.module_type),
                                                 # ('PO Date', ''),
                                                 # ('PO Value', ''),
@@ -19087,7 +19101,6 @@ def get_praod_report_data(search_params, user, sub_user):
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
     if stop_index:
 	if not ('status' in search_params and search_params['status']=='pending under enquiry'):
             results = model_data[start_index:stop_index]
@@ -19101,10 +19114,10 @@ def get_praod_report_data(search_params, user, sub_user):
     for pas in pas_objs:
         pas_dict[pas.pending_pr_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-    gen_enquiries = GenericEnquiry.objects.filter(master_id__in = pr_ids, master_type='pendingPR').values('master_id', 'receiver_id')
+    gen_enquiries = GenericEnquiry.objects.filter(master_id__in = pr_ids, master_type='pendingPR').values('master_id', 'receiver_id', 'updation_date')
     enquiry_dict = {}
     for gen_enquiry in gen_enquiries:
-        enquiry_dict[gen_enquiry.get('master_id')] = gen_enquiry.get('receiver_id', '')
+        enquiry_dict[gen_enquiry.get('master_id')] = {"receiver_id": gen_enquiry.get('receiver_id', '') , "updation_date": gen_enquiry.get('updation_date', '')}
     if 'status' in search_params and search_params['status']=='pending under enquiry':
         model_data = model_data.filter(id__in= enquiry_dict.keys()).values(*values_list).distinct()
         temp_data['recordsTotal'] = model_data.count()
@@ -19112,7 +19125,7 @@ def get_praod_report_data(search_params, user, sub_user):
         if stop_index:
             results = model_data[start_index:stop_index]
         else:
-            results = model_data 
+            results = model_data
     staff_dict = {}
     staff_objects = StaffMaster.objects.using(reports_database).filter().values('email_id','position')
     for staff_object in staff_objects:
@@ -19132,10 +19145,12 @@ def get_praod_report_data(search_params, user, sub_user):
         raised_date = get_local_date(user, result['creation_date'])
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         enquiry_under = None
-        if enquiry_dict.get(str(result['id']), ''):
-            enquiry_under = User.objects.get(id=enquiry_dict.get(str(result['id'])))
+        if enquiry_dict.get(str(result['id']),{}).get("receiver_id",''):
+            enquiry_under = User.objects.get(id=enquiry_dict.get(str(result['id'])).get("receiver_id"))
             pa_emails = enquiry_under.username
             result['final_status']  = 'Pending Under Enquiry'
+            if pas_dict.get(result['id'], {}).get("creation_date", ""):
+                pas_dict[result['id']]["creation_date"] = enquiry_dict.get(str(result['id'])).get("updation_date")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
@@ -19156,7 +19171,7 @@ def get_praod_report_data(search_params, user, sub_user):
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
-            ('Plant Code', plant_code),
+            ('PR Raised By', result['requested_user__username']),
             ('Department', dept_mapping.get(dept, dept)),
             ('Plant Code', plant_code),
             ('Zone Code', zone_code),
@@ -19278,10 +19293,10 @@ def get_poaod_report_data(search_params, user, sub_user):
     for pas in pas_objs:
         pas_dict[pas.pending_po_id] = { "validated_by": pas.validated_by, "creation_date": pas.creation_date, 'level': pas.level}
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-    gen_enquiries = GenericEnquiry.objects.filter(master_id__in = po_ids,master_type='pendingPO').values('master_id', 'receiver_id')
+    gen_enquiries = GenericEnquiry.objects.filter(master_id__in = po_ids,master_type='pendingPO').values('master_id', 'receiver_id', 'updation_date')
     enquiry_dict = {}
     for gen_enquiry in gen_enquiries:
-        enquiry_dict[gen_enquiry.get('master_id')] = gen_enquiry.get('receiver_id', '')
+        enquiry_dict[gen_enquiry.get('master_id')] = {"receiver_id": gen_enquiry.get('receiver_id', '') , "updation_date": gen_enquiry.get('updation_date', '')}
     if 'status' in search_params and search_params['status']=='pending under enquiry':
         model_data = model_data.filter(id__in= enquiry_dict.keys()).values(*values_list).distinct()
         temp_data['recordsTotal'] = model_data.count()
@@ -19309,10 +19324,11 @@ def get_poaod_report_data(search_params, user, sub_user):
         raised_date = get_local_date(user, result['creation_date'])
         pa_emails = pas_dict.get(result['id'], {}).get("validated_by", "")
         enquiry_under = None
-        if enquiry_dict.get(str(result['id']), ''):
-            enquiry_under = User.objects.get(id=enquiry_dict.get(str(result['id'])))
+        if enquiry_dict.get(str(result['id']), {}).get('receiver_id', ''):
+            enquiry_under = User.objects.get(id=enquiry_dict.get(str(result['id'])).get("receiver_id"))
             pa_emails = enquiry_under.username
             result['final_status'] = 'Pending Under Enquiry'
+            pas_dict[result['id']]["creation_date"] = enquiry_dict.get(str(result['id'])).get("updation_date")
         if pa_emails == '':
             pa_emails = result['requested_user__username']
         staff_position = staff_dict.get(pa_emails,'')
@@ -19333,7 +19349,7 @@ def get_poaod_report_data(search_params, user, sub_user):
         ord_dict = OrderedDict((
             ('Raised Date', raised_date),
             ('Plant', plant),
-            ('Plant Code', plant_code),
+            ('PO Raised By', result['requested_user__username']),
             ('Department', dept_mapping.get(dept, dept)),
             ('Plant Code', plant_code),
             ('Zone Code', zone_code),

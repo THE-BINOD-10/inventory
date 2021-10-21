@@ -59,9 +59,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['MRP Run Id', 'Plant Code', 'Plant Name', 'Department', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty', 'Average Plant Daily Consumption Qty', 'Lead Time Qty',
-                   'Min Days Qty', 'Max Days Qty', 'Dept Stock Qty', 'Allocated Plant Stock Qty', 'Pending PR Qty', 'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty',
-                   'Supplier Id', 'Suggested Value'];
+    var columns = ['MRP Run Id', 'Plant Code', 'Plant Name', 'Department', 'State', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty',
+                    'Average Plant Daily Consumption Qty', 'Lead Time Qty', 'Min Days Qty', 'Max Days Qty', 'Dept Stock Qty', 'Allocated Plant Stock Qty', 'Pending PR Qty',
+                    'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty', 'Supplier Id', 'Suggested Value'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -335,9 +335,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     }
 
   vm.department_type_list = [];
+  vm.states_list = [];
   vm.service.apiCall('get_department_list/').then(function(data){
     if(data.message) {
       vm.department_type_list = data.data.department_list;
+      vm.states_list = data.data.states_list;
     }
   });
 

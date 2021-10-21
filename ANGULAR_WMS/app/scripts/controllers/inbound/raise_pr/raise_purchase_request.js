@@ -1667,7 +1667,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.cess_tax) {
           data.fields.cess_tax = 0;
       }
-      if (data.fields.tax == 0 && data.fields.temp_tax > 0) {
+      if (data.fields.tax == 0 && data.fields.temp_tax > 0 && vm.title != 'Raise PR') {
         data.fields.tax = data.fields.temp_tax;
       }
       if (data.fields.cess_tax == 0 && data.fields.temp_cess_tax > 0) {

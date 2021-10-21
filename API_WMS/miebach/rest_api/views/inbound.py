@@ -17760,8 +17760,6 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    if MRP.objects.filter().exists():
-        search_params['creation_date__gte'] = MRP.objects.filter().order_by('-creation_date')[0].creation_date.strftime('%Y-%m-%d')
     master_data = MRP.objects.filter(**search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

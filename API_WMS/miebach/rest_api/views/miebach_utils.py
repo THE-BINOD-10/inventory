@@ -2121,7 +2121,7 @@ MRP_DEPARTMENT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['MRP Run Id', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'No of MRP Lines Generated', 'No of MRP Lines for which PR(even partial) was Raised', 'Value of MRP Generated', 'Value of PRs Generated', 'MRP Suggested Qty', 'PR Created Qty'],
+    'dt_headers': ['MRP Run Id', 'MRP Run Date', 'Number of Days Since the MRP Run Date', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'No of MRP Lines Generated', 'No of MRP Lines for which PR(even partial) was Raised', 'Value of MRP Generated', 'Value of PRs Generated', 'MRP Suggested Qty', 'PR Created Qty'],
     'dt_url': 'get_mrp_department_report', 'excel_name': 'get_mrp_department_report',
     'print_url': 'get_mrp_department_report',
 }
@@ -20000,7 +20000,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
-    lis = ['transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user']
+    lis = ['transact_number', 'transact_number', 'transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -20091,8 +20091,13 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         pr_qty, pr_lines, pr_value = [0] * 3
         if pr_data:
             pr_qty, pr_lines, pr_value = pr_data.split('#')
+        mrp_obj = MRP.objects.filter(transact_number=data['transact_number'], user=data['user']).first()
+        date_created = get_local_date(user, mrp_obj.creation_date)
+        no_of_days_since = (datetime.datetime.utcnow() - mrp_obj.creation_date.replace(tzinfo=None)).days
         ord_dict = OrderedDict((
             ('MRP Run Id', data['transact_number']),
+            ('MRP Run Date', date_created),
+            ('Number of Days Since the MRP Run Date', no_of_days_since),
             ('MRP Receiver User', staff_name),
             ('Zone', dept.userprofile.zone),
             ('State', plant.userprofile.state),

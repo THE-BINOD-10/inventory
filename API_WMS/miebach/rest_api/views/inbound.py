@@ -17748,12 +17748,12 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         users = users.filter(userprofile__stockone_code=dept_type)
 
     if 'zone_code' in filters and filters['zone_code']:
-        zone_code = filters['zone_code']
-        users = users.filter(userprofile__zone=zone_code)
+        zone_code = filters['zone_code'].split(',')
+        users = users.filter(userprofile__zone__in=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids, 'status': 1}
     if filters.get('sku_category'):
-        search_params['sku__sku_category'] = filters['sku_category']
+        search_params['sku__sku_category__in'] = filters['sku_category'].split(',')
     if 'sku_code' in filters and filters['sku_code']:
         search_params['sku__sku_code'] = filters['sku_code']
     order_data = lis[col_num]
@@ -18117,11 +18117,11 @@ def generate_material_planning(request, user):
         users = users.filter(userprofile__stockone_code=dept_type)
 
     if 'zone_code' in filters and filters['zone_code']:
-        zone_code = filters['zone_code']
-        users = users.filter(userprofile__zone=zone_code)
+        zone_code = filters['zone_code'].split(',')
+        users = users.filter(userprofile__zone__in=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     if filters.get('sku_category'):
-        run_sku_codes = list(SKUMaster.objects.filter(user__in=user_ids, sku_category=filters['sku_category']).values_list('sku_code', flat=True))
+        run_sku_codes = list(SKUMaster.objects.filter(user__in=user_ids, sku_category__in=filters['sku_category'].split(',')).values_list('sku_code', flat=True))
     if filters.get('sku_code'):
         run_sku_codes = [filters['sku_code']]
     if users.filter(userprofile__warehouse_type='DEPT'):
@@ -18412,11 +18412,11 @@ def send_material_planning_mail(request, user):
         users = users.filter(userprofile__stockone_code=dept_type)
 
     if 'zone_code' in filters and filters['zone_code']:
-        zone_code = filters['zone_code']
-        users = users.filter(userprofile__zone=zone_code)
+        zone_code = filters['zone_code'].split(',')
+        users = users.filter(userprofile__zone__in=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     if filters.get('sku_category'):
-        run_sku_codes = list(SKUMaster.objects.filter(user__in=user_ids, sku_category=filters['sku_category']).values_list('sku_code', flat=True))
+        run_sku_codes = list(SKUMaster.objects.filter(user__in=user_ids, sku_category__in=filters['sku_category'].split(',')).values_list('sku_code', flat=True))
     if filters.get('sku_code'):
         run_sku_codes = [filters['sku_code']]
     mrp_objs = MRP.objects.filter(user__in=user_ids, status=1).values('user').annotate(Count('id'))

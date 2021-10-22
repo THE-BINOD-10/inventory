@@ -19,6 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     vm.selectAll = false;
     vm.bt_disable = false;
     vm.zones_list = ['Central', 'East', 'GRL', 'Mumbai', 'NACO', 'North', 'Overseas', 'South', 'West'];
+    $timeout(function(){$('.selectpicker-zonecode').selectpicker();}, 100);
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
         'width': '1350px'
@@ -37,6 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
               }
            })
        .withDataProp('data')
+       .withOption('order', [0, 'desc'])
        .withOption('drawCallback', function(settings) {
          vm.service.make_selected(settings, vm.selected);
          $scope.$apply(function() {vm.bt_disable = true;vm.selectAll = false;});
@@ -312,7 +314,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
       vm.model_data.filters['datatable'] = 'MaterialPlanning';
     }
 
-
     vm.empty_filter_fields = function(){
 
 
@@ -331,6 +332,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     }
 
     vm.saveFilters = function(filters){
+      if(filters.sku_category1) {
+        filters.sku_category = filters.sku_category1.join();
+      }
+      if(filters.zone_code1) {
+        filters.zone_code = filters.zone_code1.join();
+      }
       Data.mp_filters = filters;
     }
 
@@ -347,12 +354,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
   vm.service.apiCall('get_sku_category_list/',).then(function(data){
     if(data.message){
       vm.category_list = data.data.category_list;
+      $timeout(function(){$('.selectpicker-category').selectpicker();}, 100);
     }
   })
 
   vm.generate_mrp_data = function() {
     vm.service.alert_msg("Generate MRP").then(function(msg) {
       if(msg == "true"){
+        if(vm.model_data.filters.sku_category1) {
+          vm.model_data.filters.sku_category = vm.model_data.filters.sku_category1.join();
+        }
+        if(vm.model_data.filters.zone_code1) {
+          vm.model_data.filters.zone_code = vm.model_data.filters.zone_code1.join();
+        }
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);
@@ -366,6 +380,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
   vm.send_mrp_output = function() {
     vm.service.alert_msg("Send MRP Output Mail").then(function(msg) {
       if(msg == "true"){
+        if(vm.model_data.filters.sku_category1) {
+          vm.model_data.filters.sku_category = vm.model_data.filters.sku_category1.join();
+        }
+        if(vm.model_data.filters.zone_code1) {
+          vm.model_data.filters.zone_code = vm.model_data.filters.zone_code1.join();
+        }
+
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('send_material_planning_mail/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);

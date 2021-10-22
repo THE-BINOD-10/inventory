@@ -44,7 +44,7 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">Zone Code</label>
-                  <select name="zone_code" class="form-control" ng-model="showCase.model_data.filters.zone_code">
+                  <select name="zone_code" class="selectpicker-zonecode show-menu-arrow form-control" ng-model="showCase.model_data.filters.zone_code1" multiple>
                     <option value=''>Select</option>
                     <option ng-repeat="zone in showCase.zones_list">{{ zone }}</option>
                   </select>
@@ -65,7 +65,7 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">SKU Category</label>
-                  <select name="zone_code" class="form-control" ng-model="showCase.model_data.filters.sku_category">
+                  <select name="sku_category" class="selectpicker-category show-menu-arrow form-control" ng-model="showCase.model_data.filters.sku_category1" multiple>
                     <option value=''>Select</option>
                     <option ng-repeat="category in showCase.category_list">{{ category }}</option>
                   </select>

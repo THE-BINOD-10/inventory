@@ -665,6 +665,8 @@ urlpatterns = [
     url(r'^get_mrp_exception_report/$', get_mrp_exception_report),
     url(r'^get_mrp_department_report/$', get_mrp_department_report),
     url(r'^get_mrp_line_level_report/$', get_mrp_line_level_report),
+    url(r'^get_mrp_po_report/$', get_mrp_po_report),
+
 
 ]
 

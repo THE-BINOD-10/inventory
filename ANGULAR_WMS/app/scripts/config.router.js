@@ -2577,6 +2577,18 @@ var app = angular.module('urbanApp')
             title: 'MRP Output Line Level Report',
           }
         })
+        .state('app.reports.MRPPOReport', {
+          url: '/MRPPOReport',
+          templateUrl: 'views/reports/mrp_po_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/mrp_po_report.js');
+              }]
+          },
+          data: {
+            title: 'MRP Suggested vs PO Qty - Plant Level Report',
+          }
+        })
 
 
         .state('app.reports.LocationWiseFilter', {

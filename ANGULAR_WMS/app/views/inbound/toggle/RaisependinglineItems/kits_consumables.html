@@ -5,6 +5,9 @@
     line-height: 30px;
     font-weight: 600;
   }
+  .text_clr {
+    color: orangered;
+  }
 </style>
 <div class="row">
   <div class="col-md-12">
@@ -74,8 +77,8 @@
             <!-- <span style="font-size: 9px;font-weight: 440;">{{ product.fields.hsn_code }}</span> -->
             <input name="hsn_code" ng-model="product.fields.hsn_code" type="text" class="form-control detectTab">
           </td>
-          <td ng-show="showCase.current_raise_pr">
-            <span style="font-size: 9px;font-weight: 440;">{{ product.fields.suggested_qty }}</span>
+          <td ng-show="showCase.current_raise_pr" class="text-center">
+            <span class="text_element" ng-class="(product.fields.suggested_qty == product.fields.order_quantity)? '': 'text_clr'">{{product.fields.suggested_qty | number:0}}</span>
             <input type="text" name="suggested_qty" ng-model="product.fields.suggested_qty" value="{{ product.fields.suggested_qty }}" class="form-control hide" ng-readonly="true">
           </td>
           <td>
@@ -93,14 +96,14 @@
             <input name="base_uom" ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
           </td>
           <td class="text-center">
-            <span class="text_element">{{product.fields.price | number:0}}
+            <span class="text_element">{{product.fields.price | number:2}}
             </span>
             <input type="text" name="price" ng-model="product.fields.price" class="hide">
           </td>
           <td><input type="text" ng-model="product.fields.discount" size="5" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)"></td>
 
           <td class="text-center"> 
-            <span class="text_element">{{product.fields.final_price | number:0}}
+            <span class="text_element">{{product.fields.final_price | number:2}}
             </span>
           </td>
           <td class="text-center"> 

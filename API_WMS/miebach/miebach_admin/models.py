@@ -359,6 +359,7 @@ class PaymentTerms(models.Model):
 
     class Meta:
         db_table = 'PAYMENT_TERMS'
+        index_together = (('supplier',), ('supplier', 'payment_code'))
         unique_together = ('payment_code', 'payment_description', 'supplier')
 
 class NetTerms(models.Model):
@@ -616,6 +617,7 @@ class GenericEnquiryMails(models.Model):
 
     class Meta:
         db_table = "GENERIC_ENQUIRY_MAILS"
+        index_together = (('master_id', 'master_type'), ('master_id', ))
 
 
 @reversion.register()
@@ -699,8 +701,7 @@ class PendingPR(models.Model):
 
     class Meta:
         db_table = 'PENDING_PR'
-	index_together = (('full_pr_number',), ('final_status', ),  ('wh_user', ), ('requested_user', ),('creation_date', ) )
-        #index_together = (('full_pr_number',))
+	index_together = (('full_pr_number',), ('final_status', ),  ('wh_user', ), ('requested_user', ),('creation_date', ), ('id', 'requested_user'))
 
 @reversion.register()
 class PendingPO(models.Model):
@@ -718,7 +719,7 @@ class PendingPO(models.Model):
     full_po_number = models.CharField(max_length=32, default='', db_index=True)
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=512, default='')
-    ship_to_name = models.CharField(max_length=32, default='')
+    ship_to_name = models.CharField(max_length=128, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='', db_index=True)
     remarks = models.TextField(default='')
@@ -734,7 +735,7 @@ class PendingPO(models.Model):
 
     class Meta:
         db_table = 'PENDING_PO'
-	index_together = (('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ),('open_po', ) )
+	index_together = (('id', 'requested_user'), ('full_po_number',), ('supplier',),  ('supplier_payment', ), ('creation_date', ), ('final_status', ),  ('wh_user', ), ('requested_user', ),('open_po', ) )
 
 
 @reversion.register()
@@ -771,7 +772,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True, db_index=True)
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     purchase_type = models.CharField(max_length=32, default='PO', db_index=True)
-    configName = models.CharField(max_length=64, default='')
+    configName = models.CharField(max_length=256, default='')
     approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser', db_index=True)
@@ -786,7 +787,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-        index_together = (('pending_pr','level'), ('pending_po','level'), ('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
+        index_together = (('status',), ('pending_pr','level'), ('pending_po','level'), ('pending_pr', ), ('pending_pr', 'status'), ('pending_po', 'status'))
 
 class TableLists(models.Model):
     name = models.CharField(max_length=64, default='', db_index=True)
@@ -823,7 +824,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     class Meta:
         db_table = 'PURCHASE_APPROVAL_CONFIG'
         unique_together = ('user', 'name', 'level', 'min_Amt', 'max_Amt', 'approval_type')
-        index_together = (('company', 'display_name', 'purchase_type'),)
+        index_together = (('company', 'display_name', 'purchase_type'),('name',),)
 
 
 class PurchaseApprovalMails(models.Model):  #PRApprovalMails
@@ -883,7 +884,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
-        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',))
+        index_together = (('po_number',), ('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'), ('po_number', 'open_po'),('open_po','creation_date'),('open_po',), ('status', 'open_po',))
         permissions = [
             ('update_purchaseorder', 'Update Purchase Order'),
         ]
@@ -1501,6 +1502,7 @@ class UserAddresses(models.Model):
 
     class Meta:
         db_table = 'USER_ADDRESSES'
+        index_together = (('user',),('user','address_type'),('user','address_type', 'address_name'))
 
 class UserAccessTokens(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1620,7 +1622,7 @@ class AdminGroups(models.Model):
 
     class Meta:
         db_table = 'ADMIN_GROUPS'
-
+        index_together = (('group',),('user','group'))
 
 class StockMismatch(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1931,6 +1933,7 @@ class OpenST(models.Model):
 
     class Meta:
         db_table = 'OPEN_ST'
+        index_together = (('sku',))
 
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.warehouse_id))
@@ -1945,8 +1948,7 @@ class STPurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'ST_PURCHASE_ORDER'
-        index_together = ('open_st', 'po')
-
+        index_together = (('open_st',),('open_st', 'po'))
     def __unicode__(self):
         return str(self.po_id)
 
@@ -3561,7 +3563,7 @@ class MasterDocs(models.Model):
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = (('master_id', 'master_type', 'uploaded_file'), ('master_id', 'user', 'extra_flag', ),
+        index_together = (('master_id', 'master_type'), ('master_id', 'master_type', 'uploaded_file'), ('master_id', 'user', 'extra_flag', ),
                           ('user', 'master_id', 'master_type', 'extra_flag'))
 
 

@@ -73,6 +73,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
       return nRow;
     }
+    vm.refresh = function() {
+        vm.service.refresh(vm.dtInstance)
+    };
     vm.loadjs = function () {
       vm.rejectedCancelledCtrl = true;
       vm.service.refresh(vm.dtInstance);

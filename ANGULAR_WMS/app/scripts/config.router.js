@@ -2601,6 +2601,17 @@ var app = angular.module('urbanApp')
           data: {
             title: 'Pending PR As on Date',
           }
+		}).state('app.reports.PO_AODReport', {
+          url: '/PO_AODReport',
+          templateUrl: 'views/reports/po_as_on_date_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/po_as_on_date_report.js');
+              }]
+          },
+          data: {
+            title: 'Pending PO As on Date',
+          }
         }).state('app.reports.PR_PO_GRNReport', {
           url: '/PR_PO_GRNReport',
           templateUrl: 'views/reports/pr_po_grn_report.html',

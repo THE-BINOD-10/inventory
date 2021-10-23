@@ -23,7 +23,7 @@
 }
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
@@ -41,9 +41,16 @@
         <div class="modal-body raise_po" style="height: calc(100vh - 135px); overflow-y: auto; margin: 0px !important;padding: 20px;">
           <div class="row">
             <div class="col-md-2 col-sm-2 col-xs-3">
-            <div class="form-group">
-              <label class="control-label"> PO Number </label>
-              <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> </div>
+              <div class="form-group">
+                <label class="control-label"> PO Number </label>
+                <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.model_data.full_pr_number">
+              <div class="form-group">
+                <label class="control-label"> PR Number </label>
+                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
+              </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group">
@@ -55,6 +62,30 @@
               <div class="form-group">
                 <label class="control-label">PO Date</label>
                 <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Warehouse </label>
+                <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Department </label>
+                <input type="text" ng-model="showCase.model_data.department" name="department" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Product Category </label>
+                <input type="text" ng-model="showCase.model_data.product_category" name="product_category" class="form-control" ng-readonly="true"> 
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Category </label>
+                <input type="text" ng-model="showCase.model_data.sku_category" name="sku_category" class="form-control" ng-readonly="true">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse' && !showCase.wh_purchase_order">
@@ -75,21 +106,10 @@
               <label class="control-label"> Ship To </label>
               <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
             </div> -->
-            <div class="col-md-2 col-sm-2 col-xs-3">
-            <div class="form-group">
-              <label class="control-label"> Warehouse </label>
-              <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true"> </div>
-            </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
               <div class="form-group">
                 <label class="control-label">Supplier Payment Terms</label>
                 <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
-              </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.model_data.full_pr_number">
-              <div class="form-group">
-                <label class="control-label"> PR Number </label>
-                <input type="text" ng-model="showCase.model_data.full_pr_number" name="full_pr_number" class="form-control" ng-readonly="true">
               </div>
             </div>
             <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
@@ -102,12 +122,18 @@
             <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_currencyes">
               <div class="form-group">
                 <label class="control-label">Supplier Currency *</label>
-                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required>
+                <select class="form-control" name="supplier_currency" ng-model="showCase.model_data.supplier_currency" ng-change="showCase.currency_change(showCase.model_data.supplier_currency)" required disabled>
                     <option ng-repeat="type in showCase.model_data.supplier_currencyes" ng-selected="showCase.model_data.supplier_currency==type" value="{{type}}">{{type}}</option>
                 </select>
               </div>
             </div>
-            <div class="col-lg-4 col-md-3 col-sm-2 col-xs-6">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Supplier Mobile Number *</label>
+                <input type="text" ng-model="showCase.model_data.supplier_phone_number" name="supplier_phone_number" class="form-control" ng-readonly="true"/>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-3 col-sm-2 col-xs-6">
               <div class="form-group bootstrap-tagsinput">
                 <label class="control-label">SupplierEmail <span style="color: blue;"><b>({{showCase.model_data.supplier_email}})</b></span> / Buyer / PR User mails *</label>
                 <input class="internal_mails" type="text" value="{{showCase.model_data.po_all_mails}}" ui-jq="tagsInput" />
@@ -126,6 +152,7 @@
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+                    <th>Base UOM Qty</th>
                     <th>Unit Price</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">End Date</th>
@@ -134,7 +161,7 @@
                     <th ng-if="showCase.model_data.tax_display" class="w10_">IGST(%)</th>
                     <th ng-if="showCase.model_data.tax_display" class="w10_">CESS(%)</th>
                     <th class="w10_">Delivery Schedule</th>
-                    <!-- <th class="plus"></th> -->
+                    <th class="plus"></th>
                   </tr>
                 </thead>
                 <tbody ng-repeat="product in showCase.model_data.data">
@@ -164,6 +191,9 @@
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
                     </td>
                     <td>
+                      <input ng-model="product.fields.base_uom_qty" type="text" class="form-control detectTab" readonly>
+                    </td>
+                    <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="true" ng-keyup="showCase.getTotals()" size="12">
                     </td>
@@ -191,6 +221,9 @@
                     </td>
                     <td align="center">
                       <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View</button>
+                    </td>
+                    <td ng-disable="!product.fields.sku.wms_code" ng-click="showCase.extra_row_info(product)">
+                      <i class="fa fa-info-circle" ng-style="product.fields.icon_color"></i>
                     </td>
                   </tr>
                   <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">
@@ -252,8 +285,8 @@
         <div class="col-md-1 col-sm-3 col-xs-3" style="padding-top: 15px;margin-left: -9px;">
           <strong>Remarks :</strong>
         </div>
-        <div class="col-md-8 col-sm-9 col-xs-9 pull-left">
-          <textarea rows="2" class="form-control" cols="8" name="remarks" ng-model="showCase.model_data.remarks" placeholder="Enter Remarks"></textarea>
+        <div class="col-md-11 col-sm-9 col-xs-9 pull-left">
+          <textarea rows="3" class="form-control" cols="30" name="remarks" ng-model="showCase.model_data.remarks" placeholder="Enter Remarks"></textarea>
         </div>
       </div>
       <div class="row">
@@ -360,14 +393,46 @@
           </table>
         </div>
       </div>
-      <div class = "row">
+      <!-- <div class = "row">
         <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
           <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
             Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
           </a>
         </div>
+      </div> -->
+      <div class = "row" style="padding: 10px;background: #f2f2f275;">
+        <div class="col-lg-12 col-md-12 mb15" align="center">
+          <span class="label bg-purple" style="font-size: 10px">PR User & Buyer File Uploads</span>
+        </div>
+        <div class="col-md-8">
+          <tabset class="box-tab left">
+            <tab heading="PO Approval Files">
+                <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                <div class="col-md-12" ng-repeat="uploaded_file_data_po in showCase.model_data.uploaded_file_dict" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{uploaded_file_data_po.file_url}}" target="_blank">{{uploaded_file_data_po.file_name}}</a> </span>
+                </div>
+            </tab>
+            <tab heading="PR user">
+              <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+              <div class="col-md-12" ng-repeat = "uploaded_file_data in showCase.model_data.pr_uploaded_file_dict" align="left" style="min-height: 20px;">
+                <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{uploaded_file_data.file_url}}" target="_blank">{{uploaded_file_data.file_name}}</a> </span>
+              </div>
+            </tab>
+            <tab heading="Purchase Approval" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url">
+              <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+              <div class="col-md-12" align="left" style="min-height: 20px;">
+                <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.pa_uploaded_file_dict.file_name}}</a> </span>
+              </div>
+            </tab>
+          </tabset>
+        </div>
+		<div class="col-md-4">
+          <div class="form-group col-md-3 container" style="padding-top: 30px;">
+            <form><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple/></form>
+          </div>
+        </div>
       </div>
-        <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
+      <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
       </div>
 		</div>
       <div class="modal-footer">

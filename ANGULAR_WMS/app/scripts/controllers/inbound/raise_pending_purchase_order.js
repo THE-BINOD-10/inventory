@@ -27,6 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.supplier_mail_flag = true;
     vm.from_supplier_pos = false;
     vm.confirm_btn_disable = true;
+    vm.row_click_opt = false;
     vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -166,8 +167,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (aData['PR No'] != "None") {
         vm.is_direct_po = false;
       }
-
+      if (vm.row_click_opt) {
+        vm.service.showNoty('Already one PO in Progress, please wait (or) Click on Refresh !!');
+        return;
+      }
+      vm.row_click_opt = true;
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
+        vm.row_click_opt = false;
         if (data.message) {
           if (typeof(data.data) == 'string') {
             vm.service.showNoty(data.data);
@@ -204,6 +210,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "department": data.data.department,
             "sku_category": data.data.sku_category,
             "supplier_name": data.data.supplier_name,
+			"store_id":data.data.store_id,
             "warehouse": data.data.warehouse,
             "data": data.data.data,
             "send_sku_dict": data.data.central_po_data,
@@ -347,6 +354,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if($rootScope.$current_po['from_supplier_wise_pos']){
         vm.from_supplier_pos = $rootScope.$current_po['from_supplier_wise_pos'];
       }
+      vm.row_click_opt = false;
       vm.dynamic_route($rootScope.$current_po);
     }
     vm.base = function() {
@@ -356,6 +364,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.update = false;
       vm.print_enable = false;
       vm.vendor_receipt = false;
+      vm.row_click_opt = false;
       vm.final_po_data = {};
       angular.copy(empty_data, vm.model_data);
       vm.model_data.seller_types = Data.seller_types;
@@ -369,6 +378,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
+    vm.refresh = function() {
+      vm.row_click_opt = false;
+      vm.service.refresh(vm.dtInstance)
+    };
     vm.sku_record_updation = function(data, records) {
       data.order_quantity = 0;
       angular.forEach(records, function(rows, index){
@@ -713,11 +726,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.permissions.central_admin_level_po){
         elem.push({name:'data_id', value:vm.data_id});
       }
+      var form_data = new FormData();
+	  if ($(".pr_form").find('[name="files"]').length > 0) {
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+      }
       var all_po_emails = $(".internal_mails").val();
       var supplier_secondary_mails = $(all_po_emails.split(',')).not(vm.model_data.actual_po_all_mails.split(',')).get().toString();
       elem.push({name:'all_po_emails', value: all_po_emails});
       elem.push({name:'suplier_secondary_mails', value: supplier_secondary_mails});
-      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      vm.service.apiCall('approve_pr/', 'POST', form_data, true, true).then(function(data){
         if(data.message){
           if(data.data == 'Approved Successfully') {
             vm.data_id = '';
@@ -1057,24 +1080,35 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.bt_disable = true;
       var that = vm;
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
-          data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+      var single_check = Object.values(vm.selected);
+      var count = 0
+      for (var i = 0; i < single_check.length; i++) {
+        if (single_check[i]) {
+          count = count + 1;
         }
-      });
-      vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
-        if(data.message) {
-          if (data.data == 'Deleted Successfully') {
-            vm.bt_disable = true;
-            vm.selectAll = false;
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
+      }
+      if (count == 1) {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+            data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
+            data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
           }
-        }
-      });
+        });
+        vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
+          if(data.message) {
+            if (data.data == 'Deleted Successfully') {
+              vm.bt_disable = true;
+              vm.selectAll = false;
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.showNoty(data.data);
+            }
+          }
+        });
+      } else {
+        vm.service.showNoty("Please Select Single PO Only !!");
+      }
    }
 
    vm.get_supplier_sku_prices = function(sku) {
@@ -1354,7 +1388,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
 
       var form_data = new FormData();
-      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
+      if ($(".pr_form").find('[name="files"]').length > 0) {
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
@@ -1564,7 +1598,35 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
   }
-
+ vm.extra_row_info = function (datum) {
+      var data = {'line_data': datum};
+      if (typeof(datum['fields']['sku']) == 'undefined') {
+        vm.service.showNoty('Invalid Sku');
+      } else if (datum['fields']['sku']['wms_code'] && datum['fields']['description']) {
+        data['line_data']['store_id'] = vm.model_data.store_id
+		var modalInstance = $modal.open({
+          templateUrl: 'views/inbound/raise_pr/po_sku_row_level_data.html',
+          controller: 'POskuRowCtrl',
+          controllerAs: 'showCase',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          if (selectedItem) {
+            console.log('');
+          }
+        });
+      } else {
+        vm.service.showNoty('Invalid Sku');
+      }
+    }
+ 
   vm.update_po_values = function() {
     vm.bt_disable = true;
     var that = vm;
@@ -1587,6 +1649,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
 
 }
+
+angular.module('urbanApp').controller('POskuRowCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.service.apiCall('get_extra_row_data/','POST' ,{'wms_code': items['line_data']['fields']['sku']['wms_code'], 'store_id' : items['line_data']['store_id']}).then(function(data){
+    if(data.message) {
+      items['line_data']['fields']['sku']['openpr_qty'] = data.data['openpr_qty'];
+      items['line_data']['fields']['sku']['capacity'] = data.data['capacity'];
+      items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
+      items['line_data']['fields']['sku']['avg_consumption_qty'] = data.data['avg_consumption_qty'];
+      items['line_data']['fields']['sku']['skuPack_quantity'] = data.data['skuPack_quantity'];
+    }
+  })
+  vm.line_data = items['line_data']['fields']
+  vm.title = vm.line_data['sku']['wms_code'];
+  vm.model_data = {}
+  vm.requestData = items;
+  vm.warehouse_list = [];
+  vm.close = function () {
+    $modalInstance.close(vm.line_data);
+  };
+});
 
 angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstance, $modal, items, Service, Session) {
   var vm = this;
@@ -1677,5 +1762,4 @@ angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstanc
     }
     $modalInstance.close(temp_dict);
   };
-
 });

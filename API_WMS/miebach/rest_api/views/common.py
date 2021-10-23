@@ -6881,7 +6881,7 @@ def folder_check(path):
     return True
 
 
-def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False):
+def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False, dept_user=''):
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
@@ -6902,7 +6902,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
             st_zones_data, st_available_quantity = get_sku_stock_summary(store_stock_data, '', storeUser)
             st_avail_qty = sum(map(lambda d: st_available_quantity[d] if st_available_quantity[d] > 0 else 0, st_available_quantity))
 
-    po_search_params = {'open_po__sku__user': user.id,
+    po_search_params = {'open_po__sku__user': dept_user if dept_user else user.id,
                         'open_po__sku__sku_code': sku_code,
                         }
     poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
@@ -7002,6 +7002,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     if request.GET.get('source', ''):
         cur_user = request.GET.get('source', '')
         user = User.objects.get(username=cur_user)
+    storeObj = ''
     sku_code = request.GET.get('sku_code')
     plant = request.GET.get('plant', '')
     comment = request.GET.get('comment', '')
@@ -7015,13 +7016,17 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         consumption_dict = get_average_consumption_qty(storeObj, sku_code)
     includeStoreStock = request.GET.get('includeStoreStock', '')
     cur_dept = request.GET.get('dept', '')
+    dept_type = request.GET.get('department_type', '')
+    if dept_type and not cur_dept:
+        cur_dept = str(plant)+ '_' +dept_type
     dept_avail_qty, avlb_qty = [0]*2
     if cur_dept:
-        cur_de = User.objects.get(username=cur_dept)
+        cur_de = User.objects.filter(username=cur_dept)[0]
         search_params1 = {'sku__user': cur_de.id}
         search_params1['sku__sku_code'] = sku_code
-        stock_data_dept, st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept, \
-        skuPack_quantity_dept, sku_pack_config_dept, zones_data_dept, avg_price_dept = get_pr_related_stock(cur_de, sku_code, search_params1, includeStoreStock)
+        st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept = 0,0,0,0
+        '''stock_data_dept, st_avail_qty_dept, intransitQty_dept, openpr_qty_dept, avail_qty_dept, \
+        skuPack_quantity_dept, sku_pack_config_dept, zones_data_dept, avg_price_dept = get_pr_related_stock(cur_de, sku_code, search_params1, includeStoreStock)'''
         dept_avail_qty = st_avail_qty_dept + avail_qty_dept
     search_params = {'sku__user': user.id}
     if request.GET.get('sku_code', ''):
@@ -7050,8 +7055,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
-                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'store_id': storeObj.id,
+                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty, 'dept_user_id': cur_de.id if cur_dept else storeObj.id,
                 'is_contracted_supplier': is_contracted_supplier, 'consumption_dict': consumption_dict, 'tax_display': tax_display,
                 'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency }))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found', 'pr_extra_data': pr_extra_data }))
@@ -7061,8 +7066,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         sku_pcf = uom_dict.get('sku_conversion', 1)
         avlb_qty = avlb_qty * sku_pcf
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avlb_qty, 'dept_avail_qty': dept_avail_qty,
-                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'store_id': storeObj.id if storeObj else user.id,
+                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier, 'dept_user_id': cur_de.id if cur_dept else storeObj.id,
                                     'avg_price': avg_price, 'consumption_dict': consumption_dict, 'tax_display':tax_display,
                                     'pr_extra_data': pr_extra_data, 'sku_suppliers_data': sku_suppliers_data, 'warehouse_currency': warehouse_currency
                                     }))
@@ -12626,6 +12631,22 @@ def get_sku_mrp(request ,user =''):
     return HttpResponse(json.dumps({'mrp':mrp}))
 
 
+@get_admin_user
+@csrf_exempt
+@login_required
+def get_extra_row_data(request ,user =''):
+    sku_code = request.POST.get('wms_code','')
+    store_id = request.POST.get('store_id','')
+    dept_user_id = request.POST.get('dept_user_id')
+    temp_store = User.objects.filter(id = store_id)[0]
+    consumption_dict = get_average_consumption_qty(temp_store, sku_code)
+    users = list(UserGroups.objects.filter(admin_user=temp_store.id).values_list('user_id', flat= True))
+    search_params = {'sku__user__in': users + [temp_store.id], 'sku__sku_code': sku_code}
+    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(temp_store, sku_code,\
+            search_params, includeStoreStock=False, dept_user = dept_user_id)
+    return HttpResponse(json.dumps({'openpr_qty': openpr_qty if openpr_qty else 0, 'capacity': st_avail_qty + avail_qty, 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity, 'consumption_dict': consumption_dict}))
+
 def get_firebase_order_data(order_id):
     from firebase import firebase
     firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
@@ -14847,7 +14868,7 @@ def get_last_three_months_consumption(filters):
     last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
     return last_three_months
 
-def get_average_consumption_qty(user, sku_code):
+def get_average_consumption_qty(user, sku_code, sku_pcf=''):
     ret_data = {'avg_qty': 0, 'base_qty': 0}
     plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[user.username], send_parent=True)
     plant_dept_ids = list(plant_depts.values_list('id', flat=True))
@@ -14856,8 +14877,9 @@ def get_average_consumption_qty(user, sku_code):
     last_three_months = last_three_months.aggregate(total=Sum('quantity'), month_count=Count(ExtractMonth('creation_date'), distinct=True))
     base_qty = last_three_months['total'] if last_three_months['total'] else 0
     if last_three_months['month_count']:
-        uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
-        sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
+        if not sku_pcf:
+            uom_dict = get_uom_with_sku_code(user, sku_code, uom_type='purchase')
+            sku_pcf = uom_dict['sku_conversion'] if uom_dict['sku_conversion'] else 1
         avg_qty = base_qty/3 #last_three_months['month_count']
         ret_data['avg_qty'] = round(avg_qty/sku_pcf, 6)
         ret_data['base_qty'] = base_qty
@@ -15219,8 +15241,12 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
     if send_supp_info == 'true':
         current_date = datetime.datetime.now()
         last_year_date = datetime.datetime.now() - relativedelta(years=1)
-        last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
+        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
+        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
                                         creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        last_po = least_po.filter(open_po__sku__user=User.objects.get(username=plant).id)
+        #last_po = PurchaseOrder.objects.filter(open_po__sku__user=User.objects.get(username=plant).id, open_po__sku__sku_code=sku_code,
+        #                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
         if last_po.exists():
             last_po_obj = last_po.latest('creation_date')
             pr_extra_data['last_supplier'] = last_po_obj.open_po.supplier.name
@@ -15234,9 +15260,9 @@ def get_pr_extra_supplier_data(user, plant, sku_code, send_supp_info):
             taxes = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax
             total_val = open_po.price + ((open_po.price/100) * taxes)
             pr_extra_data['least_supplier_price'] = round(total_val, 1)
-        all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
-        least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
-                                                creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
+        #all_plant_ids = list(get_related_users_filters(user.id).values_list('id', flat=True))
+        #least_po = PurchaseOrder.objects.filter(open_po__sku__user__in=all_plant_ids , open_po__sku__sku_code=sku_code,
+        #                                        creation_date__range=[last_year_date, current_date], open_po__isnull=False).exclude(open_po__price=0)
         if least_po.exists():
             least_po_obj = least_po.order_by('open_po__price').first()
             open_po = least_po_obj.open_po
@@ -15318,6 +15344,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     response_data = []
     display_name = ''
+    final_current = True
     if not pr_number:
         return HttpResponse('Invalid PR Number')
     pr_obj = PendingPR.objects.filter(full_pr_number=pr_number)
@@ -15327,7 +15354,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
         response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': pr_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': pr_obj.requested_user.username})
         if pr_obj.final_status == 'saved':
             return HttpResponse('Saved PR, Configuration Not Yet Decided')
-    last_config_datas = pr_obj.pending_prApprovals.filter().order_by('-creation_date')
+    last_config_datas = pr_obj.pending_prApprovals.filter().exclude(status='on_approved').order_by('-creation_date')
     if last_config_datas.exists():
         last_config_data = last_config_datas[0]
         current_level = last_config_data.level
@@ -15345,6 +15372,7 @@ def next_approvals_with_staff_master_mails(request, user=''):
                         if histo['status'] == '':
                             histo['status'] = 'Pending'
                             histo['is_current'] = True
+                            final_current = False
                         else:
                             histo['status'] = histo['status'].title()
                             histo['is_current'] = False
@@ -15362,15 +15390,19 @@ def next_approvals_with_staff_master_mails(request, user=''):
                     if histo['status'] == '':
                         histo['status'] = 'On Approved'
                         histo['is_current'] = True
+                        final_current = False
                     temp = {'is_current': histo.get('is_current', ''), 'status': histo.get('status', ''), 'updation_date': histo['updation_date'].strftime('%Y-%m-%d'), 'position': 'Purchase Approver', 'validated_by': histo['validated_by'], 'level': 'Final'}
                     response_data.append(temp)
                 else:
+                    is_final_current = False
                     datum = get_next_approval(pr_obj, 'Purchase Approver')
+                    if final_current:
+                        is_final_current = True
                     if len(datum) > 0:
-                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
+                        temp = {'is_current': is_final_current, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': ','.join(datum), 'level': 'Final'}
                         response_data.append(temp)
                     else:
-                        temp = {'is_current': False, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
+                        temp = {'is_current': is_final_current, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
                         response_data.append(temp)
     return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

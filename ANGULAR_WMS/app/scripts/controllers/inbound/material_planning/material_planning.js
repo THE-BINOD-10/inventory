@@ -395,8 +395,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     });
 
   }
-
-
+  vm.show_formula = function () {
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/material_planning/show_formula.html',
+        controller: 'ShowFormulaCtrl',
+        controllerAs: 'showCase',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+      });
+      modalInstance.result.then(function (selectedItem) {
+        if (selectedItem) {
+          console.log('');
+        }
+      });
+    }
 
 }
 
@@ -415,3 +428,12 @@ stockone.directive('dtPoData', function() {
 });
 
 })();
+
+angular.module('urbanApp').controller('ShowFormulaCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.close = function () {
+    $modalInstance.close();
+  };
+});

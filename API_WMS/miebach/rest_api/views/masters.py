@@ -735,7 +735,7 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type__name', 'position', 'email_id',
-           'reportingto_email_id','phone_number', 'status']
+           'reportingto_email_id','phone_number', 'mrp_user', 'status']
 
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
@@ -766,7 +766,6 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
 
     else:
         master_data = StaffMaster.objects.filter(company_id__in=company_list, **search_params).order_by(order_data)
-
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     company_id = get_company_id(user)
@@ -799,7 +798,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
         if data.plant.filter():
             plant_list = data.plant.filter().values_list('name', flat=True)
-            warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
+            warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('userprofile__stockone_code', flat=True)))
             plant = ','.join(plant_list)
         if data.department_type.filter():
             department_type_names = data.department_type.filter().values_list('name', flat=True)
@@ -818,10 +817,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                     i_name = (i_name).replace(sub_user_parent.username + ' ', '')
                     group_names.append(i_name)
             if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-                #plant = wh_user.username
                 pass
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
-                #plant = get_admin(wh_user).username
                 department = wh_user.username
         group_keys = ','.join(group_names)
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
@@ -831,7 +828,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('department_code', department_type_list),
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
-                                 ('phone_number', phone_number),
+                                 ('phone_number', phone_number), ('mrp_user', 'YES' if data.mrp_user else 'NO'),
                                  ('status', status), ('company_id', data.company.id),
                                  ('groups', group_names), ('warehouse_names', warehouse_names), ('group_keys', group_keys),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
@@ -5042,6 +5039,11 @@ def update_staff_values(request, user=''):
     reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
+    mrp_user = request.POST.get('mrp_user', 'NO')
+    if mrp_user == 'YES':
+        mrp_user = True
+    else:
+        mrp_user = False
     #department_type = request.POST.get('department_type', '')
     position = request.POST.get('position', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
@@ -5056,6 +5058,7 @@ def update_staff_values(request, user=''):
     data.phone_number = phone
     data.status = status
     data.reportingto_email_id = reportingto_email_id
+    data.mrp_user = mrp_user
     data.save()
     request_data = dict(request.POST.iterlists())
     if request_data.get('groups', []):

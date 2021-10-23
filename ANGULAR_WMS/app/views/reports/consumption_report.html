@@ -9,7 +9,7 @@
 	        <form name="form" role="form" class="filters">
 	          <div class="clearfix">
 	            <div class="row col-md-12">
-	              <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
+	              <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="field in showCase.report_data.filters">
 	                <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
 	              </div>
 	            </div>
@@ -25,7 +25,12 @@
 		  		<div class="col-md-12 col-sm-12 col-xs-12">
 	      		<div class="panel" ng-if="showCase.datatable">
 							<div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
-	        		<div ng-if="showCase.report_data.row_click" ng-include="'views/common/datatable.html'"></div>
+	        		<div ng-if="showCase.report_data.row_click">
+			          <div class="panel-body">
+			            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+			            <div ui-view></div>
+			          </div>
+			        </div>
 	      		</div>
 	      		<div ui-view></div>
 	    		</div>
@@ -37,19 +42,19 @@
 	        <form name="form" role="form" class="filters">
 	          <div class="clearfix">
 	            <div class="row col-md-12">
-	            	<div class="col-md-4 col-sm-4 col-xs-6">
+	            	<div class="col-md-3 col-sm-3 col-xs-4">
 	                <div class="form-group">
 	                  <label class="control-label"> Consumption Month</label>
 	                  <input type="text" name="month_name" ng-model="showCase.month_name" class="form-control" ng-readonly="true" style="background-color:white">
 	                </div>
 	              </div>
-	              <div class="col-md-4 col-sm-4 col-xs-6">
+	              <div class="col-md-3 col-sm-3 col-xs-4">
 	                <div class="form-group">
 	                  <label class="control-label"> Consumption Year</label>
 	                  <input type="text" name="year" ng-model="showCase.year" class="form-control" ng-readonly="true" style="background-color:white">
 	                </div>
 	              </div>
-	              <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
+	              <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="field in showCase.report_data.filters">
 	                <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
 	              </div>
 	            </div>
@@ -66,7 +71,12 @@
 		  		<div class="col-md-12 col-sm-12 col-xs-12">
 	      		<div class="panel" ng-if="showCase.datatable">
 							<div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
-	        		<div ng-if="showCase.report_data.row_click" ng-include="'views/common/datatable.html'"></div>
+	        		<div ng-if="showCase.report_data.row_click">
+			          <div class="panel-body">
+			            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+			            <div ui-view></div>
+			          </div>
+			        </div>
 	      		</div>
 	      		<div ui-view></div>
 	    		</div>

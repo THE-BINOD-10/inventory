@@ -1,31 +1,49 @@
 <div class="page-layout" ng-controller="RaisePurchaseOrderCtrl as showCase">
-  <div class='layout-header'>
+  <!-- <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
-  </div>
-  <div class="layout-body"> 
+  </div> -->
+  <div class="layout-body" ng-init="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= true; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false"> 
     <tabset class="box-tab">
-      <tab heading="Raise Purchase Order" ng-if="!showCase.permissions.enable_pending_approval_pos">
-        <div ng-include="'views/inbound/raise_po/raise_po.html'"></div>
+      <tab heading="Raise Purchase Order" ng-if="!showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = true; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">
+        <div ng-controller="RaisePurchaseOrderCtrl as showCase" ng-if="RaisePurchaseOrderCtrl">
+         <div ng-include="'views/inbound/raise_po/raise_po.html'"></div>
+        </div>
       </tab>
-      <tab heading="Raise Stock Transfer" ng-if="(show_tab('multi_warehouse') || show_tab('add_openst')) && (!showCase.permissions.enable_pending_approval_pos)">
-        <div ng-include="'views/inbound/raise_po/raise_stock_transfer.html'"></div>
+      <tab heading="Raise Stock Transfer" ng-if="(show_tab('multi_warehouse') || show_tab('add_openst')) && (!showCase.permissions.enable_pending_approval_pos)" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = true; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">
+        <div ng-controller="RaiseStockTransferCtrl as showCase" ng-if="RaiseStockTransferCtrl">
+          <div ng-include="'views/inbound/raise_po/raise_stock_transfer.html'"></div>
+        </div>
       </tab>
-      <tab heading="Intransit Orders" ng-if="show_tab('add_intransitorders') && (!showCase.permissions.enable_pending_approval_pos)">
-        <div ng-include="'views/inbound/raise_po/raise_intransit_orders.html'"></div>
+      <tab heading="Intransit Orders" ng-if="show_tab('add_intransitorders') && (!showCase.permissions.enable_pending_approval_pos)" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=true; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">
+        <div ng-controller="RaiseIntransitOrderCtrl as showCase" ng-if="RaiseIntransitOrderCtrl">
+          <div ng-include="'views/inbound/raise_po/raise_intransit_orders.html'"></div>
+        </div>
       </tab>
-      <tab heading="Past Purchase Order" ng-if = "show_tab('repeat_po') && (!showCase.permissions.enable_pending_approval_pos)">
-        <div ng-include="'views/inbound/raise_po/repeat_purchase_order.html'"></div>
+      <tab heading="Past Purchase Order" ng-if = "show_tab('repeat_po') && (!showCase.permissions.enable_pending_approval_pos)" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = true; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">
+        <div ng-controller="PastPoCtrl as showCase" ng-if="PastPoCtrl">
+          <div ng-include="'views/inbound/raise_po/repeat_purchase_order.html'"></div>
+        </div>
       </tab>
-      <tab heading="Pending For Approval Purchase Orders" ng-if="showCase.permissions.enable_pending_approval_pos">
-        <div ng-include="'views/inbound/raise_po/raise_pending_purchase_order.html'"></div>
+      <tab heading="Pending For Approval Purchase Orders" ng-if="showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= true; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = false">
+        <div ng-controller="RaisePendingPurchaseOrderCtrl as showCase" ng-if="RaisePendingPurchaseOrderCtrl">
+          <div ng-include="'views/inbound/raise_po/raise_pending_purchase_order.html'"></div>
+        </div>
       </tab>
-      <tab heading="Pending PO Enquiries" ng-if="showCase.permissions.enable_pending_approval_pos">
-        <div ng-include="'views/inbound/raise_po/pending_po_enquiries.html'"></div>
+      <tab heading="Pending PO Enquiries" ng-if="showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = true; poCancelRejectedCtrl = false">
+        <div ng-controller="PendingPOEnquiriesCtrl as showCase" ng-if="PendingPOEnquiriesCtrl">
+          <div ng-include="'views/inbound/raise_po/pending_po_enquiries.html'"></div>
+        </div>
       </tab>
-      <tab heading="Cancelled & Rejected PO's" ng-if="showCase.permissions.enable_pending_approval_pos">
-        <div class="panel" ng-controller="poCancelRejectedCtrl as showCase">
+      <tab heading="Cancelled & Rejected PO's" ng-if="showCase.permissions.enable_pending_approval_pos" ng-click="RaisePurchaseOrderCtrl = false; RaiseStockTransferCtrl = false; RaiseIntransitOrderCtrl=false; PastPoCtrl = false; RaisePendingPurchaseOrderCtrl= false; PendingPOEnquiriesCtrl = false; poCancelRejectedCtrl = true">
+        <div class="panel" ng-controller="poCancelRejectedCtrl as showCase" ng-if="poCancelRejectedCtrl">
           <div class="panel-header">
-            <div ng-include="'views/common/excel.html'"></div>
+            <button type="button" class="btn btn-success btn-lg" title="Refresh" ng-click="showCase.refresh()" ng-disabled="loadingData" style="padding: 1px 20px;">
+              <span class="glyphicon glyphicon-refresh" ng-class="(loadingData)?'glyphicon-refresh-animate': '';"></span>
+            <span>REFRESH</span>
+            </button>
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+            {{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+            </button>
           </div>
           <div ng-include="'views/common/datatable.html'"></div>
         </div>
@@ -33,3 +51,4 @@
     </tabset>
   </div>
 </div>
+

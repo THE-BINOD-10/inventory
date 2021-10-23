@@ -23,7 +23,7 @@
 }
 </style>
 <div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lg" style="width: calc(100vw - 20px) !important; margin: 2px auto !important;font-size: xx-small;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
@@ -404,8 +404,14 @@
         <div class="col-lg-12 col-md-12 mb15" align="center">
           <span class="label bg-purple" style="font-size: 10px">PR User & Buyer File Uploads</span>
         </div>
-        <div class="col-md-12">
+        <div class="col-md-8">
           <tabset class="box-tab left">
+            <tab heading="PO Approval Files">
+                <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+                <div class="col-md-12" ng-repeat="uploaded_file_data_po in showCase.model_data.uploaded_file_dict" align="left" style="min-height: 20px;">
+                    <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{uploaded_file_data_po.file_url}}" target="_blank">{{uploaded_file_data_po.file_name}}</a> </span>
+                </div>
+            </tab>
             <tab heading="PR user">
               <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
               <div class="col-md-12" ng-repeat = "uploaded_file_data in showCase.model_data.pr_uploaded_file_dict" align="left" style="min-height: 20px;">
@@ -418,17 +424,11 @@
                 <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.pa_uploaded_file_dict.file_name}}</a> </span>
               </div>
             </tab>
-            <tab heading="PO Approval Files" ng-if="showCase.model_data.uploaded_file_dict.file_url">
-              <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
-              <div class="col-md-12" align="left" style="min-height: 20px;">
-                <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.uploaded_file_dict.file_name}}</a> </span>
-              </div>
-            </tab>
           </tabset>
         </div>
-        <div class="col-md-4 hide">
-          <div class="form-group col-md-3" style="padding-top: 30px;">
-           <span><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" /></span>
+		<div class="col-md-4">
+          <div class="form-group col-md-3 container" style="padding-top: 30px;">
+            <form><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple/></form>
           </div>
         </div>
       </div>

@@ -623,6 +623,12 @@
       </div>
       <div class="col-md-12">
         <tabset class="box-tab left">
+          <tab heading="PO Approval Files">
+            <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
+            <div class="col-md-12" ng-repeat="uploaded_file_data_po in showCase.model_data.uploaded_file_dict" align="left" style="min-height: 20px;">
+              <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{uploaded_file_data_po.file_url}}" target="_blank">{{uploaded_file_data_po.file_name}}</a> </span>
+            </div>
+          </tab>
           <tab heading="PR user">
             <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
             <div class="col-md-12" ng-repeat = "uploaded_file_data in showCase.model_data.pr_uploaded_file_dict" align="left" style="min-height: 20px;">
@@ -635,17 +641,11 @@
               <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.pa_uploaded_file_dict.file_name}}</a> </span>
             </div>
           </tab>
-          <tab heading="PO Approval Files" ng-if="showCase.model_data.uploaded_file_dict.file_url">
-            <div class="col-md-12 mb10"><span class="label label-default">Details</span></div>
-            <div class="col-md-12" align="left" style="min-height: 20px;">
-              <span style="background: aliceblue; cursor: pointer;"><b> . </b> <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank">{{showCase.model_data.uploaded_file_dict.file_name}}</a> </span>
-            </div>
-          </tab>
         </tabset>
       </div>
       <div class="col-md-4 hide">
         <div class="form-group col-md-3" style="padding-top: 30px;">
-         <span><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" /></span>
+         <span><input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple/></span>
         </div>
       </div>
     </div>

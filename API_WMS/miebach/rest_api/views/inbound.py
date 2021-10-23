@@ -165,14 +165,16 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         last_updated_remarks = result['pending_pr__remarks']
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                         pr_user=pr_user).order_by('-creation_date').exclude(status="resubmitted")
-        approval_type = ''
+        approval_type, lastLevel = '', 'level0'
         # if prApprQs.exists():
         #     approval_type = prApprQs[0].approval_type
         # reqConfigName, lastLevel = findLastLevelToApprove(pr_user, result['pending_pr__pr_number'],
         #                             result['total_amt'], purchase_type='PR', product_category=product_category,
         #                                                   approval_type=approval_type, sku_category=sku_category_val)
         if prApprQs.exists():
-            lastLevel = PurchaseApprovalConfig.objects.filter(name=prApprQs[0].configName).order_by('-level').values('level')[0]['level']
+            lastLevel = PurchaseApprovalConfig.objects.filter(name=prApprQs[0].configName).order_by('-level').values('level')
+	    if lastLevel.exists():
+	        lastLevel = lastLevel[0]['level']
             if result['pending_pr__final_status'] == 'approved':
                 validated_by = ''
             else:

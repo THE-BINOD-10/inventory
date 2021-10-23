@@ -1852,7 +1852,7 @@ def generated_pr_data(request, user=''):
     central_po_data = ''
     pr_remarks = ''
     validateFlag = 0
-    uploaded_file_dict = {}
+    uploaded_file_dict = []
     if len(record) > 0:
         if record[0].pending_prs.filter().exists():
             penidng_prss = record[0].pending_prs.filter()
@@ -1867,7 +1867,8 @@ def generated_pr_data(request, user=''):
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
     if master_docs.exists():
-        uploaded_file_dict = { 'file_name': ''.join(master_docs[0].uploaded_file.name.split('/')[3:]), 'id': master_docs[0].id, 'file_url': '/' + master_docs[0].uploaded_file.name }
+        for master_docc in master_docs:
+            uploaded_file_dict.append({ 'file_name': ''.join(master_docc.uploaded_file.name.split('/')[3:]), 'id': master_docc.id, 'file_url': '/' + master_docc.uploaded_file.name })
     pr_uploaded_file_dict = []
     pa_uploaded_file_dict = {}
     respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
@@ -4411,6 +4412,11 @@ def approve_pr(request, user=''):
                     sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
                             eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
                             currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
+            if master_type == 'pr_approvals_conf_data':
+                file_objs = request.FILES
+                for file_obj_tup in file_objs.iteritems():
+                    file_obj = file_obj_tup[1]
+                    upload_master_file(request, user, pendingPRObj.id, 'pending_po', master_file=file_obj)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -17652,7 +17658,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['id', 'transact_number', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
+    lis = ['id', 'transact_number', 'user', 'user', 'user', 'state', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
             'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'supplier_id', 'amount']
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
@@ -17675,6 +17681,13 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
             users = User.objects.none()
+    if request.POST.get('state'):
+        plant_users = users.filter(userprofile__state=request.POST['state'], userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
+            users = users.filter(id__in=state_users)
+        else:
+            users = User.objects.none()
     if request.POST.get('dept_type'):
         dept_type = request.POST['dept_type']
         users = users.filter(userprofile__stockone_code=dept_type)
@@ -17692,8 +17705,6 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    if MRP.objects.filter().exists():
-        search_params['creation_date__gte'] = MRP.objects.filter().order_by('-creation_date')[0].creation_date.strftime('%Y-%m-%d')
     master_data = MRP.objects.filter(**search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -17708,7 +17719,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         if data.user.userprofile.warehouse_type == 'DEPT':
             plant = get_admin(data.user)
         data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
-                                    ('Department', data.user.first_name),
+                                    ('Department', data.user.first_name), ('State', plant.userprofile.state),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
                                   ('Average Plant Daily Consumption Qty', round(data.avg_plant_sku_consumption_day, 2)),
@@ -18038,6 +18049,14 @@ def generate_material_planning(request, user):
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
             users = User.objects.none()
+    if request.POST.get('state'):
+        plant_users = users.filter(userprofile__state=request.POST['state'], userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
+            users = users.filter(id__in=state_users)
+        else:
+            users = User.objects.none()
+
     if request.POST.get('dept_type'):
         dept_type = request.POST['dept_type']
         users = users.filter(userprofile__stockone_code=dept_type)

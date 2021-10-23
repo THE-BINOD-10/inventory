@@ -13661,7 +13661,13 @@ def get_department_list(request, user=''):
     # department_list = list(StaffMaster.objects.filter(company_id__in=company_ids).\
     #                        values_list('department_type', flat=True).distinct())
     department_list = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
-    return HttpResponse(json.dumps({'department_list': department_list}))
+    users = [user.id]
+    if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_depts(request, users)
+    states_list = list(users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('userprofile__state', flat=True).distinct())
+    return HttpResponse(json.dumps({'department_list': department_list, 'states_list': states_list}))
 
 
 def insert_admin_suppliers(request, user):

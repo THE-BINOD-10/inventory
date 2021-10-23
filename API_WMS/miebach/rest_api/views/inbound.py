@@ -1851,7 +1851,7 @@ def generated_pr_data(request, user=''):
     central_po_data = ''
     pr_remarks = ''
     validateFlag = 0
-    uploaded_file_dict = {}
+    uploaded_file_dict = []
     if len(record) > 0:
         if record[0].pending_prs.filter().exists():
             penidng_prss = record[0].pending_prs.filter()
@@ -1866,7 +1866,8 @@ def generated_pr_data(request, user=''):
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks, 'creation_date': record[0].creation_date.strftime("%d-%m-%Y, %H:%M:%S"), 'updation_date': record[0].updation_date.strftime("%d-%m-%Y, %H:%M:%S")})
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
     if master_docs.exists():
-        uploaded_file_dict = { 'file_name': ''.join(master_docs[0].uploaded_file.name.split('/')[3:]), 'id': master_docs[0].id, 'file_url': '/' + master_docs[0].uploaded_file.name }
+        for master_docc in master_docs:
+            uploaded_file_dict.append({ 'file_name': ''.join(master_docc.uploaded_file.name.split('/')[3:]), 'id': master_docc.id, 'file_url': '/' + master_docc.uploaded_file.name })
     pr_uploaded_file_dict = []
     pa_uploaded_file_dict = {}
     respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
@@ -4406,6 +4407,11 @@ def approve_pr(request, user=''):
                     sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
                             eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
                             currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
+            if master_type == 'pr_approvals_conf_data':
+                file_objs = request.FILES
+                for file_obj_tup in file_objs.iteritems():
+                    file_obj = file_obj_tup[1]
+                    upload_master_file(request, user, pendingPRObj.id, 'pending_po', master_file=file_obj)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

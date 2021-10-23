@@ -726,11 +726,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.permissions.central_admin_level_po){
         elem.push({name:'data_id', value:vm.data_id});
       }
+      var form_data = new FormData();
+	  if ($(".pr_form").find('[name="files"]').length > 0) {
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+      }
       var all_po_emails = $(".internal_mails").val();
       var supplier_secondary_mails = $(all_po_emails.split(',')).not(vm.model_data.actual_po_all_mails.split(',')).get().toString();
       elem.push({name:'all_po_emails', value: all_po_emails});
       elem.push({name:'suplier_secondary_mails', value: supplier_secondary_mails});
-      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      vm.service.apiCall('approve_pr/', 'POST', form_data, true, true).then(function(data){
         if(data.message){
           if(data.data == 'Approved Successfully') {
             vm.data_id = '';

@@ -2589,6 +2589,18 @@ var app = angular.module('urbanApp')
             title: 'MRP Suggested vs PO Qty - Plant Level Report',
           }
         })
+        .state('app.reports.MRPPRDailyReport', {
+          url: '/MRPPRDailyReport',
+          templateUrl: 'views/reports/mrp_pr_daily_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/mrp_pr_daily_report.js');
+              }]
+          },
+          data: {
+            title: 'Daily Report on PR raised against MRP line',
+          }
+        })
 
 
         .state('app.reports.LocationWiseFilter', {

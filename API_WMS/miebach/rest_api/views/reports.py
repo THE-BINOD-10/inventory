@@ -99,7 +99,7 @@ def get_report_data(request, user=''):
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'metropolis_pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
                          'sku_wise_consumption_report', 'get_sku_wise_consumption_reversal', 'closing_stock_report', 'consumption_data', 'get_consumption_data',
-                         'get_mrp_exception_report', 'get_mrp_line_level_report', 'get_mrp_po_report', 'get_mrp_department_report']:
+                         'get_mrp_exception_report', 'get_mrp_line_level_report', 'get_mrp_po_report', 'get_mrp_department_report', 'get_mrp_pr_daily_report']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -3160,5 +3160,15 @@ def get_mrp_po_report(request, user=''):
     temp_data = get_mrp_po_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_mrp_pr_daily_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_mrp_pr_daily_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 

@@ -766,7 +766,10 @@ def get_supplier_details_data(search_params, user, sub_user):
             status_var = 'Partially Received'
         if status_var not in  ['Received', 'Putaway Confirmed']:
             pending_days = (datetime.datetime.now() - po_obj.creation_date.replace(tzinfo=None)).days
+        expected_delivery_date = po_obj.expected_date if po_obj.expected_date else ''
+        product_category = po_obj.product_category if po_obj.product_category else ''
         user_obj = users.get(id=po_obj.open_po.sku.user)
+        department = ''
         if user_obj.userprofile.warehouse_type == 'DEPT':
             user_obj = get_admin(user_obj)
         plant_code = user_obj.userprofile.stockone_code
@@ -776,9 +779,11 @@ def get_supplier_details_data(search_params, user, sub_user):
         requested_user = user_obj.username
         pend_po_id = ''
         if pend_po:
+            department = pend_po[0].pending_prs.filter()[0].wh_user.username
             requested_user = pend_po[0].requested_user.username;
             pend_po_id = pend_po[0].id
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.creation_date)),
+                                                    ('Department', department),
                                                     ('Plant Code', plant_code),
                                                     ('Plant Name', plant_name),
                                                     ('Zone', zone),
@@ -789,6 +794,8 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', total_ordered),
                                                     ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
+                                                    ('Expected Date', expected_delivery_date),
+                                                    ('Product Category', product_category),
                                                     ('Status', status_var), ('order_id', po_obj.order_id),
                                                     ('PO Pending Days', pending_days),
                                                     ('Supplier ID', po_obj.open_po.supplier.supplier_id),

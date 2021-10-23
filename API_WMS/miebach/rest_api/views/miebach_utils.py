@@ -2165,7 +2165,7 @@ SUPPLIER_WISE_PO_REPORT = {
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'Status', 'name': 'status', 'type': 'select'},
     ],
-    'dt_headers': ['Order Date', 'Plant Code', 'Plant Name', 'Zone', 'PO Number', 'Supplier Name', 'Ordered Quantity', 'Received Quantity', 'Amount', 'Status', 'PO Pending Days'],
+    'dt_headers': ['Order Date', 'Department', 'Plant Code', 'Plant Name', 'Zone', 'PO Number', 'Supplier Name', 'Ordered Quantity', 'Received Quantity', 'Amount', 'Expected Date', 'Product Category', 'Status', 'PO Pending Days'],
     'dt_url': 'get_supplier_details', 'excel_name': 'get_supplier_details',
     'print_url': 'get_supplier_details',
 }

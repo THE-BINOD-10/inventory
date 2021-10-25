@@ -642,7 +642,7 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                     ],
             'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
             "PR Qty", "Category", "Plant Code", "Plant" , "Zone", "Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
-            "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date",
+            "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date", "Diff in Expected vs GRN date",
             'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
             "Type of GRN", "Delivery challan no","Delivery challan Date","Invoice Number",  "Invoice Date",
             "Credit Note applicable", "Credit Note Number","GRN Status",
@@ -828,7 +828,7 @@ SKU_WISE_GRN_DICT = {'filters': [
     'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)",
                    "PR Category types","PR Qty", "Category",  "UOM", "Price per Unit", "Total Amt","Plant Code",
                    "Plant" , "Zone", "Approved by all Approvers", "Final Approver date","PO No" , "PO Date", "PO Qty",
-                   "PO Basic Price", "Tax Amt" ,"PO total amt", "Expected delivery date","GRN date", "GRN Number",
+                   "PO Basic Price", "Tax Amt" ,"PO total amt", "Expected delivery date", "Diff in Expected vs GRN date", "GRN date", "GRN Number",
                    "GRN Done by User Name", "PO Reference Number", "Supplier ID", "Supplier Name", "Payment Terms", "Recepient",
                    "SKU Code", "SKU Description", "SKU Category", "Sub Category", "SKU Brand", "HSN Code", "SKU Class",
                    "SKU Style Name", "SKU Brand", "GRN Qty",'Purchase UOM','Purchase Quantity','Line Level Conversion',
@@ -5578,9 +5578,9 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         po_numbers.append(model_dat['purchase_order__po_number'])
         grn_numbers.append(model_dat['grn_number'])
     payment_terms_dict = {}
-    pending_pos = PendingPO.objects.using(reports_database).filter(full_po_number__in=po_numbers).values('full_po_number', 'supplier_payment__payment_description')
+    pending_pos = PendingPO.objects.using(reports_database).filter(full_po_number__in=po_numbers).values('full_po_number', 'supplier_payment__payment_description', 'pending_prs__delivery_date')
     for pending_po in pending_pos:
-        payment_terms_dict[str(pending_po['full_po_number'])] = pending_po.get('supplier_payment__payment_description','')
+        payment_terms_dict[str(pending_po['full_po_number'])] = {'payment_term':pending_po.get('supplier_payment__payment_description',''), 'delivery_date': pending_po.get('pending_prs__delivery_date','')}
     purchase_orders = PurchaseOrder.objects.using(reports_database).filter(po_number__in=po_numbers).\
                                             select_related('open_po')
     po_price_dict = get_sku_wise_grn_price_dict(purchase_orders)
@@ -5696,6 +5696,10 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             pr_plant = grn_genrated_user.first_name
         if(data["purchase_order__open_po__delivery_date"]):
             Expected_delivery_date = data['purchase_order__open_po__delivery_date'].strftime("%d %b, %Y")
+        Expected_delivery_date = str(payment_terms_dict.get(data["purchase_order__po_number"], {}).get('delivery_date', ''))
+        expected_vs_grn_diff = ''
+        if Expected_delivery_date:
+            expected_vs_grn_diff = str((seller_po_summary.creation_date).date() - payment_terms_dict.get(data["purchase_order__po_number"],{}).get('delivery_date', '')).split(',')[0]
         if data['purchase_order__open_po__vendor__vendor_id']:
             vendor_code = data['purchase_order__open_po__vendor__vendor_id']
         if data['purchase_order__open_po__vendor__name']:
@@ -5803,6 +5807,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ("Approved by all Approvers", sku_pending_po_dict.get('all_approvals', '')),
                                 ("Final Approver date", sku_pending_po_dict.get('last_approvals_date', '')),
                                 ("Expected delivery date", Expected_delivery_date),
+                                ('Diff in Expected vs GRN date', expected_vs_grn_diff),
                                 ('GRN date', get_local_date(user, seller_po_summary.creation_date)),
                                 ('PO Date', get_local_date(user, sku_po_price_dict['creation_date'])),
                                 ('GRN Number', grn_number),
@@ -5811,7 +5816,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('PO Reference Number', data['purchase_order__open_po__po_name']),
                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                 ('Supplier Name', data[field_mapping['supplier_name']]),
-                                ('Payment Terms', payment_terms_dict.get(data["purchase_order__po_number"], '')),
+                                ('Payment Terms', payment_terms_dict.get(data["purchase_order__po_number"], {}).get('payment_term','')),
                                 ('Recepient', user.userprofile.company.company_name),
                                 ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                 ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
@@ -7094,9 +7099,9 @@ def get_po_filter_data(request, search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     po_numbers = list(model_data.values_list('purchase_order__po_number', flat =True))
     payment_terms_dict = {}
-    pending_pos = PendingPO.objects.using(reports_database).filter(full_po_number__in=po_numbers).values('full_po_number','supplier_payment__payment_description')
+    pending_pos = PendingPO.objects.using(reports_database).filter(full_po_number__in=po_numbers).values('full_po_number','supplier_payment__payment_description', 'pending_prs__delivery_date')
     for pending_po in pending_pos:
-        payment_terms_dict[str(pending_po['full_po_number'])] = pending_po.get('supplier_payment__payment_description','')
+        payment_terms_dict[str(pending_po['full_po_number'])] = {'payment_term': pending_po.get('supplier_payment__payment_description',''), 'delivery_date': pending_po.get('pending_prs__delivery_date','')}
     purchase_orders = PurchaseOrder.objects.using(reports_database).filter(open_po__sku__user__in=user_ids)
     for data in model_data:
         po_result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids)
@@ -7216,6 +7221,10 @@ def get_po_filter_data(request, search_params, user, sub_user):
         if(data["purchase_order__open_po__delivery_date"]):
             Expected_delivery_date = data['purchase_order__open_po__delivery_date'].strftime("%d %b, %Y")
             # Expected_delivery_date = ' '.join(Expected_delivery_date[0:3])
+        Expected_delivery_date = str(payment_terms_dict.get(po_number, {}).get('delivery_date', ''))
+        expected_vs_grn_diff = ''
+        if Expected_delivery_date:
+            expected_vs_grn_diff = str((sellerposummary_data[0].creation_date).date() - payment_terms_dict.get(po_number, {}).get('delivery_date', '')).split(',')[0]
         if data['status']==1:
             grn_status="Cancelled"
             credit_note_status= "Cancelled"
@@ -7294,7 +7303,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                                                 ('PO Reference', po_reference_name),
                                                 ("Type of GRN", Type_of_GRN),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                ('Payment Terms', payment_terms_dict.get(po_number, '')),
+                                                ('Payment Terms', payment_terms_dict.get(po_number, {}).get('payment_term', '')),
                                                 ("Credit Note applicable", credit_note_status),
                                                 ("Credit Note Number", data["credit__credit_number"]),
                                                 ("PR raised By(department name)",pr_department),
@@ -7304,6 +7313,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                                                 ('MHL generated Delivery Challan Date', challan_date),
                                                 ("GRN Status", grn_status),
                                                 ("Expected delivery date", Expected_delivery_date),
+                                                ('Diff in Expected vs GRN date', expected_vs_grn_diff),
                                                 ("Final Approver date", last_approvals_date),
                                                 ('Order Quantity', po_total_qty),
                                                 ('PO Quantity', po_total_qty),

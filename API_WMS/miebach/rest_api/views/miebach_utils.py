@@ -18241,10 +18241,10 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         #     pcf = 1
         if result['sku_pcf']:
             pcf = result['sku_pcf']
-        new_date = datetime.datetime.strptime('2021-08-31', '%Y-%m-%d')
+        '''new_date = datetime.datetime.strptime('2021-08-31', '%Y-%m-%d')
         if result['creation_date'].strftime("%Y-%m-%d") <= new_date.strftime("%Y-%m-%d"):
             if result['stock_mapping__stock__batch_detail__pcf']:
-                pcf = result['stock_mapping__stock__batch_detail__pcf']
+                pcf = result['stock_mapping__stock__batch_detail__pcf']'''
         quantity = result['stock_mapping__quantity']
         if result['quantity'] < 0:
             quantity = -1 * quantity

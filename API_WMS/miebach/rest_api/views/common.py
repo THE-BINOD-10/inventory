@@ -15364,7 +15364,7 @@ def next_approvals_with_staff_master_mails_for_po(datum, po_number):
         if ranges_datum.exists():
             for dat in ranges_datum:
                 display_name = dat['display_name']
-                histories = po_obj.pending_poApprovals.filter(approval_type=dat['approval_type'], configName=dat['name'], level=dat['level']).values('status', 'validated_by', 'updation_date')
+                histories = po_obj.pending_poApprovals.filter(configName=dat['name'], level=dat['level']).values('status', 'validated_by', 'updation_date')
                 if histories.exists():
                     for histo in histories:
                         if histo['status'] == '':
@@ -15379,8 +15379,8 @@ def next_approvals_with_staff_master_mails_for_po(datum, po_number):
                         histo['position'] = dat['user_role__role_name']
                         response_data.append(histo)
                 else:
-                    datum = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
-                    response_data.append(datum)
+                    datums = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
+                    response_data.append(datums)
     datum['po'] = {'label':'PO DOA & Next Approvals', 'name': display_name, 'datum': response_data}
     return datum
 
@@ -15453,8 +15453,8 @@ def next_approvals_with_staff_master_mails(request, user=''):
     if pr_po_number:
         datas = {}
         datas['pr'] = {'label':'PR DOA & Approvals', 'name': display_name, 'datum': response_data}
-        datum = next_approvals_with_staff_master_mails_for_po(datas, pr_po_number)
-        return HttpResponse(json.dumps({'datum': datum}))
+        resulta = next_approvals_with_staff_master_mails_for_po(datas, pr_po_number)
+        return HttpResponse(json.dumps({'datum': resulta}))
     else:
         return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 

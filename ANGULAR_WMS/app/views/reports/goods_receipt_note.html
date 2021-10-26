@@ -64,6 +64,7 @@
       <div class="panel" ng-if="showCase.datatable">
         <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'goods receipt note' || ($state.current.data.title | lowercase) == 'stock transfer goods receipt note' || ($state.current.data.title | lowercase) == 'approval po reports'">
 		  <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+            <button type="button" style="margin-left: 10px" class="btn btn-primary" ng-click="showCase.service.download_full_report(showCase.report_data.excel_name)">Download Full Report</button>
 			<span ng-if="($state.current.data.title | lowercase) == 'goods receipt note'">Toggle GRN</span>
             <span ng-if="($state.current.data.title | lowercase) == 'stock transfer goods receipt note'">Toggle Stock Transfer GRN</span>
 		  </div>

@@ -341,6 +341,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
       if(filters.zone_code1) {
         filters.zone_code = filters.zone_code1.join();
       }
+      if(filters.dept_type1) {
+        filters.dept_type = filters.dept_type1.join();
+      }
+      if(filters.state1) {
+        filters.state = filters.state1.join();
+      }
+
       Data.mp_filters = filters;
     }
 
@@ -350,6 +357,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     if(data.message) {
       vm.department_type_list = data.data.department_list;
       vm.states_list = data.data.states_list;
+      $timeout(function(){$('.selectpicker-dept').selectpicker();}, 500);
+      $timeout(function(){$('.selectpicker-state').selectpicker();}, 500);
     }
   });
 
@@ -357,7 +366,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
   vm.service.apiCall('get_sku_category_list/',).then(function(data){
     if(data.message){
       vm.category_list = data.data.category_list;
-      $timeout(function(){$('.selectpicker-category').selectpicker();}, 100);
+      $timeout(function(){$('.selectpicker-category').selectpicker();}, 500);
     }
   })
 
@@ -370,6 +379,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
         if(vm.model_data.filters.zone_code1) {
           vm.model_data.filters.zone_code = vm.model_data.filters.zone_code1.join();
         }
+        if(vm.model_data.filters.dept_type1) {
+          vm.model_data.filters.dept_type = vm.model_data.filters.dept_type1.join();
+        }
+        if(vm.model_data.filters.state1) {
+          vm.model_data.filters.state = vm.model_data.filters.state1.join();
+        }
+
+
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);
@@ -388,6 +405,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
         }
         if(vm.model_data.filters.zone_code1) {
           vm.model_data.filters.zone_code = vm.model_data.filters.zone_code1.join();
+        }
+        if(vm.model_data.filters.dept_type1) {
+          vm.model_data.filters.dept_type = vm.model_data.filters.dept_type1.join();
+        }
+        if(vm.model_data.filters.state1) {
+          vm.model_data.filters.state = vm.model_data.filters.state1.join();
         }
 
         var filters_data = vm.model_data.filters;

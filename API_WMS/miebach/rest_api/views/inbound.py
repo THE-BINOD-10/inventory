@@ -17678,7 +17678,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         else:
             users = User.objects.none()
     if request.POST.get('state'):
-        plant_users = users.filter(userprofile__state=request.POST['state'], userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        plant_users = users.filter(userprofile__state__in=request.POST['state'].split(','), userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
         if plant_users:
             state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
             users = users.filter(id__in=state_users)
@@ -17686,7 +17686,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
             users = User.objects.none()
     if request.POST.get('dept_type'):
         dept_type = request.POST['dept_type']
-        users = users.filter(userprofile__stockone_code=dept_type)
+        users = users.filter(userprofile__stockone_code__in=dept_type.split(','))
 
     if 'zone_code' in filters and filters['zone_code']:
         zone_code = filters['zone_code'].split(',')
@@ -18048,7 +18048,7 @@ def generate_material_planning(request, user):
         else:
             users = User.objects.none()
     if request.POST.get('state'):
-        plant_users = users.filter(userprofile__state=request.POST['state'], userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        plant_users = users.filter(userprofile__state__in=request.POST['state'].split(','), userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
         if plant_users:
             state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
             users = users.filter(id__in=state_users)
@@ -18057,7 +18057,7 @@ def generate_material_planning(request, user):
 
     if request.POST.get('dept_type'):
         dept_type = request.POST['dept_type']
-        users = users.filter(userprofile__stockone_code=dept_type)
+        users = users.filter(userprofile__stockone_code__in=dept_type.split(','))
 
     if 'zone_code' in filters and filters['zone_code']:
         zone_code = filters['zone_code'].split(',')
@@ -18361,9 +18361,17 @@ def send_material_planning_mail(request, user):
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
             users = User.objects.none()
+    if request.POST.get('state'):
+        plant_users = users.filter(userprofile__state__in=request.POST['state'].split(','), userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        if plant_users:
+            state_users = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True).values_list('id', flat=True))
+            users = users.filter(id__in=state_users)
+        else:
+            users = User.objects.none()
+
     if request.POST.get('dept_type'):
         dept_type = request.POST['dept_type']
-        users = users.filter(userprofile__stockone_code=dept_type)
+        users = users.filter(userprofile__stockone_code__in=dept_type.split(','))
 
     if 'zone_code' in filters and filters['zone_code']:
         zone_code = filters['zone_code'].split(',')

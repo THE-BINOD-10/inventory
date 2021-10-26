@@ -253,14 +253,16 @@ def get_admin_all_wh(f):
             plant_list = list(plant_users.values_list('username', flat=True))
             plant_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'],
                                                        warehouse=plant_list)
-            dept_users = plant_depts.filter(username__in=list(staff_objs.values_list('department_type__name', flat=True)))
-            if not dept_users:
-                staff_obj = staff_objs[0]
-                parent_company_id = get_company_id(user)
-                company_id = staff_obj.company_id
-                if parent_company_id == staff_obj.company_id:
-                    company_id = ''
-                dept_users = plant_depts
+            if staff_objs.exclude(department_type__isnull=True).values_list('department_type__name', flat=True):
+                dept_users = plant_depts.filter(userprofile__stockone_code__in=list(staff_objs.values_list('department_type__name', flat=True)))
+            else:
+                if not dept_users:
+                    staff_obj = staff_objs[0]
+                    parent_company_id = get_company_id(user)
+                    company_id = staff_obj.company_id
+                    if parent_company_id == staff_obj.company_id:
+                        company_id = ''
+                    dept_users = plant_depts
             kwargs['users'] = plant_users | dept_users
         else:
             kwargs['users'] = User.objects.filter(id=user.id)

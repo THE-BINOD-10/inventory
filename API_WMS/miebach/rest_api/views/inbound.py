@@ -17723,6 +17723,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                   ('Dept Stock Qty', round(data.system_stock_qty, 2)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 2)),
                                   ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
                                   ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)),
+                                  ('Raise PR Quantity', '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), round(data.suggested_qty, 2))),
                                   ('Supplier Id', data.supplier_id), ('Suggested Value', data.amount),
                                   ('DT_RowAttr', {'data-id': data.id}),
                                   ('hsn_code', data.sku.hsn_code)
@@ -17746,8 +17747,8 @@ def prepare_material_planning_pr_data(request, user=''):
                         'sku_code': request.POST.get('sku_code', ''), 'plant_name': request.POST.get('plant_name', '')}
         get_material_planning_data(0, None, temp_data, '', 0, 0, request, user, cus_filters=cus_filters)
         for dat in temp_data['aaData']:
-            if dat['Suggested Qty'] <= 0:
-                continue
+            #if dat['Suggested Qty'] <= 0:
+            #    continue
             sku_code = dat['SKU Code']
             capacity = dat['System Stock Qty']
             openpr_qty = dat['Pending PR Qty']
@@ -17771,11 +17772,12 @@ def prepare_material_planning_pr_data(request, user=''):
             sku = datum.sku
             uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
             suggested_qty = request_data['suggested_qty'][i]
+            raise_pr_qty = request_data['raise_pr_qty'][i]
             capacity = request_data['capacity'][i]
             openpr_qty = request_data['openpr_qty'][i]
             avg_consumption_qty = request_data['avg_consumption_qty'][i]
             openpo_qty = request_data['openpo_qty'][i]
-            data_list.append({'sku_code': sku.sku_code, 'wms_code': sku.wms_code, 'sku_desc': sku.sku_desc, 'quantity': suggested_qty, 'base_uom': uom_dict.get('base_uom', ''),
+            data_list.append({'sku_code': sku.sku_code, 'wms_code': sku.wms_code, 'sku_desc': sku.sku_desc, 'quantity': raise_pr_qty, 'base_uom': uom_dict.get('base_uom', ''),
                             'conversion': uom_dict.get('sku_conversion', 1), 'ccf': uom_dict.get('sku_conversion', 1), 'cuom': uom_dict.get('base_uom', ''),
                             'measurement_unit': uom_dict.get('measurement_unit', ''), 'hsn_code': sku.hsn_code, 'capacity': capacity, 'openpr_qty': openpr_qty,
                             'avg_consumption_qty': avg_consumption_qty, 'openpo_qty': openpo_qty, 'mrp_id': datum.id, 'suggested_qty': suggested_qty})

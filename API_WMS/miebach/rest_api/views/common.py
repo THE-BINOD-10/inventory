@@ -15464,3 +15464,27 @@ def next_approvals_with_staff_master_mails(request, user=''):
 def zones_list(request, user=''):
     zones_list = list(UserProfile.objects.filter().values_list('zone', flat=True).distinct())
     return HttpResponse(json.dumps({'zones': zones_list}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_full_report(request, user=''):
+    EXCEL_REPORT_MAPPING = {'get_metropolis_po_report':'PO report Header level',
+                            'get_metropolis_po_detail_report': 'PO report Line level',
+                            'goods_receipt': 'GRN report Header level',
+                            'sku_wise_goods_receipt':'GRN report Line level',
+                            'get_pr_report': 'PR report Header level',
+                            'get_pr_detail_report': 'PR report Line level'}
+    excel_name = request.POST['excel_name']
+    filename = EXCEL_REPORT_MAPPING.get(excel_name, '')
+    user = User.objects.filter(id=2)[0]
+    download_path = "{}{}".format(user.username,filename)
+    path = 'static/excel_files/'+ download_path
+    if os.path.exists(path+'.csv'):
+        full_path = path+'.csv'
+    elif os.path.exists(path+'.xls'):
+        full_path = path+'.xls'
+    else:
+        return HttpResponse('No Existing files of the Report')
+    path_to_file = '../' + full_path
+    return HttpResponse(path_to_file)

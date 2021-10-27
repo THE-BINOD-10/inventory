@@ -7,6 +7,7 @@ django.setup()
 from miebach_admin.models import *
 from rest_api.views.inbound import sendMailforPendingPO
 import datetime
+from django.db.models import Sum, F
 
 def init_logger(log_file):
     log = logging.getLogger(log_file)
@@ -29,11 +30,17 @@ class Command(BaseCommand):
         is_resubmitted = False
         urlPath = 'http://mi.stockone.in'
         time_to_check = datetime.datetime.now() - datetime.timedelta(days=1)
-        all_pending_approval_details = PurchaseApprovals.objects.filter(creation_date__lt=time_to_check, status='', purchase_type='PR').exclude(status__in=['approved', 'on_approved', 'resubmitted', 'rejected'])
+        all_pending_approval_details = PurchaseApprovals.objects.filter(creation_date__lt=time_to_check, status__in=['', 'on_approved'], purchase_type='PR').exclude(status__in=['approved', 'resubmitted', 'rejected'])
         if all_pending_approval_details.exists():
             for record in all_pending_approval_details:
+                mailSub = 'remainder_pr_created'
                 pending_pr, user, baseLevel = ['']*3
                 pending_pr = record.pending_pr
+                qty = pending_pr.pending_prlineItems.aggregate(total_qty = Sum(F('quantity')))['total_qty']
+                if not qty:
+                    continue
+                if record.status == 'on_approved':
+                    mailSub = 'pr_approval_at_last_level'
                 if pending_pr.final_status not in ['pr_converted_to_po', 'cancelled', 'rejected']:
                     user = record.pending_pr.wh_user
                     baseLevel = record.level

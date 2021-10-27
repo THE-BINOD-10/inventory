@@ -2130,7 +2130,7 @@ MRP_DEPARTMENT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
     ],
-    'dt_headers': ['MRP Run Id', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'No of MRP Lines Generated', 'No of MRP Lines for which PR(even partial) was Raised', 'Value of MRP Generated', 'Value of PRs Generated', 'MRP Suggested Qty', 'PR Created Qty'],
+    'dt_headers': ['MRP Run Id', 'MRP Run Date', 'Number of Days Since the MRP Run Date', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'No of MRP Lines Generated', 'No of MRP Lines for which PR(even partial) was Raised', 'Value of MRP Generated', 'Value of PRs Generated', 'MRP Suggested Qty', 'PR Created Qty'],
     'dt_url': 'get_mrp_department_report', 'excel_name': 'get_mrp_department_report',
     'print_url': 'get_mrp_department_report',
 }
@@ -2151,6 +2151,38 @@ MRP_LINE_LEVEL_DICT = {
                     'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty', 'Supplier Id', 'Suggested Value'],
     'dt_url': 'get_mrp_line_level_report', 'excel_name': 'get_mrp_line_level_report',
     'print_url': 'get_mrp_line_level_report',
+}
+
+MRP_PO_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['MRP Run Id', 'Plant Code',  'Plant Name', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'MRP Suggested Qty', 'MRP Suggested Value', 'MRP Suggested Supplier', 'PO Qty', 'PO Value (without Tax)',  'PO Supplier'],
+    'dt_url': 'get_mrp_po_report', 'excel_name': 'get_mrp_po_report',
+    'print_url': 'get_mrp_po_report',
+}
+
+MRP_PR_DAILY_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
+        {'label':'Plant Code', 'name': 'plant_code', 'type': 'plant_code_search'},
+        {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['MRP Receiver User', 'MRP Run ID', 'MRP Run Date', 'Zone', 'State', 'Plant Code', 'Department', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'MRP Qty', 'MRP Value', 'PR Date', 'PR Number', 'PR Qty', 'PR Value', 'Diff in MRP vs PR Qty', 'Diff in MRP vs PR Value'],
+    'dt_url': 'get_mrp_pr_daily_report', 'excel_name': 'get_mrp_pr_daily_report',
+    'print_url': 'get_mrp_pr_daily_report',
 }
 
 
@@ -2239,6 +2271,8 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'get_mrp_exception_report': MRP_EXCEPTION_DICT,
                      'get_mrp_department_report': MRP_DEPARTMENT_DICT,
                      'get_mrp_line_level_report': MRP_LINE_LEVEL_DICT,
+                     'get_mrp_po_report': MRP_PO_DICT,
+                     'get_mrp_pr_daily_report': MRP_PR_DAILY_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2961,6 +2995,10 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_asn_detail': 'get_asn_data',
                         'get_pr_performance_report_dat': 'get_pr_report_data_performance',
                         'get_po_performance_report_dat': 'get_po_report_data_performance',
+                        'get_mrp_department_report': 'get_mrp_department_report_data',
+                        'get_mrp_line_level_report': 'get_mrp_line_level_report_data',
+                        'get_mrp_po_report': 'get_mrp_po_report_data',
+                        'get_mrp_pr_daily_report': 'get_mrp_pr_daily_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -19647,7 +19685,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
-    lis = ['transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user']
+    lis = ['transact_number', 'transact_number', 'transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user']
 
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
@@ -19738,8 +19776,13 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         pr_qty, pr_lines, pr_value = [0] * 3
         if pr_data:
             pr_qty, pr_lines, pr_value = pr_data.split('#')
+        mrp_obj = MRP.objects.filter(transact_number=data['transact_number'], user=data['user']).first()
+        date_created = get_local_date(user, mrp_obj.creation_date)
+        no_of_days_since = (datetime.datetime.utcnow() - mrp_obj.creation_date.replace(tzinfo=None)).days
         ord_dict = OrderedDict((
             ('MRP Run Id', data['transact_number']),
+            ('MRP Run Date', date_created),
+            ('Number of Days Since the MRP Run Date', no_of_days_since),
             ('MRP Receiver User', staff_name),
             ('Zone', dept.userprofile.zone),
             ('State', plant.userprofile.state),
@@ -19825,7 +19868,8 @@ def get_mrp_line_level_report_data(search_params, user, sub_user):
     master_data = MRP.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    master_data = master_data[start_index:stop_index]
+    if stop_index:
+        master_data = master_data[start_index:stop_index]
     sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     for data in master_data:
@@ -19853,3 +19897,227 @@ def get_mrp_line_level_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(data_dict)
     return temp_data
+
+
+def get_mrp_po_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
+                                    get_admin, get_utc_start_date, get_company_admin_user, get_uom_with_multi_skus
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    #user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {}
+    lis = ['id', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'suggested_qty', 'amount', 'supplier_id', 'suggested_qty', 'amount', 'supplier_id']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['user_id__in'] = user_ids
+    search_parameters['user__userprofile__warehouse_type'] = 'DEPT'
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    main_user = get_company_admin_user(user)
+    master_data = MRP.objects.filter(pending_line_items__pending_pr__pendingpo__isnull=False, **search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if stop_index:
+        master_data = master_data[start_index:stop_index]
+    sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
+    sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
+    plant_dept = {}
+    for data in master_data:
+        if not plant_dept.get(data.user):
+            plant_dept[data.user] = get_admin(data.user)
+        plant_user = plant_dept[data.user]
+        mrp_supplier = ''
+        supp = SupplierMaster.objects.filter(supplier_id=data.supplier_id, user=plant_user.id)
+        if supp:
+            mrp_supplier = supp[0].name
+        po_qty = ''
+        po_value = ''
+        po_supplier = ''
+        pending_po = data.pending_line_items.pending_pr.pendingpo_set.filter()
+        if pending_po:
+            po_supplier = pending_po[0].supplier.name
+            po_lines = pending_po[0].pending_polineItems.filter()
+            if po_lines:
+                po_line = po_lines[0]
+                po_qty = po_line.quantity
+                po_value = po_line.quantity * po_line.price
+        uom_dict = sku_uoms.get(data.sku.sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        plant = data.user
+        if data.user.userprofile.warehouse_type == 'DEPT':
+            plant = get_admin(data.user)
+        data_dict = OrderedDict((   ('DT_RowId', data.id), ('MRP Run Id', data.transact_number),
+                                    ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+                                    ('Department', data.user.first_name),
+                                    ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                                    ('SKU Category', data.sku.sku_category), ('Purchase UOM', uom_dict.get('measurement_unit', '')),
+                                    ('MRP Suggested Qty', data.suggested_qty),
+                                    ('MRP Suggested Value', data.amount),
+                                    ('MRP Suggested Supplier', mrp_supplier),
+                                    ('PO Qty', po_qty),
+                                    ('PO Value (without Tax)', po_value),
+                                    ('PO Supplier', po_supplier),
+                                    ('DT_RowAttr', {'data-id': data.id}),
+                                    ('hsn_code', data.sku.hsn_code)
+                                ))
+        temp_data['aaData'].append(data_dict)
+    return temp_data
+
+def get_mrp_pr_daily_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
+                                    check_and_get_plants_depts_wo_request, get_related_users_filters, get_uom_with_sku_code, get_local_date,\
+                                    get_admin, get_utc_start_date, get_company_admin_user, get_uom_with_multi_skus
+    temp_data = copy.deepcopy(AJAX_DATA)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    #user_ids = list(users.values_list('id', flat=True))
+    search_parameters = {}
+    lis = ['id', 'id', 'creation_date', 'user', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'suggested_qty', 'amount',
+            'pending_line_items__creation_date', 'pending_line_items__pending_pr__full_pr_number', 'suggested_qty', 'amount', 'suggested_qty', 'amount']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'plant_code' in search_params:
+        plant_code = search_params['plant_code']
+        plant_users = list(users.filter(userprofile__stockone_code=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'plant_name' in search_params.keys():
+        plant_name = search_params['plant_name']
+        plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
+        if plant_users:
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+        else:
+            users = User.objects.none()
+    if 'sister_warehouse' in search_params:
+        dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+        dept_type = search_params['sister_warehouse']
+        if dept_type.lower() != 'na':
+            users = users.filter(userprofile__stockone_code=dept_mapping_res.get(dept_type, ''))
+        else:
+            users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
+    if 'zone_code' in search_params:
+        zone_code = search_params['zone_code']
+        users = users.filter(userprofile__zone=zone_code)
+    user_ids = list(users.values_list('id', flat=True))
+    search_parameters['user_id__in'] = user_ids
+    search_parameters['user__userprofile__warehouse_type'] = 'DEPT'
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    main_user = get_company_admin_user(user)
+    master_data = MRP.objects.filter(pending_line_items__isnull=False,**search_parameters).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if stop_index:
+        master_data = master_data[start_index:stop_index]
+    sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
+    sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
+    plant_dept = {}
+    for data in master_data:
+        plant = get_admin(data.user)
+        staff_name = ''
+        staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        if staff:
+            staff_name = staff[0].email_id
+
+        if not plant_dept.get(data.user):
+            plant_dept[data.user] = get_admin(data.user)
+        plant = plant_dept[data.user]
+        uom_dict = sku_uoms.get(data.sku.sku_code, {})
+        sku_pcf = uom_dict.get('sku_conversion', 1)
+        sku_pcf = sku_pcf if sku_pcf else 1
+        pr_value = data.pending_line_items.quantity * data.pending_line_items.price
+        data_dict = OrderedDict((   ('DT_RowId', data.id), ('MRP Receiver User', staff_name), ('MRP Run ID', data.transact_number),
+                                    ('MRP Run Date', get_local_date(user, data.creation_date)), ('Zone', plant.userprofile.zone),
+                                    ('State', plant.userprofile.state),
+                                    ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+                                    ('Department', data.user.first_name),
+                                    ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                                    ('SKU Category', data.sku.sku_category), ('Purchase UOM', uom_dict.get('measurement_unit', '')),
+                                    ('MRP Qty', data.suggested_qty),
+                                    ('MRP Value', data.amount), ('PR Date', get_local_date(user, data.pending_line_items.creation_date)),
+                                    ('PR Number', data.pending_line_items.pending_pr.full_pr_number),
+                                    ('PR Qty', data.pending_line_items.quantity),
+                                    ('PR Value', pr_value), ('Diff in MRP vs PR Qty', data.suggested_qty - data.pending_line_items.quantity),
+                                    ('Diff in MRP vs PR Value', data.amount - pr_value),
+                                    ('DT_RowAttr', {'data-id': data.id}),
+                                    ('hsn_code', data.sku.hsn_code)
+                                ))
+        temp_data['aaData'].append(data_dict)
+    return temp_data
+
+
+

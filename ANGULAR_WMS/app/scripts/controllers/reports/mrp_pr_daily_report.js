@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('MRPLineLevelCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('MRPPRDailyReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
@@ -23,7 +23,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.reports = {}
   var send = {};
-  var name = 'get_mrp_line_level_report';
+  var name = 'get_mrp_pr_daily_report';
   vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
   	if(data.message) {
   	  if ($.isEmptyObject(data.data.data)) {
@@ -43,7 +43,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.dtInstance = {};
           vm.report_data['excel2'] = true;
   	      vm.report_data['row_click'] = true;
-          vm.report_data['excel_name'] = 'get_mrp_line_level_report'
+          vm.report_data['excel_name'] = 'get_mrp_pr_daily_report'
         })
   	  }
   	}

@@ -19,6 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     vm.selectAll = false;
     vm.bt_disable = false;
     vm.zones_list = ['Central', 'East', 'GRL', 'Mumbai', 'NACO', 'North', 'Overseas', 'South', 'West'];
+    $timeout(function(){$('.selectpicker-zonecode').selectpicker();}, 100);
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
         'width': '1350px'
@@ -37,6 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
               }
            })
        .withDataProp('data')
+       .withOption('order', [0, 'desc'])
        .withOption('drawCallback', function(settings) {
          vm.service.make_selected(settings, vm.selected);
          $scope.$apply(function() {vm.bt_disable = true;vm.selectAll = false;});
@@ -61,7 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
 
     var columns = ['MRP Run Id', 'Plant Code', 'Plant Name', 'Department', 'State', 'SKU Code', 'SKU Description', 'SKU Category', 'Purchase UOM', 'Average Daily Consumption Qty',
                     'Average Plant Daily Consumption Qty', 'Lead Time Qty', 'Min Days Qty', 'Max Days Qty', 'Dept Stock Qty', 'Allocated Plant Stock Qty', 'Pending PR Qty',
-                    'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty', 'Supplier Id', 'Suggested Value'];
+                    'Pending PO Qty', 'Total Stock Qty', 'Suggested Qty', 'Raise PR Quantity', 'Supplier Id', 'Suggested Value'];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -205,7 +207,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
             dept = row_dept;
           }
           var sugg_qty = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Suggested Qty'];
-          if(sugg_qty != ''){
+          //if(sugg_qty != ''){
+          if(true) {
             sugg_qty = parseFloat(sugg_qty);
             formData.append('id', vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId);
             formData.append('suggested_qty', sugg_qty);
@@ -213,6 +216,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
             formData.append('avg_consumption_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Average Daily Consumption Qty']);
             formData.append('openpr_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PR Qty']);
             formData.append('openpo_qty', vm.dtInstance.DataTable.context[0].aoData[key]._aData['Pending PO Qty']);
+            var raise_pr_qty = $(".raise_pr_" + vm.dtInstance.DataTable.context[0].aoData[key]._aData.DT_RowId).val();
+            formData.append('raise_pr_qty', raise_pr_qty);
             non_zero_qty = true;
           }
           if(plant_code != row_plant || dept != row_dept){
@@ -312,7 +317,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
       vm.model_data.filters['datatable'] = 'MaterialPlanning';
     }
 
-
     vm.empty_filter_fields = function(){
 
 
@@ -331,6 +335,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     }
 
     vm.saveFilters = function(filters){
+      if(filters.sku_category1) {
+        filters.sku_category = filters.sku_category1.join();
+      }
+      if(filters.zone_code1) {
+        filters.zone_code = filters.zone_code1.join();
+      }
+      if(filters.dept_type1) {
+        filters.dept_type = filters.dept_type1.join();
+      }
+      if(filters.state1) {
+        filters.state = filters.state1.join();
+      }
+
       Data.mp_filters = filters;
     }
 
@@ -340,6 +357,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
     if(data.message) {
       vm.department_type_list = data.data.department_list;
       vm.states_list = data.data.states_list;
+      $timeout(function(){$('.selectpicker-dept').selectpicker();}, 500);
+      $timeout(function(){$('.selectpicker-state').selectpicker();}, 500);
     }
   });
 
@@ -347,12 +366,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
   vm.service.apiCall('get_sku_category_list/',).then(function(data){
     if(data.message){
       vm.category_list = data.data.category_list;
+      $timeout(function(){$('.selectpicker-category').selectpicker();}, 500);
     }
   })
 
   vm.generate_mrp_data = function() {
     vm.service.alert_msg("Generate MRP").then(function(msg) {
       if(msg == "true"){
+        if(vm.model_data.filters.sku_category1) {
+          vm.model_data.filters.sku_category = vm.model_data.filters.sku_category1.join();
+        }
+        if(vm.model_data.filters.zone_code1) {
+          vm.model_data.filters.zone_code = vm.model_data.filters.zone_code1.join();
+        }
+        if(vm.model_data.filters.dept_type1) {
+          vm.model_data.filters.dept_type = vm.model_data.filters.dept_type1.join();
+        }
+        if(vm.model_data.filters.state1) {
+          vm.model_data.filters.state = vm.model_data.filters.state1.join();
+        }
+
+
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('generate_material_planning/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);
@@ -366,6 +400,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, $rootScope, $
   vm.send_mrp_output = function() {
     vm.service.alert_msg("Send MRP Output Mail").then(function(msg) {
       if(msg == "true"){
+        if(vm.model_data.filters.sku_category1) {
+          vm.model_data.filters.sku_category = vm.model_data.filters.sku_category1.join();
+        }
+        if(vm.model_data.filters.zone_code1) {
+          vm.model_data.filters.zone_code = vm.model_data.filters.zone_code1.join();
+        }
+        if(vm.model_data.filters.dept_type1) {
+          vm.model_data.filters.dept_type = vm.model_data.filters.dept_type1.join();
+        }
+        if(vm.model_data.filters.state1) {
+          vm.model_data.filters.state = vm.model_data.filters.state1.join();
+        }
+
         var filters_data = vm.model_data.filters;
         vm.service.apiCall('send_material_planning_mail/', 'POST', filters_data).then(function(data){
           vm.service.showNoty(data.data);

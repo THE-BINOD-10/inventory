@@ -251,7 +251,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         else:
             suggested_qty = (max_days + lead_time - total_stock)
             suggested_qty = math.ceil(suggested_qty)
-        if suggested_qty > 0:
+        if True:#suggested_qty > 0:
             if not transact_number:
                 transact_number = datetime.datetime.now().strftime('%Y%m%d') + '-' + str(get_incremental_with_lock(main_user, 'mrp_run', default_val=1)).zfill(3)
             supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')

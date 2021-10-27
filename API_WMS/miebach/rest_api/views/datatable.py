@@ -76,13 +76,15 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     search_terms["user"] = user.id
     sku_master = sku_master.prefetch_related('skuattributes_set').filter(**search_terms)
     sku_ids = sku_master.values_list('id', flat=True)
+    sku_codes = list(sku_master.values_list('sku_code', flat=True))
+    skus_uom_dict = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase')
     master_data = MarketplaceMapping.objects.exclude(sku_type='').select_related('sku').filter(sku_id__in=sku_ids,
                                                                          sku_type__in=marketplace_list)
     marketplaces = master_data.values_list('sku_type', flat=True).distinct()
     if master_data.count():
         for market in marketplaces:
             headers = headers + [market + ' SKU', market + ' Description']
-    headers = headers + ['Substitutes']
+    headers = headers + ['Substitutes', 'Conversion', 'Base UOM', 'UOM Name']
     excel_headers = headers
 
     data_count = 0
@@ -150,6 +152,10 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
         substitutes_list = ','.join(map(str, substitutes_list))
         ws = write_excel(ws, data_count, field_count, substitutes_list, file_type)
+        uom_dict = skus_uom_dict.get(data.sku_code, {})
+        ws = write_excel(ws, data_count, field_count+1, uom_dict.get('sku_conversion'), file_type)
+        ws = write_excel(ws, data_count, field_count+2, uom_dict.get('base_uom'), file_type)
+        ws = write_excel(ws, data_count, field_count+3, uom_dict.get('measurement_unit'), file_type)
         ean_list = []
         ean_objs = data.eannumbers_set.filter()
         if data.ean_number:

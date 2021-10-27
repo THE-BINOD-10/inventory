@@ -99,7 +99,7 @@ def get_report_data(request, user=''):
                          'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
                          'metropolis_po_detail_report', 'pr_po_grn_dict', 'metropolis_pr_po_grn_dict', 'integration_report', 'grn_report', 'sku_wise_grn_report', 'supplier_wise_po_report',
                          'sku_wise_consumption_report', 'get_sku_wise_consumption_reversal', 'closing_stock_report', 'consumption_data', 'get_consumption_data',
-                         'get_mrp_exception_report', 'get_mrp_line_level_report']:
+                         'get_mrp_exception_report', 'get_mrp_line_level_report', 'get_mrp_po_report', 'get_mrp_department_report', 'get_mrp_pr_daily_report']:
         if 'sister_warehouse' in filter_keys:
             '''if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -766,7 +766,10 @@ def get_supplier_details_data(search_params, user, sub_user):
             status_var = 'Partially Received'
         if status_var not in  ['Received', 'Putaway Confirmed']:
             pending_days = (datetime.datetime.now() - po_obj.creation_date.replace(tzinfo=None)).days
+        expected_delivery_date = po_obj.expected_date if po_obj.expected_date else ''
+        product_category = po_obj.product_category if po_obj.product_category else ''
         user_obj = users.get(id=po_obj.open_po.sku.user)
+        department = ''
         if user_obj.userprofile.warehouse_type == 'DEPT':
             user_obj = get_admin(user_obj)
         plant_code = user_obj.userprofile.stockone_code
@@ -776,9 +779,11 @@ def get_supplier_details_data(search_params, user, sub_user):
         requested_user = user_obj.username
         pend_po_id = ''
         if pend_po:
+            department = pend_po[0].pending_prs.filter()[0].wh_user.username
             requested_user = pend_po[0].requested_user.username;
             pend_po_id = pend_po[0].id
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.creation_date)),
+                                                    ('Department', department),
                                                     ('Plant Code', plant_code),
                                                     ('Plant Name', plant_name),
                                                     ('Zone', zone),
@@ -789,6 +794,8 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', total_ordered),
                                                     ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
+                                                    ('Expected Date', expected_delivery_date),
+                                                    ('Product Category', product_category),
                                                     ('Status', status_var), ('order_id', po_obj.order_id),
                                                     ('PO Pending Days', pending_days),
                                                     ('Supplier ID', po_obj.open_po.supplier.supplier_id),
@@ -3150,4 +3157,25 @@ def get_mrp_line_level_report(request, user=''):
     temp_data = get_mrp_line_level_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_mrp_po_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_mrp_po_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_mrp_pr_daily_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_mrp_pr_daily_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
 

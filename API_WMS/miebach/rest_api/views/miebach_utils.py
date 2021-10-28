@@ -5541,6 +5541,8 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         search_parameters[field_mapping['grn_number']] = search_params['grn_number']
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'status' in search_params:
+        search_parameters['status'] = 0 if search_params['status'] == 'completed' else 1
     if 'invoice_number' in search_params:
         search_parameters['invoice_number'] = search_params['invoice_number']
     if 'supplier' in search_params and ':' in search_params['supplier']:
@@ -7076,6 +7078,8 @@ def get_po_filter_data(request, search_params, user, sub_user):
     if 'supplier' in search_params and ':' in search_params['supplier']:
         search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
             search_params['supplier'].split(':')[0]
+    if 'status' in search_params:
+        search_parameters['status'] = 0 if search_params['status'] == 'completed' else 1
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,

@@ -20,6 +20,15 @@
               <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="field in showCase.report_data.filters">
                 <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
               </div>
+              <div class="col-md-3 col-sm-3 col-xs-4">
+                <div class="form-group">
+                  <label class="control-label">GRN Status</label>
+                  <select name="status" class="form-control" ng-model="showCase.model_data.status">
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
               <div class="col-md-3 col-sm-3 col-xs-4" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
                 <div class="form-group">
                   <label class="control-label"> Manufacturer </label>
@@ -149,4 +158,4 @@
     </div>
 	</div>
   </div>
-/div>
+</div>

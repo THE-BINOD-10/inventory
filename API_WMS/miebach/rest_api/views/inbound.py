@@ -17648,6 +17648,7 @@ def view_pending_mr_details(request, user=''):
                 return HttpResponse('fail')
     return HttpResponse(json.dumps(sku_grouping))
 
+@fn_timer
 @csrf_exempt
 def get_material_planning_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, cus_filters={}):
     headers1, filters, filter_params1 = get_search_params(request)
@@ -18022,6 +18023,7 @@ def download_pr_req_files(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@fn_timer
 def generate_material_planning(request, user):
     from rest_api.management.commands.mrp import generate_mrp_main
     run_sku_codes = None
@@ -18069,7 +18071,14 @@ def generate_material_planning(request, user):
         run_sku_codes = [filters['sku_code']]
     if users.filter(userprofile__warehouse_type='DEPT'):
         print users.filter(userprofile__warehouse_type='DEPT')
-        generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes)
+        try:
+            generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes)
+        except Exception as e: 
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Generate MRP Run failed for params " + str(request.POST.dict()) + " on " + \
+                     str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
+            return HttpResponse("Updation Failed")
         return HttpResponse("Success")
     else:
         return HttpResponse("No Data Found")

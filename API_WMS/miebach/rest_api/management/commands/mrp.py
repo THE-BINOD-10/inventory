@@ -59,7 +59,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
                 temp_plant = get_admin(user)
                 plant_user_ids.append(temp_plant.id)
                 plant_user_names.append(temp_plant.username)
-    plant_dept_user_ids = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_user_names).values_list('id', flat=True))
+    plant_dept_user_ids = list(get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_user_names, send_parent=True).values_list('id', flat=True))
     user_ids = list(users.values_list('id', flat=True))
     search_params = {'user__in': user_ids}
     main_user = get_company_admin_user(user)
@@ -122,6 +122,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': plant_dept_user_ids, 'sku__sku_code__in': sku_codes})
     for cons in consumption_lt3:
         print cons.id
+        cons_sku_user = cons.sku.user
         if cons.sku.user in user_id_mapping:
             usr = user_id_mapping[cons.sku.user]
         else:
@@ -129,7 +130,11 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
             if usr.userprofile.warehouse_type == 'DEPT':
                 usr = get_admin(usr)
             user_id_mapping[cons.sku.user] = usr
-        grp_key = (cons.sku.user, cons.sku.sku_code)
+        if usr.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            allde_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[usr.username]).filter(userprofile__stockone_code='ALLDE')
+            if allde_users:
+                cons_sku_user = allde_users[0].id
+        grp_key = (cons_sku_user, cons.sku.sku_code)
         consumption_qtys.setdefault(grp_key, 0)
         consumption_qtys[grp_key] += cons.quantity
         plant_grp = (usr.id, cons.sku.sku_code)
@@ -235,17 +240,17 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         plant_cons_qtypd = (plant_cons_qtybm/30)
         plant_cons_qty = round(plant_cons_qtypd/sku_pcf, 5)
         sku_repl = repl_dict.get(grp_key, {})
-        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 2)
-        min_days = round(cons_qty * sku_repl.get('min_days', 0),2)
-        max_days = round(cons_qty * sku_repl.get('max_days', 0), 2)
-        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 2)
+        lead_time = round(cons_qty * sku_repl.get('lead_time', 0), 5)
+        min_days = round(cons_qty * sku_repl.get('min_days', 0),5)
+        max_days = round(cons_qty * sku_repl.get('max_days', 0), 5)
+        stock_qty = round((stock_qtys.get(grp_key, 0))/sku_pcf, 5)
         plant_stock_qty = 0
         if plant_cons_qty:
-            plant_stock_qty = round((plant_stock_qtys.get(plant_grp_key, 0) * (cons_qty/plant_cons_qty))/sku_pcf, 2)
+            plant_stock_qty = round((plant_stock_qtys.get(plant_grp_key, 0) * (cons_qty/plant_cons_qty))/sku_pcf, 5)
         sku_pending_pr = pending_pr_dict.get(grp_key, {}).get('qty', 0)
         sku_pending_po = pending_po_dict.get(grp_key, {}).get('qty', 0) + po_dict.get(grp_key, {}).get('qty', 0)
         total_stock = stock_qty + sku_pending_pr + sku_pending_po + plant_stock_qty
-        total_stock = round(total_stock, 2)
+        total_stock = round(total_stock, 5)
         if (total_stock - lead_time) > min_days:
             suggested_qty = 0
         else:
@@ -282,7 +287,8 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
             mrp_obj = MRP(**data_dict)
             mrp_objs.append(mrp_obj)
     if mrp_objs:
-        MRP.objects.bulk_create(mrp_objs)
+        bulk_create_in_batches(MRP, mrp_objs)
+        #MRP.objects.bulk_create(mrp_objs)
     if is_autorun:
         mrp_objs = MRP.objects.filter(user__in=dept_user_ids, status=1).values('user').annotate(Count('id'))
         for mrp_obj in mrp_objs:
@@ -306,5 +312,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Script Started")
         user = User.objects.get(username='mhl_admin')
-        generate_mrp_main(user, is_autorun=True)
+        try:
+            generate_mrp_main(user, is_autorun=True)
+        except Exception as e: 
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Generate MRP run failed for params  on " + \
+                     str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
         self.stdout.write("Script Completed")

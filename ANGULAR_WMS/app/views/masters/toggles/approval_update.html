@@ -117,10 +117,11 @@
           <table class="table">
             <thead>
               <tr>
-                <th style="min-width: 140px;">Min Amount</th>
-                <th style="min-width: 140px;">Max Amount</th>
-                <th style="min-width: 140px;">Level</th>
-                <th style="width: 650px;">Roles</th>
+                <th style="min-width: 130px;">Min Amount</th>
+                <th style="min-width: 130px;">Max Amount</th>
+                <th style="min-width: 130px;">Level</th>
+                <th style="width: 550px;">Roles</th>
+                <th style="width: 550px;">Emails</th>
                 <th class="plus"></th>
               </tr>
             </thead>
@@ -137,10 +138,13 @@
                 </td>
                 <td>
                    <!--<select id="ranges-{{showCase.roles_type_name}}roles-{{range_data.range_no}}-{{level_dat.level_no}}" class="selectpicker show-menu-arrow form-control" multiple name="perms">-->
-                   <select class="selectpicker-ranges show-menu-arrow form-control" multiple name="perms" ng-model="level_dat.roles" data-size="10" data-width="300px">
+                   <select class="selectpicker-ranges show-menu-arrow form-control" style="width = 125px" multiple name="perms" ng-model="level_dat.roles" data-size="10" data-width="180px">
                     <option ng-selected="showCase.check_selected(level_dat, role)" ng-repeat="role in showCase.roles_list">{{role}}</option>
                   </select>
                 </td>
+                <td>
+				  <input type="text" ng-model="level_dat.emails" style="width: auto" class="form-control" name="emails" readonly>
+				</td>
                 <td style="width: 200px;">
                   <i ng-if="$last" ng-click="showCase.delete_range_levels_data($index, range_data, level_dat)" class="fa fa-minus-square-o"></i>
                   <i ng-if="$last" ng-click="showCase.addRangesLevel(range_data, level_dat)" class="fa fa-plus-square-o" style="padding-left: 11 px;"></i>

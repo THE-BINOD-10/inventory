@@ -80,7 +80,7 @@ SUB_CATEGORIES = OrderedDict((('mens_polo', 'MENS POLO'), ('ladies_polo', 'LADIE
 #                          'confirm_order': 'Confirm Order', 'hold_order': 'Block Stock', 'order_placed': 'Order Placed',
 #                          'pending_artwork': 'Pending ArtWork', 'artwork_submitted': 'ArtWork Submitted'}
 
-
+MAIN_ADMIN_USER = 'mhl_admin'
 MANUAL_ENQUIRY_STATUS = {'new_order': 'New Order', 'marketing_pending': 'Marketing Pending',
                          'design_pending': 'Design Pending', 'purchase_pending': 'Purchase Pending',
                          'pending_approval': 'Admin Pending', 'reseller_pending': 'Reseller Pending',
@@ -3695,6 +3695,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_putaway_grn': 'auto_putaway_grn',
                         'eom_consumption_configuration_plant': 'eom_consumption_configuration_plant',
                         'block_pr_po_transactions': 'block_pr_po_transactions',
+                        'allow_month_end_transactions':'allow_month_end_transactions',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

@@ -795,7 +795,10 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         warehouse_names = ''
         group_names = []
         department_type_list = ''
-        sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
+        try:
+            sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
+        except:
+            continue
         if data.plant.filter():
             plant_list = data.plant.filter().values_list('name', flat=True)
             warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('userprofile__stockone_code', flat=True)))

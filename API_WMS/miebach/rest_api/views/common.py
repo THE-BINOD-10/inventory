@@ -13896,6 +13896,7 @@ def get_purchase_config_data(request, user=''):
         ranges_dict = OrderedDict()
         for config in purchase_config_data:
             roles = list(config.user_role.filter().values_list('role_name', flat=True))
+            emails = config.emails.filter().values_list("name", flat=True).last()
             if config.approval_type == 'ranges':
                 grouping_key = '%s,%s' % (str(config.min_Amt), str(config.max_Amt))
                 ranges_dict.setdefault(grouping_key, {'min_Amt': config.min_Amt, 'max_Amt': config.max_Amt,
@@ -13903,7 +13904,7 @@ def get_purchase_config_data(request, user=''):
                 range_no = ranges_dict.keys().index(grouping_key)
                 ranges_dict[grouping_key]['range_no'] = range_no
                 ranges_dict[grouping_key]['range_levels'].append({'level': config.level, 'roles': roles,
-                                                  'data_id': config.id,
+                                                  'data_id': config.id, 'emails': emails,
                                                   'level_no': int(config.level.replace('level', ''))})
             else:
                 emails = list(config.emails.filter().values_list("name", flat=True))

@@ -18340,7 +18340,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user,\
         get_warehouses_data,get_plant_and_department, check_and_get_plants_depts_wo_request,\
-        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin
+        get_related_users_filters, get_uom_with_sku_code, get_utc_start_date, get_admin, check_consumption_configuration
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -18398,7 +18398,10 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['sku__user', 'sku__sku_code', 'id', 'consumption_number']
-    search_parameters['creation_date__gt'] = datetime.datetime.now().replace(day=1).date()
+    search_parameters['creation_date__gte'] = datetime.datetime.now().replace(day=1).date()
+    if check_consumption_configuration([user.id], extra_flag=True):
+        current_date = datetime.datetime.now()
+        search_parameters['creation_date__gte'] = (current_date-relativedelta(months=1)).replace(day=1).date()
     model_data = ConsumptionData.objects.using(reports_database).filter(stock_mapping__isnull=False, is_valid=0, quantity__gt=0, **search_parameters).values(*values_list).distinct().\
                         annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf'))).exclude(sku_id__in=AssetMaster.objects.using(reports_database).all()).exclude(sku_id__in=ServiceMaster.objects.using(reports_database).all()).exclude(sku_id__in=OtherItemsMaster.objects.using(reports_database).all()).order_by(order_data)
     temp_data['recordsTotal'] = model_data.count()

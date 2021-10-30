@@ -18072,7 +18072,7 @@ def generate_material_planning(request, user):
     if users.filter(userprofile__warehouse_type='DEPT'):
         print users.filter(userprofile__warehouse_type='DEPT')
         try:
-            generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes)
+            generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes, sub_user=request.user)
         except Exception as e: 
             import traceback
             log.debug(traceback.format_exc())

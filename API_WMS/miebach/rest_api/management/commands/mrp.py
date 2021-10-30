@@ -37,7 +37,7 @@ log = init_logger('logs/Material_requirement_planning.log')
 host = 'http://95.216.96.177:7023'
 
 
-def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=False):
+def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=False, sub_user=None):
     mrp_objs = []
     if not run_user_ids:
         user = User.objects.get(username='mhl_admin')
@@ -120,8 +120,9 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     consumption_qtys = {}
     plant_consumption_qtys = {}
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': plant_dept_user_ids, 'sku__sku_code__in': sku_codes})
-    for cons in consumption_lt3:
-        print cons.id
+    plant_allde_mapping = {}
+    for cons in consumption_lt3.only('sku__user', 'sku__sku_code', 'id'):
+        print "Preparing Consumption: " + str(cons.id)
         cons_sku_user = cons.sku.user
         if cons.sku.user in user_id_mapping:
             usr = user_id_mapping[cons.sku.user]
@@ -131,9 +132,13 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
                 usr = get_admin(usr)
             user_id_mapping[cons.sku.user] = usr
         if usr.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-            allde_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[usr.username]).filter(userprofile__stockone_code='ALLDE')
-            if allde_users:
-                cons_sku_user = allde_users[0].id
+            if usr.id in plant_allde_mapping:
+                cons_sku_user = plant_allde_mapping[usr.id]
+            else:
+                allde_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[usr.username]).filter(userprofile__stockone_code='ALLDE')
+                if allde_users:
+                    cons_sku_user = allde_users[0].id
+                plant_allde_mapping[usr.id] = cons_sku_user
         grp_key = (cons_sku_user, cons.sku.sku_code)
         consumption_qtys.setdefault(grp_key, 0)
         consumption_qtys[grp_key] += cons.quantity
@@ -175,7 +180,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     po_pending_open_po_ids = list(po_pending.values_list('pending_po__open_po_id', flat=True))
     po_raised_open_po_ids = list(PurchaseOrder.objects.filter(open_po_id__in=po_pending_open_po_ids).values_list('open_po_id', flat=True))
     for po_pend in po_pending.iterator():
-        print po_pend.id
+        print 'preparing po pending: ' + str(po_pend.id)
         if po_pend.pending_po.open_po_id in po_raised_open_po_ids:
             continue
         pending_pr = po_pend.pending_po.pending_prs.filter()
@@ -201,10 +206,11 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
             pass
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=plant_user_ids , open_po__sku__sku_code__in=sku_codes,
                                                     open_po__order_quantity__gt=F('received_quantity'), **po_filter_dict).\
-                                            exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted'])
+                                            exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer', 'deleted']).\
+                                            only('id', 'po_number', 'open_po__sku__sku_code', 'open_po__order_quantity', 'received_quantity')
     po_dict = {}
     for purchase_order in purchase_orders:
-        print purchase_order.id
+        print 'preparing purchase order: ' + str(purchase_order.id)
         p_pos = PendingPO.objects.filter(full_po_number=purchase_order.po_number)
         if p_pos.exists():
             p_prs = p_pos[0].pending_prs.filter()
@@ -213,15 +219,24 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
                 grp_key = (p_prs_user.id, purchase_order.open_po.sku.sku_code)
                 po_dict.setdefault(grp_key, {'qty': 0})
                 po_dict[grp_key]['qty'] += (purchase_order.open_po.order_quantity - purchase_order.received_quantity)
+    sku_supp_details = dict(SKUSupplier.objects.filter(sku__sku_code__in=sku_codes, sku__user__in=plant_user_ids).order_by('-price').\
+                                    annotate(grp_key=Concat('sku__user', Value('<<>>'), 'sku__sku_code', output_field=CharField()),
+                                    grp_val=Concat('supplier_id', Value('<<>>'), 'price', output_field=CharField())).values_list('grp_key', 'grp_val'))
     print "Preparing purchase order dict completed"
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     MRP.objects.filter(user__in=dept_user_ids, status=1, sku__sku_code__in=sku_codes).update(status=0)
-    master_data = master_data.filter(sku_code__in=repl_sku_codes).only('sku_code', 'user')
+    master_data = master_data.filter(sku_code__in=repl_sku_codes).only('id', 'sku_code', 'user')
     plant_dept = {}
     transact_number = ''
+    usr_id_obj_mapping = {}
     for data in master_data.iterator():
-        print data.id
-        user = User.objects.get(id=data.user)
+        print 'preparing MRP data for creation: ' + str(data.id)
+        usr_obj_che = usr_id_obj_mapping.get(data.user)
+        if usr_obj_che :
+            user = usr_obj_che
+        else:
+            user = User.objects.get(id=data.user)
+            usr_id_obj_mapping[data.user] = user
         if data.user in plant_dept.keys():
             plant_usr = plant_dept[data.user]
         else:
@@ -259,12 +274,13 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         if True:#suggested_qty > 0:
             if not transact_number:
                 transact_number = datetime.datetime.now().strftime('%Y%m%d') + '-' + str(get_incremental_with_lock(main_user, 'mrp_run', default_val=1)).zfill(3)
-            supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
+            supp_details = sku_supp_details.get(str(plant_usr_id)+'<<>>'+data.sku_code)
+            #supp_details = get_sku_supplier_data_suggestions(data.sku_code, plant_usr, qty='')
             supplier_id, amount = '', 0
-            if supp_details.get('supplierDetails'):
-                sku_supplier = supp_details['supplierDetails'][supp_details['preferred_supplier']]
-                supplier_id = sku_supplier['supplier_id']
-                amount = suggested_qty * sku_supplier['price']
+            if sku_supp_details.get(str(plant_usr_id)+'<<>>'+data.sku_code):
+                sku_supp_obj = sku_supp_details.get(str(plant_usr_id)+'<<>>'+data.sku_code)
+                supplier_id = sku_supp_obj.split('<<>>')[0]
+                amount = suggested_qty * float(sku_supp_obj.split('<<>>')[1])
             data_dict = {
                         'transact_number': transact_number,
                         'sku': data,
@@ -303,6 +319,12 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
                 emails.extend(['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'])
             send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
             # send_sendgrid_mail('mhl_mail@stockone.in', ['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'], email_subject, email_body, files=[])
+    if sub_user:
+        url = '%s/#/inbound/MaterialPlanning' % (host)
+        email_subject = "Material Planning Generated Successfully"
+        email_body = 'Hi Team,<br><br>Material Planning data is generated successfully.<br><br>Please Click on the below link to view the data.<br><br>%s' % (url)
+        emails = [sub_user.email]
+        send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
 
 class Command(BaseCommand):
     """

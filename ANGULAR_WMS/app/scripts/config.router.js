@@ -1306,6 +1306,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/pull_to_locate.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/pending_putway_monthly_grns.js'
+                  ])
                 });
               }]
           },

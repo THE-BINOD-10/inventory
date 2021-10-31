@@ -7640,6 +7640,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                     monthly_purchase_data = copy.deepcopy(purchase_data)
                     if monthly_purchase_data.has_key('sku'):
                         del monthly_purchase_data['sku']
+                    if monthly_purchase_data.has_key('zone'):
+                        try:
+                            monthly_purchase_data['new_zone'] = monthly_purchase_data['zone'].id
+                            del monthly_purchase_data['zone']
+                        except Exception as e:
+                            pass
                     monthly_purchase_data['new_batch_detail'] = batch_detail.id
                     monthly_purchase_data['new_sps_created_obj'] = seller_po_summary.id
                     monthly_purchase_data['new_seller_receipt_id'] = seller_receipt_id
@@ -7663,6 +7669,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
+                log.info('Monthly GRN Request params for ' ' is ' + str(purchase_data))
                 log.info("Auto Putaway for GRN failed for params " + str(e))
             if int(purchase_data['order_quantity']) == int(data.received_quantity):
                 data.status = 'confirmed-putaway'
@@ -18515,6 +18522,9 @@ def confirm_pending_grn_monthly_request(request, user=''):
                             if filter_data.has_key('new_seller_receipt_id'):
                                 seller_receipt_id = filter_data['new_seller_receipt_id']
                                 del filter_data['new_seller_receipt_id']
+                            if filter_data.has_key('new_zone'):
+                                filter_data['zone'] = ZoneMaster.objects.get(id=filter_data['new_zone'])
+                                del filter_data['new_zone']
                             if filter_data.has_key('sku_id'):
                                 filter_data['sku'] = SKUMaster.objects.get(id=filter_data['sku_id'])
                             auto_putaway_stock_detail(user, filter_data, data, new_received_qty, order_type, seller_receipt_id, 

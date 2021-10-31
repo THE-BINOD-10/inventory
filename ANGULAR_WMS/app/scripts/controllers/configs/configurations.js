@@ -70,6 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'block_pr_po_transactions': false,
                     'mrp_pr_days': '',
                     'mrp_po_days': '',
+                    'allow_month_end_transactions':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -129,6 +130,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      132: 'idle_timeout',
                      133: 'mrp_pr_days',
                      134: 'mrp_po_days',
+                     135: 'allow_month_end_transactions',
                      }
 
 
@@ -601,6 +603,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
      },
+
+    {
+      name: "Allow GRN During Month End",
+      model_name: "allow_month_end_transactions",
+      param_no: 135,
+      class_name: "fa fa-server",
+      display: true
+    },
 
   ]
 

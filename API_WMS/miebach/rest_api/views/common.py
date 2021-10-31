@@ -708,6 +708,7 @@ data_datatable = {  # masters
     'PendingMaterialRequest' : 'get_pending_material_request_data',
     'MaterialPlanning': 'get_material_planning_data',
     'MaterialPlanningSummary': 'get_material_planning_summary_data',
+    'PendingMonthlyPutaway' : 'get_pending_monthly_grn_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -14843,8 +14844,11 @@ def display_closing_stock_uploaded(request, user=''):
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
 
-def check_consumption_configuration(users):
+def check_consumption_configuration(users, extra_flag=False):
     status = False
+    if extra_flag:
+        if get_misc_value('allow_month_end_transactions', User.objects.get(username=MAIN_ADMIN_USER).id) == 'true':
+            return True
     for user_id in users:
         if get_misc_value('eom_consumption_configuration_plant', user_id) == 'true':
             return True

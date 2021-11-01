@@ -123,7 +123,7 @@ def get_report_data(request, user=''):
                 users = get_related_users_filters(user.id, warehouse_types=['DEPT'], reports = True)
             else:
                 users = [user.id]
-                users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+                users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
                 users = users.filter(userprofile__warehouse_type='DEPT')
             depts = users.values_list('first_name', flat=True).distinct()
             data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
@@ -1042,7 +1042,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
         users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)

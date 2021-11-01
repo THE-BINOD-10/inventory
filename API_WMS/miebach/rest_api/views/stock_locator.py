@@ -25,9 +25,9 @@ log = init_logger('logs/stock_locator.log')
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     users = [user.id]
     if request.user.is_staff and request.user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'], reports = True)
     else:
-        users = check_and_get_plants_depts(request, users)
+        users = check_and_get_plants_depts(request, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     main_user = get_company_admin_user(user)
@@ -70,7 +70,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         plant_users = list(users.filter(userprofile__stockone_code__icontains=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'plant_name__icontains' in search_params.keys():
@@ -84,7 +84,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         plant_users = list(users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'dept_type__icontains' in search_params.keys():
@@ -4245,10 +4245,10 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         filters = copy.deepcopy(cus_filters)
     lis = ['sku__user', 'sku__sku_code', 'sku_code', 'sku_desc', 'sku_category', 'user_id', 'user_id', 'user_id', 'user_id', 'user_id']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'], reports = True)
     else:
         req_users = [user.id]
-        users = check_and_get_plants(request, req_users)
+        users = check_and_get_plants(request, req_users, reports = True)
         users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
     if 'plant_code' in filters and filters['plant_code']:
         plant_code = filters['plant_code']
@@ -4284,7 +4284,7 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         res_plants.add(dat['sku__user'])
         sku_codes.append(dat['sku__sku_code'])
     usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True, reports = True)
     dept_user_ids = list(dept_users.values_list('id', flat=True))
     stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
                                             values('sku__user', 'sku__sku_code').distinct().\
@@ -4373,10 +4373,10 @@ def get_stock_plant_results(start_index, stop_index, temp_data, search_term, ord
         filters = copy.deepcopy(cus_filters)
     lis = ['sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'], reports = True)
     else:
         req_users = [user.id]
-        users = check_and_get_plants(request, req_users)
+        users = check_and_get_plants(request, req_users, reports = True)
         users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
     if 'plant_code' in filters and filters['plant_code']:
         plant_code = filters['plant_code']
@@ -4413,7 +4413,7 @@ def get_stock_plant_results(start_index, stop_index, temp_data, search_term, ord
     for dat in master_data:
         res_plants.add(dat['sku__user'])
     usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True, reports = True)
     dept_user_ids = list(dept_users.values_list('id', flat=True))
     master_sku_data = StockDetail.objects.filter(sku__user__in=dept_user_ids, quantity__gt=0).exclude(sku_id__in=AssetMaster.objects.all()).\
         exclude(sku_id__in=ServiceMaster.objects.all()).\

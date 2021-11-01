@@ -13380,10 +13380,13 @@ def get_related_user_objs(user_id, level=0, ):
     users = User.objects.filter(id__in=user_ids)
     return users
 
-def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False, exclude_company=''):
+def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False, exclude_company='', reports = False):
     """ this function generates all users related to a user with filters"""
     user = User.objects.get(id=user_id)
     main_company_id = get_company_id(user)
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     if warehouse_types:
         user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type__in=warehouse_types,
                                                 company_id=main_company_id)
@@ -13396,12 +13399,12 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     if not send_parent:
         user_list2 = []
     all_users = list(set(user_list1 + user_list2))
-    all_user_objs = User.objects.filter(id__in=all_users, userprofile__visible_status=1)
+    all_user_objs = User.objects.filter(id__in=all_users, **filter_params)
     if company_id:
         if exclude_company == 'true':
-            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id, userprofile__visible_status=1)
+            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id, **filter_params)
         else:
-            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id, userprofile__visible_status=1)
+            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id, **filter_params)
     return all_user_objs
 
 
@@ -14184,7 +14187,10 @@ def get_uom_conversion_value(sku, uom_type):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_staff_plants_list(request, user=''):
+def get_staff_plants_list(request, user='', reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
@@ -14194,7 +14200,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list, userprofile__visible_status=1).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list, **filter_params).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -14215,29 +14221,38 @@ def get_staff_plants_list(request, user=''):
 
 
 @get_admin_multi_user
-def check_and_get_plants(request, req_users, users=''):
+def check_and_get_plants(request, req_users, users='', reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
+        req_users = User.objects.filter(id__in=req_users, **filter_params)
     return req_users
 
 
 @get_admin_all_wh
-def check_and_get_plants_depts(request, req_users, users=''):
+def check_and_get_plants_depts(request, req_users, users='', reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
+        req_users = User.objects.filter(id__in=req_users, **filter_params)
     return req_users
 
-def check_and_get_plants_wo_request(request_user, user, req_users):
+def check_and_get_plants_wo_request(request_user, user, req_users, reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     users = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), **filter_params)
         if not users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
@@ -14252,13 +14267,16 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     return req_users
 
 
-def check_and_get_plants_depts_wo_request(request_user, user, req_users):
+def check_and_get_plants_depts_wo_request(request_user, user, req_users, reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     users = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
+        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), **filter_params)
         if not plant_users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id

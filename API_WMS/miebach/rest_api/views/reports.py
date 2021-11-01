@@ -120,7 +120,7 @@ def get_report_data(request, user=''):
             users = [user.id]
             sub_user = request.user
             if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-                users = get_related_users_filters(user.id, warehouse_types=['DEPT'])
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], reports = True)
             else:
                 users = [user.id]
                 users = check_and_get_plants_depts_wo_request(sub_user, user, users)
@@ -645,7 +645,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
     #user_ids = list(users.values_list('id', flat=True))
@@ -689,7 +689,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -697,7 +697,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -766,7 +766,6 @@ def get_supplier_details_data(search_params, user, sub_user):
             status_var = 'Partially Received'
         if status_var not in  ['Received', 'Putaway Confirmed']:
             pending_days = (datetime.datetime.now() - po_obj.creation_date.replace(tzinfo=None)).days
-        expected_delivery_date = po_obj.expected_date if po_obj.expected_date else ''
         product_category = po_obj.product_category if po_obj.product_category else ''
         user_obj = users.get(id=po_obj.open_po.sku.user)
         department = ''
@@ -780,6 +779,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         pend_po_id = ''
         if pend_po:
             department = pend_po[0].pending_prs.filter()[0].wh_user.username
+            expected_delivery_date = str(pend_po[0].pending_prs.filter()[0].delivery_date)
             requested_user = pend_po[0].requested_user.username;
             pend_po_id = pend_po[0].id
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.creation_date)),
@@ -1039,7 +1039,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_utc_start_date
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
         users = check_and_get_plants_depts_wo_request(sub_user, user, users)
@@ -2364,7 +2364,7 @@ def print_purchase_order_form(request, user=''):
     sub_user= request.user
     users=[user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = check_and_get_plants_wo_request(sub_user, user, users)
     full_pr_number = ''

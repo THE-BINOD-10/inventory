@@ -10,6 +10,7 @@ from datetime import timedelta, datetime
 from django.contrib.sessions.models import Session
 from oauth2_provider.models import *
 from rest_api.views.ftp_file_upload import file_upload
+from rest_api.views.mail_server import *
 
 
 def init_logger(log_file):
@@ -45,7 +46,7 @@ class Command(BaseCommand):
                 subject = "Alert : Static File backup Failed"
                 body = "Hi Team, Backup creation is failed please check asap."
 
-            send_to = ["kaladhar@mieone.com"]
+            send_to = ["kaladhar@mieone.com","sunil.r@stockone.in"]
             send_mail(send_to, subject, body)
 
     	dest_path = '/root/DATA/static_backup/'
@@ -64,7 +65,7 @@ class Command(BaseCommand):
         except:
             sending_mail('Error')
             # print 'Fail'
-        status = file_upload(tar_file_path, '/static_files/', 'u239654.your-storagebox.de', 'u239654', 'jb6k87AIEzRBvI9u', 1, 2)
+        status = file_upload(tar_file_path, '/static_files/', 'u279613.your-storagebox.de', 'u279613', 'WeiWHuTUoqSzltIj', 1, 2)
         if not status:
             sending_mail('Error')
         else:

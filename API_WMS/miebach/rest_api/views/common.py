@@ -708,6 +708,7 @@ data_datatable = {  # masters
     'PendingMaterialRequest' : 'get_pending_material_request_data',
     'MaterialPlanning': 'get_material_planning_data',
     'MaterialPlanningSummary': 'get_material_planning_summary_data',
+    'PendingMonthlyPutaway' : 'get_pending_monthly_grn_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -14842,8 +14843,11 @@ def display_closing_stock_uploaded(request, user=''):
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
 
-def check_consumption_configuration(users):
+def check_consumption_configuration(users, extra_flag=False):
     status = False
+    if extra_flag:
+        if get_misc_value('allow_month_end_transactions', User.objects.get(username=MAIN_ADMIN_USER).id) == 'true':
+            return True
     for user_id in users:
         if get_misc_value('eom_consumption_configuration_plant', user_id) == 'true':
             return True
@@ -15340,8 +15344,54 @@ def get_next_approval(pr_obj, pos, level=''):
     mail_list = list(chain(mail_list, emails))
     return mail_list
 
+def next_approvals_with_staff_master_mails_for_po(datum, po_number):
+    po_obj = PendingPO.objects.filter(full_po_number=po_number)
+    response_data = []
+    display_name = ''
+    if po_obj.exists():
+        po_obj = po_obj[0]
+        if po_obj.final_status == 'saved':
+            datum['po'] = {}
+            return datum
+        else:
+            temp_pos = StaffMaster.objects.get(email_id=po_obj.requested_user.username).position
+            response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': po_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': po_obj.requested_user.username})
+    last_config_datas = po_obj.pending_poApprovals.filter().exclude(status='on_approved').order_by('-creation_date')
+    if last_config_datas.exists():
+        last_config_data = last_config_datas[0]
+        current_level = last_config_data.level
+        if last_config_data.configName.find('default') == -1:
+            current_config = last_config_data.configName
+        else:
+            current_config = last_config_datas[1].configName
+        ranges_datum = PurchaseApprovalConfig.objects.filter(name=current_config).order_by('level').values('level', 'approval_type', 'user_role__role_name', 'name', 'display_name', 'emails__name')
+        if ranges_datum.exists():
+            for dat in ranges_datum:
+                display_name = dat['display_name']
+                histories = po_obj.pending_poApprovals.filter(configName=dat['name'], level=dat['level']).values('status', 'validated_by', 'updation_date')
+                if histories.exists():
+                    for histo in histories:
+                        if histo['status'] == '':
+                            histo['status'] = 'Pending'
+                            histo['is_current'] = True
+                            final_current = False
+                        else:
+                            histo['status'] = histo['status'].title()
+                            histo['is_current'] = False
+                        histo['level'] = dat['level']
+                        histo['updation_date'] = histo['updation_date'].strftime('%Y-%m-%d')
+                        histo['position'] = dat['user_role__role_name']
+                        response_data.append(histo)
+                else:
+                    datums = {'status': 'Yet to receive', 'updation_date': '', 'position': dat['user_role__role_name'], 'validated_by': dat['emails__name'], 'level': dat['level']}
+                    response_data.append(datums)
+    datum['po'] = {'label':'PO DOA & Next Approvals', 'name': display_name, 'datum': response_data}
+    return datum
+
+
 def next_approvals_with_staff_master_mails(request, user=''):
     pr_number = request.POST.get('pr_number', '')
+    pr_po_number = request.POST.get('po_number', '')
     response_data = []
     display_name = ''
     final_current = True
@@ -15350,10 +15400,10 @@ def next_approvals_with_staff_master_mails(request, user=''):
     pr_obj = PendingPR.objects.filter(full_pr_number=pr_number)
     if pr_obj.exists():
         pr_obj = pr_obj[0]
-        temp_pos = StaffMaster.objects.get(email_id=pr_obj.requested_user.username).position
-        response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': pr_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': pr_obj.requested_user.username})
         if pr_obj.final_status == 'saved':
             return HttpResponse('Saved PR, Configuration Not Yet Decided')
+        temp_pos = StaffMaster.objects.get(email_id=pr_obj.requested_user.username).position
+        response_data.append({'level': 'Creator', 'is_current': False, 'status': 'Approved', 'updation_date': pr_obj.creation_date.strftime('%Y-%m-%d'), 'position': temp_pos, 'validated_by': pr_obj.requested_user.username})
     last_config_datas = pr_obj.pending_prApprovals.filter().exclude(status='on_approved').order_by('-creation_date')
     if last_config_datas.exists():
         last_config_data = last_config_datas[0]
@@ -15404,7 +15454,13 @@ def next_approvals_with_staff_master_mails(request, user=''):
                     else:
                         temp = {'is_current': is_final_current, 'status': 'Yet to receive', 'updation_date': '', 'position': 'Purchase Approver', 'validated_by': '', 'level': 'Final'}
                         response_data.append(temp)
-    return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
+    if pr_po_number:
+        datas = {}
+        datas['pr'] = {'label':'PR DOA & Approvals', 'name': display_name, 'datum': response_data}
+        resulta = next_approvals_with_staff_master_mails_for_po(datas, pr_po_number)
+        return HttpResponse(json.dumps({'datum': resulta}))
+    else:
+        return HttpResponse(json.dumps({'name': display_name, 'datum': response_data}))
 
 @csrf_exempt
 @login_required
@@ -15412,3 +15468,27 @@ def next_approvals_with_staff_master_mails(request, user=''):
 def zones_list(request, user=''):
     zones_list = list(UserProfile.objects.filter().values_list('zone', flat=True).distinct())
     return HttpResponse(json.dumps({'zones': zones_list}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_full_report(request, user=''):
+    EXCEL_REPORT_MAPPING = {'get_metropolis_po_report':'PO report Header level',
+                            'get_metropolis_po_detail_report': 'PO report Line level',
+                            'goods_receipt': 'GRN report Header level',
+                            'sku_wise_goods_receipt':'GRN report Line level',
+                            'get_pr_report': 'PR report Header level',
+                            'get_pr_detail_report': 'PR report Line level'}
+    excel_name = request.POST['excel_name']
+    filename = EXCEL_REPORT_MAPPING.get(excel_name, '')
+    user = User.objects.filter(id=2)[0]
+    download_path = "{}{}".format(user.username,filename)
+    path = 'static/excel_files/'+ download_path
+    if os.path.exists(path+'.csv'):
+        full_path = path+'.csv'
+    elif os.path.exists(path+'.xls'):
+        full_path = path+'.xls'
+    else:
+        return HttpResponse('No Existing files of the Report')
+    path_to_file = '../' + full_path
+    return HttpResponse(path_to_file)

@@ -1052,6 +1052,25 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     return columns;
   }
 
+  vm.download_full_report = function(excel_name) {
+    var data = {}
+    data['excel_name'] = excel_name;
+    var send = {};
+    send = $.param(data)
+    var d = $q.defer();
+    var excel_url = "download_full_report/";
+    $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+    $http.post(Session.url+excel_url, send, {withCredential: true}).success(function(data){
+      if (data == 'No Existing files of the Report'){
+        vm.showNoty("No Existing files of the Report");
+      } else {
+      window.location = Session.host+data.slice(3);
+      d.resolve('resolved');
+      }
+    })
+    return d.promise;
+  }
+
   vm.build_colums2 = function(data, not_sort)  {
 
     if (!not_sort) {

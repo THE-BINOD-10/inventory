@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('PendingMaterialRequestCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service',  '$q', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
+  .controller('PendingMonthlyPutawayCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service',  '$q', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, Data, $modal, $log) {
 var vm = this;
@@ -10,7 +10,7 @@ var vm = this;
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
-    vm.filters = {'datatable': 'PendingMaterialRequest', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'PendingMonthlyPutaway', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.model_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -48,9 +48,9 @@ var vm = this;
               vm.selected[meta.row] = vm.selectAll;
               return vm.service.frontHtml + meta.row + vm.service.endHtml;
           }).notSortable(),
-          DTColumnBuilder.newColumn('source_label').withTitle('Source Plant'),
-          DTColumnBuilder.newColumn('warehouse_label').withTitle('Destination Department'),
-          DTColumnBuilder.newColumn('Material Request ID').withTitle('Material Request ID'),
+          DTColumnBuilder.newColumn('source_label').withTitle('GRN user'),
+          DTColumnBuilder.newColumn('warehouse_label').withTitle('Plant Name'),
+          DTColumnBuilder.newColumn('GRN Number').withTitle('GRN Number'),
           // DTColumnBuilder.newColumn('Order Quantity').withTitle('Order Quantity'),
           DTColumnBuilder.newColumn('Creation Date').withTitle('Confirmation Date&Time'),
         ];
@@ -63,21 +63,22 @@ var vm = this;
 
     $('td:not(td:first)', nRow).unbind('click');
     $('td:not(td:first)', nRow).bind('click', function() {
-        $scope.$apply(function() {
-          var data = {order_id: aData['Material Request ID'], warehouse_name: aData['Warehouse Name'], source_wh: aData['Source Name']};
-          vm.model_data['material_id'] = aData['Material Request ID'];
-          vm.model_data['source_plant'] = aData['source_label'];
-          vm.model_data['destination_dept'] = aData['warehouse_label'];
-          vm.model_data['order_date'] = aData['Creation Date'];
-          vm.service.apiCall("view_pending_mr_details/","POST", data).then(function(datum) {
-            if (datum.message) {
-              $state.go("app.inbound.MaterialRequest.DetailMR");
-              vm.model_data['records'] = datum.data;
-            } else{
-              vm.service.showNoty("Please Contact To Stockone Team !! ")
-            }
-          })
-       })
+      console.log('ok');
+       //  $scope.$apply(function() {
+       //    var data = {order_id: aData['Material Request ID'], warehouse_name: aData['Warehouse Name'], source_wh: aData['Source Name']};
+       //    vm.model_data['material_id'] = aData['Material Request ID'];
+       //    vm.model_data['source_plant'] = aData['source_label'];
+       //    vm.model_data['destination_dept'] = aData['warehouse_label'];
+       //    vm.model_data['order_date'] = aData['Creation Date'];
+       //    vm.service.apiCall("view_pending_mr_details/","POST", data).then(function(datum) {
+       //      if (datum.message) {
+       //        $state.go("app.inbound.MaterialRequest.DetailMR");
+       //        vm.model_data['records'] = datum.data;
+       //      } else{
+       //        vm.service.showNoty("Please Contact To Stockone Team !! ")
+       //      }
+       //    })
+       // })
      })
    }
     vm.excel = excel;
@@ -93,11 +94,11 @@ var vm = this;
     };
 
     vm.close = function() {
-      $state.go("app.inbound.MaterialRequest");
+      $state.go("app.inbound.PutAwayConfirmation");
       vm.model_data = {};
     }
 
-    vm.confirm_mr = function() {
+    vm.confirm_grns = function() {
       vm.bt_disable = true;
       var selected_order_ids = []
       var selected_rows = []
@@ -105,41 +106,33 @@ var vm = this;
       for (var key in vm.selected) {
         if (vm.selected[key]) {
           var row_data = vm.dtInstance.DataTable.context[0].aoData[key]._aData
-          var order_id = row_data ['Material Request ID']
+          var order_id = row_data ['GRN Number']
           var dest_dept = row_data ['Warehouse Name']
           var source_wh = row_data ['Source Name']
-          if (selected_order_ids.length == 1)
-           {
-               valid = false
-           }
-          if(valid)
-          {
-            selected_order_ids.push(order_id)
-            var elem = {}
-            elem = {'order_id' :order_id , 'dest_dept': dest_dept, 'source_wh': source_wh}
-            selected_rows.push(elem)
-
-          }
+          // if (selected_order_ids.length == 1){
+          //   valid = false
+          // }
+          // if (valid) {
+          selected_order_ids.push(order_id)
+          var elem = {}
+          elem = { 'order_id' :order_id , 'dest_dept': dest_dept, 'source_wh': source_wh }
+          selected_rows.push(elem)
+          // }
         }
       }
       if (valid) {
-        vm.service.apiCall('confirm_mr_request/', 'POST', {'selected_orders': JSON.stringify(selected_rows)}).then(function(resp) {
+        vm.service.apiCall('confirm_pending_grn_monthly_request/', 'POST', {'selected_orders': JSON.stringify(selected_rows)}).then(function(resp) {
           if(resp.data == "success") {
             vm.service.showNoty("Success")
             vm.dtInstance.reloadData();
-          } else if (resp.data == "MR Confirmation Disable Due to Closing Stock Updations" || resp.data == "fail"){
-            vm.service.showNoty(resp.data)
-            vm.dtInstance.reloadData();
-          }
-          else {
+          } else {
             vm.service.showNoty(resp.data);
             vm.dtInstance.reloadData();
           }
         })
-      }
-      else {
+      } else {
         vm.dtInstance.reloadData();
-        vm.service.showNoty("Please Select Single Order")
+        vm.service.showNoty("Please Select Single Order");
       }
     }
 }

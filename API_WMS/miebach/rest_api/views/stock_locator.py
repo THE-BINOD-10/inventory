@@ -4055,11 +4055,12 @@ def stock_detail_update(request, user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def insert_inventory_adjust(request, user=''):
-    return HttpResponse("Inventory Adj Disable Due to Consumption Uploads!..")
     reversion.set_user(request.user)
     reversion.set_comment("insert_inv_adj: %s" % str(get_user_ip(request)))
     warehouse = request.POST['warehouse']
     user = User.objects.get(username=warehouse)
+    if check_consumption_configuration([user.id], extra_flag=True):
+        return HttpResponse("Inventory Adj Disable Due to Consumption Uploads!..")
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     machine_datum = {}
     cycle_id, consumption_id, consumption_number = [0]*3

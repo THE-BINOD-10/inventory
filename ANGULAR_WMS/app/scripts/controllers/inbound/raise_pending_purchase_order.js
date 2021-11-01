@@ -224,6 +224,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
+          vm.temp_dict = {'pr_number': aData['PR No'], 'po_number': aData['PO Number']};
+          vm.current_pr_app_data = {};
           if (vm.model_data.supplier_id){
             vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
             var supplier_data = {'supplier_id':vm.model_data.supplier_id, 'warehouse_id': vm.model_data.warehouse_id}
@@ -381,6 +383,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.refresh = function() {
       vm.row_click_opt = false;
       vm.service.refresh(vm.dtInstance)
+    };
+    vm.getapprovals = function () {
+      vm.current_pr_app_data = {};
+      vm.service.apiCall('next_approvals_with_staff_master_mails/', 'POST', vm.temp_dict, true).then(function(data) {
+        if(data.message){
+          if (Object.keys(data.data.datum).length ==2) {
+            vm.current_pr_app_data = data.data.datum;
+          } else {
+            Service.showNoty(data.data);
+          }
+        }
+      })
     };
     vm.sku_record_updation = function(data, records) {
       data.order_quantity = 0;

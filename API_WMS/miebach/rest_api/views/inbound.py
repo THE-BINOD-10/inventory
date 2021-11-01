@@ -18432,8 +18432,8 @@ def send_material_planning_mail(request, user):
         email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
         url = '%s#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
         email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
-        emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True)
-        #emails = ['sreekanth@mieone.com']
+        emails = list(StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True))
+        emails.extend(['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'])
         if len(emails) > 0:
             send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
     return HttpResponse("Success")

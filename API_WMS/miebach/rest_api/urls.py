@@ -271,6 +271,7 @@ urlpatterns = [
     url(r'^generate_material_planning/$', generate_material_planning),
     url(r'^next_approvals_with_staff_master_mails/$', next_approvals_with_staff_master_mails),
     url(r'^send_material_planning_mail/$', send_material_planning_mail),
+    url(r'^confirm_pending_grn_monthly_request/$', confirm_pending_grn_monthly_request),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

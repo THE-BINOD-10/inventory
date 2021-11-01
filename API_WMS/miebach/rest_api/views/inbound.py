@@ -18023,6 +18023,7 @@ def download_pr_req_files(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@check_user_process_status
 @fn_timer
 def generate_material_planning(request, user):
     from rest_api.management.commands.mrp import generate_mrp_main

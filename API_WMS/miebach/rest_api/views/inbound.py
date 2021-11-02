@@ -4230,12 +4230,12 @@ def approve_pr(request, user=''):
                 lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
                 temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name='PENDING_PR_PURCHASE_APPROVER')
                 if temp_data:
-                    is_resubmitted = True
+                    '''is_resubmitted = True
                     approval_type = 'ranges'
                     prApprQs = pendingPRObj.pending_prApprovals
                     prApprIds = prApprQs.values_list('id', flat=True)
                     prApprQs.filter(approval_type='ranges').update(status='resubmitted')
-                    PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')
+                    PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')'''
                     temp_data.delete()
 
                 lineItems = pendingPRObj.pending_prlineItems
@@ -4357,9 +4357,8 @@ def approve_pr(request, user=''):
                 #                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
                 # else: 
                 #In last Level, no need to generate Hashcode, just confirmation mail is enough
-                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
-                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
-                                                                     approval_type='approved')
+                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName)[0].display_name
+                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name,approval_type='approved')
                 if approval_obj.exists():
                     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
                                             master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')

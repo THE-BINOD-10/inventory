@@ -17725,7 +17725,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         zone_code = filters['zone_code'].split(',')
         users = users.filter(userprofile__zone__in=zone_code)
     user_ids = list(users.values_list('id', flat=True))
-    search_params = {'user__in': user_ids, 'status': 1}
+    search_params = OrderedDict()
     if filters.get('sku_category'):
         search_params['sku__sku_category__in'] = filters['sku_category'].split(',')
     if 'sku_code' in filters and filters['sku_code']:
@@ -17734,7 +17734,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    master_data = MRP.objects.filter(**search_params).order_by(order_data)
+    master_data = MRP.objects.filter(user__in=user_ids, status=1, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     master_data = master_data[start_index:stop_index]

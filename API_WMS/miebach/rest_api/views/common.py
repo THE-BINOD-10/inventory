@@ -708,6 +708,7 @@ data_datatable = {  # masters
     'PendingMaterialRequest' : 'get_pending_material_request_data',
     'MaterialPlanning': 'get_material_planning_data',
     'MaterialPlanningSummary': 'get_material_planning_summary_data',
+    'PendingMonthlyPutaway' : 'get_pending_monthly_grn_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -13899,6 +13900,7 @@ def get_purchase_config_data(request, user=''):
         ranges_dict = OrderedDict()
         for config in purchase_config_data:
             roles = list(config.user_role.filter().values_list('role_name', flat=True))
+            emails = config.emails.filter().values_list("name", flat=True).last()
             if config.approval_type == 'ranges':
                 grouping_key = '%s,%s' % (str(config.min_Amt), str(config.max_Amt))
                 ranges_dict.setdefault(grouping_key, {'min_Amt': config.min_Amt, 'max_Amt': config.max_Amt,
@@ -13906,7 +13908,7 @@ def get_purchase_config_data(request, user=''):
                 range_no = ranges_dict.keys().index(grouping_key)
                 ranges_dict[grouping_key]['range_no'] = range_no
                 ranges_dict[grouping_key]['range_levels'].append({'level': config.level, 'roles': roles,
-                                                  'data_id': config.id,
+                                                  'data_id': config.id, 'emails': emails,
                                                   'level_no': int(config.level.replace('level', ''))})
             else:
                 emails = list(config.emails.filter().values_list("name", flat=True))
@@ -14850,8 +14852,11 @@ def display_closing_stock_uploaded(request, user=''):
     data_list = OrderedDict(zip(files_list, urls_list))
     return render(request, 'templates/display_static.html', {'data_list': data_list})
 
-def check_consumption_configuration(users):
+def check_consumption_configuration(users, extra_flag=False):
     status = False
+    if extra_flag:
+        if get_misc_value('allow_month_end_transactions', User.objects.get(username=MAIN_ADMIN_USER).id) == 'true':
+            return True
     for user_id in users:
         if get_misc_value('eom_consumption_configuration_plant', user_id) == 'true':
             return True

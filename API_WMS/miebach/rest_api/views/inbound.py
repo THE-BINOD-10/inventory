@@ -2925,6 +2925,7 @@ def switches(request, user=''):
                        'block_pr_po_transactions': 'block_pr_po_transactions',
                        'mrp_pr_days': 'mrp_pr_days',
                        'mrp_po_days': 'mrp_po_days',
+                       'allow_month_end_transactions':'allow_month_end_transactions',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -7306,6 +7307,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
     main_user = get_company_admin_user(user)
     auto_putaway_grn = get_misc_value('auto_putaway_grn', main_user.id)
+    block_putaway_automation = get_misc_value('allow_month_end_transactions', User.objects.get(username=MAIN_ADMIN_USER).id)
     send_discrepencey = False
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
@@ -7633,12 +7635,40 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 batch_dict['transact_type'] = 'po'
                 batch_dict['transact_id'] = data.id
                 batch_detail = get_or_create_batch_detail(batch_dict, temp_dict)
-                auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id,
-                                          last_change_date=grn_date, sps_created_obj=seller_po_summary,
-                                          batch_detail=batch_detail)
+                if block_putaway_automation == 'true':
+                    monthly_purchase_data = copy.deepcopy(purchase_data)
+                    if monthly_purchase_data.has_key('sku'):
+                        del monthly_purchase_data['sku']
+                    if monthly_purchase_data.has_key('zone'):
+                        try:
+                            monthly_purchase_data['new_zone'] = monthly_purchase_data['zone'].id
+                            del monthly_purchase_data['zone']
+                        except Exception as e:
+                            pass
+                    monthly_purchase_data['new_batch_detail'] = batch_detail.id
+                    monthly_purchase_data['new_sps_created_obj'] = seller_po_summary.id
+                    monthly_purchase_data['new_seller_receipt_id'] = seller_receipt_id
+                    monthly_purchase_data['new_order_type'] = purchase_data['order_type']
+                    monthly_purchase_data['new_received_qty'] = temp_dict['received_quantity']
+                    monthly_purchase_data['new_data'] = data.id
+                    doa_dict = {
+                        'requested_user': request.user,
+                        'wh_user': user,
+                        'reference_id': grn_number,
+                        'model_id': data.id,
+                        'model_name': 'grn_doa_monthly',
+                        'json_data': json.dumps(monthly_purchase_data),
+                        'doa_status': 'pending',
+                    }
+                    doa_obj = MastersDOA.objects.create(**doa_dict)
+                    doa_obj.save()
+                else:
+                    auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'], seller_receipt_id,
+                                          last_change_date=grn_date, sps_created_obj=seller_po_summary, batch_detail=batch_detail)
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
+                log.info('Monthly GRN Request params for ' ' is ' + str(purchase_data))
                 log.info("Auto Putaway for GRN failed for params " + str(e))
             if int(purchase_data['order_quantity']) == int(data.received_quantity):
                 data.status = 'confirmed-putaway'
@@ -7663,7 +7693,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
-    update_sku_avg_from_grn(user, grn_number)
+    if block_putaway_automation == 'false':
+        update_sku_avg_from_grn(user, grn_number)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey, grn_number
 
 def invoice_datum(request, user, purchase_order, seller_receipt_id):
@@ -14901,7 +14932,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 def get_po_putaway_summary(request, user=''):
     warehouse_id = request.GET['warehouse_id']
     user = User.objects.get(id=warehouse_id)
-    if check_consumption_configuration([user.id]):
+    if check_consumption_configuration([user.id], extra_flag=True):
         return HttpResponse("RTV Disable Due to Closing Stock Updations")
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
@@ -17491,7 +17522,7 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
     else:
         users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    if request.user.username == 'mhl_admin':
+    if request.user.username.lower() == MAIN_ADMIN_USER:
         stock_transfer_objs = StockTransfer.objects.filter(status=1, st_type='MR', upload_type='BULK_UPLOAD').\
                                         values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username',
                                         'st_po__open_st__warehouse__id', 'sku__user').\
@@ -17537,7 +17568,7 @@ def get_pending_material_request_data(start_index, stop_index, temp_data, search
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    if user.username == 'mhl_admin':
+    if user.username.lower() == MAIN_ADMIN_USER:
         stock_transfer_objs = MastersDOA.objects.filter(doa_status='pending', model_name='mr_doa').\
                                 values('requested_user__username', 'reference_id', 'wh_user__username').\
                                 distinct().annotate(date_only=Cast('creation_date', DateField()))
@@ -17580,8 +17611,7 @@ def confirm_mr_request(request, user=''):
         cnf_data = json.loads(request.POST.get('selected_orders', ''))
     except Exception as e:
         cnf_data = []
-
-    if check_consumption_configuration([User.objects.get(username=cnf_data[0]['source_wh']).id]):
+    if check_consumption_configuration([User.objects.get(username=cnf_data[0]['source_wh']).id], extra_flag=True):
         return HttpResponse("MR Confirmation Disable Due to Closing Stock Updations")
     order_ids = map(lambda x: x['order_id'], cnf_data)
     try:
@@ -17649,6 +17679,7 @@ def view_pending_mr_details(request, user=''):
                 return HttpResponse('fail')
     return HttpResponse(json.dumps(sku_grouping))
 
+@fn_timer
 @csrf_exempt
 def get_material_planning_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, cus_filters={}):
     headers1, filters, filter_params1 = get_search_params(request)
@@ -18023,6 +18054,7 @@ def download_pr_req_files(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@fn_timer
 def generate_material_planning(request, user):
     from rest_api.management.commands.mrp import generate_mrp_main
     run_sku_codes = None
@@ -18070,7 +18102,14 @@ def generate_material_planning(request, user):
         run_sku_codes = [filters['sku_code']]
     if users.filter(userprofile__warehouse_type='DEPT'):
         print users.filter(userprofile__warehouse_type='DEPT')
-        generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes)
+        try:
+            generate_mrp_main(user, run_user_ids=user_ids, run_sku_codes=run_sku_codes, sub_user=request.user)
+        except Exception as e: 
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Generate MRP Run failed for params " + str(request.POST.dict()) + " on " + \
+                     str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
+            return HttpResponse("Updation Failed")
         return HttpResponse("Success")
     else:
         return HttpResponse("No Data Found")
@@ -18396,3 +18435,109 @@ def send_material_planning_mail(request, user):
         if len(emails) > 0:
             send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
     return HttpResponse("Success")
+
+
+@csrf_exempt
+def get_pending_monthly_grn_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['reference_id', 'reference_id', 'reference_id', 'tsum', 'date_only']
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    if user.username.lower() == MAIN_ADMIN_USER:
+        grm_monthly_objs = MastersDOA.objects.filter(doa_status='pending', model_name='grn_doa_monthly').\
+                                values('requested_user__username', 'reference_id', 'wh_user__username').\
+                                distinct().annotate(date_only=Cast('creation_date', DateField()))
+    else:
+        grm_monthly_objs = MastersDOA.objects.filter(requested_user__in=user_ids, doa_status='pending', model_name='grn_doa_monthly').\
+                                        values('requested_user__username', 'reference_id', 'wh_user__username').\
+                                        distinct().annotate(date_only=Cast('creation_date', DateField()))
+    order_data = 'date_only'
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
+        master_data = grm_monthly_objs.filter(Q(requested_user__in=user_ids) | Q(wh_user__in=user_ids) |
+                                                   Q(reference_id__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = grm_monthly_objs.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['reference_id']
+        source_name = User.objects.get(username=data['requested_user__username'])
+        warehouse = User.objects.get(username=data['wh_user__username'])
+        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
+                                    'Source Name': source_name.username,
+                                    'GRN Number': data['reference_id'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'DT_RowAttr': {'id': data['reference_id']}})
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def confirm_pending_grn_monthly_request(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("confirm_grn_putaway_request: %s" % str(get_user_ip(request)))
+    log.info('Request params for ' + user.username + ' on ' + str(get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.POST.dict()))
+    try:
+        cnf_data = json.loads(request.POST.get('selected_orders', ''))
+    except Exception as e:
+        cnf_data = []
+    order_ids = map(lambda x: x['order_id'], cnf_data)
+    try:
+        with transaction.atomic('default'):
+            pending_doas = list(MastersDOA.objects.filter(reference_id__in=order_ids).values_list('id', flat=True))
+            pending_doas_for_lock = MastersDOA.objects.select_for_update().filter(id__in=pending_doas, doa_status='pending')
+            if pending_doas_for_lock:
+                for data in cnf_data:
+                    all_pending_orders = MastersDOA.objects.filter(requested_user__username=data['source_wh'], doa_status='pending', model_name='grn_doa_monthly', reference_id=data['order_id'],
+                                                                    wh_user__username=data['dest_dept'])
+                    if all_pending_orders.exists():
+                        grn_number = ''
+                        for entry in all_pending_orders:
+                            user = entry.wh_user
+                            filter_data = json.loads(entry.json_data)
+                            print filter_data
+                            if filter_data.has_key('new_batch_detail'):
+                                batch_detail = BatchDetail.objects.get(id=filter_data['new_batch_detail'])
+                                del filter_data['new_batch_detail']
+                            if filter_data.has_key('new_sps_created_obj'):
+                                seller_po_summary = SellerPOSummary.objects.get(id=filter_data['new_sps_created_obj'])
+                                grn_date = seller_po_summary.creation_date
+                                grn_number = seller_po_summary.grn_number
+                                del filter_data['new_sps_created_obj']
+                            if filter_data.has_key('new_data'):
+                                data = PurchaseOrder.objects.get(id=filter_data['new_data'])
+                                del filter_data['new_data']
+                            if filter_data.has_key('new_received_qty'):
+                                new_received_qty = filter_data['new_received_qty']
+                                del filter_data['new_received_qty']
+                            if filter_data.has_key('new_order_type'):
+                                order_type = filter_data['new_order_type']
+                                del filter_data['new_order_type']
+                            if filter_data.has_key('new_seller_receipt_id'):
+                                seller_receipt_id = filter_data['new_seller_receipt_id']
+                                del filter_data['new_seller_receipt_id']
+                            if filter_data.has_key('new_zone'):
+                                filter_data['zone'] = ZoneMaster.objects.get(id=filter_data['new_zone'])
+                                del filter_data['new_zone']
+                            if filter_data.has_key('sku_id'):
+                                filter_data['sku'] = SKUMaster.objects.get(id=filter_data['sku_id'])
+                            auto_putaway_stock_detail(user, filter_data, data, new_received_qty, order_type, seller_receipt_id, 
+                                                                        last_change_date=grn_date, sps_created_obj=seller_po_summary, batch_detail=batch_detail)
+                            MastersDOA.objects.filter(id=entry.id).update(doa_status='approved', validated_by=request.user.username)
+                        if grn_number:
+                            update_sku_avg_from_grn(user, grn_number)
+            else:
+                return HttpResponse('Already Confirmed')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("GRN monthly Failed Request failed for params " + str(request.POST.dict()) + " on " + \
+                    str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
+        return HttpResponse('fail')
+    return HttpResponse('success')
+

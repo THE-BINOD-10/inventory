@@ -120,7 +120,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     print "Preparing plant stock dict completed"
     consumption_qtys = {}
     plant_consumption_qtys = {}
-    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': plant_dept_user_ids, 'sku__sku_code__in': sku_codes, 'quantity__gt': 0})
+    consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': plant_dept_user_ids, 'sku__sku_code__in': sku_codes})
     plant_allde_mapping = {}
     for cons in consumption_lt3.only('sku__user', 'sku__sku_code', 'id', 'quantity'):
         print "Preparing Consumption: " + str(cons.id)

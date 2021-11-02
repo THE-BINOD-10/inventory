@@ -1040,6 +1040,11 @@ def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', produc
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            company_id = user.userprofile.company.id
+    except Exception as e:
+        pass
     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
                                       approval_type=approval_type, sku_category=sku_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
@@ -14206,8 +14211,11 @@ def get_staff_plants_list(request, user=''):
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
-            for dept_name in dept_list:
-                department_type_list[dept_name] = department_type_mapping[dept_name]
+            try:
+                for dept_name in dept_list:
+                    department_type_list[dept_name] = department_type_mapping[dept_name]
+            except:
+                pass
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))

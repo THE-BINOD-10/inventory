@@ -25,9 +25,9 @@ log = init_logger('logs/stock_locator.log')
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     users = [user.id]
     if request.user.is_staff and request.user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'], reports = True)
     else:
-        users = check_and_get_plants_depts(request, users)
+        users = check_and_get_plants_depts(request, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     main_user = get_company_admin_user(user)
@@ -70,7 +70,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         plant_users = list(users.filter(userprofile__stockone_code__icontains=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'plant_name__icontains' in search_params.keys():
@@ -84,7 +84,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         plant_users = list(users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'dept_type__icontains' in search_params.keys():
@@ -257,21 +257,40 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                             Q(purchase_order__stpurchaseorder__open_st__sku__user=data[4],
                               purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0]),
                             status=1)'''
-        po_locs = POLocation.objects.filter(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0], status=1)
-        po_locs_st = POLocation.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=data[4], purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0], status=1)
-        for po_loc in po_locs:
-            po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
-            batch_pcf = sku_conversion
-            if po_batch.exists():
-                batch_pcf = po_batch[0].pcf
-            putaway_pending += (po_loc.quantity * batch_pcf) / sku_conversion
-        for po_lst in po_locs_st:
-            po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
-            batch_pcf = sku_conversion
-            if po_batch_st.exists():
-                batch_pcf = po_batch_st[0].pcf
-            putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
-        intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
+        # po_locs = POLocation.objects.filter(purchase_order__open_po__sku__user=data[4], purchase_order__open_po__sku__sku_code=data[0], status=1)
+        # po_locs_st = POLocation.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=data[4], purchase_order__stpurchaseorder__open_st__sku__sku_code=data[0], status=1)
+        # for po_loc in po_locs:
+        #     po_batch = BatchDetail.objects.filter(transact_id=po_loc.id, transact_type='po_loc')
+        #     batch_pcf = sku_conversion
+        #     if po_batch.exists():
+        #         batch_pcf = po_batch[0].pcf
+        #     putaway_pending += (po_loc.quantity * batch_pcf) / sku_conversion
+        # for po_lst in po_locs_st:
+        #     po_batch_st = BatchDetail.objects.filter(transact_id=po_lst.id, transact_type='po_loc')
+        #     batch_pcf = sku_conversion
+        #     if po_batch_st.exists():
+        #         batch_pcf = po_batch_st[0].pcf
+        #     putaway_pending += (po_lst.quantity * batch_pcf) / sku_conversion
+        #intransit_qty, intransit_amt = get_stock_summary_intransit_data(sku)
+        putaway_pending = 0
+        po_search_params = {'open_po__sku__user': sku.user,
+                        'open_po__sku__sku_code': sku.sku_code,
+                        }
+        poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                    filter(**po_search_params).values('open_po__sku__sku_code').\
+                    annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+        intransitQty = 0
+        if poQs.exists():
+            poOrderedQty = poQs[0]['total_order']
+            poReceivedQty = poQs[0]['total_received']
+            intransitQty = poOrderedQty - poReceivedQty
+        openpr_qty = 0
+        openPRQtyQs = PendingLineItems.objects.filter(pending_pr__wh_user=sku.user,
+                                purchase_type='PR',
+                                sku__sku_code=sku.sku_code,
+                                pending_pr__final_status__in=['pending', 'approved']). \
+                            aggregate(openpr_qty=Sum('quantity'))
+        openpr_qty = openPRQtyQs['openpr_qty'] if openPRQtyQs['openpr_qty'] else 0
         if total:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
                                                                                 sku__user=data[4])
@@ -323,24 +342,24 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('sku_packs', sku_packs),
                                                 ('Available Qty', round(pquantity, 2)),
                                                 ('Reserved Qty', round(preserved, 2)), ('Purchase UOM Qty', round(ptotal, 2)),
-                                                ('Pending Putaway Qty', putaway_pending),
+                                                # ('Pending Putaway Qty', putaway_pending),
                                                 ('Total Purchase UOM Qty', round(ptotal+putaway_pending, 5)),
                                                 ('Base UOM Qty', round(ptotal * sku_conversion, 5)),
-                                                ('Pending Putaway Base Qty', round(putaway_pending* sku_conversion, 5)),
+                                                # ('Pending Putaway Base Qty', round(putaway_pending* sku_conversion, 5)),
                                                 ('Total Base UOM Qty', round((ptotal+putaway_pending)* sku_conversion, 5)),
                                                 ('Purchase UOM', measurement_type),
                                                 ('Base UOM', base_uom),
                                                 ('Unit Purchase Qty Price', sku_avg_price),
                                                 ('In Stock Value', round(ptotal*sku_avg_price, 2)),
-                                                ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 2)),
+                                                # ('Pending Putaway Value', round(putaway_pending*sku_avg_price, 2)),
                                                 ('Total Stock Value', round((ptotal+putaway_pending)*sku_avg_price, 2)),
                                                 # ('Stock Value', '%.2f' % total_stock_value),
                                                 ('Plant Code', plant_code),
                                                 ('Plant Name', plant_name),
                                                 ('Dept Code', dept_name),
                                                 ('Dept Name', dept_type),
-                                                ('Intransit Qty', intransit_qty),
-                                                ('Intransit Value', float('%.2f' % intransit_amt)),
+                                                ('PR Qty', openpr_qty),
+                                                ('PO Qty', intransitQty),
                                                 ('Avg Monthly Consumption Qty', round(monthly_cons_qty, 2)),
                                                 ('Days of Cover', round(days_cover_qty, 2)),
                                                 ('DT_RowId', data[0]))))
@@ -4245,10 +4264,10 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         filters = copy.deepcopy(cus_filters)
     lis = ['sku__user', 'sku__sku_code', 'sku_code', 'sku_desc', 'sku_category', 'user_id', 'user_id', 'user_id', 'user_id', 'user_id']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'], reports = True)
     else:
         req_users = [user.id]
-        users = check_and_get_plants(request, req_users)
+        users = check_and_get_plants(request, req_users, reports = True)
         users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
     if 'plant_code' in filters and filters['plant_code']:
         plant_code = filters['plant_code']
@@ -4284,7 +4303,7 @@ def get_stock_plant_sku_results(start_index, stop_index, temp_data, search_term,
         res_plants.add(dat['sku__user'])
         sku_codes.append(dat['sku__sku_code'])
     usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True, reports = True)
     dept_user_ids = list(dept_users.values_list('id', flat=True))
     stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
                                             values('sku__user', 'sku__sku_code').distinct().\
@@ -4373,10 +4392,10 @@ def get_stock_plant_results(start_index, stop_index, temp_data, search_term, ord
         filters = copy.deepcopy(cus_filters)
     lis = ['sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user']
     if user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'], reports = True)
     else:
         req_users = [user.id]
-        users = check_and_get_plants(request, req_users)
+        users = check_and_get_plants(request, req_users, reports = True)
         users = users.filter(userprofile__warehouse_type__in=['STORE', 'SUB_STORE'])
     if 'plant_code' in filters and filters['plant_code']:
         plant_code = filters['plant_code']
@@ -4413,7 +4432,7 @@ def get_stock_plant_results(start_index, stop_index, temp_data, search_term, ord
     for dat in master_data:
         res_plants.add(dat['sku__user'])
     usernames = list(User.objects.filter(id__in=res_plants).values_list('username', flat=True))
-    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True)
+    dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=usernames, send_parent=True, reports = True)
     dept_user_ids = list(dept_users.values_list('id', flat=True))
     master_sku_data = StockDetail.objects.filter(sku__user__in=dept_user_ids, quantity__gt=0).exclude(sku_id__in=AssetMaster.objects.all()).\
         exclude(sku_id__in=ServiceMaster.objects.all()).\

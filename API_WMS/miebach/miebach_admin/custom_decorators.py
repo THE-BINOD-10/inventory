@@ -311,3 +311,28 @@ def check_process_status(f):
             return HttpResponse("Internal Server Error")
     return wrapper_func
 
+def check_user_process_status(f):
+    from models import ProccessRunning
+    def wrapper_func(request, *args, **kwargs):
+        user = request.user
+        try:
+            process_status = ProccessRunning.objects.filter(process_name=f.__name__, user=user.id)
+            if process_status.exists():
+                if not process_status[0].running:
+                    process_status.update(running=True)
+                    response = f(request, *args, **kwargs)
+                    process_status.update(running=False)
+                else:
+                    return HttpResponse("Process already running")
+
+            else:
+                ProccessRunning.objects.create(process_name=f.__name__, user=user.id,running=True)
+                response = f(request, *args, **kwargs)
+                process_status.update(running=False)
+            return response
+        except Exception as e:
+            import traceback
+            process_status.update(running=False)
+            return HttpResponse("Internal Server Error")
+    return wrapper_func
+

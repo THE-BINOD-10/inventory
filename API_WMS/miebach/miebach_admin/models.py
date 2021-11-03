@@ -90,7 +90,7 @@ class VendorMaster(models.Model):
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField(db_index=True)
-    sku_code = models.CharField(max_length=128)
+    sku_code = models.CharField(max_length=128, db_index=True)
     wms_code = models.CharField(max_length=128)
     sku_desc = models.CharField(max_length=350, default='')
     sku_group = models.CharField(max_length=64, default='')
@@ -4414,9 +4414,10 @@ class GateIn(models.Model):
     class Meta:
         db_table = 'GATE_IN'
         ordering    = ['-in_date']
+
 class MRP(models.Model):
     id = BigAutoField(primary_key=True)
-    transact_number = models.CharField(max_length=32, default='')
+    transact_number = models.CharField(max_length=32, default='', db_index=True)
     sku = models.ForeignKey(SKUMaster, related_name='mrp_sku')
     user = models.ForeignKey(User, related_name='mrp_user')
     avg_sku_consumption_day = models.FloatField(default=0)
@@ -4431,7 +4432,7 @@ class MRP(models.Model):
     total_stock_qty = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
     mrp_pr_raised_qty = models.FloatField(default=0)
-    supplier_id = models.CharField(max_length=20, null=True, blank=True)
+    supplier_id = models.CharField(max_length=128, null=True, blank=True)
     amount = models.FloatField(default=0)
     status = models.PositiveIntegerField(default=0)
     pending_line_items = models.ForeignKey(PendingLineItems, blank=True, null=True)
@@ -4441,7 +4442,7 @@ class MRP(models.Model):
     class Meta:
         db_table = 'MRP'
         unique_together = ('sku', 'status', 'creation_date')
-        index_together = (('sku', 'user'), ('sku', 'creation_date'))
+        index_together = (('sku', 'user'), ('sku', 'creation_date'), ('user', 'status'))
 
 class ASNMapping(models.Model):
     id = BigAutoField(primary_key=True)

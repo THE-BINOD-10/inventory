@@ -12,8 +12,8 @@ ListOfExecution = [
     { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem', 'unique_param': 'sku_code'},
     { 'function': 'IntegrateInventoryAdjustment', 'objType': 'InventoryAdjustment', 'unique_param': 'ia_number'},
     { 'function': 'IntegrateInventoryTransfer', 'objType': 'InventoryTransfer', 'unique_param': 'it_number'},
-    { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
-    { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
+   # { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
+   # { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
     { 'function': 'IntegratePurchaseRequizition', 'objType': 'PurchaseRequizition', 'unique_param': 'full_pr_number'},
     { 'function': 'IntegratePurchaseOrder', 'objType': 'PurchaseOrder', 'unique_param': 'po_number'},
     { 'function': 'IntegrateGRN', 'objType': 'grn', 'unique_param': 'grn_number'},
@@ -37,10 +37,15 @@ def runStoredAutomatedTasks():
 @app.task
 def executeAutomatedTaskForUser(userObj, row):
     intObj = Integrations(userObj, intType='netsuiteIntegration', executebatch=True)
+    batch= 50
     if not intObj.is_connected:
         log.info('Connection With Integration Layer Failed')
     try:
         for action in ['add', 'upsert', 'delete']:
+            if row.get('objType')=="grn":
+                batch=1
+                if action=="delete":
+                    continue
             currentData = intObj.getRelatedJson(row.get('objType'), action=action)
             print(row.get('objType'), userObj, currentData, action)
             log.info('Executing %s' % (row.get('objType')))

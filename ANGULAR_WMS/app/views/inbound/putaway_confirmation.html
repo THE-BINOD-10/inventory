@@ -39,7 +39,7 @@
       <div class="panel-header">
         <div class="row">
           <div class="col-md-12 col-sm-12 col-xs-6 mb10" align="right">
-            <button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_grns()">Confirm</button>
+            <button type="submit" ng-if="!showCase.cnf_btn_available" class="btn btn-success" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_grns()">Confirm</button>
             <button type="button" class="btn btn-primary" ng-click="showCase.excel()">Download Excel</button>
           </div>
         </div>

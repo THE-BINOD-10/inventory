@@ -776,7 +776,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         zone = user_obj.userprofile.zone
         pend_po = PendingPO.objects.using(reports_database).filter(full_po_number=po_obj.po_number)
         requested_user = user_obj.username
-        pend_po_id = ''
+        pend_po_id, expected_delivery_date = '', ''
         if pend_po:
             department = pend_po[0].pending_prs.filter()[0].wh_user.username
             expected_delivery_date = str(pend_po[0].pending_prs.filter()[0].delivery_date)

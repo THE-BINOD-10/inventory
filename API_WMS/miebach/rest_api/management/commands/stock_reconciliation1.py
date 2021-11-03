@@ -126,7 +126,7 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
                 temp_sku_pcf = stock_transfer.picklist.stock.batch_detail.pcf
         st_out_dict[sku_code]['st_out_qty'] += (stock_transfer.quantity/temp_sku_pcf)
         if stock_transfer.price:
-           price = stock_transfer.price
+            price = stock_transfer.price
         else:
             price = stock_transfer.stock_transfer.st_po.open_st.price
         st_out_dict[sku_code]['st_out_value'] += ((stock_transfer.quantity/temp_sku_pcf) * price)

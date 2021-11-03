@@ -61,7 +61,10 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
             opening_dict.setdefault(sku_code, {'opening_qty': 0, 'opening_value': 0})
             opening_dict[sku_code]['opening_qty'] += cls.quantity/cls.sku_pcf
             opening_dict[sku_code]['opening_value'] += cls.sku_avg_price*(cls.quantity/cls.sku_pcf)
-    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates)
+    exe_adj = list(AdjustementConsumptionData.objects.filter(remarks__icontains='Conversion', user__in=dept_user_ids).values_list('inv_adjustment_id', flat=True))
+    #exe_adj = list(AdjustementConsumptionData.objects.filter(remarks__icontains='Conversion', stock__sku__user__in=dept_user_ids, creation_date__range=dates).values_list('inv_adjustment_id', flat=True))
+    #import pdb; pdb.set_trace()
+    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates).exclude(id__in = exe_adj)
     for adj in adjustment:
         sku_code = adj.stock.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
@@ -155,9 +158,13 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         uom_dict = sku_uoms.get(sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         rtv_dict.setdefault(sku_code, {'rtv_qty': 0, 'rtv_value': 0})
-        rtv_dict[sku_code]['rtv_qty'] += (rtv.quantity * rtv_sps.batch_detail.pcf)/sku_pcf
-        unit_rtv_price_tax = rtv_sps.batch_detail.buy_price + ((rtv_sps.batch_detail.buy_price/100) * (rtv_sps.batch_detail.tax_percent+rtv_sps.batch_detail.cess_percent))
-        rtv_dict[sku_code]['rtv_value'] += rtv.quantity * unit_rtv_price_tax
+        try:
+            rtv_dict[sku_code]['rtv_qty'] += (rtv.quantity * rtv_sps.batch_detail.pcf)/sku_pcf
+            unit_rtv_price_tax = rtv_sps.batch_detail.buy_price + ((rtv_sps.batch_detail.buy_price/100) * (rtv_sps.batch_detail.tax_percent+rtv_sps.batch_detail.cess_percent))
+            rtv_dict[sku_code]['rtv_value'] += rtv.quantity * unit_rtv_price_tax
+        except:
+            pass
+            print sku_code
     cons = ConsumptionData.objects.filter(creation_date__range=dates, sku__user__in=dept_user_ids, is_valid=0).only('quantity', 'price')
     for con in cons:
         sku_code = con.sku.sku_code

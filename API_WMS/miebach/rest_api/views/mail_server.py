@@ -12,11 +12,11 @@ def send_mail(send_to, subject, body, extra_mail=''):
     if not send_to:
         return
     if extra_mail:
-        fromaddr = 'noreply@mieone.com'
-        password_token = 'no*reply!59'
+        fromaddr = 'mhl_doa@stockone.in'
+        password_token = 'lldtoibjhoiramrj'
     else:
-        fromaddr = 'noreply@mieone.com'
-        password_token = 'no*reply!59'
+        fromaddr = 'mhl_mail@stockone.in'
+        password_token = 'whnbltmoekjfmape'
     msg = MIMEMultipart()
 
     msg['From'] = fromaddr
@@ -43,8 +43,8 @@ def send_mail(send_to, subject, body, extra_mail=''):
 
 
 def send_mail_attachment(send_to, subject, text, files=[], compressed=False, milkbasket_mail_credentials={}):
-    fromaddr = 'noreply@mieone.com'
-    mail_password = 'no*reply!59'
+    fromaddr = 'mhl_mail@stockone.in'
+    mail_password = 'whnbltmoekjfmape'
     if milkbasket_mail_credentials:
         fromaddr = milkbasket_mail_credentials['username']
         mail_password = milkbasket_mail_credentials['password']

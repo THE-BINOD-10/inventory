@@ -51,10 +51,10 @@ class Command(BaseCommand):
         report_file_names = []
         subject = '%s dated on : %s for %s' % ('Automated Email for %s '% report_name.replace("_", " "), datetime.datetime.now().date(), 'Metropolis')
         text = 'Please find the scheduled reports in the below attachments dated: %s' % str(datetime.datetime.now().date())
-        #start_date = datetime.datetime.strptime('2018-04-01', '%Y-%m-%d')
+        start_date = datetime.datetime.strptime('2020-10-01', '%Y-%m-%d')
         #start_date = get_utc_start_date(start_date)
-        days= -100
-        start_date = datetime.datetime.now() + dateutil.relativedelta.relativedelta(days= days)
+        #days= -100
+        #start_date = datetime.datetime.now() + dateutil.relativedelta.relativedelta(days= -50)
         today = datetime.datetime.now()
         search_params = {'from_date': start_date, 'order_term': 'asc'}
         if report_name == "GRN_report_header_level":
@@ -180,7 +180,7 @@ class Command(BaseCommand):
                 tar.add(dat['path'], arcname=os.path.basename(dat['path']))
             new_paths.append({'path': zip_filename, 'name': zip_filename.split('/')[-1]})
         print new_paths
-        mails_list =  ['naresh@mieone.com', 'nagi@mieone.com', 'pradeep@mieone.com', 'jignesh.shah@metropolisindia.com',  'mahesh.sable@metropolisindia.com']
+        mails_list =  ['naresh@mieone.com', 'nagi@mieone.com', 'pradeep@mieone.com', 'jignesh.shah@metropolisindia.com',  'mahesh.sable@metropolisindia.com', 'malay.saha@metropolisindia.com', 'shrawan.kashyap@metropolisindia.com', 'sudeep.das@metropolisindia.com', 'sudhir.mahindrakar@metropolisindia.com', 'dhanashri.surve@metropolisindia.com', 'himanshu.shah@metropolisindia.com', 'kaladhar@mieone.com']
         #mails_list = ['naresh@mieone.com']
         send_sendgrid_mail('mhl_mail@stockone.in', mails_list, subject, text, files=new_paths)
         #send_mail_attachment(['naresh@mieone.com', 'nagi@mieone.com'], subject, text, files=new_paths)

@@ -61,7 +61,8 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
             opening_dict.setdefault(sku_code, {'opening_qty': 0, 'opening_value': 0})
             opening_dict[sku_code]['opening_qty'] += cls.quantity/cls.sku_pcf
             opening_dict[sku_code]['opening_value'] += cls.sku_avg_price*(cls.quantity/cls.sku_pcf)
-    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates)
+    exe_adj = list(AdjustementConsumptionData.objects.filter(remarks__icontains='Conversion').values_list('inv_adjustment_id', flat=True))
+    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates).exclude(id__in = exe_adj)
     for adj in adjustment:
         sku_code = adj.stock.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})

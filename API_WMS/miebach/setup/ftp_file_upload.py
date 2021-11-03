@@ -33,6 +33,8 @@ def file_upload(file_name, dest_dir, server, user_name, password, old_files, bac
 
     ftp = login_to_ftp_server(server, user_name, password)
     try:
+        if old_files:
+            remove_old_files(ftp, backup_days)
         ftp.cwd(dest_dir)
         file_pointer = open(file_name, 'rb')
         f_name = os.path.basename(file_name)
@@ -40,8 +42,7 @@ def file_upload(file_name, dest_dir, server, user_name, password, old_files, bac
         file_pointer.close()
         status = 1
 
-        if old_files:
-            remove_old_files(ftp, backup_days)
+
     except:
         print traceback.print_exc()
 

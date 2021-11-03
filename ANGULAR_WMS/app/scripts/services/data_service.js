@@ -35,8 +35,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                          stock_2d: false,
                          view: 'StockSummary',
                          tb_headers: {'StockSummary': ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'SKU Conversion', 'Plant Code', 'Plant Name', 'Dept Code', 'Dept Name', 'Available Qty',
-                                                       'Reserved Qty', 'Purchase UOM Qty', 'Pending Putaway Qty', 'Total Purchase UOM Qty', 'Base UOM Qty', 'Pending Putaway Base Qty', 'Total Base UOM Qty',
-                                                      'Purchase UOM', 'Base UOM', 'Unit Purchase Qty Price', 'In Stock Value', 'Pending Putaway Value', 'Total Stock Value', 'Intransit Qty', 'Intransit Value',
+                                                       'Reserved Qty', 'Purchase UOM Qty', 'Total Purchase UOM Qty', 'Base UOM Qty', 'Total Base UOM Qty',
+                                                      'Purchase UOM', 'Base UOM', 'Unit Purchase Qty Price', 'In Stock Value', 'Total Stock Value', 'PR Qty', 'PO Qty',
                                                       'Avg Monthly Consumption Qty', 'Days of Cover'],
                                       'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
                          size_type: 'DEFAULT'

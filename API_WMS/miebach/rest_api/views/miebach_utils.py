@@ -19571,7 +19571,7 @@ def po_report_download(user_list, search_params, user):
     return temp_data
 
 
-def get_mrp_exception_report_data(search_params, user, sub_user):
+def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\

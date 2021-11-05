@@ -17690,9 +17690,9 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['id', 'transact_number', 'user', 'user', 'user', 'user__userprofile__state', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day',
+    lis = ['id', 'transact_number', 'user', 'user', 'user', 'user', 'user', 'user__userprofile__state', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day',
             'avg_plant_sku_consumption_day','lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
-            'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'supplier_id', 'amount']
+            'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'suggested_qty', 'supplier_id', 'supplier_id', 'amount']
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
     else:
@@ -17745,16 +17745,28 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     for data in master_data:
+        staff_email, staff_phone, supplier_id, supplier_name = [''] * 4
         uom_dict = sku_uoms.get(data.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
         plant = data.user
         if data.user.userprofile.warehouse_type == 'DEPT':
             plant = get_admin(data.user)
+        if data.supplier_id:
+            supplier = SupplierMaster.objects.get(id=data.supplier_id)
+            supplier_id = supplier.supplier_id
+            supplier_name = supplier.name
         raise_pr_input = '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), round(data.suggested_qty, 5))
         if not stop_index:
             raise_pr_input = round(data.suggested_qty, 5)
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        staff_email, staff_phone = [''] * 2
+        if staff:
+            staff = staff[0]
+            staff_email = staff.email_id
+            staff_phone = staff.phone_number
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('MRP Receiver User', staff_email ), ('MRP Receiver Phone', staff_phone ),
+                                    ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
                                     ('Department', data.user.first_name), ('State', plant.userprofile.state),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
                                   ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 5)),
@@ -17764,7 +17776,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                   ('Pending PR Qty', round(data.pending_pr_qty, 5)), ('Pending PO Qty', round(data.pending_po_qty, 5)),
                                   ('Total Stock Qty', round(data.total_stock_qty, 5)), ('Suggested Qty', round(data.suggested_qty, 5)),
                                   ('Raise PR Quantity', raise_pr_input),
-                                  ('Supplier Id', data.supplier_id), ('Suggested Value', data.amount),
+                                  ('Supplier Id', supplier_id), ('Supplier Name', supplier_name), ('Suggested Value', data.amount),
                                   ('DT_RowAttr', {'data-id': data.id}),
                                   ('hsn_code', data.sku.hsn_code)
                                 ))

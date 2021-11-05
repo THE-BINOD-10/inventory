@@ -17759,7 +17759,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         raise_pr_input = '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), round(data.suggested_qty, 5))
         if not stop_index:
             raise_pr_input = round(data.suggested_qty, 5)
-        staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
         staff_email, staff_phone = [''] * 2
         if staff:
             staff = staff[0]

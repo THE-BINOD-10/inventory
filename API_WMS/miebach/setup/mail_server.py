@@ -4,12 +4,12 @@ from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
 from email import encoders
 
-def send_mail(send_to, subject, body):
 
+def send_mail(send_to, subject, body):
     if not send_to:
         return
 
-    fromaddr = 'noreply@mieone.com'
+    fromaddr = 'mhl_mail@stockone.in'
 
     msg = MIMEMultipart()
 
@@ -24,7 +24,7 @@ def send_mail(send_to, subject, body):
 
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login(fromaddr, "no*reply!59")
+        server.login(fromaddr, "nwbjvpuycpktturg")
         text = msg.as_string()
 
         server.sendmail(fromaddr, send_to, text)
@@ -35,7 +35,7 @@ def send_mail(send_to, subject, body):
 
 def send_mail_attachment(send_to, subject, text, files=[]):
 
-    fromaddr = 'noreply@mieone.com'
+    fromaddr = 'mhl_mail@stockone.in'
 
     msg = MIMEMultipart()
 
@@ -66,7 +66,7 @@ def send_mail_attachment(send_to, subject, text, files=[]):
 
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login(fromaddr, "no*reply!59")
+        server.login(fromaddr, "nwbjvpuycpktturg")
         text = msg.as_string()
 
         server.sendmail(fromaddr, send_to, text)

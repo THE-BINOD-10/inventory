@@ -88,7 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.update = false;
   var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '',
   default_level_data: [{level: 'level0', roles: '', data_id: '' , display_emails: false, emails: ''}],
-   ranges_level_data: [{min_Amt: 0, max_Amt: 0, range_no: 0, 'range_levels': [{level: 'level0', roles: '', data_id: '', level_no: 0}] }],
+   ranges_level_data: [{min_Amt: 0, max_Amt: 0, range_no: 0, 'range_levels': [{level: 'level0', roles: '', emails: '',  data_id: '', level_no: 0}] }],
   approved_level_data: [{level: 'level0', roles: '', data_id: ''}]};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
@@ -205,13 +205,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.addRangesLevel = function(range_data, level_dat) {
     var new_level = level_dat.level_no + 1;
-    range_data.range_levels.push({level: 'level' + new_level, roles: '', data_id: '', level_no: new_level})
+    range_data.range_levels.push({level: 'level' + new_level, roles: '', emails: '', data_id: '', level_no: new_level})
     $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 2);
   }
 
   vm.addRangesAmts = function() {
     var new_range = (vm.ranges_count + 1);
-    vm.model_data.ranges_level_data.push({min_Amt: 0, max_Amt: 0, range_no: new_range, 'range_levels': [{level: 'level0', roles: '', data_id: '', level_no: 0}]})
+    vm.model_data.ranges_level_data.push({min_Amt: 0, max_Amt: 0, range_no: new_range, 'range_levels': [{level: 'level0', roles: '', emails: '', data_id: '', level_no: 0}]})
     $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 10);
     vm.ranges_count += 1;
   }

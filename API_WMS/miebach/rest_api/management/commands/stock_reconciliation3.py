@@ -61,7 +61,10 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
             opening_dict.setdefault(sku_code, {'opening_qty': 0, 'opening_value': 0})
             opening_dict[sku_code]['opening_qty'] += cls.quantity/cls.sku_pcf
             opening_dict[sku_code]['opening_value'] += cls.sku_avg_price*(cls.quantity/cls.sku_pcf)
-    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates)
+    exe_adj = list(AdjustementConsumptionData.objects.filter(remarks__icontains='Conversion', user__in=dept_user_ids).values_list('inv_adjustment_id', flat=True))
+    #exe_adj = list(AdjustementConsumptionData.objects.filter(remarks__icontains='Conversion', stock__sku__user__in=dept_user_ids, creation_date__range=dates).values_list('inv_adjustment_id', flat=True))
+    #import pdb; pdb.set_trace()
+    adjustment = InventoryAdjustment.objects.filter(stock__sku__user__in=dept_user_ids, creation_date__range=dates).exclude(id__in = exe_adj)
     for adj in adjustment:
         sku_code = adj.stock.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
@@ -77,7 +80,8 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         sku_pcf = uom_dict.get('sku_conversion', 1)
         po_grn_dict.setdefault(sku_code, {'po_grn_qty': 0, 'po_grn_value': 0})
         if psp.batch_detail:
-            po_grn_dict[sku_code]['po_grn_qty'] += (psp.quantity * psp.batch_detail.pcf)/sku_pcf
+            #po_grn_dict[sku_code]['po_grn_qty'] += (psp.quantity * psp.batch_detail.pcf)/sku_pcf
+            po_grn_dict[sku_code]['po_grn_qty'] += psp.quantity
             unit_price_tax = psp.batch_detail.buy_price + ((psp.batch_detail.buy_price/100) * (psp.batch_detail.tax_percent+psp.batch_detail.cess_percent))
             po_grn_dict[sku_code]['po_grn_value'] += psp.quantity * unit_price_tax
         else:
@@ -93,11 +97,10 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         uom_dict = sku_uoms.get(sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         st_grn_dict.setdefault(sku_code, {'st_grn_qty': 0, 'st_grn_value': 0})
-        if sps.batch_detail:
-            st_grn_dict[sku_code]['st_grn_qty'] += (sps.quantity * sps.batch_detail.pcf)/sku_pcf
-            st_grn_dict[sku_code]['st_grn_value'] += open_st_price * sps.quantity
+        st_grn_dict[sku_code]['st_grn_qty'] += sps.quantity
+        if sps.price:
+            st_grn_dict[sku_code]['st_grn_value'] += sps.price * sps.quantity
         else:
-            st_grn_dict[sku_code]['st_grn_qty'] += sps.quantity
             st_grn_dict[sku_code]['st_grn_value'] += open_st_price * sps.quantity
     spss_mr = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user__in=dept_user_ids, creation_date__range=dates,
                                             purchase_order__stpurchaseorder__stocktransfer__st_type='MR')
@@ -109,37 +112,43 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         uom_dict = sku_uoms.get(sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         mr_grn_dict.setdefault(sku_code, {'st_grn_qty': 0, 'st_grn_value': 0})
-        if sps.batch_detail:
-            mr_grn_dict[sku_code]['st_grn_qty'] += (sps.quantity * sps.batch_detail.pcf)/sku_pcf
-            mr_grn_dict[sku_code]['st_grn_value'] += open_st_price * sps.quantity
+        mr_grn_dict[sku_code]['st_grn_qty'] += sps.quantity
+        if sps.price:
+            mr_grn_dict[sku_code]['st_grn_value'] += sps.price * sps.quantity
         else:
-            mr_grn_dict[sku_code]['st_grn_qty'] += sps.quantity
             mr_grn_dict[sku_code]['st_grn_value'] += open_st_price * sps.quantity
-
     stock_transfers = StockTransferSummary.objects.filter(creation_date__range=dates, stock_transfer__st_type='ST_INTRA', stock_transfer__sku__user=usr.id)
     for stock_transfer in stock_transfers:
         sku_code = stock_transfer.stock_transfer.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         st_out_dict.setdefault(sku_code, {'st_out_qty': 0, 'st_out_value': 0})
-        st_out_dict[sku_code]['st_out_qty'] += (stock_transfer.quantity/sku_pcf)
+        temp_sku_pcf = sku_pcf
+        if stock_transfer.picklist.stock:
+            if stock_transfer.picklist.stock.batch_detail:
+                temp_sku_pcf = stock_transfer.picklist.stock.batch_detail.pcf
+        st_out_dict[sku_code]['st_out_qty'] += (stock_transfer.quantity/temp_sku_pcf)
         if stock_transfer.price:
             price = stock_transfer.price
         else:
             price = stock_transfer.stock_transfer.st_po.open_st.price
-        st_out_dict[sku_code]['st_out_value'] += ((stock_transfer.quantity/sku_pcf) * price)
+        st_out_dict[sku_code]['st_out_value'] += ((stock_transfer.quantity/temp_sku_pcf) * price)
     stock_transfers1 = StockTransferSummary.objects.filter(creation_date__range=dates, stock_transfer__st_type='MR', stock_transfer__sku__user__in=dept_user_ids)
     for stock_transfer1 in stock_transfers1:
         sku_code = stock_transfer1.stock_transfer.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         mr_out_dict.setdefault(sku_code, {'mr_out_qty': 0, 'mr_out_value': 0})
-        temp_mr_qty = (stock_transfer1.quantity/sku_pcf)
+        temp_sku_pcf = sku_pcf
+        if stock_transfer1.picklist.stock:
+            if stock_transfer1.picklist.stock.batch_detail:
+                temp_sku_pcf = stock_transfer1.picklist.stock.batch_detail.pcf
+        temp_mr_qty = (stock_transfer1.quantity/temp_sku_pcf)
         mr_out_dict[sku_code]['mr_out_qty'] += temp_mr_qty
-        # if stock_transfer1.price:
-        #     price = stock_transfer1.price
-        # else:
-        price = stock_transfer1.stock_transfer.st_po.open_st.price
+        if stock_transfer1.price:
+            price = stock_transfer1.price
+        else:
+            price = stock_transfer1.stock_transfer.st_po.open_st.price
         mr_out_dict[sku_code]['mr_out_value'] += (temp_mr_qty * price)
     #RTVS
     rtvs = ReturnToVendor.objects.filter(creation_date__range=dates, seller_po_summary__purchase_order__open_po__sku__user=usr.id).exclude(rtv_number='')
@@ -149,14 +158,21 @@ def recon_calc(main_user, user, data_list, opening_date, closing_date, start_day
         uom_dict = sku_uoms.get(sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         rtv_dict.setdefault(sku_code, {'rtv_qty': 0, 'rtv_value': 0})
-        rtv_dict[sku_code]['rtv_qty'] += (rtv.quantity * rtv_sps.batch_detail.pcf)/sku_pcf
-        unit_rtv_price_tax = rtv_sps.batch_detail.buy_price + ((rtv_sps.batch_detail.buy_price/100) * (rtv_sps.batch_detail.tax_percent+rtv_sps.batch_detail.cess_percent))
-        rtv_dict[sku_code]['rtv_value'] += rtv.quantity * unit_rtv_price_tax
-    cons = ConsumptionData.objects.filter(creation_date__range=dates, sku__user__in=dept_user_ids).only('quantity', 'price')
+        try:
+            rtv_dict[sku_code]['rtv_qty'] += (rtv.quantity * rtv_sps.batch_detail.pcf)/sku_pcf
+            unit_rtv_price_tax = rtv_sps.batch_detail.buy_price + ((rtv_sps.batch_detail.buy_price/100) * (rtv_sps.batch_detail.tax_percent+rtv_sps.batch_detail.cess_percent))
+            rtv_dict[sku_code]['rtv_value'] += rtv.quantity * unit_rtv_price_tax
+        except:
+            pass
+            print sku_code
+    cons = ConsumptionData.objects.filter(creation_date__range=dates, sku__user__in=dept_user_ids, is_valid=0).only('quantity', 'price')
     for con in cons:
         sku_code = con.sku.sku_code
         uom_dict = sku_uoms.get(sku_code, {})
-        sku_pcf = uom_dict.get('sku_conversion', 1)
+        if con.sku_pcf:
+            sku_pcf = con.sku_pcf
+        else:
+            sku_pcf = uom_dict.get('sku_conversion', 1)
         cons_dict.setdefault(sku_code, {'cons_qty': 0, 'cons_value': 0})
         cons_dict[sku_code]['cons_qty'] += con.quantity/sku_pcf
         cons_dict[sku_code]['cons_value'] += (con.quantity/sku_pcf) * con.price
@@ -275,12 +291,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         main_user = User.objects.get(username='mhl_admin')
-        plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])[140:]
-        #plant_users = User.objects.filter(userprofile__stockone_code='27115')
+        #plant_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE'])
+        plant_users = User.objects.filter(userprofile__stockone_code='27013')
         self.stdout.write("Started Reconciliation")
         main_user = User.objects.get(username='mhl_admin')
         current_date = datetime.datetime.now()
-        if current_date.day < 7:
+        if current_date.day < 15:
             start_day = (current_date-relativedelta(months=1)).replace(day=1).date()
             end_day = (start_day.replace(day=1) + relativedelta(months=1))
         else:

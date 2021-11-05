@@ -1041,6 +1041,11 @@ def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', produc
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
+    try:
+        if user.userprofile.currency.currency_code != 'INR':
+            company_id = user.userprofile.company.id
+    except Exception as e:
+        pass
     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
                                       approval_type=approval_type, sku_category=sku_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
@@ -13381,10 +13386,13 @@ def get_related_user_objs(user_id, level=0, ):
     users = User.objects.filter(id__in=user_ids)
     return users
 
-def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False, exclude_company=''):
+def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False, exclude_company='', reports = False):
     """ this function generates all users related to a user with filters"""
     user = User.objects.get(id=user_id)
     main_company_id = get_company_id(user)
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     if warehouse_types:
         user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type__in=warehouse_types,
                                                 company_id=main_company_id)
@@ -13397,12 +13405,12 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     if not send_parent:
         user_list2 = []
     all_users = list(set(user_list1 + user_list2))
-    all_user_objs = User.objects.filter(id__in=all_users, userprofile__visible_status=1)
+    all_user_objs = User.objects.filter(id__in=all_users, **filter_params)
     if company_id:
         if exclude_company == 'true':
-            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id, userprofile__visible_status=1)
+            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id, **filter_params)
         else:
-            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id, userprofile__visible_status=1)
+            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id, **filter_params)
     return all_user_objs
 
 
@@ -13551,8 +13559,10 @@ def sync_supplier_async(id, user_id):
     user = User.objects.get(id=user_id)
     filter_dict = {'supplier_id': supplier.supplier_id }
     data_dict = removeUnnecessaryData(supplier.__dict__)
-    data_dict.pop('id')
-    data_dict.pop('user')
+    if "id" in data_dict:
+        data_dict.pop('id')
+    if "user" in data_dict:
+        data_dict.pop('user')
     payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
     net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
     currency_objs = supplier.currency.filter()
@@ -13895,6 +13905,7 @@ def get_purchase_config_data(request, user=''):
         ranges_dict = OrderedDict()
         for config in purchase_config_data:
             roles = list(config.user_role.filter().values_list('role_name', flat=True))
+            emails = config.emails.filter().values_list("name", flat=True).last()
             if config.approval_type == 'ranges':
                 grouping_key = '%s,%s' % (str(config.min_Amt), str(config.max_Amt))
                 ranges_dict.setdefault(grouping_key, {'min_Amt': config.min_Amt, 'max_Amt': config.max_Amt,
@@ -13902,7 +13913,7 @@ def get_purchase_config_data(request, user=''):
                 range_no = ranges_dict.keys().index(grouping_key)
                 ranges_dict[grouping_key]['range_no'] = range_no
                 ranges_dict[grouping_key]['range_levels'].append({'level': config.level, 'roles': roles,
-                                                  'data_id': config.id,
+                                                  'data_id': config.id, 'emails': emails,
                                                   'level_no': int(config.level.replace('level', ''))})
             else:
                 emails = list(config.emails.filter().values_list("name", flat=True))
@@ -14184,7 +14195,10 @@ def get_uom_conversion_value(sku, uom_type):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_staff_plants_list(request, user=''):
+def get_staff_plants_list(request, user='', reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
@@ -14194,7 +14208,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list, userprofile__visible_status=1).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list, **filter_params).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -14207,37 +14221,49 @@ def get_staff_plants_list(request, user=''):
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
-            for dept_name in dept_list:
-                department_type_list[dept_name] = department_type_mapping[dept_name]
+            try:
+                for dept_name in dept_list:
+                    department_type_list[dept_name] = department_type_mapping[dept_name]
+            except:
+                pass
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))
 
 
 @get_admin_multi_user
-def check_and_get_plants(request, req_users, users=''):
+def check_and_get_plants(request, req_users, users='', reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
+        req_users = User.objects.filter(id__in=req_users, **filter_params)
     return req_users
 
 
 @get_admin_all_wh
-def check_and_get_plants_depts(request, req_users, users=''):
+def check_and_get_plants_depts(request, req_users, users='', reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     if users:
         req_users = users
     else:
-        req_users = User.objects.filter(id__in=req_users, userprofile__visible_status=1)
+        req_users = User.objects.filter(id__in=req_users, **filter_params)
     return req_users
 
-def check_and_get_plants_wo_request(request_user, user, req_users):
+def check_and_get_plants_wo_request(request_user, user, req_users, reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     users = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), **filter_params)
         if not users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id
@@ -14252,13 +14278,16 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     return req_users
 
 
-def check_and_get_plants_depts_wo_request(request_user, user, req_users):
+def check_and_get_plants_depts_wo_request(request_user, user, req_users, reports = False):
+    filter_params ={}
+    if not reports:
+        filter_params['userprofile__visible_status'] = 1
     users = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
     if staff_obj.exists():
-        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), userprofile__visible_status=1)
+        plant_users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)), **filter_params)
         if not plant_users:
             parent_company_id = get_company_id(user)
             company_id = staff_obj[0].company_id

@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.cnf_btn_available = vm.permissions.allow_month_end_transactions;
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;

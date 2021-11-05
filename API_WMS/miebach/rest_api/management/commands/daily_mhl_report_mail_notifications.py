@@ -66,10 +66,10 @@ class Command(BaseCommand):
                     excel_name += '.csv'
                 report_file_names.append({'name': excel_name, 'path': excel_path})
         except Exception as e:
-            pass
+            pass'''
 
         # SKU Wise PO Report
-        try:
+        '''try:
             po_grn = get_metropolis_po_detail_report_data(search_params, user, user)
             if po_grn:
                 excel_name = 'PO_SKU_Report'
@@ -114,5 +114,5 @@ class Command(BaseCommand):
         print new_paths
         #report_file_names.append({'path': 'static/excel_files/mhl_adminPR_PO_GRN_Report.csv', 'name': 'PR_PO_GRN_Report.csv'})
         #send_sendgrid_mail('mhl_mail@stockone.in', ['kaladhar@mieone.com'], subject, text, files=report_file_names)
-        send_mail_attachment(['kaladhar@mieone.com', 'nagi@mieone.com'], subject, text, files=new_paths)
+        send_mail_attachment(['kaladhar@mieone.com', 'nagi@mieone.com', 'naresh@mieone.com', 'rajan@mieone.com', 'karthik@mieone.com', 'mahesh.sable@metropolisindia.com', 'pravin.rajput@metropolisindia.com', 'jayant.rajani@metropolisindia.com'], subject, text, files=new_paths)
         self.stdout.write("Updating Completed")

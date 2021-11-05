@@ -62,6 +62,7 @@ def get_dept_from_store_search(user, search_term):
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': [], 'quantity__gt': 0}
     status =  request.POST.get('special-key', '')
+    #exe_prs = ['15-99927-ITTEC00271', '15-27001-MOLPA00030', '15-27001-NACOP00009', '15-27001-CUSCA00053', '15-24022-BIOCHE00001', '15-19207-ALLDE00001', '44-32200-ALLDE00010', '15-27007-ADMIN00102', '15-99927-MARKE00029', '44-29005-ADMIN00086', '15-28050-BIOCHE00004', '15-33066-BIOCHE00005', '11-99927-MARKE00597', '15-99927-ITTEC00270', '15-27129-SECRE00013']
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -123,7 +124,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number',
         'pending_pr__sku_category', 'pending_pr__wh_user__username']
     results = PendingLineItems.objects.filter(**filtersMap). \
-                exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']). \
+                exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']).\
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
@@ -3483,7 +3484,11 @@ def get_raisepo_group_data(user, myDict):
         if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
             po_delivery_date = datetime.datetime.strptime(str(myDict['po_delivery_date'][0]), "%m/%d/%Y")
         if 'pr_delivery_date' in myDict.keys() and myDict['pr_delivery_date'][0]:
-            pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d-%m-%Y")
+            try:
+                pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d-%m-%Y")
+            except:
+                pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d/%m/%Y")
+                pass
         if 'ship_to' in myDict.keys():
             ship_to = myDict['ship_to'][0]
         if 'measurement_unit' in myDict.keys():
@@ -4225,12 +4230,12 @@ def approve_pr(request, user=''):
                 lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
                 temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name='PENDING_PR_PURCHASE_APPROVER')
                 if temp_data:
-                    is_resubmitted = True
+                    '''is_resubmitted = True
                     approval_type = 'ranges'
                     prApprQs = pendingPRObj.pending_prApprovals
                     prApprIds = prApprQs.values_list('id', flat=True)
                     prApprQs.filter(approval_type='ranges').update(status='resubmitted')
-                    PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')
+                    PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')'''
                     temp_data.delete()
 
                 lineItems = pendingPRObj.pending_prlineItems
@@ -4352,9 +4357,8 @@ def approve_pr(request, user=''):
                 #                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
                 # else: 
                 #In last Level, no need to generate Hashcode, just confirmation mail is enough
-                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
-                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
-                                                                     approval_type='approved')
+                display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName)[0].display_name
+                approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name,approval_type='approved')
                 if approval_obj.exists():
                     prObj, mailsList, mail_roles = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
                                             master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')

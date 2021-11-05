@@ -62,7 +62,7 @@
     "angular-google-analytics": "^1.1.9",
     "angular-select2": "^1.5.2",
     "angular-ui-select2": "^0.0.5",
-    "ng-idle": "1.3.2"
+    "ng-idle": "^1.3.2"
   },
   "appPath": "app",
   "moduleName": "urbanApp",

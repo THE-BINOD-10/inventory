@@ -802,7 +802,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.get_info_delta_value = function(sup_data) {
       if (typeof(sup_data['system_preferred_supplier']) != 'undefined' && sup_data['system_preferred_supplier'] != '') {
         (sup_data['preferred_supplier'] != sup_data['system_preferred_supplier']) ? sup_data['icon_color'] = { 'color': 'red' } : sup_data['icon_color'] = { 'color': 'seagreen' };
-      //} else if (sup_data['preferred_supplier'] && sup_data['preferred_supplier'] != sup_data['supplier_id_name']) {
       } else if ((sup_data['preferred_supplier'] && sup_data['preferred_supplier'] != sup_data['supplier_id_name']) || (sup_data.suggested_qty && sup_data.suggested_qty != sup_data.order_quantity)) {
         sup_data['sku_sku_comment'] = true;
         sup_data['icon_color'] = { 'color': 'red' };

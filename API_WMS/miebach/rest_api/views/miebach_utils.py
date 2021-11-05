@@ -640,7 +640,7 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
                         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
                     ],
-            'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
+            'dt_headers': ["PR Number","MRP PR","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
             "PR Qty", "Category", "Plant Code", "Plant" , "Zone", "Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
             "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date", "Diff in Expected vs GRN date",
             'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
@@ -825,7 +825,7 @@ SKU_WISE_GRN_DICT = {'filters': [
     {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
 ],
-    'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)",
+    'dt_headers': ["PR Number","MRP PR","PR date","PR raised time", "PR raised By","PR raised By(department name)",
                    "PR Category types","PR Qty", "Category",  "UOM", "Price per Unit", "Total Amt","Plant Code",
                    "Plant" , "Zone", "Approved by all Approvers", "Final Approver date","PO No" , "PO Date", "PO Qty",
                    "PO Basic Price", "Tax Amt" ,"PO total amt", "Expected delivery date", "Diff in Expected vs GRN date", "GRN date", "GRN Number",
@@ -900,7 +900,7 @@ PR_REPORT_DICT = {
         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
     ],
 
-    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'Expected Delivery Date', 'PR raised By ( User Name)', 'PR raised By ( User Plant name)',
+    'dt_headers': ['PR Number', 'MRP PR', 'PO Number', 'PR Submitted Date', 'Expected Delivery Date', 'PR raised By ( User Name)', 'PR raised By ( User Plant name)',
                    'PR raised By ( User department name)', 'Zone', 'Product Category', 'Category', 'Quantity',
                    'Priority Type', 'Total Amount','PR Status', 'Next Approver Email', 'Pending Approval Type', 'Pending Level', 'Total PR approved Time'
                    ],
@@ -923,7 +923,7 @@ PR_PERFORMANCE_REPORT_DICT = {
         {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
     ],
-    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'PR Final Approval Date', 'PR Confirmed Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
+    'dt_headers': ['PR Number', 'MRP PR', 'PO Number', 'PR Submitted Date', 'PR Final Approval Date', 'PR Confirmed Date', 'PR raised By', 'PR raised To', 'Zone', 'Product Category', 'Category',
                 'Priority Type', 'PR Status', 'Approval Name', 'Approver Status', 'Approver Received Date', 'Approver Confirmed Date', 'Approver Days', 'Approver Time', 'Approver Level'],
 
     'dt_url': 'get_pr_performance_report', 'excel_name': 'get_pr_performance_report',
@@ -969,7 +969,7 @@ PR_DETAIL_REPORT_DICT = {
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
 
-    'dt_headers': ['PR Number', 'PO Number', 'PR Submitted Date', 'Expected Delivery Date', 'PR raised By ( User Name)', 'PR raised By ( User plant name)',
+    'dt_headers': ['PR Number', 'MRP PR', 'PO Number', 'PR Submitted Date', 'Expected Delivery Date', 'PR raised By ( User Name)', 'PR raised By ( User plant name)',
                    'PR raised By ( User department name)', 'Zone', 'Product Category', 'Category', 'Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category','SKU Sub-Category','SKU Group', 'SKU Class','HSN Code',
                    'Quantity', 'UOM','Supplier ID','Supplier Name', 'Supplier GST', 'Priority Type', 'Total Amount',
@@ -1094,7 +1094,7 @@ METRO_PO_REPORT_DICT = {
 
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
+    'dt_headers': ['PR Number', 'MRP PR', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date', 'Total Approval Time',
@@ -1120,7 +1120,7 @@ METROPOLIS_PO_REPORT_DICT = {
 
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'Expected Delivery Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
+    'dt_headers': ['PR Number', 'MRP PR', 'PR Date', 'Expected Delivery Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Created by', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','PO Received Quantity', 'PO Received Amount','PO Receivable Quantity', 'PO Receivable Amount', 'GRN Numbers','Last Updated by', 'Last Updated Date', 'Total Approval Time',
@@ -1148,7 +1148,7 @@ METRO_PO_DETAIL_REPORT_DICT = {
         # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
+    'dt_headers': ['PR Number', 'MRP PR', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)', 'Zone',
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
@@ -1178,7 +1178,7 @@ METROPOLIS_PO_DETAIL_REPORT_DICT = {
 
     ],
 
-    'dt_headers': ['Zone', 'Plant Code', 'Plant Name', 'PR Number', 'PR Date',   'PR raised By ( User Name)', 'PR raised By ( User department name)', 
+    'dt_headers': ['Zone', 'Plant Code', 'Plant Name', 'PR Number', 'MRP PR', 'PR Date',   'PR raised By ( User Name)', 'PR raised By ( User department name)', 
                    'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Base UOM Qty', 'PO Base UOM', 'PO Received Qty', 'PO Receivable Qty', 'Pending PO Base UOM Qty', 'Pending PO Base UOM', 'PO Received Amt', 'PO Receivable Amt', 'PO Raised Date','Material Code',
                    'Material Description', 'Conversion Factor', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
@@ -2085,7 +2085,7 @@ PRAOD_REPORT_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
     ],
-    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'PR Raised By', 'Department', 'Zone Code', 'PR Number', 'PR Status', 'Product Category', 'SKU Category',
+    'dt_headers': ['Raised Date', 'Plant', 'Plant Code', 'PR Raised By', 'Department', 'Zone Code', 'PR Number', 'MRP PR', 'PR Status', 'Product Category', 'SKU Category',
         'Pending with Email Id', 'Staff position', 'Pending since days', 'Pending Level', 'Pending Since from PR Raised(Days)'],
     'dt_url': 'get_praod_report', 'excel_name': 'get_praod_report',
     'print_url': 'get_praod_report',
@@ -4149,10 +4149,10 @@ def get_integration_report_data(request, search_params, user, sub_user):
     users = [user.id]
     admin_user_id= user.id
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ["stockone_reference", "stockone_reference","stockone_reference", "stockone_reference", "module_type", "action_type", "creation_date",  "status", "integration_error"]
@@ -4211,7 +4211,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -4219,7 +4219,7 @@ def get_integration_report_data(request, search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     # if 'sister_warehouse' in search_params:
@@ -5341,6 +5341,7 @@ def get_pending_po_grn_dict(user, po_numbers):
             else:
                 pending_po_dict[grp_key]['pr_plant'] = pr_plant.username
             pending_po_dict[grp_key]['pr_number'] = pending_pr.full_pr_number
+            pending_po_dict[grp_key]['mrp_pr'] = 'Yes' if pending_pr.is_auto_pr else 'NO'
             prApprQs = pending_pr.pending_prApprovals
             all_approvals_data= list(prApprQs.exclude(status__in=['', 'resubmitted']).values_list('validated_by', "creation_date"))
             all_approvals = []
@@ -5454,10 +5455,10 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     from masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
            'purchase_order__open_po__po_name',
@@ -5541,6 +5542,8 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         search_parameters[field_mapping['grn_number']] = search_params['grn_number']
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'status' in search_params:
+        search_parameters['status'] = 0 if search_params['status'] == 'completed' else 1
     if 'invoice_number' in search_params:
         search_parameters['invoice_number'] = search_params['invoice_number']
     if 'supplier' in search_params and ':' in search_params['supplier']:
@@ -5555,7 +5558,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -5563,7 +5566,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -5579,7 +5582,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters[field_mapping['user']] = user_ids
-    search_parameters['purchase_order__received_quantity__gt'] = 0
+    #search_parameters['purchase_order__received_quantity__gt'] = 0
     '''if search_params.get('excel_name'):
         temp_data = grn_download(user_ids, search_params, user)
         return temp_data'''
@@ -5825,7 +5828,9 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             integration_error = grn_int_err.get(data['grn_number'], '')
         integration_date = grn_int_date[data['grn_number']].strftime("%d %b, %Y") if grn_int_date.get(data['grn_number'], '') else ''
         pr_line_item = sku_pending_po_dict.get('line_items', {}).get(data['purchase_order__open_po__sku__sku_code'], {})
-        ord_dict = OrderedDict((("PR Number", sku_pending_po_dict.get('pr_number', '')),('PR date', sku_pending_po_dict.get('pr_date', '')),
+        ord_dict = OrderedDict((("PR Number", sku_pending_po_dict.get('pr_number', '')),
+                                ('MRP PR', sku_pending_po_dict.get('mrp_pr', '')),
+                                ('PR date', sku_pending_po_dict.get('pr_date', '')),
                                 ('PR raised time', sku_pending_po_dict.get('pr_date_time', '')),
                                 ('PR raised By', sku_pending_po_dict.get('pr_raised_user', '')),
                                 ('PR Category types', sku_pending_po_dict.get('product_category', '')),
@@ -6267,10 +6272,10 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
     from rest_api.views.masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = []
@@ -6392,10 +6397,10 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
         payload_dict["sku_code"]= search_params['sku_code']
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'po_number' not in search_params and 'pr_number' not in search_params:
         if 'plant_code' in search_params:
             plant_code = search_params['plant_code']
@@ -6403,7 +6408,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                         userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
             if plant_users:
-                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
             else:
                 users = User.objects.using(reports_database).none()
         if 'plant_name' in search_params.keys():
@@ -6412,7 +6417,7 @@ def get_metropolis_pr_po_grn_filter_data(request, search_params, user, sub_user)
             plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                             values_list('username', flat=True))
             if plant_users:
-                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
             else:
                 users = User.objects.using(reports_database).none()
         if 'sister_warehouse' in search_params:
@@ -6635,10 +6640,10 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     from rest_api.views.masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = []
@@ -6742,17 +6747,17 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
     if 'sku_code' in search_params and 'po_number' not in search_params and 'pr_number' not in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'po_number' not in search_params and 'pr_number' not in search_params:
         if 'plant_code' in search_params:
             plant_code = search_params['plant_code']
             plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                         userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
             if plant_users:
-                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
             else:
                 users = User.objects.using(reports_database).none()
         if 'plant_name' in search_params.keys():
@@ -6760,7 +6765,7 @@ def get_pr_po_grn_filter_data(request, search_params, user, sub_user):
             plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                             values_list('username', flat=True))
             if plant_users:
-                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+                users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
             else:
                 users = User.objects.using(reports_database).none()
         if 'sister_warehouse' in search_params:
@@ -7009,10 +7014,10 @@ def get_po_filter_data(request, search_params, user, sub_user):
         get_related_users_filters,get_admin
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['purchase_order__order_id', 'purchase_order__order_id',  'purchase_order__order_id', 'purchase_order__order_id',
@@ -7074,12 +7079,14 @@ def get_po_filter_data(request, search_params, user, sub_user):
     if 'supplier' in search_params and ':' in search_params['supplier']:
         search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
             search_params['supplier'].split(':')[0]
+    if 'status' in search_params:
+        search_parameters['status'] = 0 if search_params['status'] == 'completed' else 1
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -7087,7 +7094,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -7104,7 +7111,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     search_parameters[field_mapping['user']] = user_ids
     #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
-    search_parameters['purchase_order__received_quantity__gt'] = 0
+    #search_parameters['purchase_order__received_quantity__gt'] = 0
     '''if search_params.get('excel_name'):
         search_params['from_date'] = search_params['grn_from_date']
         if 'grn_to_date' in search_params:
@@ -7196,7 +7203,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         po_data =  PendingPO.objects.using(reports_database).filter(full_po_number=result.po_number)
         pr_plant,last_approvals_date,pr_Total_Amt,pr_price, pr_tax_amount="","",0,0,0
         all_approvals=[]
-        pr_date_time, pr_department = '', ''
+        pr_date_time, pr_department, mrp_pr = '', '',''
         if po_data.exists():
             po_data=po_data[0]
             pending_pr= po_data.pending_prs.all()
@@ -7225,6 +7232,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                 else:
                     pr_plant = pr_plant.username
                 pr_number = pending_pr.full_pr_number
+                mrp_pr = 'Yes' if pending_pr.is_auto_pr else 'NO'
                 prApprQs = pending_pr.pending_prApprovals
                 all_approvals_data= list(prApprQs.exclude(status__in=['', 'resubmitted']).values_list('validated_by', "creation_date"))
                 if(all_approvals_data):
@@ -7313,6 +7321,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                                                 ('PO Number', po_number),
                                                 ('PO Date', po_date),
                                                 ("PR Number",pr_number),
+                                                ("MRP PR", mrp_pr),
                                                 ('PR date', pr_date),
                                                 ('PR raised time', pr_date_time),
                                                 ('PR raised By', pr_raised_user),
@@ -9419,10 +9428,10 @@ def get_stock_ledger_data(search_params, user, sub_user):
     all_data = OrderedDict()
     lis = {}
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     stock_stats = StockStats.objects.using(reports_database).filter(sku__user__in=user_ids)
     if 'from_date' in search_params:
@@ -11979,7 +11988,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin, check_and_get_plants_wo_request, get_uom_with_sku_code
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     users = [user.id]
-    users = check_and_get_plants_wo_request(sub_user, user, users)
+    users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     unsorted_dict = {17: 'Total Amount'}
     lis = ['rtv_number', 'creation_date', 'seller_po_summary__purchase_order__order_id',
@@ -12216,7 +12225,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request
     #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     users = [user.id]
-    users = check_and_get_plants_wo_request(sub_user, user, users)
+    users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'order_id',
@@ -12389,10 +12398,10 @@ def get_ageing_data(search_params, user, sub_user):
     from datetime import date, datetime
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
@@ -12419,7 +12428,7 @@ def get_ageing_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
 
@@ -12428,7 +12437,7 @@ def get_ageing_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
         # plant_obj=UserProfile.objects.using(reports_database).filter(stockone_code=search_params["plant_code"])
@@ -12638,10 +12647,10 @@ def get_expired_stock_data(search_params, user, sub_user):
     from datetime import date, datetime
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -12665,7 +12674,7 @@ def get_expired_stock_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
 
@@ -12674,7 +12683,7 @@ def get_expired_stock_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
         # plant_obj=UserProfile.objects.using(reports_database).filter(stockone_code=search_params["plant_code"])
@@ -12861,10 +12870,10 @@ def get_material_request_report_data(request, search_params, user, sub_user):
         search_parameters['order_id'] = search_params['order_id']
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
         #search_parameters['upload_type'] = 'UI'
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
@@ -13016,12 +13025,12 @@ def get_stock_transfer_report_data(request, search_params, user, sub_user):
     order_data = lis[col_num]
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
         #search_parameters['upload_type'] = 'UI'
     else:
         users = [user.id]
         #search_parameters['upload_type'] = 'UI'
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -13181,20 +13190,20 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
     order_data = lis[col_num]
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
         if request.POST.get('special_key', '') or search_params.get('special_key', ''):
             search_parameters['st_type'] = request.POST.get('special_key', '') if request.POST.get('special_key', '') else search_params.get('special_key', '')
     else:
         users = [user.id]
         if request.POST.get('special_key', '') or search_params.get('special_key', ''):
             search_parameters['st_type'] = request.POST.get('special_key', '') if request.POST.get('special_key', '') else search_params.get('special_key', '')
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -13202,7 +13211,7 @@ def get_stock_transfer_report_data_main(request, search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -14530,9 +14539,9 @@ def get_po_supplier_mail_report_data(search_params, user, sub_user):
     users = [user.id]
     lis = ['full_po_number', 'po_mail_members', 'mail_status', 'mail_failed_reason', 'updation_date']
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     search_parameters = {}
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -15792,7 +15801,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
     search_parameters = {}
     search_parameters = {'purchase_type': 'PR'}
 
-    lis = ['pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
+    lis = ['pending_pr__pr_number', 'pending_pr__is_auto_pr', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__sku_category','total_qty',
            'measurement_unit', 'pending_pr__priority_type','pending_pr__final_status', 'pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
@@ -15809,16 +15818,16 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         order_data = '-%s' % order_data
 
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -15826,7 +15835,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -15865,7 +15874,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
     search_parameters['pending_pr__wh_user__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    values_list = ['pending_pr__requested_user__username', 'pending_pr__full_pr_number',
+    values_list = ['pending_pr__requested_user__username', 'pending_pr__full_pr_number', 'pending_pr__is_auto_pr',
                     'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__wh_user__username',
                     'pending_pr__wh_user__userprofile__zone', 'pending_pr__sku_category', 'pending_pr__creation_date', 'pending_pr__product_category',
                     'pending_pr__priority_type', 'pending_pr_id', 'id', 'status', 'validated_by', 'creation_date', 'updation_date', 'level']
@@ -15917,6 +15926,7 @@ def get_pr_report_data_performance(search_params, user, sub_user):
             confirmed_date = get_local_date(user, result['updation_date'])
         ord_dict = OrderedDict((
             ('PR Number', result['pending_pr__full_pr_number']),
+            ('MRP PR', 'Yes' if result['pending_pr__is_auto_pr'] else 'NO'),
             ('PO Number', po_numbers),
             ('PR Submitted Date', get_local_date(user, result['pending_pr__creation_date'])),
             ('PR Confirmed Date', pr_final_confirmation_date),
@@ -15962,16 +15972,16 @@ def get_po_report_data_performance(search_params, user, sub_user):
         order_data = '-%s' % order_data
 
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -15979,7 +15989,7 @@ def get_po_report_data_performance(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -16092,7 +16102,7 @@ def get_pr_report_data(search_params, user, sub_user):
     search_parameters = {}
     search_parameters = {'purchase_type': 'PR'}
 
-    lis = ['pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
+    lis = ['pending_pr__pr_number', 'pending_pr__is_auto_pr', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__sku_category','total_qty',
            'measurement_unit', 'pending_pr__priority_type','pending_pr__final_status', 'pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
@@ -16109,16 +16119,16 @@ def get_pr_report_data(search_params, user, sub_user):
         order_data = '-%s' % order_data
 
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -16126,7 +16136,7 @@ def get_pr_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -16194,7 +16204,7 @@ def get_pr_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number', 'pending_po__full_po_number',
-                   'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
+                   'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status', 'pending_pr__is_auto_pr',
                    'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date', 'pending_pr__wh_user', 'pending_pr__wh_user__userprofile__zone',
                    'pending_pr__sku_category', 'pending_pr__full_pr_number', 'pending_pr__creation_date', 'pending_pr__updation_date',
                    'pending_pr__product_category', 'pending_pr__priority_type',
@@ -16270,6 +16280,7 @@ def get_pr_report_data(search_params, user, sub_user):
         total_quantity, total_amount, total_tax_amount = get_pr_amount_and_quantity(result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
+            ('MRP PR', 'Yes' if result['pending_pr__is_auto_pr'] else 'NO'),
             ('PO Number', po_numbers),
             ('PR Submitted Date', pr_sub_date),
             ('Expected Delivery Date', pr_delivery_date),
@@ -16303,7 +16314,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
     search_parameters = {}
     search_parameters = {'purchase_type': 'PR'}
 
-    lis = ['pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__delivery_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
+    lis = ['pending_pr__pr_number', 'pending_pr__is_auto_pr', 'pending_pr__pr_number', 'pending_pr__creation_date', 'pending_pr__delivery_date', 'pending_pr__pr_number', 'pending_pr__pr_number',
            'pending_pr__pr_number','pending_pr__product_category', 'pending_pr__sku_category','total_qty',
            'measurement_unit', 'pending_pr__priority_type','pending_pr__final_status', 'pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
@@ -16321,16 +16332,16 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         order_data = '-%s' % order_data
 
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'plant_code' in search_params:
         plant_code = search_params['plant_code']
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -16338,7 +16349,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -16400,7 +16411,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
     search_parameters['pending_pr__wh_user__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number',
+    values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number', 'pending_pr__is_auto_pr',
                    'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
                    'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date', 'pending_pr__wh_user', 'pending_pr__wh_user__userprofile__zone',
                    'pending_pr__sku_category', 'pending_pr__full_pr_number', 'pending_pr__creation_date', 'pending_pr__updation_date',
@@ -16495,6 +16506,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     pr_supplier_gst = ''
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
+            ('MRP PR', 'Yes' if result['pending_pr__is_auto_pr'] else 'NO'),
             ('PO Number', po_numbers),
             ('PR Submitted Date', pr_sub_date),
             ('Expected Delivery Date', str(result['pending_pr__delivery_date'])),
@@ -16538,7 +16550,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     search_parameters = {'purchase_type': 'PO'}
     lis = ['pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__creation_date', 'pending_po__wh_user__first_name',
            'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__wh_user__first_name',
-           'pending_po__wh_user__userprofile__zone', 'pending_po__product_category',
+           'pending_po__wh_user__userprofile__zone', 'pending_po__product_category', 'pending_po__pending_prs__is_auto_pr',
            'pending_po__sku_category', 'total_qty', 'total_amt', 'pending_po__pending_prs__requested_user__first_name',
            'pending_po__final_status', 'pending_po__updation_date',
            'pending_po__full_po_number', 'total_qty', 'pending_po__pending_prs__creation_date', 'total_amt', 'total_amt',
@@ -16552,10 +16564,10 @@ def get_metro_po_report_data(search_params, user, sub_user):
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -16581,7 +16593,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -16589,7 +16601,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -16634,7 +16646,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username','pending_po__requested_user',
-                   'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
+                   'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__is_auto_pr',
                    'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','pending_po__final_status',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
@@ -16655,6 +16667,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     for result in results:
         pr_date, delivery_date, vendor_code, vendor_name = '', '', '', ''
         pr_creation_date = result['pending_po__pending_prs__creation_date']
+        mrp_pr = 'Yes' if result['pending_po__pending_prs__is_auto_pr'] else 'NO'
         if pr_creation_date:
             pr_date = get_local_date(user, pr_creation_date)
         pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
@@ -16706,6 +16719,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', result['pending_po__pending_prs__full_pr_number']),
+            ('MRP PR', mrp_pr),
             ('PR Date', pr_date),
             ('PR raised By ( User Name)', result['pending_po__pending_prs__requested_user__first_name']),
             ('PR raised By ( User department name)', pr_department),
@@ -16750,7 +16764,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PO'}
-    lis = ['pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__requested_user__first_name',
+    lis = ['pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__is_auto_pr', 'pending_po__pending_prs__requested_user__first_name',
            'pending_po__pending_prs__creation_date',
            'pending_po__po_number', 'pending_po__creation_date', 'pending_po__wh_user__userprofile__zone', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__product_category',
@@ -16770,10 +16784,10 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -16806,7 +16820,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -16814,7 +16828,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -16860,7 +16874,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
 
     values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
                    'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
-                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
+                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date', 'pending_po__pending_prs__is_auto_pr',
                    'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand','pending_po__requested_user',
                    'sku__sku_group', 'sku__style_name','sku__sub_category','measurement_unit','sku__hsn_code',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
@@ -16886,6 +16900,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         if pr_creation_date:
             pr_date = get_local_date(user, pr_creation_date)
         pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
+        mrp_pr = 'Yes' if result['pending_po__pending_prs__is_auto_pr'] else 'NO'
         pr_plant, pr_department = '', ''
         req_user = User.objects.using(reports_database).filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
         pr_department, pr_plant = get_plant_and_department(req_user)
@@ -16927,6 +16942,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', result['pending_po__pending_prs__full_pr_number']),
+            ('MRP PR', mrp_pr),
             ('PR Date', pr_date),
             ('PR raised By ( User Name)', result['pending_po__pending_prs__requested_user__first_name']),
             ('PR raised By ( User department name)', pr_department),
@@ -17058,10 +17074,10 @@ def get_cancel_grn_report_data(search_params, user, sub_user):
     #   search_parameters['purchase_order__open_po__sku__user'] = user.id
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['purchase_order__open_po__sku__user__in'] = user_ids
 
@@ -17204,10 +17220,10 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
 
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
 
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     col_num = search_params.get('order_index', 0)
@@ -17377,7 +17393,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         get_related_users_filters, check_and_get_plants_depts_wo_request
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-    lis = ['open_po__pendingpos__pending_prs__full_pr_number', 'open_po__pendingpos__pending_prs__creation_date',
+    lis = ['open_po__pendingpos__pending_prs__full_pr_number', 'open_po__pendingpos__pending_prs__is_auto_pr', 'open_po__pendingpos__pending_prs__creation_date',
             'open_po__pendingpos__wh_user__first_name', 'open_po__pendingpos__pending_prs__requested_user__first_name',
             'open_po__pendingpos__pending_prs__wh_user__first_name', 'open_po__pendingpos__userprofile__zone', 'open_po__pendingpos__product_category',
             'open_po__sku__sku_category', 'open_po__order_quantity', 'open_po__order_quantity',
@@ -17398,10 +17414,10 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -17423,7 +17439,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -17431,7 +17447,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -17591,8 +17607,8 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         #po_amount_details = po_upload_amount_and_quantity(po_number)
         #po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
         #    'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
-        po_user = ''
-        pr_values_list = ['pending_po__requested_user__username', 'pending_po__pending_prs__full_pr_number','pending_po__pending_prs__wh_user__id',
+        po_user, mrp_pr = '',''
+        pr_values_list = ['pending_po__requested_user__username', 'pending_po__pending_prs__full_pr_number','pending_po__pending_prs__wh_user__id', 'pending_po__pending_prs__is_auto_pr',
         'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','pending_po__delivery_date','pending_po__supplier_payment__payment_description','pending_po__creation_date',
         'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__id','pending_po__final_status',
          'pending_po__full_po_number', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__wh_user__userprofile__zone']
@@ -17602,6 +17618,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             for pr_data in check_pr_data:
                 po_user = pr_data["pending_po__requested_user__username"]
                 pr_number = pr_data['pending_po__pending_prs__full_pr_number']
+                mrp_pr = 'Yes' if pr_data['pending_po__pending_prs__is_auto_pr'] else 'NO'
                 pr_user = pr_data['pending_po__pending_prs__requested_user__first_name']
                 pr_date = pr_data['pending_po__pending_prs__creation_date']
                 expected_delivery_date = str(pr_data['pending_po__delivery_date']) if pr_data['pending_po__delivery_date'] else ''
@@ -17698,6 +17715,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),
+            ('MRP PR', mrp_pr),
             ('PR Date', pr_date),
             ('Expected Delivery Date', expected_delivery_date),
             ('PR raised By ( User Name)', pr_user),
@@ -17755,10 +17773,10 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
     search_parameters = {}
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_wo_request(sub_user, user, users)
+        users = check_and_get_plants_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.using(reports_database).get(user_id=user.id)
@@ -17804,7 +17822,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -17812,7 +17830,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -17923,7 +17941,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         po_amount = po_tax_amount + po_amt
         #po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
         #    'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
-        pr_values_list = ['full_po_number', 'creation_date', 'requested_user__username',
+        pr_values_list = ['full_po_number', 'creation_date', 'requested_user__username', 'pending_prs__is_auto_pr',
                        'pending_prs__full_pr_number', 'open_po', 'pending_prs__full_pr_number',
                        'pending_prs__requested_user__first_name', 'pending_prs__creation_date','pending_prs__wh_user__id',
                        'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_category', 'open_po__sku__sku_class', 'open_po__sku__sku_brand','requested_user',
@@ -17933,13 +17951,14 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                        'updation_date', 'pending_prs__requested_user__id','pending_prs__wh_user__id','supplier_payment__payment_description',
                        'pending_prs__id', 'product_category', 'sku_category', 'id', 'pending_prs__wh_user__userprofile__zone']
         pr_data = PendingPO.objects.using(reports_database).filter(full_po_number = result['po_number']).values(*pr_values_list)
-        pr_plant_code = ""
+        pr_plant_code, mrp_pr  = "",""
         if pr_data:
             pr_data = pr_data[0]
             product_category = pr_data['product_category']
             sku_category = pr_data['sku_category']
             pr_request_user = pr_data['pending_prs__requested_user__first_name']
             pr_number = pr_data['pending_prs__full_pr_number']
+            mrp_pr = 'Yes' if pr_data['pending_prs__is_auto_pr'] else 'NO'
             po_created_by = pr_data['requested_user__first_name']
             payment_term = pr_data['supplier_payment__payment_description'] if pr_data['supplier_payment__payment_description'] else ''
             plant_zone = pr_data['pending_prs__wh_user__userprofile__zone']
@@ -18006,6 +18025,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),
+            ('MRP PR', mrp_pr),
             ('PR Date', pr_date),
             ('PR raised By ( User Name)',pr_request_user ),
             ('PR raised By ( User department name)', pr_department),
@@ -18155,10 +18175,10 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     search_parameters = {}
     status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
     lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
@@ -18187,7 +18207,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -18195,7 +18215,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -18344,10 +18364,10 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     search_parameters = {}
     status_keys = {'ClosingStock':0, 'Manual Consumption':1, 'Auto Consumption':2, 'Adjustment':3}
     lis = ['order_id','creation_date', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc','sku__sku_code',
@@ -18367,7 +18387,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -18375,7 +18395,7 @@ def get_sku_wise_consumption_reversal_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -18477,10 +18497,10 @@ def get_consumption_data_old(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     search_parameters = {}
     lis = ['creation_date', 'creation_date','user','user','user','consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc',
           'test__sku_code', 'test__sku_desc', 'machine__machine_code','machine__machine_name', 'patient_samples', 'rerun',
@@ -18513,7 +18533,7 @@ def get_consumption_data_old(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -18522,7 +18542,7 @@ def get_consumption_data_old(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -18640,10 +18660,10 @@ def get_consumption_data_(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     search_parameters = {}
     lis = ['creation_date', 'creation_date', 'user', 'user', 'ogr_id', 'run_date', 'test__sku_code', 'test__sku_desc', 'instrument_id', 'instrument_name', 'user', 'patient_samples', 'one_time_process', 'two_time_process', 'three_time_process', 'rerun', 'n_time_process', 'no_patient', 'quality_check', 'qnp', 'total_patients', 'total_test',  'calculated_total_tests', 'consumptionmaterial__stock_quantity', 'consumptionmaterial__sku__sku_code', 'consumptionmaterial__sku__sku_desc', 'consumptionmaterial__consumed_quantity', 'consumptionmaterial__consumed_quantity', 'consumptionmaterial__pending_quantity', 'consumptionmaterial__pending_quantity', 'total_test', 'id', 'status', 'consumptionmaterial__status', 'remarks']
 
@@ -18672,7 +18692,7 @@ def get_consumption_data_(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -18681,7 +18701,7 @@ def get_consumption_data_(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -18883,10 +18903,10 @@ def get_asn_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     search_parameters = {'vendor':user.id}
     lis = ['asn_number', 'user', 'purchase_order__po_number', 'purchase_order__remarks','purchase_order__open_po__order_quantity', 'purchase_order__status']
 
@@ -18995,10 +19015,10 @@ def get_closing_stock_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['creation_date', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__user', 'stock__sku__sku_code',
@@ -19025,7 +19045,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -19033,7 +19053,7 @@ def get_closing_stock_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -19120,13 +19140,13 @@ def get_praod_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
-    lis = ['creation_date', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'full_pr_number', 'product_category',
+    lis = ['creation_date', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'full_pr_number', 'is_auto_pr', 'product_category',
             'sku_category', 'creation_date', 'creation_date', 'creation_date', 'creation_date']
 
     col_num = search_params.get('order_index', 0)
@@ -19150,7 +19170,7 @@ def get_praod_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -19158,7 +19178,7 @@ def get_praod_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -19175,7 +19195,7 @@ def get_praod_report_data(search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['wh_user_id__in'] = user_ids
     search_parameters['final_status'] = 'saved'
-    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'final_status', 'requested_user__username']
+    values_list = ['id', 'creation_date', 'wh_user', 'product_category', 'sku_category', 'full_pr_number', 'is_auto_pr', 'final_status', 'requested_user__username']
     model_data1 = PendingPR.objects.using(reports_database).filter(**search_parameters).exclude(final_status__in = ['cancelled', 'rejected'])
     search_parameters['final_status'] = 'pending'
     search_parameters['pending_prApprovals__status'] = ''
@@ -19276,6 +19296,7 @@ def get_praod_report_data(search_params, user, sub_user):
             ('Plant Code', plant_code),
             ('Zone Code', zone_code),
             ('PR Number', result['full_pr_number']),
+            ('MRP PR', 'Yes' if result['is_auto_pr'] else 'NO'),
             ('PR Status', result['final_status'].title()),
             ('Product Category', result['product_category']),
             ('SKU Category', result['sku_category']),
@@ -19298,10 +19319,10 @@ def get_poaod_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['creation_date', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'wh_user_id', 'full_po_number', 'product_category',
@@ -19328,7 +19349,7 @@ def get_poaod_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'plant_name' in search_params.keys():
@@ -19336,7 +19357,7 @@ def get_poaod_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'sister_warehouse' in search_params:
@@ -19559,10 +19580,10 @@ def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'sku__sku_code', 'suggested_qty', 'mrp_pr_raised_qty',
@@ -19589,7 +19610,7 @@ def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -19597,7 +19618,7 @@ def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -19666,10 +19687,10 @@ def get_mrp_department_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['transact_number', 'transact_number', 'transact_number', 'user', 'user__userprofile__zone', 'user__userprofile__state', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user', 'user']
@@ -19693,7 +19714,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'plant_name' in search_params.keys():
@@ -19701,7 +19722,7 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.using(reports_database).none()
     if 'sister_warehouse' in search_params:
@@ -19796,10 +19817,10 @@ def get_mrp_line_level_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['id', 'transact_number', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day', 'lead_time_qty',
@@ -19823,7 +19844,7 @@ def get_mrp_line_level_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'plant_name' in search_params.keys():
@@ -19831,7 +19852,7 @@ def get_mrp_line_level_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'sister_warehouse' in search_params:
@@ -19895,10 +19916,10 @@ def get_mrp_po_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['id', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'suggested_qty', 'amount', 'supplier_id', 'suggested_qty', 'amount', 'supplier_id']
@@ -19921,7 +19942,7 @@ def get_mrp_po_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'plant_name' in search_params.keys():
@@ -19929,7 +19950,7 @@ def get_mrp_po_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'sister_warehouse' in search_params:
@@ -20009,10 +20030,10 @@ def get_mrp_pr_daily_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
-        users = get_related_users_filters(user.id)
+        users = get_related_users_filters(user.id, reports = True)
     else:
         users = [user.id]
-        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users, reports = True)
     #user_ids = list(users.values_list('id', flat=True))
     search_parameters = {}
     lis = ['id', 'id', 'creation_date', 'user', 'user', 'user', 'user', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'suggested_qty', 'amount',
@@ -20036,7 +20057,7 @@ def get_mrp_pr_daily_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(userprofile__stockone_code=plant_code,
                                     userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'plant_name' in search_params.keys():
@@ -20044,7 +20065,7 @@ def get_mrp_pr_daily_report_data(search_params, user, sub_user):
         plant_users = list(users.filter(first_name=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
                         values_list('username', flat=True))
         if plant_users:
-            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
+            users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True, reports = True)
         else:
             users = User.objects.none()
     if 'sister_warehouse' in search_params:

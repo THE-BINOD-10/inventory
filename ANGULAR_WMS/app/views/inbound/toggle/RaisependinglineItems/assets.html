@@ -67,7 +67,7 @@
             <span style="font-size: 9px;font-weight: 440;">{{ product.fields.sku_class }}</span>
           </td>
           <td>
-            <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+            <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab number"
                    ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"

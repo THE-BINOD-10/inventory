@@ -5701,13 +5701,18 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         seller_po_summary = SellerPOSummary.objects.using(reports_database).get(id=data['id'])
-        updated_user_name = user.username
-        version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
-                                                        filter(revision__comment='generate_grn')
-        if version_obj.exists():
-            version_single_obj = version_obj.order_by('-revision__date_created').only('revision__user__username', 'revision__date_created')
-            updated_user_name = version_single_obj[0].revision.user.username
-            last_updated_date = get_local_date(user, version_single_obj[0].revision.date_created)
+        updated_user = seller_po_summary.updated_user
+        if not updated_user:
+            version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
+                                                            filter(revision__comment='generate_grn')
+            if version_obj.exists():
+                version_single_obj = version_obj.order_by('-revision__date_created').only('revision__user__username', 'revision__date_created')
+                updated_user = version_single_obj[0].revision.user
+                last_updated_date = get_local_date(user, version_single_obj[0].revision.date_created)
+        if updated_user:
+            updated_user_name = updated_user.username
+        else:
+            updated_user_name = user.username
         lr_detail_no = ''
         #if data['purchase_order__id']:
         #    lr_detail = LRDetail.objects.using(reports_database).filter(purchase_order=data['purchase_order__id'],
@@ -5897,7 +5902,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('Challan Number', data['challan_number']),
                                 ('Challan Date', challan_date),
                                 ("GRN Status", grn_status),
-                                ("Last Updated Date", last_updated_date),
+                                ("Last Updated Date", get_local_date(user, seller_po_summary.updation_date)),
                                 ("Credit Note applicable", credit_note_status),
                                 ("Credit Note Number", data["credit__credit_number"]),
                                 ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
@@ -7162,7 +7167,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         po_date = get_local_date(user, po_result[0].creation_date).split(' ')
         po_date = ' '.join(po_date[0:3])
         grn_number,grn_date="",""
-        updated_user_name = user.username
+        updated_user = user
         last_updated_date= ""
         receipt_no = data['receipt_number']
         if not receipt_no:
@@ -7174,11 +7179,18 @@ def get_po_filter_data(request, search_params, user, sub_user):
                 GRN_total_qty, GRN_total_price, GRN_total_tax= get_po_grn_price_and_taxes(sellerposummary_data,"GRN")
                 grn_date = get_local_date(user, sellerposummary_data[0].creation_date).split(' ')
                 grn_date = ' '.join(grn_date[0:3])
-                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
-                                                    filter(revision__comment='generate_grn')
-                if version_obj.exists():
-                    updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-                    last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
+                updated_user = sellerposummary_data[0].updated_user
+                last_updated_date = get_local_date(user, sellerposummary_data[0].updation_date).split(' ')
+                if not updated_user:
+                    version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
+                                                        filter(revision__comment='generate_grn')
+                    if version_obj.exists():
+                        updated_user = version_obj.order_by('-revision__date_created')[0].revision.user
+                        last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
+                if updated_user:
+                    updated_user_name = updated_user.username
+                else:
+                    updated_user_name = user.username
         received_qty = data['total_received']
         discrepancy_filter = {}
         if data.get('receipt_number', ''):

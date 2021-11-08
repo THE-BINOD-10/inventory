@@ -6982,10 +6982,12 @@ def get_grn_date(in_month):
 
 def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
-                     batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
+                     batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number='', grn_done_by=''):
     from pytz import timezone
     grn_date = datetime.datetime.now()
     seller_po_summary = None
+    if grn_done_by:
+        grn_done_by = User.objects.get(id=grn_done_by)
     try:
         utc_tz=timezone("UTC")
         if myDict.get('grn_date', ''):
@@ -7114,7 +7116,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                invoice_value=invoice_value,
                                                                                invoice_quantity=invoice_quantity,
                                                                                credit_status=status,
-                                                                               remarks = remarks)
+                                                                               remarks = remarks,
+                                                                               updated_user = grn_done_by)
             try:
                 if myDict.get('grn_date', '')[0]:
                     seller_po_summary.creation_date = grn_date
@@ -7189,7 +7192,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                    invoice_value=invoice_value,
                                                                                    invoice_quantity=invoice_quantity,
                                                                                    credit_status=status,
-                                                                                   remarks = remarks)
+                                                                                   remarks = remarks,
+                                                                                   updated_user = grn_done_by)
                 try:
                     if myDict.get('grn_date', '')[0]:
                         seller_po_summary.creation_date = grn_date
@@ -7566,7 +7570,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
                                                     batch_dict=batch_dict, po_type=po_type,
-                                                    grn_number=grn_number)
+                                                    grn_number=grn_number,
+                                                    grn_done_by = request.user.id)
         if 'batch_no' in myDict.keys():
             batch_dict['receipt_number'] = seller_receipt_id
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
@@ -17760,7 +17765,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                   ('Dept Stock Qty', round(data.system_stock_qty, 2)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 2)),
                                   ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
                                   ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)),
-                                  ('Raise PR Quantity', '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), round(data.suggested_qty, 2))),
+                                  ('Raise PR Quantity', '<input type="text" class="form-control number raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), int(data.suggested_qty))),
                                   ('Supplier Id', data.supplier_id), ('Suggested Value', data.amount),
                                   ('DT_RowAttr', {'data-id': data.id}),
                                   ('hsn_code', data.sku.hsn_code)

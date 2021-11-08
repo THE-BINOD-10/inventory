@@ -2557,6 +2557,7 @@ class SellerPOSummary(models.Model):
     invoice_receipt_date = models.DateField(blank=True, null=True)
     credit_type = models.CharField(max_length=32, default='Invoice')
     credit_status = models.IntegerField(default=0)
+    updated_user = models.ForeignKey(User, blank=True, null=True)
     status = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True, db_index=True)
     updation_date = models.DateTimeField(auto_now=True)

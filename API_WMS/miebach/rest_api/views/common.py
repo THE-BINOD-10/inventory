@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh, check_user_process_status
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -14898,7 +14898,7 @@ def get_last_three_months_consumption(filters):
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)
-    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
+    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters).exclude(quantity=0)
     return last_three_months
 
 def get_average_consumption_qty(user, sku_code, sku_pcf=''):

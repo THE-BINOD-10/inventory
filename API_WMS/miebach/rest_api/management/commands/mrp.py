@@ -84,6 +84,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     repl_master = ReplenushmentMaster.objects.filter(user__in=dept_user_ids, sku__sku_code__in=sku_codes)
     repl_dict = {}
     repl_sku_codes = list(repl_master.values_list('sku__sku_code', flat=True))
+    repl_sku_ids = list(repl_master.values_list('sku_id', flat=True))
     for dat in repl_master:
         grp_key = (dat.user.id, dat.sku.sku_code)
         repl_dict.setdefault(grp_key, {})
@@ -93,7 +94,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     print "Preparing repl dict completed"
     sku_codes = repl_sku_codes
 
-    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+    stocks = StockDetail.objects.filter(sku__user__in=dept_user_ids, sku_id__in=repl_sku_ids, quantity__gt=0).\
                                             values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
     stock_qtys = {}
     user_id_mapping = {}
@@ -110,7 +111,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         stock_qtys[grp_key] += stock['total']
     print "Preparing stock dict completed"
     plant_stock_qtys = {}
-    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
+    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku_id__in=repl_sku_ids, quantity__gt=0).\
                                                 values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
     for plant_stock in plant_stocks:
         grp_key = (plant_stock['sku__user'], plant_stock['sku__sku_code'])
@@ -121,24 +122,26 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     plant_consumption_qtys = {}
     consumption_lt3 = get_last_three_months_consumption(filters={'sku__user__in': plant_dept_user_ids, 'sku__sku_code__in': sku_codes})
     plant_allde_mapping = {}
-    for cons in consumption_lt3.only('sku__user', 'sku__sku_code', 'id'):
+    for cons in consumption_lt3.only('sku__user', 'sku__sku_code', 'id', 'quantity'):
         print "Preparing Consumption: " + str(cons.id)
         cons_sku_user = cons.sku.user
         if cons.sku.user in user_id_mapping:
             usr = user_id_mapping[cons.sku.user]
         else:
-            usr = User.objects.get(id=cons.sku.user)
-            if usr.userprofile.warehouse_type == 'DEPT':
-                usr = get_admin(usr)
+            cons_usr = User.objects.get(id=cons.sku.user)
+            if cons_usr.userprofile.warehouse_type == 'DEPT':
+                usr = get_admin(cons_usr)
+            else:
+                usr = cons_usr
             user_id_mapping[cons.sku.user] = usr
-        if usr.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-            if usr.id in plant_allde_mapping:
-                cons_sku_user = plant_allde_mapping[usr.id]
+        if cons_usr.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            if cons_usr.id in plant_allde_mapping:
+                cons_sku_user = plant_allde_mapping[cons_usr.id]
             else:
                 allde_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[usr.username]).filter(userprofile__stockone_code='ALLDE')
                 if allde_users:
                     cons_sku_user = allde_users[0].id
-                plant_allde_mapping[usr.id] = cons_sku_user
+                plant_allde_mapping[cons_usr.id] = cons_sku_user
         grp_key = (cons_sku_user, cons.sku.sku_code)
         consumption_qtys.setdefault(grp_key, 0)
         consumption_qtys[grp_key] += cons.quantity
@@ -146,7 +149,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         plant_consumption_qtys.setdefault(plant_grp, 0)
         plant_consumption_qtys[plant_grp] += cons.quantity
     print "Preparing consumption dict completed"
-    pr_pending_filter_dict = {'sku__user__in': dept_user_ids, 'sku__sku_code__in': sku_codes, 'pending_pr__final_status__in': ['pending', 'approved']}
+    pr_pending_filter_dict = {'sku__user__in': dept_user_ids, 'sku_id__in': repl_sku_ids, 'pending_pr__final_status__in': ['pending', 'approved']}
     if mrp_pr_days not in ['false', '']:
         try:
             pr_pending_filter_dict['creation_date__gte'] = (datetime.datetime.now() - datetime.timedelta(float(mrp_pr_days))).date()
@@ -225,7 +228,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     print "Preparing purchase order dict completed"
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     MRP.objects.filter(user__in=dept_user_ids, status=1, sku__sku_code__in=sku_codes).update(status=0)
-    master_data = master_data.filter(sku_code__in=repl_sku_codes).only('id', 'sku_code', 'user')
+    master_data = master_data.filter(id__in=repl_sku_ids).only('id', 'sku_code', 'user')
     plant_dept = {}
     transact_number = ''
     usr_id_obj_mapping = {}

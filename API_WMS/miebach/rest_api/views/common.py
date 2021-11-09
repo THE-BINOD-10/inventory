@@ -1451,10 +1451,11 @@ def add_update_pr_config(request,user=''):
 @login_required
 @get_admin_user
 def delete_pr_config(request, user=''):
+    import json
     toBeDeleteData = ''
     data_id = request.POST.get('data_id', '')
     if request.POST.get('data', []):
-        toBeDeleteData = eval(request.POST.get('data', []))
+        toBeDeleteData = json.loads(request.POST.get('data', []))
     configFor = request.POST.get('type', 'pr_save') # pr_save is for existing Pending PO. actual_pr_save will be for new PR.
     if configFor == 'actual_pr_save':
         purchase_type = 'PR'

@@ -4433,7 +4433,7 @@ class MRP(models.Model):
     total_stock_qty = models.FloatField(default=0)
     suggested_qty = models.FloatField(default=0)
     mrp_pr_raised_qty = models.FloatField(default=0)
-    supplier_id = models.CharField(max_length=128, null=True, blank=True)
+    supplier_id = models.CharField(max_length=164, null=True, blank=True)
     amount = models.FloatField(default=0)
     status = models.PositiveIntegerField(default=0)
     pending_line_items = models.ForeignKey(PendingLineItems, blank=True, null=True)

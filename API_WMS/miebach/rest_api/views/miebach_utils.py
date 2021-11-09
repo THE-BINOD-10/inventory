@@ -474,7 +474,7 @@ MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'Hom
 INVENTORY_NORM_HEADERS = OrderedDict((
                                         ('Plant Code', 'plant_code'), ('Department', 'department'), ('SKU Code', 'sku_code'),
                                         ('Lead Time Days', 'lead_time'), ('SA Min Days', 'sa_min_days'),
-                                        ('SA Max Days', 'sa_max_days')
+                                        ('SA Max Days', 'sa_max_days'), ('MRP Receiver Mail', 'mrp_receiver'),
                                     ))
 
 PR_PO_APPROVAL_HEADERS = OrderedDict((
@@ -19660,10 +19660,10 @@ def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     for data in model_data:
         plant = get_admin(data.user)
+        repl_obj = ReplenushmentMaster.objects.filter(user=data.user.id).first()
         staff_name = ''
-        staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
-        if staff:
-            staff_name = staff[0].email_id
+        if repl_obj:
+            staff_name = repl_obj.mrp_receiver
         pr_value = 0
         if data.mrp_pr_raised_qty and data.suggested_qty:
             pr_value = ((data.amount)/data.suggested_qty) * data.mrp_pr_raised_qty
@@ -19785,6 +19785,9 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         dept = User.objects.using(reports_database).get(id=data['user'])
         plant = get_admin(dept)
         staff_name = ''
+        repl_obj = ReplenushmentMaster.objects.filter(user=data['user']).first()
+        if repl_obj:
+            staff_name = repl_obj.mrp_receiver
         staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=dept.userprofile.stockone_code)
         if staff:
             staff_name = staff[0].email_id
@@ -20106,9 +20109,9 @@ def get_mrp_pr_daily_report_data(search_params, user, sub_user):
     for data in master_data:
         plant = get_admin(data.user)
         staff_name = ''
-        staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
-        if staff:
-            staff_name = staff[0].email_id
+        repl_obj = ReplenushmentMaster.objects.filter(user=data.user.id).first()
+        if repl_obj:
+            staff_name = repl_obj.mrp_receiver
 
         if not plant_dept.get(data.user):
             plant_dept[data.user] = get_admin(data.user)

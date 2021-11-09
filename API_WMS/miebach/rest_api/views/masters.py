@@ -642,7 +642,8 @@ def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_t
 
 @csrf_exempt
 def get_replenushment_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['user__userprofile__stockone_code', 'user__first_name', 'user__first_name', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'lead_time', 'min_days', 'max_days']
+    lis = ['user__userprofile__stockone_code', 'user__first_name', 'user__first_name', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'lead_time', 'min_days',
+            'max_days', 'mrp_receiver']
 
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
@@ -672,7 +673,8 @@ def get_replenushment_master(start_index, stop_index, temp_data, search_term, or
             OrderedDict((('plant_code', plant.userprofile.stockone_code), ('plant_name', plant.first_name),('department_name', data.user.first_name),
                             ('sku_code', data.sku.sku_code), ('sku_desc', data.sku.sku_desc), ('sku_category', data.sku.sku_category),
                             ('lead_time', data.lead_time),
-                            ('min_days', data.min_days), ('max_days', data.max_days), ('warehouse', data.user.username))))
+                            ('min_days', data.min_days), ('max_days', data.max_days), ('warehouse', data.user.username),
+                            ('mrp_receiver', data.mrp_receiver))))
 
 
 @csrf_exempt
@@ -2464,17 +2466,27 @@ def insert_replenushment(request, user=''):
     lead_time = request.POST['lead_time']
     min_days = request.POST['min_days']
     max_days = request.POST['max_days']
+    mrp_receiver = request.POST.get('mrp_receiver', '')
     if not warehouse:
         return HttpResponse('Please Select Plant')
     sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).first()
     if not sku_master:
         return HttpResponse('Invalid SKU Code')
+    main_user = get_company_admin_user(user)
+    company_list = get_companies_list(main_user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    staff = StaffMaster.objects.filter(company_id__in=company_list, email_id=mrp_receiver)
+    if staff:
+        mrp_receiver = staff[0].email_id
+    else:
+        return HttpResponse('Invalid Email')
     replenushment_obj = ReplenushmentMaster.objects.filter(sku__sku_code=sku_code, user = user.id)
     if replenushment_obj.exists():
         replenushment_obj = replenushment_obj[0]
         replenushment_obj.lead_time = lead_time
         replenushment_obj.min_days = min_days
         replenushment_obj.max_days = max_days
+        replenushment_obj.mrp_receiver = mrp_receiver
         replenushment_obj.save()
     else:
         replenushment = {}
@@ -2483,6 +2495,7 @@ def insert_replenushment(request, user=''):
         replenushment['max_days'] = max_days
         replenushment['lead_time'] = lead_time
         replenushment['user'] = user
+        replenushment['mrp_receiver'] = mrp_receiver
 
         try:
             ReplenushmentMaster.objects.create(**replenushment)

@@ -3972,6 +3972,7 @@ class ReplenushmentMaster(models.Model):
     lead_time = models.FloatField(default=0)
     min_days = models.FloatField(default=0)
     max_days = models.FloatField(default=0)
+    mrp_receiver = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

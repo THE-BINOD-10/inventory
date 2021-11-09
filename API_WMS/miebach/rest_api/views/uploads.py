@@ -12958,11 +12958,13 @@ def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, 
     all_data = OrderedDict()
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     dept_mapping_res = dict(zip(dept_mapping.values(), dept_mapping.keys()))
+    main_user = get_company_admin_user(user)
+    company_list = get_companies_list(main_user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
     for row_idx in range(1, no_of_rows):
         dept_users = User.objects.none()
         print 'Validating %s' % str(row_idx)
         data_dict = {'user': None, 'row_index': row_idx}
-        main_user = get_company_admin_user(user)
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'plant_code':
@@ -13032,6 +13034,12 @@ def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, 
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_mapping_res[key])
                 else:
                     index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_mapping_res[key])
+            elif key == 'mrp_receiver':
+                staff = StaffMaster.objects.filter(company_id__in=company_list, email_id=cell_data)
+                if staff:
+                    data_dict[key] = staff[0].email_id
+                else:
+                    index_status.setdefault(row_idx, set()).add("Invalid Email")
         data_list.append(data_dict)
     if not index_status:
         return 'Success', data_list
@@ -13328,6 +13336,7 @@ def inventory_norm_upload(request, user=''):
                         replenushment_obj.lead_time = final_data['lead_time']
                         replenushment_obj.min_days = final_data['sa_min_days']
                         replenushment_obj.max_days = final_data['sa_max_days']
+                        replenushment_obj.mrp_receiver = final_data.get('mrp_receiver', '')
                         replenushment_obj.save()
                     else:
                         replenushment = {}
@@ -13336,6 +13345,7 @@ def inventory_norm_upload(request, user=''):
                         replenushment['max_days'] = final_data['sa_max_days']
                         replenushment['lead_time'] = final_data['lead_time']
                         replenushment['user'] = user
+                        replenushment['mrp_receiver'] = final_data.get('mrp_receiver', '')
                         ReplenushmentMaster.objects.create(**replenushment)
                 except:
                     pass

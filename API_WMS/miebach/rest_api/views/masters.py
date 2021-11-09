@@ -5059,7 +5059,20 @@ def update_staff_values(request, user=''):
         mrp_user = False
     #department_type = request.POST.get('department_type', '')
     position = request.POST.get('position', '')
-    status = 1 if request.POST.get('status', '') == "Active" else 0
+    if request.POST.get('status', '') == "Active":
+        status = 1
+	User.objects.filter(username=email).update(is_active= True) 
+    else:
+	staff_usr = email
+	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])
+	po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])
+        pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])
+        srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary')
+	status = 0
+	if datum.exists() or po_datum.exists() or pr_datum.exists() or srn_datum.exists():
+		return HttpResponse("Please Move the pending PR, PO, GRN's to someone before making user Inactive!")
+	else:
+		User.objects.filter(username=email).update(is_active= False)
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
     #data.department_type = department_type

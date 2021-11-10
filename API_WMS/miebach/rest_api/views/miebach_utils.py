@@ -19637,6 +19637,8 @@ def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code__iexact'] = search_params['sku_code']
     user_ids = list(users.values_list('id', flat=True))
+    if not (sub_user.is_staff or get_permission(sub_user, 'add_mrp')):
+        user_ids = list(ReplenushmentMaster.objects.filter(mrp_receiver=sub_user.username, user_id__in=user_ids).values_list('user_id', flat=True))
     search_parameters['user_id__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -19746,6 +19748,8 @@ def get_mrp_department_report_data(search_params, user, sub_user):
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
+    if not (sub_user.is_staff or get_permission(sub_user, 'add_mrp')):
+        user_ids = list(ReplenushmentMaster.objects.filter(mrp_receiver=sub_user.username, user_id__in=user_ids).values_list('user_id', flat=True))
     search_parameters['user_id__in'] = user_ids
     search_parameters['user__userprofile__warehouse_type'] = 'DEPT'
     start_index = search_params.get('start', 0)
@@ -20092,6 +20096,8 @@ def get_mrp_pr_daily_report_data(search_params, user, sub_user):
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
     user_ids = list(users.values_list('id', flat=True))
+    if not (sub_user.is_staff or get_permission(sub_user, 'add_mrp')):
+        user_ids = list(ReplenushmentMaster.objects.filter(mrp_receiver=sub_user.username, user_id__in=user_ids).values_list('user_id', flat=True))
     search_parameters['user_id__in'] = user_ids
     search_parameters['user__userprofile__warehouse_type'] = 'DEPT'
     start_index = search_params.get('start', 0)

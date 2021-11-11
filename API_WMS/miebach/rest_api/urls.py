@@ -799,6 +799,8 @@ urlpatterns += [
     url(r'^staff_master_plant_dept_form_upload/$', staff_master_plant_dept_form_upload),
     url(r'^pr_po_approvals_form/$', pr_po_approvals_form),
     url(r'^pr_po_approvals_upload/$', pr_po_approvals_upload),
+    url(r'^po_short_close_form/$', po_short_close_form),
+    url(r'^po_short_close_upload/$', po_short_close_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

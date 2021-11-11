@@ -1358,7 +1358,7 @@ def update_sku(request, user=''):
     admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
-                         'hsn_code', 'shelf_life', 'gl_code']
+                         'shelf_life', 'gl_code']
         if request.POST.get('is_test') == 'true':
 	    wms = request.POST['test_code']
 	    description = request.POST['test_name']
@@ -1425,7 +1425,12 @@ def update_sku(request, user=''):
                     subs_status = update_sku_substitutes_mapping(user, substitutes, data , True)
                     if subs_status:
                         return HttpResponse(subs_status)
-
+	    elif key == 'hsn_code':
+                if value:
+                    if isinstance(value, (int, float)):
+                        value = str(int(value))
+                    if data:
+                        setattr(data, 'product_type', value)
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':
@@ -3368,7 +3373,12 @@ def insert_sku(request, user=''):
                             value = 1
                         else:
                             value = 0
-                    elif key == 'qc_check':
+                    elif key == 'hsn_code':
+                        if value:
+                            if isinstance(value, (int, float)):
+                                value = str(int(value))
+			    data_dict['product_type']= value
+		    elif key == 'qc_check':
                         if value == 'Enable':
                             value = 1
                         else:
@@ -5049,7 +5059,20 @@ def update_staff_values(request, user=''):
         mrp_user = False
     #department_type = request.POST.get('department_type', '')
     position = request.POST.get('position', '')
-    status = 1 if request.POST.get('status', '') == "Active" else 0
+    if request.POST.get('status', '') == "Active":
+        status = 1
+	User.objects.filter(username=email).update(is_active= True) 
+    else:
+	staff_usr = email
+	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])
+	po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])
+        pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])
+        srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary')
+	status = 0
+	if datum.exists() or po_datum.exists() or pr_datum.exists() or srn_datum.exists():
+		return HttpResponse("Please Move the pending PR, PO, GRN's to someone before making user Inactive!")
+	else:
+		User.objects.filter(username=email).update(is_active= False)
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
     #data.department_type = department_type
@@ -7006,13 +7029,16 @@ def download_pr_doa_staff_excel(request, user=''):
 @login_required
 @get_admin_user
 def get_staff_pr_po_data(request, user=''):
+    import json
     result_dict = {}
     result_dict['PR'] = []
     result_dict['PO'] = []
+    result_dict['SRN'] = []
     result_dict['PR_PO_IDS'] = []
     result_dict['PO_IDS'] = []
     result_dict['PR_IDS'] = []
-    po_datum , pr_datum = '', ''
+    result_dict['SRN_IDS'] = []
+    po_datum , pr_datum, grn_datum = '', '', ''
     staff_usr = request.POST.get('source_staff', '')
     if staff_usr and ':' in staff_usr:
         staff_usr = staff_usr.split(':')[0]
@@ -7024,6 +7050,7 @@ def get_staff_pr_po_data(request, user=''):
         user = request.user
     pr_number = request.POST.get('full_pr_number', '')
     po_number = request.POST.get('full_po_number', '')
+    srn_number = request.POST.get('srn_po_number', '')
     build_dict = {}
     if pr_number:
         po_number = ''
@@ -7036,6 +7063,10 @@ def get_staff_pr_po_data(request, user=''):
                                     .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
         po_datum = PendingPO.objects.filter(requested_user__username=staff_usr, full_po_number=po_number).exclude(final_status__in = ['cancelled', 'approved'])\
                                 .values('full_po_number', 'creation_date', 'final_status', 'id')
+    elif srn_number:
+        srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary', json_data__icontains=srn_number)\
+        .values('json_data', 'creation_date', 'id')
+        datum = MastersDOA.objects.none()
     else:
         datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
                                     .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
@@ -7043,6 +7074,8 @@ def get_staff_pr_po_data(request, user=''):
                                 .values('full_po_number', 'creation_date', 'final_status', 'id')
         pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])\
                                 .values('full_pr_number', 'creation_date', 'final_status', 'id')
+        srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary')\
+        .values('json_data', 'creation_date', 'id')
     if datum.exists():
         for dat in datum:
             try:
@@ -7074,6 +7107,13 @@ def get_staff_pr_po_data(request, user=''):
                                     'date': get_local_date(user, pr_dat['creation_date']),
                                     'status': pr_dat['final_status'],
                                     'pending_at': staff_usr})
+    if srn_datum:
+        for srn_dat in srn_datum:
+            result_dict['SRN_IDS'].append(srn_dat['id'])
+            result_dict['SRN'].append({'number': json.loads(srn_dat['json_data'])['po_number'],
+                                    'date': get_local_date(user, srn_dat['creation_date']),
+                                    'status': 'Pending',
+                                    'pending_at': staff_usr})
     return HttpResponse(json.dumps({'data': result_dict}))
 
 
@@ -7087,6 +7127,7 @@ def migrate_staff_user_pr_pos(request, user=''):
     pr_po_approval_ids = json.loads(request.POST.get('PR_PO_IDS', '')) if request.POST.get('PR_PO_IDS', '') else []
     pr_ids = json.loads(request.POST.get('PR_IDS', '')) if request.POST.get('PR_IDS', '') else []
     po_ids = json.loads(request.POST.get('PO_IDS', '')) if request.POST.get('PO_IDS', '') else []
+    srn_ids = json.loads(request.POST.get('SRN_IDS', '')) if request.POST.get('SRN_IDS', '') else []
     if ':' in source and ':' in dest:
         try:
             source = source.split(':')[0]
@@ -7096,7 +7137,7 @@ def migrate_staff_user_pr_pos(request, user=''):
             src_usr = dest_usr = User.objects.get(username=source)
             dest_usr = User.objects.get(username=dest)
             if source_data.position != dest_data.position:
-                return HttpResponse("%s / (%s - %s & %s - %s)" % ("Un-able to shift PR & PO's with Different Positions",\
+                return HttpResponse("%s / (%s - %s & %s - %s)" % ("Un-able to shift PR, PO & SRN's with Different Positions",\
                                     source_data.email_id, source_data.position, dest_data.email_id, dest_data.position))
             if src_usr and dest_usr:
                 all_users = []
@@ -7109,6 +7150,9 @@ def migrate_staff_user_pr_pos(request, user=''):
                 if len(po_ids) > 0:
                     temp_po_lis = list(PendingPO.objects.filter(id__in = po_ids).values_list('wh_user__username', flat=True))
                     all_users.extend(temp_po_lis)
+                if len(srn_ids) > 0:
+                    temp_srn_lis = list(MastersDOA.objects.filter(id__in = srn_ids).values_list('requested_user__username', flat=True))
+                    all_users.extend(temp_srn_lis)
                 check_users = User.objects.filter(username__in=all_users)
                 if check_users.exists():
                     plant_usrs, dept_usrs, plant_res, dept_res = [], [], [], []
@@ -7149,6 +7193,8 @@ def migrate_staff_user_pr_pos(request, user=''):
                 PendingPR.objects.filter(id__in = pr_ids).update(requested_user=dest_usr, migrate_pr_from=src_usr, migrate_pr_user=request.user)
             if len(po_ids) > 0:
                 PendingPO.objects.filter(id__in = po_ids).update(requested_user=dest_usr, migrate_po_from=src_usr, migrate_po_user=request.user)
+            if len(srn_ids) > 0:
+                MastersDOA.objects.filter(id__in = srn_ids).update(wh_user=dest_usr)
         except Exception as e:
             return HttpResponse('Invalid Staff Emails')
     else:

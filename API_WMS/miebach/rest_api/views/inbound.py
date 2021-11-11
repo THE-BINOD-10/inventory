@@ -6982,10 +6982,12 @@ def get_grn_date(in_month):
 
 def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
-                     batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
+                     batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number='', grn_done_by=''):
     from pytz import timezone
     grn_date = datetime.datetime.now()
     seller_po_summary = None
+    if grn_done_by:
+        grn_done_by = User.objects.get(id=grn_done_by)
     try:
         utc_tz=timezone("UTC")
         if myDict.get('grn_date', ''):
@@ -7114,7 +7116,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                invoice_value=invoice_value,
                                                                                invoice_quantity=invoice_quantity,
                                                                                credit_status=status,
-                                                                               remarks = remarks)
+                                                                               remarks = remarks,
+                                                                               updated_user = grn_done_by)
             try:
                 if myDict.get('grn_date', '')[0]:
                     seller_po_summary.creation_date = grn_date
@@ -7189,7 +7192,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                    invoice_value=invoice_value,
                                                                                    invoice_quantity=invoice_quantity,
                                                                                    credit_status=status,
-                                                                                   remarks = remarks)
+                                                                                   remarks = remarks,
+                                                                                   updated_user = grn_done_by)
                 try:
                     if myDict.get('grn_date', '')[0]:
                         seller_po_summary.creation_date = grn_date
@@ -7566,7 +7570,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
                                                     batch_dict=batch_dict, po_type=po_type,
-                                                    grn_number=grn_number)
+                                                    grn_number=grn_number,
+                                                    grn_done_by = request.user.id)
         if 'batch_no' in myDict.keys():
             batch_dict['receipt_number'] = seller_receipt_id
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
@@ -17690,9 +17695,9 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     headers1, filters, filter_params1 = get_search_params(request)
     if cus_filters:
         filters = copy.deepcopy(cus_filters)
-    lis = ['id', 'transact_number', 'user', 'user', 'user', 'user__userprofile__state', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day',
+    lis = ['id', 'transact_number', 'user', 'user', 'user', 'user', 'user', 'user__userprofile__state', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'user', 'avg_sku_consumption_day',
             'avg_plant_sku_consumption_day','lead_time_qty', 'min_days_qty', 'max_days_qty', 'system_stock_qty',
-            'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'supplier_id', 'amount']
+            'plant_stock_qty', 'pending_pr_qty', 'pending_po_qty', 'total_stock_qty', 'suggested_qty', 'suggested_qty', 'supplier_id', 'supplier_id', 'amount']
     if request.user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
     else:
@@ -17729,7 +17734,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         zone_code = filters['zone_code'].split(',')
         users = users.filter(userprofile__zone__in=zone_code)
     user_ids = list(users.values_list('id', flat=True))
-    search_params = {'user__in': user_ids, 'status': 1}
+    search_params = OrderedDict()
     if filters.get('sku_category'):
         search_params['sku__sku_category__in'] = filters['sku_category'].split(',')
     if 'sku_code' in filters and filters['sku_code']:
@@ -17738,30 +17743,45 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    master_data = MRP.objects.filter(**search_params).order_by(order_data)
+    master_data = MRP.objects.filter(user__in=user_ids, status=1, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     master_data = master_data[start_index:stop_index]
     sku_codes = list(master_data.values_list('sku__sku_code', flat=True))
     sku_uoms = get_uom_with_multi_skus(user, sku_codes, uom_type='purchase', uom='')
     for data in master_data:
+        staff_email, staff_phone, supplier_id, supplier_name = [''] * 4
         uom_dict = sku_uoms.get(data.sku.sku_code, {})
         sku_pcf = uom_dict.get('sku_conversion', 1)
         sku_pcf = sku_pcf if sku_pcf else 1
         plant = data.user
         if data.user.userprofile.warehouse_type == 'DEPT':
             plant = get_admin(data.user)
-        data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
+        if data.supplier_id:
+            supplier = SupplierMaster.objects.get(id=data.supplier_id)
+            supplier_id = supplier.supplier_id
+            supplier_name = supplier.name
+        raise_pr_input = '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), int(data.suggested_qty))
+        if not stop_index:
+            raise_pr_input = round(data.suggested_qty, 5)
+        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+        staff_email, staff_phone = [''] * 2
+        if staff:
+            staff = staff[0]
+            staff_email = staff.email_id
+            staff_phone = staff.phone_number
+        data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('MRP Receiver User', staff_email ), ('MRP Receiver Phone', staff_phone ),
+                                    ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
                                     ('Department', data.user.first_name), ('State', plant.userprofile.state),
                                   ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc), ('SKU Category', data.sku.sku_category),
-                                  ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 2)),
-                                  ('Average Plant Daily Consumption Qty', round(data.avg_plant_sku_consumption_day, 2)),
-                                  ('Lead Time Qty', round(data.lead_time_qty, 2)), ('Min Days Qty', round(data.min_days_qty, 2)), ('Max Days Qty', round(data.max_days_qty, 2)),
-                                  ('Dept Stock Qty', round(data.system_stock_qty, 2)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 2)),
-                                  ('Pending PR Qty', round(data.pending_pr_qty, 2)), ('Pending PO Qty', round(data.pending_po_qty, 2)),
-                                  ('Total Stock Qty', round(data.total_stock_qty, 2)), ('Suggested Qty', round(data.suggested_qty, 2)),
-                                  ('Raise PR Quantity', '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), round(data.suggested_qty, 2))),
-                                  ('Supplier Id', data.supplier_id), ('Suggested Value', data.amount),
+                                  ('Purchase UOM', uom_dict.get('measurement_unit', '')), ('Average Daily Consumption Qty', round(data.avg_sku_consumption_day, 5)),
+                                  ('Average Plant Daily Consumption Qty', round(data.avg_plant_sku_consumption_day, 5)),
+                                  ('Lead Time Qty', round(data.lead_time_qty, 5)), ('Min Days Qty', round(data.min_days_qty, 5)), ('Max Days Qty', round(data.max_days_qty, 5)),
+                                  ('Dept Stock Qty', round(data.system_stock_qty, 5)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 5)),
+                                  ('Pending PR Qty', round(data.pending_pr_qty, 5)), ('Pending PO Qty', round(data.pending_po_qty, 5)),
+                                  ('Total Stock Qty', round(data.total_stock_qty, 5)), ('Suggested Qty', round(data.suggested_qty, 5)),
+                                  ('Raise PR Quantity', raise_pr_input),
+                                  ('Supplier Id', supplier_id), ('Supplier Name', supplier_name), ('Suggested Value', data.amount),
                                   ('DT_RowAttr', {'data-id': data.id}),
                                   ('hsn_code', data.sku.hsn_code)
                                 ))
@@ -18059,6 +18079,7 @@ def download_pr_req_files(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@check_user_process_status
 @fn_timer
 def generate_material_planning(request, user):
     from rest_api.management.commands.mrp import generate_mrp_main
@@ -18435,8 +18456,8 @@ def send_material_planning_mail(request, user):
         email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
         url = '%s#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
         email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
-        emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True)
-        #emails = ['sreekanth@mieone.com']
+        emails = list(StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True))
+        emails.extend(['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'])
         if len(emails) > 0:
             send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
     return HttpResponse("Success")

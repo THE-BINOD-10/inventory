@@ -84,7 +84,7 @@
             <input name="service_end_date" ui-jq="datepicker"  ng-model="product.fields.service_end_date" class="form-control" type="text" id="service_end_date" data-date-format="dd-mm-yyyy"  data-date-today-highlight="true" data-date-autoclose="true" required size="110">
           </td>
           <td>
-            <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+            <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab number"
                    ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-keyup="showCase.getTotals(product)" size="12" required>

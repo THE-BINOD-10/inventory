@@ -12931,6 +12931,17 @@ def pr_po_approvals_form(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+def po_short_close_form(request, user=''):
+    po_short_close_file = request.GET['download-PO_ShortClose/Reopen-file']
+    if po_short_close_file:
+        return error_file_download(po_short_close_file)
+    headers = copy.deepcopy(PO_SHORT_CLOSE_HEADERS)
+    wb, ws = get_work_sheet('PO ShortClose Reopen', headers)
+    return xls_to_response(wb, '%s.po_short_close_or_reopen_form.xls' % str(user.username))
+
+
+@csrf_exempt
+@get_admin_user
 def inventory_norm_form(request, user=''):
     inventory_file = request.GET['download-inventory-norm-file']
     if inventory_file:
@@ -13597,3 +13608,98 @@ def pr_po_approvals_upload(request, user=''):
             str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Failed")
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def po_short_close_upload(request, user=''):
+    log.info('PO ShortClose/Reopen for params  %s and requested user is %s' % (str(request.POST.dict()), str(request.user.username)))
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validatte_po_short_close_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    for final_data in data_list:
+        status = 'location-assigned'
+        reason = final_data['reason']
+        if final_data['po_operation'].lower() == 'reopen':
+            status = 'grn-generated'
+            reason = ''
+        po_num = final_data['po_number']
+        all_po = PurchaseOrder.objects.filter(po_number=po_num)
+        for rec in all_po:
+            if rec.received_quantity == rec.open_po.order_quantity:
+                continue
+            else:
+                rec.status = status
+                rec.reason = reason
+                rec.save()
+    return HttpResponse('Success')
+
+
+@csrf_exempt
+def validatte_po_short_close_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(PO_SHORT_CLOSE_HEADERS)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['po_number', 'reason', 'po_operation']).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'po_number':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    purchase_order = PurchaseOrder.objects.filter(po_number=cell_data)
+                    if not purchase_order:
+                        index_status.setdefault(row_idx, set()).add('Invalid PO Number')
+                    else:
+                        data_dict[key] = purchase_order[0].po_number
+                else:
+                    index_status.setdefault(row_idx, set()).add('PO Number is Mandatory')
+            elif key == 'reason':
+                if cell_data:
+                    cell_data = str(cell_data)
+                data_dict[key] = cell_data
+            elif key == 'po_operation':
+                if cell_data:
+                    if cell_data.lower() not in ['close', 'reopen']:
+                        index_status.setdefault(row_idx, set()).add('%s is Invalid' % inv_res[key])
+                    elif cell_data.lower() == 'close':
+                        if not data_dict['reason']:
+                            index_status.setdefault(row_idx, set()).add('Reason is Mandatory')
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list

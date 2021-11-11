@@ -30,16 +30,22 @@ label:hover {
       <div class="panel-body mr20 ml20">
         <form id="pr_po_transfers">
           <div class="row" style="min-height:230px;">
-            <div class="col-lg-3 col-md-3 col-sm-6 col-xs-6">
+            <div class="col-lg-4 col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Enter Full PR Number</label>
                 <input name="full_pr_number" ng-model="showCase.model_data.full_pr_number" type="text" class="form-control detectTab">
               </div>
             </div>
-            <div class="col-lg-3 col-md-3 col-sm-6 col-xs-6">
+            <div class="col-lg-4 col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Enter Full PO Number</label>
                 <input name="full_pr_number" ng-model="showCase.model_data.full_po_number" type="text" class="form-control detectTab">
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Enter SRN PO Number</label>
+                <input name="srn_po_number" ng-model="showCase.model_data.srn_po_number" type="text" class="form-control detectTab">
               </div>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 ">
@@ -56,8 +62,8 @@ label:hover {
             </div>
             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign" align="center">
               <button type="button" class="btn btn-danger btn-outline pull-right mr10" ng-click="showCase.emptyData()">Reset</button>
-              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="!showCase.display_inputs || showCase.model_data.dest_staff == ''" ng-click="showCase.search_staff_pr_pos()">Search PR & PO's</button>
-              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs && showCase.model_data.dest_staff != ''" ng-click="showCase.migrate_staff_pr_pos()" ng-disabled="showCase.confirm_btn_final">Transfer PR & PO's</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="!showCase.display_inputs || showCase.model_data.dest_staff == ''" ng-click="showCase.search_staff_pr_pos()">Search PR, PO & GRN's</button>
+              <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-if="showCase.display_inputs && showCase.model_data.dest_staff != ''" ng-click="showCase.migrate_staff_pr_pos()" ng-disabled="showCase.confirm_btn_final">Transfer PR, PO & GRN's</button>
             </div>
           </div>
         </form>
@@ -106,6 +112,33 @@ label:hover {
                       <td>{{po.status}}</td>
                       <td>{{po.date}}</td>
                       <td>{{po.pending_at}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top: -50px;" align="center" ng-if="showCase.model_data['response']">
+          <div class="col-lg-6 col-md-6">
+            <div class="panel mb25">
+              <div class="panel-heading"><span class="label label-default">PENDING SRN's</span></div>
+              <div class="panel-body">
+                <table class="table mb0">
+                  <thead>
+                    <tr>
+                      <th class="col-md-2">PO Number</th>
+                      <th class="col-md-2">Status</th>
+                      <th class="col-md-3">CreationDate</th>
+                      <th class="col-md-5">PendingAt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="srn in showCase.model_data.response.SRN">
+                      <td>{{srn.number}}</td>
+                      <td>{{srn.status}}</td>
+                      <td>{{srn.date}}</td>
+                      <td>{{srn.pending_at}}</td>
                     </tr>
                   </tbody>
                 </table>

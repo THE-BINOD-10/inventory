@@ -634,6 +634,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    show: 'add_purchaseapprovalconfig',
+                 },
+                 {
+                   title: "PO ShortClose/Reopen Upload",
+                   download: "Download ShortClose/Reopen Form",
+                   upload: "Upload ShortClose/Reopen Form",
+                   durl: "po_short_close_form/",
+                   uurl: "po_short_close_upload/",
+                   dparam: "download-PO_ShortClose/Reopen-file",
+                   value: "",
+                   show: true,
+                   show: 'add_purchaseapprovalconfig',
                  }
                 ]
 

@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh, check_user_process_status
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -1451,10 +1451,11 @@ def add_update_pr_config(request,user=''):
 @login_required
 @get_admin_user
 def delete_pr_config(request, user=''):
+    import json
     toBeDeleteData = ''
     data_id = request.POST.get('data_id', '')
     if request.POST.get('data', []):
-        toBeDeleteData = eval(request.POST.get('data', []))
+        toBeDeleteData = json.loads(request.POST.get('data', []))
     configFor = request.POST.get('type', 'pr_save') # pr_save is for existing Pending PO. actual_pr_save will be for new PR.
     if configFor == 'actual_pr_save':
         purchase_type = 'PR'
@@ -14898,7 +14899,7 @@ def get_last_three_months_consumption(filters):
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)
-    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters)
+    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters).exclude(quantity=0)
     return last_three_months
 
 def get_average_consumption_qty(user, sku_code, sku_pcf=''):

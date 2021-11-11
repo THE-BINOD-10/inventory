@@ -82,7 +82,7 @@
             <input type="text" name="suggested_qty" ng-model="product.fields.suggested_qty" value="{{ product.fields.suggested_qty }}" class="form-control hide" ng-readonly="true">
           </td>
           <td>
-            <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+            <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab number"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-init="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields);showCase.getTotals(product);showCase.get_info_delta_value(product.fields);"

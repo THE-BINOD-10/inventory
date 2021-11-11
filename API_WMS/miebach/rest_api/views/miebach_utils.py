@@ -477,6 +477,11 @@ INVENTORY_NORM_HEADERS = OrderedDict((
                                         ('SA Max Days', 'sa_max_days')
                                     ))
 
+PO_SHORT_CLOSE_HEADERS = OrderedDict((
+                                        ('PO Number', 'po_number'), ('Reason *', 'reason'), ('PO Operation(Close/Reopen) *', 'po_operation')
+                                    ))
+
+
 PR_PO_APPROVAL_HEADERS = OrderedDict((
                                         ('Approval Type(PR/PO)', 'approval_type'), ('Config Name', 'config_name'), ('Zone', 'zone'), ('Product Category', 'product_category'), ('Department', 'department_type'),
                                         ('SKU Category', 'sku_category'), ('plant Code', 'plant'), ('Config type(ranges)', 'config_type'), ('Min Amount', 'min_amt'), ('Max Amount', 'max_amt'),
@@ -2115,6 +2120,8 @@ MRP_EXCEPTION_DICT = {
         {'label':'Plant Name', 'name': 'plant_name', 'type': 'plant_name_search'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'select'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Exception Filter', 'name': 'exception_filter', 'type': 'select', 'values': ["PR Raised with Different Qty", "PR Not Raised"]}
     ],
     'dt_headers': ['MRP Run Id', 'MRP Receiver User', 'Zone', 'State', 'Plant', 'Department', 'SKU Code', 'MRP Qty', 'PR Qty', 'MRP Value', 'PR Value', 'Diff in MRP vs PR Qty', 'Diff in MRP vs PR Value'],
     'dt_url': 'get_mrp_exception_report', 'excel_name': 'get_mrp_exception_report',
@@ -5701,13 +5708,18 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         seller_po_summary = SellerPOSummary.objects.using(reports_database).get(id=data['id'])
-        updated_user_name = user.username
-        version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
-                                                        filter(revision__comment='generate_grn')
-        if version_obj.exists():
-            version_single_obj = version_obj.order_by('-revision__date_created').only('revision__user__username', 'revision__date_created')
-            updated_user_name = version_single_obj[0].revision.user.username
-            last_updated_date = get_local_date(user, version_single_obj[0].revision.date_created)
+        updated_user = seller_po_summary.updated_user
+        if not updated_user:
+            version_obj = Version.objects.using('reversion').get_for_object(seller_po_summary).\
+                                                            filter(revision__comment='generate_grn')
+            if version_obj.exists():
+                version_single_obj = version_obj.order_by('-revision__date_created').only('revision__user__username', 'revision__date_created')
+                updated_user = version_single_obj[0].revision.user
+                last_updated_date = get_local_date(user, version_single_obj[0].revision.date_created)
+        if updated_user:
+            updated_user_name = updated_user.username
+        else:
+            updated_user_name = user.username
         lr_detail_no = ''
         #if data['purchase_order__id']:
         #    lr_detail = LRDetail.objects.using(reports_database).filter(purchase_order=data['purchase_order__id'],
@@ -5897,7 +5909,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('Challan Number', data['challan_number']),
                                 ('Challan Date', challan_date),
                                 ("GRN Status", grn_status),
-                                ("Last Updated Date", last_updated_date),
+                                ("Last Updated Date", get_local_date(user, seller_po_summary.updation_date)),
                                 ("Credit Note applicable", credit_note_status),
                                 ("Credit Note Number", data["credit__credit_number"]),
                                 ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
@@ -7162,7 +7174,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         po_date = get_local_date(user, po_result[0].creation_date).split(' ')
         po_date = ' '.join(po_date[0:3])
         grn_number,grn_date="",""
-        updated_user_name = user.username
+        updated_user = user
         last_updated_date= ""
         receipt_no = data['receipt_number']
         if not receipt_no:
@@ -7174,11 +7186,18 @@ def get_po_filter_data(request, search_params, user, sub_user):
                 GRN_total_qty, GRN_total_price, GRN_total_tax= get_po_grn_price_and_taxes(sellerposummary_data,"GRN")
                 grn_date = get_local_date(user, sellerposummary_data[0].creation_date).split(' ')
                 grn_date = ' '.join(grn_date[0:3])
-                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
-                                                    filter(revision__comment='generate_grn')
-                if version_obj.exists():
-                    updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-                    last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
+                updated_user = sellerposummary_data[0].updated_user
+                last_updated_date = get_local_date(user, sellerposummary_data[0].updation_date).split(' ')
+                if not updated_user:
+                    version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.using(reports_database).get(id=sellerposummary_data[0].id)).\
+                                                        filter(revision__comment='generate_grn')
+                    if version_obj.exists():
+                        updated_user = version_obj.order_by('-revision__date_created')[0].revision.user
+                        last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
+                if updated_user:
+                    updated_user_name = updated_user.username
+                else:
+                    updated_user_name = user.username
         received_qty = data['total_received']
         discrepancy_filter = {}
         if data.get('receipt_number', ''):
@@ -19571,7 +19590,7 @@ def po_report_download(user_list, search_params, user):
     return temp_data
 
 
-def get_mrp_exception_report_data(search_params, user, sub_user):
+def get_mrp_exception_report_data(search_params, user, sub_user, request=None):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department,\
@@ -19632,12 +19651,17 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
     if 'zone_code' in search_params:
         zone_code = search_params['zone_code']
         users = users.filter(userprofile__zone=zone_code)
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code__iexact'] = search_params['sku_code']
     user_ids = list(users.values_list('id', flat=True))
     search_parameters['user_id__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = MRP.objects.using(reports_database).filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
+    if request and request.POST.get('exception_filter') == 'PR Not Raised':
+        model_data = MRP.objects.using(reports_database).filter(**search_parameters).exclude(Q(status=1) | Q(pending_line_items__isnull=False))
+    else:
+        model_data = MRP.objects.using(reports_database).filter(**search_parameters).exclude(Q(suggested_qty=F('mrp_pr_raised_qty')) | Q(mrp_pr_raised_qty=0))
 
     if order_term:
         model_data = model_data.order_by(order_data)
@@ -19657,7 +19681,9 @@ def get_mrp_exception_report_data(search_params, user, sub_user):
         staff = StaffMaster.objects.using(reports_database).filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
         if staff:
             staff_name = staff[0].email_id
-        pr_value = ((data.amount)/data.suggested_qty) * data.mrp_pr_raised_qty
+        pr_value = 0
+        if data.mrp_pr_raised_qty and data.suggested_qty:
+            pr_value = ((data.amount)/data.suggested_qty) * data.mrp_pr_raised_qty
         ord_dict = OrderedDict((
             ('MRP Run Id', data.transact_number),
             ('MRP Receiver User', staff_name),

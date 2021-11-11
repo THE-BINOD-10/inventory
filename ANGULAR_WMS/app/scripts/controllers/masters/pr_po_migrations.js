@@ -22,6 +22,7 @@ function PRPOMigrations($scope, Session, Service, $modal) {
     vm.model_data['response'] = '';
     vm.model_data.full_pr_number = '';
     vm.model_data.full_po_number = '';
+    vm.model_data.srn_po_number = '';
     vm.display_inputs = false;
     vm.confirm_btn_final = false;
   }
@@ -35,7 +36,7 @@ function PRPOMigrations($scope, Session, Service, $modal) {
           } else {
             vm.model_data['response'] = {};
             angular.copy(data.data.data, vm.model_data.response);
-            if (Object.keys(vm.model_data.response.PR).length > 0 || Object.keys(vm.model_data.response.PO).length > 0) {
+            if (Object.keys(vm.model_data.response.PR).length > 0 || Object.keys(vm.model_data.response.PO).length > 0 || Object.keys(vm.model_data.response.SRN).length > 0) {
               vm.model_data.dest_staff = '';
               vm.display_inputs = true;
             }
@@ -64,6 +65,7 @@ function PRPOMigrations($scope, Session, Service, $modal) {
         'dest': vm.model_data.dest_staff,
         'PO_IDS': JSON.stringify(vm.model_data.response.PO_IDS),
         'PR_IDS': JSON.stringify(vm.model_data.response.PR_IDS),
+        'SRN_IDS': JSON.stringify(vm.model_data.response.SRN_IDS),
         'PR_PO_IDS': JSON.stringify(vm.model_data.response.PR_PO_IDS)
       }
       vm.confirm_btn_final = true;

@@ -17758,9 +17758,9 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
             supplier = SupplierMaster.objects.get(id=data.supplier_id)
             supplier_id = supplier.supplier_id
             supplier_name = supplier.name
-        raise_pr_input = '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), round(data.suggested_qty, 5))
+        raise_pr_input = '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), int(data.suggested_qty))
         if not stop_index:
-            raise_pr_input = round(data.suggested_qty, 5)
+            raise_pr_input = int(data.suggested_qty)
         staff_email, staff_phone = [''] * 2
         repl_obj = ReplenushmentMaster.objects.filter(user=data.user.id).first()
         emails = []
@@ -17780,7 +17780,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                   ('Lead Time Qty', round(data.lead_time_qty, 5)), ('Min Days Qty', round(data.min_days_qty, 5)), ('Max Days Qty', round(data.max_days_qty, 5)),
                                   ('Dept Stock Qty', round(data.system_stock_qty, 5)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 5)),
                                   ('Pending PR Qty', round(data.pending_pr_qty, 5)), ('Pending PO Qty', round(data.pending_po_qty, 5)),
-                                  ('Total Stock Qty', round(data.total_stock_qty, 5)), ('Suggested Qty', round(data.suggested_qty, 5)),
+                                  ('Total Stock Qty', round(data.total_stock_qty, 5)), ('Suggested Qty', int(data.suggested_qty)),
                                   ('Raise PR Quantity', raise_pr_input),
                                   ('Supplier Id', supplier_id), ('Supplier Name', supplier_name), ('Suggested Value', data.amount),
                                   ('DT_RowAttr', {'data-id': data.id}),

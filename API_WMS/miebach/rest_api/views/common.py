@@ -1463,6 +1463,11 @@ def delete_pr_config(request, user=''):
         purchase_type = 'PO'
     if toBeDeleteData:
         configName = toBeDeleteData.get('name')
+        datum = PurchaseApprovals.objects.filter(configName__icontains= configName, purchase_type = purchase_type, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])
+        po_datum = PendingPO.objects.filter(pending_poApprovals__configName__icontains=configName).exclude(final_status__in = ['cancelled', 'approved'])
+        pr_datum = PendingPR.objects.filter(pending_prApprovals__configName__icontains= configName, final_status__in = ['saved', 'pending'])
+        if datum.exists() or po_datum.exists() or pr_datum.exists():
+            return HttpResponse("Pending PR/PO's are there with this DOA")
         pacQs = PurchaseApprovalConfig.objects.filter(user=user, display_name=configName, purchase_type=purchase_type)
         if pacQs.exists():
             for pacObj in pacQs:

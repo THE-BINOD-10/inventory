@@ -111,7 +111,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         stock_qtys[grp_key] += stock['total']
     print "Preparing stock dict completed"
     plant_stock_qtys = {}
-    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku_id__in=repl_sku_ids, quantity__gt=0).\
+    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
                                                 values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
     for plant_stock in plant_stocks:
         grp_key = (plant_stock['sku__user'], plant_stock['sku__sku_code'])

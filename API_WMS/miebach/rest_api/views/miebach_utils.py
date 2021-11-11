@@ -477,6 +477,11 @@ INVENTORY_NORM_HEADERS = OrderedDict((
                                         ('SA Max Days', 'sa_max_days')
                                     ))
 
+PO_SHORT_CLOSE_HEADERS = OrderedDict((
+                                        ('PO Number', 'po_number'), ('Reason *', 'reason'), ('PO Operation(Close/Reopen) *', 'po_operation')
+                                    ))
+
+
 PR_PO_APPROVAL_HEADERS = OrderedDict((
                                         ('Approval Type(PR/PO)', 'approval_type'), ('Config Name', 'config_name'), ('Zone', 'zone'), ('Product Category', 'product_category'), ('Department', 'department_type'),
                                         ('SKU Category', 'sku_category'), ('plant Code', 'plant'), ('Config type(ranges)', 'config_type'), ('Min Amount', 'min_amt'), ('Max Amount', 'max_amt'),

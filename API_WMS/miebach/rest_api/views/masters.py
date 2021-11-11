@@ -5046,7 +5046,7 @@ def update_staff_values(request, user=''):
     """ Update Staff values"""
     reversion.set_user(request.user)
     reversion.set_comment("update_staff_values: %s" % str(get_user_ip(request)))
-    log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Update Staff values for ' + request.user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
     reportingto_email_id = request.POST.get('reportingto_email_id', '')
@@ -5061,7 +5061,9 @@ def update_staff_values(request, user=''):
     position = request.POST.get('position', '')
     if request.POST.get('status', '') == "Active":
         status = 1
-	User.objects.filter(username=email).update(is_active= True) 
+        if not User.objects.filter(username=email)[0].is_active:
+	    log.info('Activating Staff user '+ email + ' by ' + request.user.username + ' with params ' + str(request.POST.dict()))
+            User.objects.filter(username=email).update(is_active= True) 
     else:
 	staff_usr = email
 	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])
@@ -5070,9 +5072,11 @@ def update_staff_values(request, user=''):
         srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary')
 	status = 0
 	if datum.exists() or po_datum.exists() or pr_datum.exists() or srn_datum.exists():
-		return HttpResponse("Please Move the pending PR, PO, GRN's to someone before making user Inactive!")
+	    return HttpResponse("Please Move the pending PR, PO, GRN's to someone before making user Inactive!")
 	else:
-		User.objects.filter(username=email).update(is_active= False)
+            if User.objects.filter(username=email)[0].is_active:
+	        log.info('Inactivating Staff user '+ email + ' by ' + request.user.username + ' with params ' + str(request.POST.dict()))
+                User.objects.filter(username=email).update(is_active= False)
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
     #data.department_type = department_type

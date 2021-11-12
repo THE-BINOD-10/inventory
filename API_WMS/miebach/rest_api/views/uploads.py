@@ -13323,6 +13323,7 @@ def inventory_norm_upload(request, user=''):
         return HttpResponse('Invalid File')
     status, data_list = validate_inventory_norm_form(request, reader, user, no_of_rows,
                                                         no_of_cols, fname, file_type)
+    if status != 'Success':                                                                                                                                                                                                                          return HttpResponse(status)
     try:
         with transaction.atomic('default'):
             loop_counter = 1

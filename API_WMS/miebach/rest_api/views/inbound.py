@@ -1816,6 +1816,7 @@ def generated_pr_data(request, user=''):
     supplier_id = request.POST.get('supplier_id', '')
     tax_display = True
     warehouse_currency = ''
+    purchase_orders = ''
     if full_po_number:
         record = PendingPO.objects.filter(full_po_number=full_po_number)
         requestedUserId = record[0].requested_user.id
@@ -1824,6 +1825,8 @@ def generated_pr_data(request, user=''):
         requestedUserId = User.objects.get(username=requested_user).id
         pr_user = get_warehouse_user_from_sub_user(requestedUserId)
         record = PendingPO.objects.filter(id=pr_number, requested_user__username=requested_user)
+    if request.POST.get('partially_received_po')=='true':
+        purchase_orders = PurchaseOrder.objects.filter(po_number=record[0].full_po_number)
     if not record[0].wh_user.userprofile.currency:
         return HttpResponse("Please Update currency for : " + str(record[0].wh_user.username) + " - or else contact to Admin !")
     else:
@@ -1941,6 +1944,9 @@ def generated_pr_data(request, user=''):
             skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(record[0].wh_user, sku_code,
                                                     search_params, includeStoreStock=False)'''
         st_avail_qty, intransitQty, openpr_qty, avail_qty = 0, 0, 0, 0
+        received_qty = 0
+        if purchase_orders:
+            received_qty = purchase_orders.filter(open_po__sku = sku_id)[0].received_quantity
         tax_data = get_supplier_sku_price_values(record[0].supplier.supplier_id, sku_code, record[0].wh_user)
         sku_obj = SKUMaster.objects.get(id=sku_id)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
@@ -1948,6 +1954,7 @@ def generated_pr_data(request, user=''):
                                             'intransit_quantity': intransitQty,
                                             },
                                     'description': sku_desc,
+                                    'received_quantity': received_qty,
                                     'order_quantity': qty, 'price': price,
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                     'igst_tax': igst_tax, 'cess_tax': cess_tax,
@@ -17882,6 +17889,8 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
             response["payment_code"] = payment_code
         for i in range(0, len(request_data['wms_code'])):
             wms_code = request_data['wms_code'][i]
+            po = pos.filter(open_po__sku__sku_code= wms_code)[0]
+            open_po = po.open_po
             price = request_data['price'][i]
             cgst_tax = request_data['cgst_tax'][i]
             sgst_tax = request_data['sgst_tax'][i]
@@ -17908,9 +17917,15 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
             except:
                 price = 0
             total_tax = cgst_tax + sgst_tax + igst_tax
+            open_po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax
             for e_row in response["items"]:
                 if e_row["sku_code"] ==  wms_code:
-                    if total_tax:
+                    if total_tax == open_po_tax and price == open_po.price:
+                        response["items"].remove(e_row)
+                        continue
+                    elif total_tax:
+                        if po.received_quantity:
+                            return {"status": False, "message": "SKU %s got received" % (wms_code)}
                         if cess_tax:
                             e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"] + "_KL"
                         else:
@@ -17976,6 +17991,7 @@ def update_po_values(request, user=''):
                 cgst_tax = request_data['cgst_tax'][i]
                 sgst_tax = request_data['sgst_tax'][i]
                 igst_tax = request_data['igst_tax'][i]
+                remarks = request_data['remarks'][i]
                 try:
                     cgst_tax = float(cgst_tax)
                 except:
@@ -17998,6 +18014,7 @@ def update_po_values(request, user=''):
                 open_po.cgst_tax = cgst_tax
                 open_po.sgst_tax = sgst_tax
                 open_po.igst_tax = igst_tax
+                open_po.remarks = remarks
                 if pend_po:
                     line_item = pend_po.pending_polineItems.filter(sku__sku_code=wms_code)[0]
                     line_item.price = price

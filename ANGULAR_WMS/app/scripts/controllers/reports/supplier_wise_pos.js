@@ -13,6 +13,7 @@ function ServerSideProcessingCtrl($scope, $rootScope, $http, $state, $compile, S
   vm.model_data = {};
   vm.model_data_row = {};
   vm.display_edit = false;
+  vm.partially_received = false;
   vm.permissions = Session.roles.permissions;
 
   vm.industry_type = Session.user_profile.industry_type;
@@ -64,6 +65,10 @@ function ServerSideProcessingCtrl($scope, $rootScope, $http, $state, $compile, S
       if(aData['Status'] == 'Yet to Receive') {
         vm.display_edit = true;
       }
+      else if (aData['Status'] == 'Partially Received'){
+        vm.display_edit = true;
+        vm.partially_received = true;
+      }
       else {
         vm.display_edit = false;
       }
@@ -96,7 +101,7 @@ function ServerSideProcessingCtrl($scope, $rootScope, $http, $state, $compile, S
     }
 
     vm.editPO = function() {
-      var req_data = {'Requested User': vm.model_data_row['Requested User'], 'Purchase Id':vm.model_data_row['pend_po_id'],'Validation Status': 'Approved',
+      var req_data = {'Requested User': vm.model_data_row['Requested User'], 'Purchase Id':vm.model_data_row['pend_po_id'],'Validation Status': 'Approved', 'partially_received_po' : vm.partially_received,
                       'from_supplier_wise_pos': true, 'Supplier ID': vm.model_data_row['Supplier ID'], 'PO Number': vm.model_data_row['PO Number']};
       $rootScope.$current_po = req_data;
       $state.go('app.inbound.RaisePo.PurchaseOrder');

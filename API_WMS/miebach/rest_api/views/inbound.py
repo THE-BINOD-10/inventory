@@ -11171,7 +11171,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 '12': {"refrence_id": "631", "hsn_code": "38220019_12"},
                 "18": {"refrence_id": "1020", "hsn_code": "38220019_18"},
                 "5": {"refrence_id": "1056", "hsn_code": "38220019_5"},
+                "0": {"refrence_id": "1022", "hsn_code": "38220090_0"},
             }
+            hsn_code = ''
             netsuite_hsn_code=""
             if supplier_gstin:
                 if temp_tax:
@@ -11197,10 +11199,13 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 if str(int(temp_tax)) in hsn_list:
                     if cess_tax:
                         netsuite_hsn_code = hsn_list[str(int(temp_tax))]["hsn_code"] + "_KL"
+                        hsn_code = hsn_list[str(int(temp_tax))]["hsn_code"]
                     else:
                         netsuite_hsn_code = hsn_list[str(int(temp_tax))]["refrence_id"]
+                        hsn_code = hsn_list[str(int(temp_tax))]["hsn_code"]
                 else:
                     log.info("TAX is not matched to any hsn code tax " + str(temp_tax) + " PO Number " + str(po_number))
+            _open.hsn_code = hsn_code
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'hsn_code': netsuite_hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
@@ -11208,6 +11213,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'cgst_tax': cgst_tax , 'utgst_tax': utgst_tax , 'cess_tax': cess_tax,
                     'unitypeexid': unitexid, 'uom_name': purchaseUOMname }
             po_data['items'].append(item)
+            _open.save()
         # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO') 
         intObj = Integrations(user, 'netsuiteIntegration')
         if po_integration_data:
@@ -17930,12 +17936,21 @@ def po_update_integrate_to_netsuite(request, request_data, user, po_number, po_r
                         response["items"].remove(e_row)
                         continue
                     elif total_tax:
+                        if not request_data['remarks'][i]:
+                            return {"status": False, "message": "Remarks is mandatory"}
                         if po.received_quantity:
                             return {"status": False, "message": "SKU %s got received" % (wms_code)}
                         if cess_tax:
                             e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"] + "_KL"
+                            open_po.hsn_code = hsn_list[str(int(total_tax))]["hsn_code"]
+                            open_po.save()
                         else:
-                            e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"]
+                            try:
+                                e_row["hsn_code"] = hsn_list[str(int(total_tax))]["refrence_id"]
+                                open_po.hsn_code = hsn_list[str(int(total_tax))]["hsn_code"]
+                                open_po.save()
+                            except:
+                                return {"status": False, "message": "Tax Percentage of %s is not Mapped" % str(int(total_tax))}
 		    else:
 			e_row["hsn_code"] = hsn_list[str(0)]["refrence_id"]
                     e_row["unit_price"] = price

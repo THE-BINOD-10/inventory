@@ -18,6 +18,7 @@
           </li>
         </ul>
       </div>
+      <button type="button" class="btn btn-primary pull-left" ng-click="showCase.service.download_full_report('stock_summary')">Download Stock Summary</button>
       <button type="button" class="btn btn-primary pull-right mr15" ng-click="showCase.open('md')" ng-if="user.user_profile['user_type'] == 'marketplace_user'">Seller Stock</button>
       <button type="button" class="btn btn-primary pull-right hide" ng-click="showCase.excel()">Download Excel</button>
     </div>

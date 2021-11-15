@@ -17488,7 +17488,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['po_number', 'creation_date','expected_date']
+    values_list = ['po_number']
     model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct()
     #model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
                                         #annotate(total_qty=Sum('open_po__order_quantity'),
@@ -17633,6 +17633,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
          'pending_po__full_po_number', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__wh_user__userprofile__zone']
         check_pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number=po_number)\
                         .values(*pr_values_list).distinct()
+        expected_delivery_date, payment_term = '', ''
         if check_pr_data.exists():
             for pr_data in check_pr_data:
                 po_user = pr_data["pending_po__requested_user__username"]
@@ -17693,8 +17694,8 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             pending_po__full_po_number=po_number)
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
-        if result['expected_date']:
-            delivery_date = result['expected_date'].strftime("%d-%b-%y")
+        # if result['expected_date']:
+        #    delivery_date = result['expected_date'].strftime("%d-%b-%y")
         if not pr_plant and user_id:
             req_user = User.objects.using(reports_database).filter(id=user_id)
             if req_user:
@@ -17970,7 +17971,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                        'updation_date', 'pending_prs__requested_user__id','pending_prs__wh_user__id','supplier_payment__payment_description',
                        'pending_prs__id', 'product_category', 'sku_category', 'id', 'pending_prs__wh_user__userprofile__zone']
         pr_data = PendingPO.objects.using(reports_database).filter(full_po_number = result['po_number']).values(*pr_values_list)
-        pr_plant_code, mrp_pr  = "",""
+        pr_plant_code, mrp_pr, payment_term  = "","",""
         if pr_data:
             pr_data = pr_data[0]
             product_category = pr_data['product_category']

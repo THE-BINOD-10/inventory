@@ -15513,7 +15513,12 @@ def download_full_report(request, user=''):
                             'goods_receipt': 'GRN report Header level',
                             'sku_wise_goods_receipt':'GRN report Line level',
                             'get_pr_report': 'PR report Header level',
-                            'get_pr_detail_report': 'PR report Line level'}
+                            'get_pr_detail_report': 'PR report Line level',
+                            'PRAOD_report': 'PRAOD report',
+                            'POAOD_report': 'POAOD report',
+                            'stock_summary': 'STOCK_SUMMARY report',
+                            'get_pr_performance_report_dat': 'PR_performance_report',
+                            'get_po_performance_report_dat': 'PO_performance_report'}
     excel_name = request.POST['excel_name']
     filename = EXCEL_REPORT_MAPPING.get(excel_name, '')
     user = User.objects.filter(id=2)[0]

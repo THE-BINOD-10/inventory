@@ -17746,6 +17746,8 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
         search_params['sku__sku_category__in'] = filters['sku_category'].split(',')
     if 'sku_code' in filters and filters['sku_code']:
         search_params['sku__sku_code'] = filters['sku_code']
+    if not (request.user.is_staff or get_permission(request.user, 'add_mrp')):
+        user_ids = list(ReplenushmentMaster.objects.filter(mrp_receiver=request.user.username, user_id__in=user_ids).values_list('user_id', flat=True))
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -17770,13 +17772,17 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
             supplier_name = supplier.name
         raise_pr_input = '<input type="text" class="form-control decimal raise_pr_%s" name="raise_pr_qty" value="%s">' % (str(data.id), int(data.suggested_qty))
         if not stop_index:
-            raise_pr_input = round(data.suggested_qty, 5)
-        staff = StaffMaster.objects.filter(mrp_user=1, plant__name=plant.username, department_type__name=data.user.userprofile.stockone_code)
+            raise_pr_input = int(data.suggested_qty)
         staff_email, staff_phone = [''] * 2
-        if staff:
-            staff = staff[0]
-            staff_email = staff.email_id
-            staff_phone = staff.phone_number
+        repl_obj = ReplenushmentMaster.objects.filter(user=data.user.id).first()
+        emails = []
+        if repl_obj:
+            emails = [repl_obj.mrp_receiver]
+            staff = StaffMaster.objects.filter(email_id__in=emails)
+            if staff:
+                staff = staff[0]
+                staff_email = staff.email_id
+                staff_phone = staff.phone_number
         data_dict = OrderedDict(( ('DT_RowId', data.id), ('MRP Run Id', data.transact_number), ('MRP Receiver User', staff_email ), ('MRP Receiver Phone', staff_phone ),
                                     ('Plant Code', plant.userprofile.stockone_code), ('Plant Name', plant.first_name),
                                     ('Department', data.user.first_name), ('State', plant.userprofile.state),
@@ -17786,7 +17792,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
                                   ('Lead Time Qty', round(data.lead_time_qty, 5)), ('Min Days Qty', round(data.min_days_qty, 5)), ('Max Days Qty', round(data.max_days_qty, 5)),
                                   ('Dept Stock Qty', round(data.system_stock_qty, 5)), ('Allocated Plant Stock Qty', round(data.plant_stock_qty, 5)),
                                   ('Pending PR Qty', round(data.pending_pr_qty, 5)), ('Pending PO Qty', round(data.pending_po_qty, 5)),
-                                  ('Total Stock Qty', round(data.total_stock_qty, 5)), ('Suggested Qty', round(data.suggested_qty, 5)),
+                                  ('Total Stock Qty', round(data.total_stock_qty, 5)), ('Suggested Qty', int(data.suggested_qty)),
                                   ('Raise PR Quantity', raise_pr_input),
                                   ('Supplier Id', supplier_id), ('Supplier Name', supplier_name), ('Suggested Value', data.amount),
                                   ('DT_RowAttr', {'data-id': data.id}),
@@ -18466,6 +18472,7 @@ def send_material_planning_mail(request, user):
         run_sku_codes = [filters['sku_code']]
     mrp_objs = MRP.objects.filter(user__in=user_ids, status=1).values('user').annotate(Count('id'))
     host = request.META['HTTP_REFERER']
+    repl_user_email = {}
     for mrp_obj in mrp_objs:
         user_obj = User.objects.get(id=mrp_obj['user'])
         plant = get_admin(user_obj)
@@ -18473,9 +18480,14 @@ def send_material_planning_mail(request, user):
         email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
         url = '%s#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
         email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
-        emails = list(StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True))
+        repl_obj = ReplenushmentMaster.objects.filter(user=user_obj.id).first()
+        emails = []
+        if repl_obj:
+            emails = [repl_obj.mrp_receiver]
+        #emails = list(StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True))
         emails.extend(['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'])
         if len(emails) > 0:
+            emails = list(OrderedDict.fromkeys(emails))
             send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])
     return HttpResponse("Success")
 

@@ -37,6 +37,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('lead_time').withTitle('Lead Time in Days'),
         DTColumnBuilder.newColumn('min_days').withTitle('Min Days'),
         DTColumnBuilder.newColumn('max_days').withTitle('Max Days'),
+        DTColumnBuilder.newColumn('mrp_receiver').withTitle('MRP Receiver Mail'),
 
     ];
 

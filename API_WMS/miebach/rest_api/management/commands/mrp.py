@@ -111,7 +111,7 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
         stock_qtys[grp_key] += stock['total']
     print "Preparing stock dict completed"
     plant_stock_qtys = {}
-    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku_id__in=repl_sku_ids, quantity__gt=0).\
+    plant_stocks = StockDetail.objects.filter(sku__user__in=plant_user_ids, sku__sku_code__in=sku_codes, quantity__gt=0).\
                                                 values('sku__user', 'sku__sku_code').distinct().annotate(total=Sum('quantity'))
     for plant_stock in plant_stocks:
         grp_key = (plant_stock['sku__user'], plant_stock['sku__sku_code'])
@@ -317,7 +317,11 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
             email_subject = "Material Planning generated for Plant: %s, Department: %s" % (plant_code, user_obj.first_name)
             url = '%s/#/inbound/MaterialPlanning?plant_code=%s&dept_type=%s' % (host, plant_code, user_obj.userprofile.stockone_code)
             email_body = 'Hi Team,<br><br>Material Planning data is generated successfully for Plant: %s, Department: %s.<br><br>Please Click on the below link to view the data.<br><br>%s' % (plant_code, user_obj.first_name, url)
-            emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True)
+            #emails = StaffMaster.objects.filter(plant__name=plant.username, department_type__name=user_obj.userprofile.stockone_code, position='PR User', mrp_user=True).values_list('email_id', flat=True)
+            repl_obj = ReplenushmentMaster.objects.filter(user=user_obj.id).first()
+            emails = []
+            if repl_obj:
+                emails = [repl_obj.mrp_receiver]
             if len(emails) > 0:
                 emails.extend(['sreekanth@mieone.com', 'pradeep@mieone.com', 'kaladhar@mieone.com'])
             send_sendgrid_mail('', user, 'mhl_mail@stockone.in', emails, email_subject, email_body, files=[])

@@ -13497,27 +13497,25 @@ def validate_and_prepare_pr_po_config_data(request, reader, user, no_of_rows, no
                     data_dict[key] = cell_data
                 else:
                     index_status.setdefault(row_idx, set()).add('Level is Mandatory')
-            elif key == 'role':
-                if cell_data:
-                    cell_data = cell_data.split(',')
-                    temp_roles = []
-                    for cel_dat in cell_data:
-                        if cel_dat in company_roles_list:
-                            temp_roles.append(cel_dat)
-                        else:
-                            index_status.setdefault(row_idx, set()).add('Invalid Role')
-                    if len(temp_roles) > 0:
-                        data_dict[key] = temp_roles
-                else:
-                    index_status.setdefault(row_idx, set()).add('Role is Mandatory')
+            # elif key == 'role':
+            #     if cell_data:
+            #         cell_data = cell_data.split(',')
+            #         temp_roles = []
+            #         for cel_dat in cell_data:
+            #             if cel_dat in company_roles_list:
+            #                 temp_roles.append(cel_dat)
+            #             else:
+            #                 index_status.setdefault(row_idx, set()).add('Invalid Role')
+            #         if len(temp_roles) > 0:
+            #             data_dict[key] = temp_roles
+            #     else:
+            #         index_status.setdefault(row_idx, set()).add('Role is Mandatory')
             elif key == 'email':
                 if cell_data:
                     try:
-                        if cell_data in staff_role_dict.keys() and data_dict['role']:
-                            if staff_role_dict[cell_data] in data_dict['role']:
-                                data_dict[key] = cell_data
-                            else:
-                                index_status.setdefault(row_idx, set()).add('Unmatched EmailID with Role')
+                        if cell_data in staff_role_dict.keys():
+                            data_dict[key] = cell_data
+                            data_dict['role'] = staff_role_dict.get(cell_data, '')
                         else:
                             index_status.setdefault(row_idx, set()).add('Invalid EmailID')
                     except Exception as e:

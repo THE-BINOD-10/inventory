@@ -485,7 +485,7 @@ PO_SHORT_CLOSE_HEADERS = OrderedDict((
 PR_PO_APPROVAL_HEADERS = OrderedDict((
                                         ('Approval Type(PR/PO)', 'approval_type'), ('Config Name', 'config_name'), ('Zone', 'zone'), ('Product Category', 'product_category'), ('Department', 'department_type'),
                                         ('SKU Category', 'sku_category'), ('plant Code', 'plant'), ('Config type(ranges)', 'config_type'), ('Min Amount', 'min_amt'), ('Max Amount', 'max_amt'),
-                                        ('Level', 'level'), ('Role', 'role'), ('Email', 'email')
+                                        ('Level', 'level'), ('Email', 'email')
                                     ))
 # User Type Order Formats
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',

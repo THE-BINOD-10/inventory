@@ -125,10 +125,10 @@ def generate_mrp_main(user, run_user_ids=None, run_sku_codes=None,  is_autorun=F
     for cons in consumption_lt3.only('sku__user', 'sku__sku_code', 'id', 'quantity'):
         print "Preparing Consumption: " + str(cons.id)
         cons_sku_user = cons.sku.user
+        cons_usr = User.objects.get(id=cons.sku.user)
         if cons.sku.user in user_id_mapping:
             usr = user_id_mapping[cons.sku.user]
         else:
-            cons_usr = User.objects.get(id=cons.sku.user)
             if cons_usr.userprofile.warehouse_type == 'DEPT':
                 usr = get_admin(cons_usr)
             else:

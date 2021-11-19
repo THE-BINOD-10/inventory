@@ -17740,7 +17740,7 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if 'sku_code' in filters and filters['sku_code']:
         search_params['sku__sku_code'] = filters['sku_code']
     if not (request.user.is_staff or get_permission(request.user, 'add_mrp')):
-        user_ids = list(ReplenushmentMaster.objects.filter(mrp_receiver=request.user.username, user_id__in=user_ids).values_list('user_id', flat=True))
+        user_ids = list(ReplenushmentMaster.objects.filter(mrp_receiver=request.user.username, user_id__in=user_ids).values_list('user_id', flat=True).distinct())
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data

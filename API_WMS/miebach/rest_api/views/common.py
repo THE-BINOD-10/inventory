@@ -14904,7 +14904,7 @@ def get_last_three_months_consumption(filters):
     start_date = end_date - relativedelta(months=3)
     start_date = get_utc_start_date(start_date)
     end_date = get_utc_start_date(end_date)
-    last_three_months = ConsumptionData.objects.filter(creation_date__range=[start_date, end_date], **filters).exclude(quantity=0)
+    last_three_months = ConsumptionData.objects.filter(is_valid=0, creation_date__range=[start_date, end_date], **filters).exclude(quantity=0)
     return last_three_months
 
 def get_average_consumption_qty(user, sku_code, sku_pcf=''):

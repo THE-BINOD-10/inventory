@@ -5776,7 +5776,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(username__icontains=search_term)
-            search_users = list(search_objs.values_list('id', flat=True))
+            users = list(search_objs.values_list('id', flat=True))
         if filter_params.get('sku__user__icontains', ''):
             search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
             search_users = list(search_objs.values_list('id', flat=True))
@@ -5788,7 +5788,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(username__icontains=search_term)
-            search_users = list(search_objs.values_list('id', flat=True))
+            users = list(search_objs.values_list('id', flat=True))
         if filter_params.get('sku__user__icontains', ''):
             search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
             search_users = list(search_objs.values_list('id', flat=True))

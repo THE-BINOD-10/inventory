@@ -2309,7 +2309,8 @@ SKU_HEADERS = ['SKU Code', 'SKU Description', 'SKU Group', 'SKU Type(Options: FG
                'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
                'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Batch Based',
-               'GL Code', 'Status', 'Creation Date', 'Updation Date']
+               'GL Code', 'Status', 'Creation Date', 'Updation Date',
+               'Base UOM', 'UOM Type', 'UOM', 'Conversion']
 
 MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -2683,7 +2684,9 @@ SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
                                   ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_options'),
-                                  ('Batch Based', 'batch_based'), ('GL Code', 'gl_code')
+                                  ('Batch Based', 'batch_based'), ('GL Code', 'gl_code'),
+                                  ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'),
+                                  ('UOM', 'uom'), ('Conversion', 'conversion')
                                   ))
 
 ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Description', 'sku_desc'),

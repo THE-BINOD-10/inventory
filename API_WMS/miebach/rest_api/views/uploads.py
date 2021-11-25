@@ -1725,6 +1725,19 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                             cell_data = int(cell_data)
                         except:
                             index_status.setdefault(row_idx, set()).add('GL Code should be Number')
+            elif key == 'conversion':
+                try:
+                    cell_data = float(cell_data)
+                except:
+                    cell_data = 1
+                    index_status.setdefault(row_idx, set()).add('Invalid Conversion')
+            elif key in ['base_uom', 'uom_type', 'uom']:
+                if cell_data:
+                    if key == 'uom_type':
+                        if cell_data.lower() not in ['purchase', 'storage', 'consumption']:
+                            index_status.setdefault(row_idx, set()).add('%s is Invalid' % inv_res[key])
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
     if not index_status:
         return 'Success'
 
@@ -1783,6 +1796,7 @@ def get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file
 
 def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
                         is_asset=False, is_service=False, is_item=False, is_test=False):
+    from masters import gather_uom_master_for_sku
     from masters import check_update_size_type
     from masters import check_update_hot_release
     from api_calls.netsuite import netsuite_update_create_sku
@@ -1816,7 +1830,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
             continue
-
+        uom_dict = {}
         data_dict = copy.deepcopy(SKU_DATA)
         if is_service:
             data_dict.update(SERVICE_SKU_DATA)
@@ -1828,7 +1842,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             data_dict.update(TEST_SKU_DATA)
 
         temp_dict = data_dict.keys()
-        temp_dict += ['size_type', 'hot_release']
+        temp_dict += ['size_type', 'hot_release', 'base_uom', 'uom_type', 'uom', 'conversion']
         data_dict['user'] = user.id
 
         sku_code = ''
@@ -1838,6 +1852,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         hot_release = 0
         attr_dict = {}
         ean_numbers = []
+        company_id = get_company_id(user)
+        uom_data_list=[]
+        sku_dict={}
+        sku_list_data=[]
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
             if key in attributes.keys():
@@ -2025,6 +2043,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     if sku_data:
                         setattr(sku_data, key, cell_data)
                         setattr(sku_data, 'product_type', cell_data)
+            elif key == 'conversion':
+                try:
+                    cell_data = float(cell_data)
+                except:
+                    cell_data = 1
+                uom_dict[key] = cell_data
+            elif key in ['base_uom', 'uom_type', 'uom']:
+                if cell_data:
+                    uom_dict[key] = cell_data
             # elif key == 'asset_number':
             #     if isinstance(cell_data, float):
             #         if sku_data:
@@ -2057,6 +2084,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_data = instanceName(**data_dict)
             sku_data.save()
         if sku_data:
+            uom_dict['sku_code'] = sku_data.sku_code
             sku_data.save()
             upload_netsuite_sku(sku_data, user,instanceName)
             all_sku_masters.append(sku_data)
@@ -2084,6 +2112,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
 
         if not sku_data:
+            uom_dict['sku_code'] = data_dict['wms_code']
             data_dict['sku_code'] = data_dict['wms_code']
 
             if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster']:
@@ -2115,6 +2144,29 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             #sku_master.save()
             #all_sku_masters.append(sku_master)
             #sku_data = sku_master
+        name = '%s-%s' % (uom_dict['uom'], str(int(uom_dict['conversion'])))
+        uom_dict['name'] = name
+        uom_dict['company_id'] = company_id
+        uom_obj = UOMMaster.objects.filter(**uom_dict)
+        if not uom_obj:
+            UOMMaster.objects.create(**uom_dict)
+        sku_dict[uom_dict["sku_code"]]=True
+        sku_list_data.append(uom_dict["sku_code"])
+        SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list=[],[],[],[]
+        intObj = Integrations(user,'netsuiteIntegration')
+        for sku_code in sku_dict.keys():
+            uom_data = gather_uom_master_for_sku(user, sku_code)
+            uom_data_list.append(uom_data)
+    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list= netsuite_sku_uom_update(sku_list_data, user, intObj)
+    intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
+    if(SKUMaster_list):
+        intObj.integrateSkuMaster(SKUMaster_list,"sku_code", is_multiple=True)
+    if(ServiceMaster_list):
+        intObj.integrateSkuMaster(ServiceMaster_list,"sku_code", is_multiple=True)
+    if(AssetMaster_list):
+        intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
+    if(OtherItemsMaster_list):
+        intObj.integrateSkuMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     if new_skus:
         new_ean_objs = []
         new_sku_objs = map(lambda d: d['sku_obj'], new_skus.values())
@@ -10877,7 +10929,7 @@ def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                 try:
                     cell_data = float(cell_data)
                 except:
-                    cell_data = 0
+                    cell_data = 1
                     index_status.setdefault(row_idx, set()).add('Invalid Conversion')
                 data_dict[key] = cell_data
             elif key in ['base_uom', 'uom_type', 'uom']:

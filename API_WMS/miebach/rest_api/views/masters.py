@@ -5075,7 +5075,7 @@ def update_staff_values(request, user=''):
     if request.POST.get('status', '') == "Active":
         status = 1
         if not User.objects.filter(username=email)[0].is_active:
-	    log.info('Activating Staff user '+ email + ' by ' + request.user.username + ' with params ' + str(request.POST.dict()))
+	    log.info('Activating Staff user '+ email + ' by ' + request.user.username + ' ' +str(get_user_ip(request)) + ' with params ' + str(request.POST.dict()))
             User.objects.filter(username=email).update(is_active= True) 
     else:
 	staff_usr = email
@@ -5088,7 +5088,7 @@ def update_staff_values(request, user=''):
 	    return HttpResponse("Please Move the pending PR, PO, GRN's to someone before making user Inactive!")
 	else:
             if User.objects.filter(username=email)[0].is_active:
-	        log.info('Inactivating Staff user '+ email + ' by ' + request.user.username + ' with params ' + str(request.POST.dict()))
+	        log.info('Inactivating Staff user '+ email + ' by ' + request.user.username + ' ' +str(get_user_ip(request)) + ' with params ' + str(request.POST.dict()))
                 User.objects.filter(username=email).update(is_active= False)
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
@@ -5776,7 +5776,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(username__icontains=search_term)
-            search_users = list(search_objs.values_list('id', flat=True))
+            users = list(search_objs.values_list('id', flat=True))
         if filter_params.get('sku__user__icontains', ''):
             search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
             search_users = list(search_objs.values_list('id', flat=True))
@@ -5788,7 +5788,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(username__icontains=search_term)
-            search_users = list(search_objs.values_list('id', flat=True))
+            users = list(search_objs.values_list('id', flat=True))
         if filter_params.get('sku__user__icontains', ''):
             search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
             search_users = list(search_objs.values_list('id', flat=True))

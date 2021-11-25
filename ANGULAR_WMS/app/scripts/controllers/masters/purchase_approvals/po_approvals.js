@@ -86,7 +86,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '',
+  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '', zone: '',
   default_level_data: [{level: 'level0', roles: '', data_id: ''}],
    ranges_level_data: [{min_Amt: 0, max_Amt: 0, range_no: 0, 'range_levels': [{level: 'level0', roles: '', data_id: '', level_no: 0}] }],
   approved_level_data: [{level: 'level0', roles: '', data_id: ''}]};
@@ -120,6 +120,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $timeout(function(){$('.selectpicker-default').selectpicker();}, 1000);
     $timeout(function(){$('.selectpicker-approved').selectpicker();}, 1000);
     $timeout(function(){$('.selectpicker-plants').selectpicker();}, 1000);
+  }
+
+  vm.emails_list = {};
+  function get_emails() {
+    vm.service.apiCall("get_emails_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.emails_list = data.data.emails;
+      }
+    });
+  }
+  get_emails();
+
+  vm.updateRoles = function(level_dat, email){
+    level_dat['roles'] = [vm.emails_list[email]]
   }
 
   vm.submit = function(data) {

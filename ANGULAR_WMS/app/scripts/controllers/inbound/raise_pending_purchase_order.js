@@ -162,7 +162,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.final_po_data = {}
       vm.confirm_btn_disable = true;
       vm.data_id = aData['id']?aData['id']:''
-      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], id:vm.data_id };
+      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], id:vm.data_id, 'partially_received_po': vm.partially_received_po};
       vm.is_direct_po = true;
       if (aData['PR No'] != "None") {
         vm.is_direct_po = false;
@@ -351,10 +351,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
+    vm.partially_received_po = false;
     if ($rootScope.$current_po != '') {
       vm.supplier_id = $rootScope.$current_po['Supplier ID'];
       if($rootScope.$current_po['from_supplier_wise_pos']){
         vm.from_supplier_pos = $rootScope.$current_po['from_supplier_wise_pos'];
+      }
+      if($rootScope.$current_po['partially_received_po']){
+        vm.partially_received_po = $rootScope.$current_po['partially_received_po'];
       }
       vm.row_click_opt = false;
       vm.dynamic_route($rootScope.$current_po);

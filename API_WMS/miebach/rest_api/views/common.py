@@ -1681,7 +1681,8 @@ def configurations(request, user=''):
         config_dict['stock_display_warehouse'] = []
 
     # Invoice Marketplaces list and selected Option
-    config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
+    # Commenting for optimising Code
+    '''config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
     config_dict['prefix_data'] = list(InvoiceSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix', 'interfix', 'date_type'))
     config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
@@ -1702,10 +1703,11 @@ def configurations(request, user=''):
     config_dict['prefix_st_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
                                                                          type_name='stock_transfer_invoice').exclude(
                                                                           type_value=''). \
-                                         values('prefix').annotate(marketplace=F('type_value')))
+                                         values('prefix').annotate(marketplace=F('type_value')))'''
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
-    order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
+    misc_details = MiscDetail.objects.filter(user=user.id)
+    order_field_obj =  misc_details.filter(misc_type='extra_order_fields')
     extra_order_fields = get_misc_value('extra_order_fields', user.id)
     if extra_order_fields == 'false' :
         config_dict['all_order_fields'] = ''
@@ -1763,7 +1765,7 @@ def configurations(request, user=''):
     if user_profile:
         config_dict['prefix'] = user_profile[0].prefix
 
-    enabled_reports = MiscDetail.objects.filter(misc_type__contains='report', misc_value='true', user=request.user.id)
+    enabled_reports = misc_details.filter(misc_type__contains='report', misc_value='true')
     config_dict['reports_data'] = []
     for reports in enabled_reports:
         config_dict['reports_data'].append(str(reports.misc_type.replace('report_', '')))
@@ -1777,7 +1779,7 @@ def configurations(request, user=''):
     if config_dict['pos_switch'] == 'false':
         config_dict['display_pos'] = 'display:none'
 
-    tax_details = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=request.user.id)
+    tax_details = misc_details.filter(misc_type__istartswith='tax_')
     config_dict['tax_data'] = []
     if tax_details:
         for tax in tax_details:
@@ -13794,6 +13796,15 @@ def get_company_roles_list(request, user=''):
                                     values_list('role_name', flat=True))
     return HttpResponse(json.dumps({'roles_list': roles_list}))
 
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_emails_list(request, user=''):
+    company_id = get_company_id(user)
+    emails = dict(StaffMaster.objects.filter(company_id=company_id, status=1).\
+                                    values_list('email_id', 'position'))
+    return HttpResponse(json.dumps({'emails': emails}))
+
 
 def update_user_role(user, sub_user, position, old_position=''):
     company_id = get_company_id(user)
@@ -13898,14 +13909,14 @@ def get_purchase_config_data(request, user=''):
     except Exception as e:
         pass
     purchase_config_data = PurchaseApprovalConfig.objects.filter(display_name=name,
-                                                                 purchase_type=purchase_type)
+                                                                 purchase_type=purchase_type).order_by('min_Amt')
     config_dict = {}
     if purchase_config_data:
         purchase_config = purchase_config_data[0]
         plants = list(purchase_config.plant.filter().values_list('name', flat=True))
         plant_names = ','.join(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
         config_dict = {'name': purchase_config.display_name, 'product_category': purchase_config.product_category,
-                       'plant': plant_names, 'department_type': purchase_config.department_type,
+                       'plant': plant_names, 'department_type': purchase_config.department_type, 'zone': purchase_config.zone,
                        'default_level_data': [], 'sku_category': purchase_config.sku_category,
                        'ranges_level_data': [], 'approved_level_data': []}
         ranges_dict = OrderedDict()
@@ -15513,7 +15524,12 @@ def download_full_report(request, user=''):
                             'goods_receipt': 'GRN report Header level',
                             'sku_wise_goods_receipt':'GRN report Line level',
                             'get_pr_report': 'PR report Header level',
-                            'get_pr_detail_report': 'PR report Line level'}
+                            'get_pr_detail_report': 'PR report Line level',
+                            'PRAOD_report': 'PRAOD report',
+                            'POAOD_report': 'POAOD report',
+                            'stock_summary': 'STOCK_SUMMARY report',
+                            'get_pr_performance_report_dat': 'PR_performance_report',
+                            'get_po_performance_report_dat': 'PO_performance_report'}
     excel_name = request.POST['excel_name']
     filename = EXCEL_REPORT_MAPPING.get(excel_name, '')
     user = User.objects.filter(id=2)[0]

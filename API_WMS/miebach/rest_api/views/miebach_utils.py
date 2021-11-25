@@ -485,7 +485,7 @@ PO_SHORT_CLOSE_HEADERS = OrderedDict((
 PR_PO_APPROVAL_HEADERS = OrderedDict((
                                         ('Approval Type(PR/PO)', 'approval_type'), ('Config Name', 'config_name'), ('Zone', 'zone'), ('Product Category', 'product_category'), ('Department', 'department_type'),
                                         ('SKU Category', 'sku_category'), ('plant Code', 'plant'), ('Config type(ranges)', 'config_type'), ('Min Amount', 'min_amt'), ('Max Amount', 'max_amt'),
-                                        ('Level', 'level'), ('Role', 'role'), ('Email', 'email')
+                                        ('Level', 'level'), ('Email', 'email')
                                     ))
 # User Type Order Formats
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',
@@ -2309,7 +2309,8 @@ SKU_HEADERS = ['SKU Code', 'SKU Description', 'SKU Group', 'SKU Type(Options: FG
                'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
                'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Batch Based',
-               'GL Code', 'Status', 'Creation Date', 'Updation Date']
+               'GL Code', 'Status', 'Creation Date', 'Updation Date',
+               'Base UOM', 'UOM Type', 'UOM', 'Conversion']
 
 MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -2683,7 +2684,9 @@ SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
                                   ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_options'),
-                                  ('Batch Based', 'batch_based'), ('GL Code', 'gl_code')
+                                  ('Batch Based', 'batch_based'), ('GL Code', 'gl_code'),
+                                  ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'),
+                                  ('UOM', 'uom'), ('Conversion', 'conversion')
                                   ))
 
 ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Description', 'sku_desc'),
@@ -17488,7 +17491,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['po_number', 'creation_date','expected_date']
+    values_list = ['po_number']
     model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct()
     #model_data = PurchaseOrder.objects.using(reports_database).filter(**search_parameters).exclude(status='deleted').values(*values_list).distinct().order_by(order_data)
                                         #annotate(total_qty=Sum('open_po__order_quantity'),
@@ -17633,6 +17636,7 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
          'pending_po__full_po_number', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__wh_user__userprofile__zone']
         check_pr_data = PendingLineItems.objects.using(reports_database).filter(pending_po__full_po_number=po_number)\
                         .values(*pr_values_list).distinct()
+        expected_delivery_date, payment_term = '', ''
         if check_pr_data.exists():
             for pr_data in check_pr_data:
                 po_user = pr_data["pending_po__requested_user__username"]
@@ -17693,8 +17697,8 @@ def get_metropolis_po_report_data(request, search_params, user, sub_user):
             pending_po__full_po_number=po_number)
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
-        if result['expected_date']:
-            delivery_date = result['expected_date'].strftime("%d-%b-%y")
+        # if result['expected_date']:
+        #    delivery_date = result['expected_date'].strftime("%d-%b-%y")
         if not pr_plant and user_id:
             req_user = User.objects.using(reports_database).filter(id=user_id)
             if req_user:
@@ -17970,7 +17974,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
                        'updation_date', 'pending_prs__requested_user__id','pending_prs__wh_user__id','supplier_payment__payment_description',
                        'pending_prs__id', 'product_category', 'sku_category', 'id', 'pending_prs__wh_user__userprofile__zone']
         pr_data = PendingPO.objects.using(reports_database).filter(full_po_number = result['po_number']).values(*pr_values_list)
-        pr_plant_code, mrp_pr  = "",""
+        pr_plant_code, mrp_pr, payment_term  = "","",""
         if pr_data:
             pr_data = pr_data[0]
             product_category = pr_data['product_category']

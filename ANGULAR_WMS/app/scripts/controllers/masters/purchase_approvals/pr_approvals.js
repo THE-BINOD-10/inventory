@@ -86,7 +86,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '',
+  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '', zone : '',
   default_level_data: [{level: 'level0', roles: '', data_id: '' , display_emails: false, emails: ''}],
    ranges_level_data: [{min_Amt: 0, max_Amt: 0, range_no: 0, 'range_levels': [{level: 'level0', roles: '', emails: '',  data_id: '', level_no: 0}] }],
   approved_level_data: [{level: 'level0', roles: '', data_id: ''}]};
@@ -283,6 +283,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   get_roles_list();
 
+  vm.emails_list = {};
+  function get_emails() {
+    vm.service.apiCall("get_emails_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.emails_list = data.data.emails;
+      }
+    });
+  }
+  get_emails();
+
   vm.check_selected = function(data, role){
     var selected_val = false;
     for(var ind=0; ind<data.roles.length; ind++) {
@@ -292,6 +302,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     return selected_val;
+  }
+
+  vm.updateRoles = function(level_dat, email){
+    level_dat['roles'] = [vm.emails_list[email]]
   }
 
   vm.check_for_mail = function(data, row_index){

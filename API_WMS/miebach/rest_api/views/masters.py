@@ -7055,7 +7055,7 @@ def get_staff_pr_po_data(request, user=''):
     result_dict['PO_IDS'] = []
     result_dict['PR_IDS'] = []
     result_dict['SRN_IDS'] = []
-    po_datum , pr_datum, grn_datum = '', '', ''
+    po_datum , pr_datum, srn_datum = '', '', ''
     staff_usr = request.POST.get('source_staff', '')
     if staff_usr and ':' in staff_usr:
         staff_usr = staff_usr.split(':')[0]
@@ -7071,13 +7071,13 @@ def get_staff_pr_po_data(request, user=''):
     build_dict = {}
     if pr_number:
         po_number = ''
-        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='', pending_po__pending_prs__full_pr_number=pr_number).exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
+        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='', pending_pr__full_pr_number=pr_number).exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
                                     .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
         pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'], full_pr_number=pr_number)\
                                 .values('full_pr_number', 'creation_date', 'final_status', 'id')
     elif po_number:
-        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='', pending_po__pending_prs__full_po_number=po_number).exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
-                                    .values('pending_pr__full_pr_number', 'pending_pr__final_status', 'pending_pr__creation_date', 'purchase_type', 'validated_by', 'id')
+        datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='', pending_po__full_po_number=po_number).exclude(pending_pr__final_status__in=['cancelled', 'rejected'])\
+                                    .values('pending_po__full_po_number', 'pending_po__final_status', 'pending_po__creation_date', 'purchase_type', 'validated_by', 'id')
         po_datum = PendingPO.objects.filter(requested_user__username=staff_usr, full_po_number=po_number).exclude(final_status__in = ['cancelled', 'approved'])\
                                 .values('full_po_number', 'creation_date', 'final_status', 'id')
     elif srn_number:
@@ -7095,10 +7095,10 @@ def get_staff_pr_po_data(request, user=''):
         .values('json_data', 'creation_date', 'id')
     if datum.exists():
         for dat in datum:
-            try:
-                tt = get_local_date(user, dat['pending_pr__creation_date'])
-            except Exception as e:
-                continue
+            # try:
+            #     tt = get_local_date(user, dat['pending_pr__creation_date'])
+            # except Exception as e:
+            #     continue
             result_dict['PR_PO_IDS'].append(dat['id'])
             if dat['purchase_type'] == 'PR':
                 result_dict[dat['purchase_type']].append({'number': dat['pending_pr__full_pr_number'],

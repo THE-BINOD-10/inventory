@@ -13114,7 +13114,7 @@ def validate_inventory_norm_form(request, reader, user, no_of_rows, no_of_cols, 
             elif key == 'mrp_receiver':
                 staff = StaffMaster.objects.filter(company_id__in=company_list, email_id=cell_data)
                 if staff:
-                    data_dict[key] = staff[0].email_id
+                    data_dict[key] = staff[0]
                 else:
                     index_status.setdefault(row_idx, set()).add("Invalid Email")
         data_list.append(data_dict)
@@ -13414,7 +13414,7 @@ def inventory_norm_upload(request, user=''):
                         replenushment_obj.lead_time = final_data['lead_time']
                         replenushment_obj.min_days = final_data['sa_min_days']
                         replenushment_obj.max_days = final_data['sa_max_days']
-                        replenushment_obj.mrp_receiver = final_data.get('mrp_receiver', '')
+                        replenushment_obj.mrp_receiver = final_data.get('mrp_receiver', '').email_id if final_data.get('mrp_receiver', '') else ''
                         replenushment_obj.save()
                     else:
                         replenushment = {}
@@ -13423,8 +13423,12 @@ def inventory_norm_upload(request, user=''):
                         replenushment['max_days'] = final_data['sa_max_days']
                         replenushment['lead_time'] = final_data['lead_time']
                         replenushment['user'] = user
-                        replenushment['mrp_receiver'] = final_data.get('mrp_receiver', '')
+                        replenushment['mrp_receiver'] = final_data.get('mrp_receiver', '').email_id if final_data.get('mrp_receiver', '') else ''
                         ReplenushmentMaster.objects.create(**replenushment)
+                    staff_master = final_data.get('mrp_receiver', '')
+                    if staff_master:
+                        staff_master.mrp_user=True
+                        staff_master.save()
                 except:
                     pass
     except Exception as e:

@@ -18067,7 +18067,7 @@ def get_metropolis_po_detail_report_data(request, search_params, user, sub_user)
             ('PO Receivable Amt', po_receivable_amt),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', pr_amount),
+            ('Total Amount', po_received_amt+po_receivable_amt),
             ('Approved by all Approvers', all_approvals),
             ('PO Status', final_status.title()),
             ('Final Approver date', last_approvals_date),

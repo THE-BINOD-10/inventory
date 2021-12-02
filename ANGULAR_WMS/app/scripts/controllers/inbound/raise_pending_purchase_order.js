@@ -1679,6 +1679,7 @@ angular.module('urbanApp').controller('POskuRowCtrl', function ($scope, $http, $
       items['line_data']['fields']['sku']['intransit_quantity'] = data.data['intransit_quantity'];
       items['line_data']['fields']['sku']['avg_consumption_qty'] = data.data['avg_consumption_qty'];
       items['line_data']['fields']['sku']['skuPack_quantity'] = data.data['skuPack_quantity'];
+      items['line_data']['fields']['sku']['consumption_dict'] = data.data['consumption_dict']
     }
   })
   vm.line_data = items['line_data']['fields']

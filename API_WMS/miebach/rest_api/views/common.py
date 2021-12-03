@@ -15529,7 +15529,10 @@ def download_full_report(request, user=''):
                             'POAOD_report': 'POAOD report',
                             'stock_summary': 'STOCK_SUMMARY report',
                             'get_pr_performance_report_dat': 'PR_performance_report',
-                            'get_po_performance_report_dat': 'PO_performance_report'}
+                            'get_po_performance_report_dat': 'PO_performance_report',
+                            'get_stock_transfer_report_main': 'get_stock_transfer_report_main',
+                            'get_mr_report': 'get_mr_report',
+                            'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report'}
     excel_name = request.POST['excel_name']
     filename = EXCEL_REPORT_MAPPING.get(excel_name, '')
     user = User.objects.filter(id=2)[0]

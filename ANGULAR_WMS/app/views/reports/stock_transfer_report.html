@@ -1,3 +1,150 @@
 <div ng-controller="StockTransferReportCtrl as showCase">
-  <div ng-include="'views/reports/common/report.html'"></div>
+    <div class="page-layout reports">
+    <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <button ng-if="showCase.report_data.excel_name" type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, showCase.report_data.excel_name, true)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+          <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_full_report(showCase.report_data.excel_name)">Download Full Report</button>
+        </div>
+      </div>
+    </div>
+    <div class="layout-sub-header">
+        <form name="form" role="form" class="filters">
+          <div class="clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="field in showCase.report_data.filters">
+                <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Manufacturer </label>
+                  <input name="manufacturer" class="form-control" type="text" ng-model="showCase.model_data.manufacturer">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Searchable </label>
+                  <input name="searchable" class="form-control" type="text" ng-model="showCase.model_data.searchable">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Bundle </label>
+                  <input name="bundle" class="form-control" type="text" ng-model="showCase.model_data.bundle">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div ng-include="'views/common/controls/report_controls.html'"></div>
+            </div>
+          </div>
+        </form>
+    </div>
+
+    <div class="row" ng-if="showCase.service.totals_tb_data">
+      <div class = "col-md-12">
+        <div class="col-md-2" ng-repeat="(key,value) in showCase.service.totals_tb_data">
+          <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+            <div class="overflow-hidden">
+            <span class="widget-subtitle">{{key}}: </span>
+            <span class="widget-title bold">{{value}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-body">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="panel" ng-if="showCase.datatable">
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'goods receipt note' || ($state.current.data.title | lowercase) == 'stock transfer goods receipt note' || ($state.current.data.title | lowercase) == 'approval po reports'">
+      <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+      <span ng-if="($state.current.data.title | lowercase) == 'goods receipt note'">Toggle GRN</span>
+            <span ng-if="($state.current.data.title | lowercase) == 'stock transfer goods receipt note'">Toggle Stock Transfer GRN</span>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-1">
+      <label class="switch switch-sm square mt5">
+        <div>
+        <input type="checkbox" ng-model="showCase.toggle_sku_wise" ng-change="showCase.toggle_grn()" class="ng-valid ng-dirty">
+        <span><i class="handle"></i></span>
+        </div>
+      </label>
+      </div>
+    </div>
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'metropolis po report'">
+          <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+            <span ng-if="($state.current.data.title | lowercase) == 'metropolis po report'">PENDING PO'S</span>
+          </div>
+      <div class="col-md-1 col-sm-1 col-xs-1">
+      <label class="switch switch-sm square mt5">
+        <div>
+        <input type="checkbox" ng-model="showCase.toggle_pending_view" ng-change="showCase.toggle_view()" class="ng-valid ng-dirty">
+        <span><i class="handle"></i></span>
+        </div>
+      </label>
+      </div>
+    </div>
+        <div class="col-md-12 col-sm-12 col-xs-12"
+             ng-if="($state.current.data.title | lowercase) == 'approval po report' || ($state.current.data.title | lowercase) == 'pr report' || ($state.current.data.title | lowercase) == 'metropolis po report'
+            ||($state.current.data.title | lowercase) == 'cancel grn report' ">
+          <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+            <span ng-if="($state.current.data.title | lowercase) == 'approval po report'">Toggle PO Detail View</span>
+            <span ng-if="($state.current.data.title | lowercase) == 'pr report'">PR SKU View</span>
+            <span ng-if="($state.current.data.title | lowercase) == 'metropolis po report'">PO SKU LEVEL View</span>
+            <span ng-if="($state.current.data.title | lowercase) == 'cancel grn report'">GRN SKU Level</span>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-1">
+      <label class="switch switch-sm square mt5">
+        <div>
+        <input type="checkbox" ng-model="showCase.toggle_detail" ng-change="showCase.toggle_po()" class="ng-valid ng-dirty">
+        <span><i class="handle"></i></span>
+        </div>
+      </label>
+      </div>
+    </div>
+
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'rtv report'">
+      <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+      <span>SKU Level View</span>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-1">
+      <label class="switch switch-sm square mt5">
+        <div>
+        <input type="checkbox" ng-model="showCase.toggle_sku_wise" ng-change="showCase.toggle_rtv_sku_wise()" class="ng-valid ng-dirty">
+        <span><i class="handle"></i></span>
+        </div>
+      </label>
+      </div>
+    </div>
+
+    <div class="col-md-12 col-sm-12 col-xs-12" ng-if="$state.current.data.title == 'Intra Stock Transfer Orders' || $state.current.data.title == 'Material Request Report'">
+      <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+        <span>Batch Level View</span>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-1">
+        <label class="switch switch-sm square mt5">
+          <div>
+          <input type="checkbox" ng-model="showCase.toggle_batch_wise" ng-change="showCase.set_filter_function()" class="ng-valid ng-dirty">
+          <span><i class="handle"></i></span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+        <div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
+          <div ng-if="showCase.report_data.row_click">
+            <div class="panel-body">
+              <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+              <div ui-view></div>
+            </div>
+          </div>
+      </div>
+      <div ui-view></div>
+    </div>
+  </div>
+  </div>
+
 </div>

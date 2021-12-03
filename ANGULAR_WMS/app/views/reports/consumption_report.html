@@ -17,6 +17,7 @@
 					  			<button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data);showCase.reset()"> Reset </button>
 					  			<button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data)" style="margin-right: 10px"> Generate </button>
 					  			<button id="add-shippment-btn" ng-if="showCase.report_data.excel_name" type="button" class="btn btn-primary" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, showCase.report_data.excel_name, true)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+					  			<button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_full_report(showCase.report_data.excel_name)">Download Full Report</button>
 	            </div>
 	          </div>
 	        </form>

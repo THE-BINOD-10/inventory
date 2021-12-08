@@ -5079,7 +5079,7 @@ def update_staff_values(request, user=''):
             User.objects.filter(username=email).update(is_active= True) 
     else:
 	staff_usr = email
-	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])
+	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'], pending_po__final_status__in=['cancelled', 'rejected'])
 	po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])
         pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])
         srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary')

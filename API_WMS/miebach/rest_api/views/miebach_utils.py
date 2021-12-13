@@ -3850,6 +3850,11 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
                   'TTD', 'TVD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VEF', 'VND', 'VUV', 'WST', 'XAF',
                   'XCD', 'XDR', 'XOF', 'XPF', 'YER', 'ZAR', 'ZMW', 'ZWD']
 
+USER_ADDRESSES_MAPPING = OrderedDict((('Username', 'username'),
+                                     ('Address Title', 'address_title'), ('Address Name', 'address_name'), ('Mobile Number', 'address_mobile_number'),
+                                     ('Shipment Address', 'address_shipment'), ('Pincode', 'address_pincode')
+                                     ))
+
 USER_PREFIXES_MAPPING = OrderedDict((('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
                                      ('PO Prefix', 'po_prefix'), ('PO GRN prefix', 'grn_prefix'),

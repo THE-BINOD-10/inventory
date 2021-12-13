@@ -5079,7 +5079,7 @@ def update_staff_values(request, user=''):
             User.objects.filter(username=email).update(is_active= True) 
     else:
 	staff_usr = email
-	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'])
+	datum = PurchaseApprovals.objects.filter(validated_by__icontains=staff_usr, status='').exclude(pending_pr__final_status__in=['cancelled', 'rejected'], pending_po__final_status__in=['cancelled', 'rejected'])
 	po_datum = PendingPO.objects.filter(requested_user__username=staff_usr).exclude(final_status__in = ['cancelled', 'approved'])
         pr_datum = PendingPR.objects.filter(requested_user__username=staff_usr, final_status__in = ['saved', 'pending'])
         srn_datum = MastersDOA.objects.filter(wh_user__username=staff_usr, doa_status='pending',model_name='SellerPOSummary')
@@ -7099,17 +7099,19 @@ def get_staff_pr_po_data(request, user=''):
             #     tt = get_local_date(user, dat['pending_pr__creation_date'])
             # except Exception as e:
             #     continue
-            result_dict['PR_PO_IDS'].append(dat['id'])
-            if dat['purchase_type'] == 'PR':
-                result_dict[dat['purchase_type']].append({'number': dat['pending_pr__full_pr_number'],
+            try:
+                result_dict['PR_PO_IDS'].append(dat['id'])
+                if dat['purchase_type'] == 'PR':
+                    result_dict[dat['purchase_type']].append({'number': dat['pending_pr__full_pr_number'],
                                     'date': get_local_date(user, dat['pending_pr__creation_date']),
                                     'status': dat['pending_pr__final_status'],
                                     'pending_at': dat['validated_by']})
-            elif dat['purchase_type'] == 'PO':
-                result_dict[dat['purchase_type']].append({'number': dat['pending_po__full_po_number'],
+                elif dat['purchase_type'] == 'PO':
+                    result_dict[dat['purchase_type']].append({'number': dat['pending_po__full_po_number'],
                                     'date': get_local_date(user, dat['pending_po__creation_date']),
                                     'status': dat['pending_po__final_status'],
                                     'pending_at': dat['validated_by']})
+            except: continue
     if po_datum:
         for po_dat in po_datum:
             result_dict['PO_IDS'].append(po_dat['id'])

@@ -474,6 +474,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_userprefixes",
                  },
                  {
+                   title: "User Addresses Download/ Upload",
+                   download: "Download User Addresses Form",
+                   upload: "Upload User Addresses Form",
+                   durl: "user_addresses_form/",
+                   uurl: "user_addresses_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0 && Session.roles.permissions.is_staff,
+                   perm: "add_useraddresses",
+                 },
+                 {
                    title: "Staff Master Download/ Upload",
                    download: "Download Staff Master Form",
                    upload: "Upload Staff Master Form",

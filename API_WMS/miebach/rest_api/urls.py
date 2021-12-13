@@ -769,6 +769,8 @@ urlpatterns += [
     url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
     url(r'^user_prefixes_form/$', user_prefixes_form),
     url(r'^user_prefixes_upload/$', user_prefixes_upload),
+    url(r'^user_addresses_form/$', user_addresses_form),
+    url(r'^user_addresses_upload/$', user_addresses_upload),
     url(r'^staff_master_form/$', staff_master_form),
     url(r'^staff_master_upload/$', staff_master_upload),
     url(r'^uom_master_form/$', uom_master_form),

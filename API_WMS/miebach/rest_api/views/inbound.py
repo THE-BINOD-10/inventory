@@ -17758,7 +17758,10 @@ def get_material_planning_data(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     main_user = get_company_admin_user(user)
-    master_data = MRP.objects.filter(user__in=user_ids, status=1, **search_params).order_by(order_data)
+    if search_term:
+        master_data = MRP.objects.filter(Q(sku__sku_code__icontains=search_term)| Q(supplier_id__icontains=search_term)| Q(sku__sku_desc__icontains=search_term), user__in=user_ids, status=1, **search_params).order_by(order_data)
+    else:
+        master_data = MRP.objects.filter(user__in=user_ids, status=1, **search_params).order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     master_data = master_data[start_index:stop_index]

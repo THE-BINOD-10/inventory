@@ -1,0 +1,2 @@
+new_light_db.sql.tar.gz filter=lfs diff=lfs merge=lfs -text
+*.tar.gz filter=lfs diff=lfs merge=lfs -text

@@ -32,3 +32,31 @@ ANGULAR_WMS/app/temp/*
 ANGULAR_WMS/app/vendor/*
 ANGULAR_WMS/.tmp/*
 .idea/*
+
+# Ignore large database file
+new_light_db.sql.tar.gz
+
+# Ignore all .tar.gz files (if there are more you want to ignore)
+*.tar.gz
+
+# Ignore other large or unnecessary files (e.g., logs, temporary files)
+*.log
+*.bak
+*.swp
+
+
+# Ignore node_modules folder
+node_modules/
+
+# Ignore build and output folders
+dist/
+build/
+
+# Ignore IDE configuration files
+.idea/
+.vscode/
+
+# Ignore operating system files
+.DS_Store
+Thumbs.db
+
